@@ -30,38 +30,5 @@
         <p>Settings live in ~/.config/voxa, and voxa-backup archives them — encrypted, integrity-checked, with selective restore. The default wake word for conversation mode is "voxa" (change it in Preferences → Conversation if you prefer something else).</p>
       </description>
     </release>
-    <release version="0.5.0" date="2026-09-16">
-      <description>
-        <p>Hands-free conversation is now a real assistant loop: the model remembers earlier turns of the exchange (sent as a chat history), you can talk over a spoken reply to interrupt it and keep talking, and "cancel" or "goodbye" ends the conversation by voice.</p>
-        <p>A model picker in the main window and a page-per-topic Preferences layout, plus a GPU utilization gauge that stays visible for the app's lifetime.</p>
-        <p>Backup and restore of Ollama models, settings, and OpenCode configuration: encrypted, integrity-checked archives with a versioned manifest, default redaction of secrets, selective restore, and a newer-configuration guard that never silently overwrites.</p>
-        <p>Hardware-aware model suggestions sized to your GPU VRAM, one-click Ollama install, and in-app model management; live model discovery from Ollama's library.</p>
-      </description>
-    </release>
-    <release version="0.4.4" date="2026-09-07">
-      <description>
-        <p>Efficiency improvements: faster audio level metering and transcription probes, batched AI response rendering, quieter eSpeak fallback startup, and more robust streaming for newer Ollama servers.</p>
-      </description>
-    </release>
-    <release version="0.4.3" date="2026-08-27">
-      <description>
-        <p>Introduces a metallic microphone-and-waveform medallion that matches the Spaced Linux visual family while remaining distinct and recognizable at application-icon sizes.</p>
-      </description>
-    </release>
-    <release version="0.4.2" date="2026-08-27">
-      <description>
-        <p>Rebuilt the CUDA runtime with an OSTree-safe cuBLAS release so the Flatpak can be imported, installed, and mirrored by current Flatpak repositories.</p>
-      </description>
-    </release>
-    <release version="0.4.1" date="2026-08-04">
-      <description>
-        <p>Faster GPU dictation by probing the CUDA compute stack before loading, bundling the CUDA runtime libraries, and stopping the speaking indicator when speech finishes.</p>
-      </description>
-    </release>
-    <release version="0.4.0" date="2026-08-02">
-      <description>
-        <p>Rebuilt around GTK 4, libadwaita, and GStreamer with a modular, lower-overhead runtime.</p>
-      </description>
-    </release>
   </releases>
 </component>
