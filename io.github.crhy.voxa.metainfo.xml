@@ -13,11 +13,11 @@
     <p>The interface follows the system GTK and libadwaita theme, supports Wayland and X11, and uses PipeWire or PulseAudio through GStreamer.</p>
   </description>
   <launchable type="desktop-id">io.github.crhy.voxa.desktop</launchable>
-  <url type="homepage">https://github.com/crhy/Voice2Text-AI</url>
-  <url type="bugtracker">https://github.com/crhy/Voice2Text-AI/issues</url>
+  <url type="homepage">https://github.com/crhy/voxa</url>
+  <url type="bugtracker">https://github.com/crhy/voxa/issues</url>
   <screenshots>
     <screenshot type="default">
-      <image type="source">https://raw.githubusercontent.com/crhy/Voice2Text-AI/f5ad8ae34b86e06d524db705f6672818b7eaa1d1/docs/screenshots/v0.4.0-main.png</image>
+      <image type="source">https://raw.githubusercontent.com/crhy/voxa/f5ad8ae34b86e06d524db705f6672818b7eaa1d1/docs/screenshots/v0.4.0-main.png</image>
       <caption>Voice transcription and a streamed local AI response in dark mode</caption>
     </screenshot>
   </screenshots>

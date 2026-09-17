@@ -34,8 +34,8 @@ class VoxaApplication(Adw.Application):
             application_icon=APP_ID,
             developer_name="crhy",
             version=APP_VERSION,
-            website="https://github.com/crhy/Voice2Text-AI",
-            issue_url="https://github.com/crhy/Voice2Text-AI/issues",
+            website="https://github.com/crhy/voxa",
+            issue_url="https://github.com/crhy/voxa/issues",
             license_type=Gtk.License.MIT_X11,
             comments="Your personal voice assistant: hands-free dictation, local AI answers, and natural speech.",
         )

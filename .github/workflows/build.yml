@@ -42,7 +42,7 @@ jobs:
         with:
           manifest-path: io.github.crhy.voxa.yml
           branch: master
-          repo-dir: voice2text-repo
+          repo-dir: voxa-repo
           build-bundle: false
           upload-artifact: false
           cache-key: flatpak-builder-${{ github.sha }}
@@ -60,7 +60,7 @@ jobs:
           --arch=x86_64
           --repo-url=https://crhy.github.io/spacedbazaar/flatpak-repo/
           --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
-          voice2text-repo
+          voxa-repo
           Voxa.flatpak
           io.github.crhy.voxa
           master

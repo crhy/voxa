@@ -36,7 +36,7 @@ Flatpak. Works on Wayland and X11 with PipeWire or PulseAudio.
 
 ## Install (Flatpak)
 
-The easiest way is the Flatpak from the [releases](https://github.com/crhy/Voice2Text-AI/releases):
+The easiest way is the Flatpak from the [releases](https://github.com/crhy/voxa/releases):
 
 ```bash
 flatpak install --user Voxa.flatpak
