@@ -22,6 +22,7 @@ from .ollama import OllamaClient, OllamaError, strip_reasoning  # noqa: E402
 from .speech import SpeechService  # noqa: E402
 from .tasks import TaskStore  # noqa: E402
 from .transcription import WhisperService  # noqa: E402
+from .ui.attachment import attach_files  # noqa: E402
 from .ui.shell import AssistantShell  # noqa: E402
 from .ui.state import AssistantState  # noqa: E402
 
@@ -214,25 +215,7 @@ class MainWindow(Adw.ApplicationWindow):
             self._set_status(f"Asking with {model} from now on.")
 
     def _on_shell_attach(self) -> None:
-        """Attachment escape hatch: pick a file, file it as a task."""
-        dialog = Gtk.FileChooserNative(
-            title="Attach a file",
-            transient_for=self,
-            action=Gtk.FileChooserAction.OPEN,
-        )
-
-        def on_response(native: Gtk.FileChooserNative, response: int) -> None:
-            if response == Gtk.ResponseType.ACCEPT:
-                file = native.get_file()
-                if file is not None:
-                    path = file.get_path() or file.get_uri()
-                    name = file.get_basename() or path
-                    self.task_store.add_task(f"Attached {name}", detail=path)
-                    self._toast(f"Attached {name}.")
-            native.destroy()
-
-        dialog.connect("response", on_response)
-        dialog.show()
+        attach_files(self, self.task_store, self._toast)
 
     def _install_actions(self) -> None:
         actions = {
@@ -809,9 +792,11 @@ class MainWindow(Adw.ApplicationWindow):
         self._latest_level = 0.0
         self._start_level_updates()
         self.shell.set_agent_state(running=True, offline=False)
+        # Waiting for the wake word is READY, not LISTENING (issue #6):
+        # LISTENING starts once the wake word is actually heard.
         self.set_assistant_state(
-            AssistantState.LISTENING,
-            f"Conversation mode — say “{self.settings.wake_word}” to begin",
+            AssistantState.READY,
+            f"Say “{self.settings.wake_word}” to begin",
         )
 
     def stop_conversation_mode(self) -> None:
@@ -881,7 +866,10 @@ class MainWindow(Adw.ApplicationWindow):
             self.stop_conversation_mode()
             self._set_status("Goodbye!")
         else:
-            self._set_status(self._conversation_idle_status())
+            # Back to waiting for the wake word: READY, not LISTENING.
+            self.set_assistant_state(
+                AssistantState.READY, self._conversation_idle_status()
+            )
         return False
 
     def _conversation_speak(self, text: str) -> None:

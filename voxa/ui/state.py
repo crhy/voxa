@@ -17,6 +17,7 @@ class AssistantState(StrEnum):
     THINKING = "thinking"
     SPEAKING = "speaking"
     WORKING = "working"
+    WAITING = "waiting"
     ERROR = "error"
 
 
@@ -28,5 +29,6 @@ STATUS_TEXT: dict[AssistantState, str] = {
     AssistantState.THINKING: "Thinking…",
     AssistantState.SPEAKING: "Speaking…",
     AssistantState.WORKING: "Working…",
+    AssistantState.WAITING: "Waiting for you…",
     AssistantState.ERROR: "Something went wrong",
 }
