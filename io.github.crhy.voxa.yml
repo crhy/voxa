@@ -59,7 +59,9 @@ modules:
         strip-components: 0
     build-commands:
       - cd boost_1_86_0 && ./bootstrap.sh --with-libraries=filesystem,locale,system --prefix="$PWD/../boost-root" && ./b2 -j${FLATPAK_BUILDER_N_JOBS} link=static threading=multi install
-      - cmake -S rhubarb-lip-sync/rhubarb -B _rhubarb_build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/app/bin -DBOOST_ROOT="$PWD/boost-root"
+      # NOTE: the git source is checked out at the module build root, so the
+      # core target lives at ./rhubarb (not ./rhubarb-lip-sync/rhubarb).
+      - cmake -S rhubarb -B _rhubarb_build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/app/bin -DBOOST_ROOT="$PWD/boost-root"
       - cmake --build _rhubarb_build
       - cmake --install _rhubarb_build
 

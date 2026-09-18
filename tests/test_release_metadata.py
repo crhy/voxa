@@ -97,7 +97,7 @@ def test_rhubarb_module_is_pinned_and_installs_to_app_bin() -> None:
     # Avatar lip-sync (docs/AVATAR.md): rhubarb must come from a pinned tag
     # with its resources next to the installed binary.
     assert "tag: v1.9.1" in manifest
-    assert "rhubarb-lip-sync/rhubarb -B _rhubarb_build" in manifest
+    assert "cmake -S rhubarb -B _rhubarb_build" in manifest
     assert "CMAKE_INSTALL_PREFIX=/app/bin" in manifest
     assert "EsotericSoftwareSpine" not in manifest
 
