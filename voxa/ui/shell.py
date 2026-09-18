@@ -39,8 +39,8 @@ _SHELL_CSS = b"""
 }
 .voxa-model-select { min-width: 170px; }
 .voxa-mode-button { font-weight: bold; }
-.voxa-active-on { background-color: #2e7d32; color: white; }
-.voxa-offline-on { background-color: #c62828; color: white; }
+.voxa-active-on { background-image: none; background-color: #2e7d32; color: white; }
+.voxa-offline-on { background-image: none; background-color: #c62828; color: white; }
 """
 
 
