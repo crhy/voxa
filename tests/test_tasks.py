@@ -1,4 +1,4 @@
-"""Tests for voxa.tasks (issue #5 task model)."""
+"""Tests for voxa.tasks (issues #5, #6 task model)."""
 
 from __future__ import annotations
 
@@ -66,3 +66,47 @@ def test_choice_errors() -> None:
         store.resolve_choice(task.id, "nope")
     with pytest.raises(KeyError):
         store.complete_task(999)
+
+
+def test_start_task() -> None:
+    store = TaskStore()
+    task = store.add_task("a")
+    assert store.start_task(task.id).state == TaskState.RUNNING
+    store.complete_task(task.id)
+    with pytest.raises(ValueError):
+        store.start_task(task.id)
+
+
+def test_result_error_and_timestamps() -> None:
+    store = TaskStore()
+    done = store.add_task("a")
+    failed = store.add_task("b")
+    store.complete_task(done.id, detail="sent")
+    store.fail_task(failed.id, detail="boom")
+    assert store.tasks()[0].result == "sent"
+    assert store.tasks()[0].error == ""
+    assert store.tasks()[1].error == "boom"
+    for task in store.tasks():
+        assert task.updated_at >= task.created_at
+
+
+def test_subscribe_notifies_in_order() -> None:
+    store = TaskStore()
+    seen: list[tuple[int, TaskState]] = []
+    store.subscribe(lambda task: seen.append((task.id, task.state)))
+    task = store.add_task("a")
+    store.start_task(task.id)
+    store.complete_task(task.id)
+    assert seen == [
+        (task.id, TaskState.QUEUED),
+        (task.id, TaskState.RUNNING),
+        (task.id, TaskState.DONE),
+    ]
+
+
+def test_subscribe_callback_may_read_store() -> None:
+    # Notifications fire after the lock is released: re-entering the
+    # store from a callback must not deadlock.
+    store = TaskStore()
+    store.subscribe(lambda _task: store.tasks())
+    store.add_task("a")

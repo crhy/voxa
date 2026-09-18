@@ -34,8 +34,18 @@ class TaskPanel(Gtk.Box):
 
         self._active_list = self._section("ACTIVE TASKS")
         self._todo_list = self._section("TO DO")
+        # Immediate updates on store changes plus a 1s poll as backstop.
+        store.subscribe(lambda _task: GLib.idle_add(self._refresh_idle))
         self.refresh()
-        GLib.timeout_add_seconds(1, self.refresh)
+        GLib.timeout_add_seconds(1, self._poll)
+
+    def _refresh_idle(self) -> bool:
+        self.refresh()
+        return False  # one-shot: unlike _poll, never reschedule
+
+    def _poll(self) -> bool:
+        self.refresh()
+        return True
 
     def _section(self, heading: str) -> Gtk.Box:
         label = Gtk.Label(label=heading, xalign=0)
@@ -46,8 +56,8 @@ class TaskPanel(Gtk.Box):
         self.append(items)
         return items
 
-    def refresh(self) -> bool:
-        """Rebuild rows from the store. Returns True to keep the poll timer."""
+    def refresh(self) -> None:
+        """Rebuild rows from the store."""
         tasks = self._store.tasks()
         self._fill(
             self._active_list,
@@ -56,7 +66,6 @@ class TaskPanel(Gtk.Box):
         self._fill(
             self._todo_list, [task for task in tasks if task.state == TaskState.QUEUED]
         )
-        return True
 
     def _fill(self, container: Gtk.Box, tasks: list[Task]) -> None:
         child = container.get_first_child()
