@@ -20,7 +20,10 @@ from .hardware import GpuUsage, detect_available_model_memory_gb, sample_gpu_usa
 from .installer import InstallerError, install_ollama  # noqa: E402
 from .ollama import OllamaClient, OllamaError, strip_reasoning  # noqa: E402
 from .speech import SpeechService  # noqa: E402
+from .tasks import TaskStore  # noqa: E402
 from .transcription import WhisperService  # noqa: E402
+from .ui.shell import AssistantShell  # noqa: E402
+from .ui.state import AssistantState  # noqa: E402
 
 WHISPER_MODELS = ["tiny", "base", "small", "medium", "large-v3", "turbo"]
 # Conversation mode's wake-word phase runs continuously in the background, so
@@ -89,11 +92,21 @@ class MainWindow(Adw.ApplicationWindow):
     def __init__(self, application: Adw.Application) -> None:
         super().__init__(application=application)
         self.set_title("Voxa")
-        self.set_default_size(1080, 720)
-        self.set_size_request(700, 520)
+        self.set_default_size(1200, 760)
+        self.set_size_request(850, 600)
 
         self.config_store = ConfigStore()
         self.settings = self.config_store.load()
+        self.task_store = TaskStore()
+        self._assistant_state = AssistantState.READY
+        # True once the user presses OFFLINE: stops everything and no flow
+        # may leave this state except via the ACTIVE button.
+        self._offline = True
+        # Headless backing buffers: the transcript/response editors left the
+        # main view (issue #5) but dictation, Ask AI, copy, and speech still
+        # consume and produce this text via shortcuts, menus, and voice.
+        self._transcript_buffer = Gtk.TextBuffer()
+        self._response_buffer = Gtk.TextBuffer()
         self.style_manager = Adw.StyleManager.get_default()
         self._apply_appearance()
         self.whisper = WhisperService()
@@ -129,7 +142,6 @@ class MainWindow(Adw.ApplicationWindow):
         self._installing = False
         self._has_gpu = False
         self._gpu_poll_stop: threading.Event | None = None
-        self._model_combo_updating = False
         # Set from do_close_request so late idle callbacks (e.g. hardware
         # detection) stop touching a window that is being disposed.
         self._closing = False
@@ -157,29 +169,6 @@ class MainWindow(Adw.ApplicationWindow):
         toolbar = Adw.ToolbarView()
         self.set_content(toolbar)
 
-        header = Adw.HeaderBar()
-        header.set_title_widget(Adw.WindowTitle(title="Voxa", subtitle="Your personal voice assistant"))
-        toolbar.add_top_bar(header)
-
-        self.record_button = Gtk.ToggleButton(label="Dictate")
-        self.record_button.set_tooltip_text("Start or stop dictation (Ctrl+R)")
-        self.record_button.connect("toggled", self._on_record_toggled)
-        header.pack_start(self.record_button)
-
-        self.conversation_button = Gtk.ToggleButton(label="Conversation")
-        self.conversation_button.set_tooltip_text(
-            "Actively listen for the wake word, then transcribe and ask AI automatically (Ctrl+Shift+R)"
-        )
-        self.conversation_button.connect("toggled", self._on_conversation_toggled)
-        header.pack_start(self.conversation_button)
-
-        menu = Gio.Menu()
-        menu.append("Preferences", "win.preferences")
-        menu.append("Keyboard Shortcuts", "win.shortcuts")
-        menu.append("About Voxa", "app.about")
-        menu_button = Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=menu)
-        header.pack_end(menu_button)
-
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.toast_overlay.set_child(root)
         toolbar.set_content(self.toast_overlay)
@@ -188,131 +177,72 @@ class MainWindow(Adw.ApplicationWindow):
         self.progress.set_visible(False)
         root.append(self.progress)
 
-        self.status_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        self.status_box.add_css_class("status-strip")
-        self.status_box.set_margin_top(10)
-        self.status_box.set_margin_bottom(8)
-        self.status_box.set_margin_start(18)
-        self.status_box.set_margin_end(18)
-        self.status_spinner = Adw.Spinner()
-        self.status_spinner.set_visible(False)
-        self.status_label = Gtk.Label(label="Starting…", xalign=0)
-        self.status_label.set_hexpand(True)
-        self.level = Gtk.LevelBar()
-        self.level.set_min_value(0)
-        self.level.set_max_value(4000)
-        self.level.set_value(0)
-        self.level.set_size_request(150, -1)
-        self.level.set_tooltip_text("Microphone level")
+        self.shell = AssistantShell(
+            self.task_store,
+            on_active=self._on_shell_active,
+            on_offline=self._on_shell_offline,
+            on_model_selected=self._on_shell_model_selected,
+            on_attach=self._on_shell_attach,
+        )
+        self.shell.set_vexpand(True)
+        root.append(self.shell)
+        self.shell.set_agent_state(running=False, offline=True)
+        # The assistant starts disabled: listening begins only via ACTIVE.
+        self.set_assistant_state(AssistantState.OFFLINE, "Offline")
 
-        self.gpu_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        self.gpu_box.set_visible(False)
-        gpu_caption = Gtk.Label(label="GPU")
-        gpu_caption.add_css_class("dim-label")
-        self.gpu_level = Gtk.LevelBar()
-        self.gpu_level.set_min_value(0)
-        self.gpu_level.set_max_value(100)
-        self.gpu_level.set_size_request(80, -1)
-        self.gpu_label = Gtk.Label(label="0%")
-        self.gpu_label.set_width_chars(4)
-        self.gpu_box.append(gpu_caption)
-        self.gpu_box.append(self.gpu_level)
-        self.gpu_box.append(self.gpu_label)
+    def _on_shell_active(self) -> None:
+        """ACTIVE button: leave OFFLINE and enter wake-word conversation mode."""
+        if self.conversation_active:
+            return
+        self._offline = False
+        self.start_conversation_mode()
+        if not self.conversation_active:
+            # start_conversation_mode bailed (no mic, model loading): stay OFFLINE.
+            self._offline = True
+            self.shell.set_agent_state(running=False, offline=True)
 
-        self.model_combo = Gtk.DropDown()
-        self.model_combo.set_visible(False)
-        self.model_combo.add_css_class("model-select")
-        self.model_combo.set_tooltip_text("Ollama model used by Ask AI")
-        self.model_combo.connect("notify::selected", self._on_model_selected)
+    def _on_shell_offline(self) -> None:
+        """OFFLINE button: stop listening, capture, speech, and tasks."""
+        self._offline = True
+        self.stop_current_work()
+        self.set_assistant_state(AssistantState.OFFLINE)
 
-        self.status_box.append(self.status_spinner)
-        self.status_box.append(self.status_label)
-        self.status_box.append(self.gpu_box)
-        self.status_box.append(self.model_combo)
-        self.status_box.append(self.level)
-        root.append(self.status_box)
-        self._install_status_css()
+    def _on_shell_model_selected(self, model: str) -> None:
+        if model != self.settings.ollama_model:
+            self.settings.ollama_model = model
+            self.config_store.save(self.settings)
+            self._set_status(f"Asking with {model} from now on.")
 
-        paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
-        paned.set_wide_handle(True)
-        paned.set_position(525)
-        paned.set_vexpand(True)
-        paned.set_start_child(self._build_editor("Transcript", editable=True, transcript=True))
-        paned.set_end_child(self._build_editor("AI response", editable=False, transcript=False))
-        root.append(paned)
+    def _on_shell_attach(self) -> None:
+        """Attachment escape hatch: pick a file, file it as a task."""
+        dialog = Gtk.FileChooserNative(
+            title="Attach a file",
+            transient_for=self,
+            action=Gtk.FileChooserAction.OPEN,
+        )
 
-        action_bar = Gtk.ActionBar()
-        action_bar.set_revealed(True)
-        toolbar.add_bottom_bar(action_bar)
+        def on_response(native: Gtk.FileChooserNative, response: int) -> None:
+            if response == Gtk.ResponseType.ACCEPT:
+                file = native.get_file()
+                if file is not None:
+                    path = file.get_path() or file.get_uri()
+                    name = file.get_basename() or path
+                    self.task_store.add_task(f"Attached {name}", detail=path)
+                    self._toast(f"Attached {name}.")
+            native.destroy()
 
-        self.copy_button = Gtk.Button(label="Copy")
-        self.copy_button.set_tooltip_text("Copy the transcript (Ctrl+Shift+C)")
-        self.copy_button.connect("clicked", lambda *_: self.copy_transcript())
-        action_bar.pack_start(self.copy_button)
-
-        self.copy_response_button = Gtk.Button(label="Copy Reply")
-        self.copy_response_button.set_tooltip_text("Copy the AI response")
-        self.copy_response_button.connect("clicked", lambda *_: self.copy_response())
-        action_bar.pack_start(self.copy_response_button)
-
-        self.clear_button = Gtk.Button(label="Clear")
-        self.clear_button.connect("clicked", lambda *_: self.clear_all())
-        action_bar.pack_start(self.clear_button)
-
-        self.ask_button = Gtk.Button(label="Ask AI")
-        self.ask_button.add_css_class("suggested-action")
-        self.ask_button.connect("clicked", lambda *_: self.ask_ai())
-        action_bar.pack_end(self.ask_button)
-
-        self.speak_button = Gtk.Button(label="Speak")
-        self.speak_button.connect("clicked", lambda *_: self.speak_response())
-        action_bar.pack_end(self.speak_button)
-
-        self.stop_button = Gtk.Button(label="Stop")
-        self.stop_button.connect("clicked", lambda *_: self.stop_current_work())
-        action_bar.pack_end(self.stop_button)
-
-    def _build_editor(self, title: str, *, editable: bool, transcript: bool) -> Gtk.Widget:
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        box.set_margin_top(6)
-        box.set_margin_bottom(12)
-        box.set_margin_start(12)
-        box.set_margin_end(12)
-
-        heading = Gtk.Label(label=title, xalign=0)
-        heading.add_css_class("heading")
-        box.append(heading)
-
-        view = Gtk.TextView()
-        view.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
-        view.set_editable(editable)
-        view.set_cursor_visible(editable)
-        view.set_top_margin(12)
-        view.set_bottom_margin(12)
-        view.set_left_margin(12)
-        view.set_right_margin(12)
-        view.add_css_class("card")
-        view.add_css_class("document")
-        view.set_vexpand(True)
-        scroller = Gtk.ScrolledWindow()
-        scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-        scroller.set_child(view)
-        scroller.set_vexpand(True)
-        box.append(scroller)
-
-        if transcript:
-            self.transcript_view = view
-        else:
-            self.response_view = view
-        return box
+        dialog.connect("response", on_response)
+        dialog.show()
 
     def _install_actions(self) -> None:
         actions = {
             "preferences": self.show_preferences,
             "shortcuts": self.show_shortcuts,
+            "models": self._show_model_manager,
             "record": self.toggle_recording,
             "conversation": self.toggle_conversation,
             "ask": self.ask_ai,
+            "speak": self.speak_response,
             "copy": self.copy_transcript,
             "copy-response": self.copy_response,
             "clear": self.clear_all,
@@ -330,30 +260,15 @@ class MainWindow(Adw.ApplicationWindow):
         app.set_accels_for_action("win.clear", ["<Control>l"])
         app.set_accels_for_action("win.preferences", ["<Control>comma"])
 
-    def _install_status_css(self) -> None:
-        display = Gdk.Display.get_default()
-        if display is None:
-            return
-        provider = Gtk.CssProvider()
-        provider.load_from_data(
-            b"""
-            .status-strip { background-color: @window_bg_color; }
-            .model-select { min-width: 170px; }
-            """
-        )
-        Gtk.StyleContext.add_provider_for_display(
-            display,
-            provider,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
-        )
-        self._status_css_provider = provider
-
     def _set_status(self, text: str, busy: bool = False) -> None:
-        if self.status_label.get_text() != text:
-            self.status_label.set_text(text)
-        if self.status_spinner.get_visible() != busy:
-            self.status_spinner.set_visible(busy)
-        self.status_box.queue_draw()
+        # Caption detail preserves the state iconography: the UI renders
+        # from self._assistant_state (issue #5), status strings are detail.
+        self.shell.assistant.set_state(self._assistant_state, text)
+
+    def set_assistant_state(self, state: AssistantState, detail: str | None = None) -> None:
+        """Single entry point for assistant state (issue #5)."""
+        self._assistant_state = state
+        self.shell.assistant.set_state(state, detail)
 
     def _toast(self, text: str) -> None:
         self.toast_overlay.add_toast(
@@ -473,21 +388,18 @@ class MainWindow(Adw.ApplicationWindow):
                     break
 
         threading.Thread(target=worker, name="gpu-monitor", daemon=True).start()
-        self.gpu_box.set_visible(True)
 
     def _stop_gpu_monitor(self) -> None:
         if self._gpu_poll_stop is not None:
             self._gpu_poll_stop.set()
             self._gpu_poll_stop = None
-        self.gpu_box.set_visible(False)
-        self.gpu_level.set_value(0)
+        self.shell.set_gpu_text("")
 
     def _apply_gpu_usage(self, usage: GpuUsage) -> bool:
-        self.gpu_level.set_value(usage.utilization_percent)
-        self.gpu_label.set_text(f"{usage.utilization_percent:.0f}%")
-        self.gpu_box.set_tooltip_text(
+        self.shell.set_gpu_text(
+            f"{usage.utilization_percent:.0f}%",
             f"{usage.utilization_percent:.0f}% utilization — "
-            f"{usage.memory_used_gb:.1f} / {usage.memory_total_gb:.1f} GB VRAM"
+            f"{usage.memory_used_gb:.1f} / {usage.memory_total_gb:.1f} GB VRAM",
         )
         return False
 
@@ -500,31 +412,7 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def _apply_model_combo(self, models: list[str]) -> None:
-        if not models:
-            self.model_combo.set_visible(False)
-            return
-        selected = (
-            models.index(self.settings.ollama_model)
-            if self.settings.ollama_model in models
-            else 0
-        )
-        self._model_combo_updating = True
-        self.model_combo.set_model(Gtk.StringList.new(models))
-        self.model_combo.set_selected(selected)
-        self.model_combo.set_visible(True)
-        self._model_combo_updating = False
-
-    def _on_model_selected(self, _combo: Gtk.DropDown, _property: str) -> None:
-        # Programmatic set_model/set_selected also emit this signal; the flag
-        # above skips that pass so only real user picks are persisted.
-        if self._model_combo_updating or not self.ollama_models:
-            return
-        selected = min(self.model_combo.get_selected(), len(self.ollama_models) - 1)
-        model = self.ollama_models[selected]
-        if model != self.settings.ollama_model:
-            self.settings.ollama_model = model
-            self.config_store.save(self.settings)
-            self._set_status(f"Asking with {model} from now on.")
+        self.shell.models.set_models(models, self.settings.ollama_model)
 
     @staticmethod
     def _scroll_to_end(view: Gtk.TextView) -> None:
@@ -806,22 +694,17 @@ class MainWindow(Adw.ApplicationWindow):
         self._toast(error)
         return False
 
-    def _on_record_toggled(self, button: Gtk.ToggleButton) -> None:
-        if button.get_active() and not self.listening:
-            self.start_recording()
-        elif not button.get_active() and self.listening:
-            self.stop_recording()
-
     def toggle_recording(self) -> None:
-        self.record_button.set_active(not self.record_button.get_active())
+        if self.listening:
+            self.stop_recording()
+        else:
+            self.start_recording()
 
     def start_recording(self) -> None:
         if not self.whisper.ready:
-            self.record_button.set_active(False)
             self._toast("Whisper is still loading.")
             return
         if not self.devices:
-            self.record_button.set_active(False)
             self._toast("No microphone is available.")
             return
         if self.conversation_active:
@@ -849,17 +732,13 @@ class MainWindow(Adw.ApplicationWindow):
         except Exception as exc:  # noqa: BLE001 - platform boundary
             self.dictation.stop()
             self.dictation = None
-            self.record_button.set_active(False)
             self._toast(str(exc))
             return
 
         self.listening = True
         self._latest_level = 0.0
         self._start_level_updates()
-        self.record_button.set_label("Stop")
-        self.record_button.add_css_class("destructive-action")
-        self.conversation_button.set_sensitive(False)
-        self._set_status("Listening…", busy=True)
+        self.set_assistant_state(AssistantState.LISTENING, "Listening…")
 
     def stop_recording(self) -> None:
         self.audio.stop()
@@ -868,13 +747,8 @@ class MainWindow(Adw.ApplicationWindow):
             self.dictation = None
         self.listening = False
         self._stop_level_updates()
-        self.record_button.set_label("Dictate")
-        self.record_button.remove_css_class("destructive-action")
-        if self.record_button.get_active():
-            self.record_button.set_active(False)
-        self.conversation_button.set_sensitive(True)
-        self.level.set_value(0)
-        self._set_status("Ready")
+        if not self.conversation_active and not self._offline:
+            self.set_assistant_state(AssistantState.READY, "Ready")
 
     def _auto_stop_recording(self) -> bool:
         if self.listening:
@@ -886,22 +760,18 @@ class MainWindow(Adw.ApplicationWindow):
         self._toast(f"Microphone error: {error}")
         return False
 
-    def _on_conversation_toggled(self, button: Gtk.ToggleButton) -> None:
-        if button.get_active() and not self.conversation_active:
-            self.start_conversation_mode()
-        elif not button.get_active() and self.conversation_active:
-            self.stop_conversation_mode()
-
     def toggle_conversation(self) -> None:
-        self.conversation_button.set_active(not self.conversation_button.get_active())
+        if self.conversation_active:
+            self.stop_conversation_mode()
+        else:
+            self._offline = False
+            self.start_conversation_mode()
 
     def start_conversation_mode(self) -> None:
         if not self.whisper.ready:
-            self.conversation_button.set_active(False)
             self._toast("Whisper is still loading.")
             return
         if not self.devices:
-            self.conversation_button.set_active(False)
             self._toast("No microphone is available.")
             return
         if self.listening:
@@ -932,17 +802,17 @@ class MainWindow(Adw.ApplicationWindow):
         except Exception as exc:  # noqa: BLE001 - platform boundary
             self.conversation.stop()
             self.conversation = None
-            self.conversation_button.set_active(False)
             self._toast(str(exc))
             return
 
         self.conversation_active = True
         self._latest_level = 0.0
         self._start_level_updates()
-        self.conversation_button.set_label("Stop listening")
-        self.conversation_button.add_css_class("destructive-action")
-        self.record_button.set_sensitive(False)
-        self._set_status(f"Conversation mode — say “{self.settings.wake_word}” to begin", busy=True)
+        self.shell.set_agent_state(running=True, offline=False)
+        self.set_assistant_state(
+            AssistantState.LISTENING,
+            f"Conversation mode — say “{self.settings.wake_word}” to begin",
+        )
 
     def stop_conversation_mode(self) -> None:
         self.audio.stop()
@@ -962,13 +832,9 @@ class MainWindow(Adw.ApplicationWindow):
         self.query_cancel.set()
         self._query_generation += 1
         self._stop_level_updates()
-        self.conversation_button.set_label("Conversation")
-        self.conversation_button.remove_css_class("destructive-action")
-        if self.conversation_button.get_active():
-            self.conversation_button.set_active(False)
-        self.record_button.set_sensitive(True)
-        self.level.set_value(0)
-        self._set_status("Ready")
+        self.shell.set_agent_state(running=False, offline=self._offline)
+        if not self._offline:
+            self.set_assistant_state(AssistantState.READY, "Ready")
 
     def _conversation_capture_error(self, error: str) -> bool:
         self.stop_conversation_mode()
@@ -988,7 +854,7 @@ class MainWindow(Adw.ApplicationWindow):
             self._toast("Interrupted — go ahead.")
         else:
             self._toast(f"Heard “{self.settings.wake_word}” — listening…")
-        self._set_status("Listening for your request…", busy=True)
+        self.set_assistant_state(AssistantState.LISTENING, "Listening for your request…")
         return False
 
     def _on_conversation_prompt(self, text: str) -> bool:
@@ -1023,12 +889,14 @@ class MainWindow(Adw.ApplicationWindow):
             self.conversation.mute()
         self._speaking_since = time.monotonic()
         self._barge_in_streak = 0
-        self._set_status("Speaking…", busy=True)
+        self.set_assistant_state(AssistantState.SPEAKING, "Speaking…")
         self.speech.speak(
             text,
             self.settings.tts_rate,
             self.settings.tts_voice,
-            on_started=lambda: idle(self._set_status, "Speaking…", True),
+            on_started=lambda: idle(
+                self.set_assistant_state, AssistantState.SPEAKING, "Speaking…"
+            ),
             on_done=lambda: idle(self._on_conversation_speech_done),
             on_error=lambda error: idle(self._on_conversation_speech_error, error),
         )
@@ -1080,8 +948,7 @@ class MainWindow(Adw.ApplicationWindow):
         if not self.listening and not self.conversation_active:
             self._level_source = 0
             return False
-        self.level.set_value(self._latest_level)
-        self.status_box.queue_draw()
+        self.shell.assistant.set_audio_level(min(1.0, self._latest_level / 4000.0))
         self._maybe_barge_in()
         return True
 
@@ -1124,24 +991,21 @@ class MainWindow(Adw.ApplicationWindow):
             GLib.source_remove(self._level_source)
             self._level_source = 0
         self._latest_level = 0.0
-        self.level.set_value(0)
-        self.status_box.queue_draw()
+        self.shell.assistant.set_audio_level(0.0)
 
     def _append_transcript(self, text: str) -> bool:
-        buffer = self.transcript_view.get_buffer()
-        end = buffer.get_end_iter()
-        prefix = "" if buffer.get_char_count() == 0 else " "
-        buffer.insert(end, prefix + text.strip())
-        self._scroll_to_end(self.transcript_view)
-        self._set_status("Listening…" if self.listening else "Ready", busy=self.listening)
+        end = self._transcript_buffer.get_end_iter()
+        prefix = "" if self._transcript_buffer.get_char_count() == 0 else " "
+        self._transcript_buffer.insert(end, prefix + text.strip())
         return False
 
-    def _get_text(self, view: Gtk.TextView) -> str:
-        buffer = view.get_buffer()
-        return buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True).strip()
+    def _get_text(self, buffer: Gtk.TextBuffer) -> str:
+        return buffer.get_text(
+            buffer.get_start_iter(), buffer.get_end_iter(), True
+        ).strip()
 
-    def _set_text(self, view: Gtk.TextView, text: str) -> None:
-        view.get_buffer().set_text(text)
+    def _set_text(self, buffer: Gtk.TextBuffer, text: str) -> None:
+        buffer.set_text(text)
 
     def _stop_dictation_for_action(self) -> None:
         """Stop microphone capture before actions that consume or replace text.
@@ -1158,8 +1022,8 @@ class MainWindow(Adw.ApplicationWindow):
         if not self.conversation_active:
             self.stop_recording()
 
-    def _copy_view_text(self, view: Gtk.TextView, *, empty_message: str, done_message: str) -> None:
-        text = self._get_text(view)
+    def _copy_buffer_text(self, buffer: Gtk.TextBuffer, *, empty_message: str, done_message: str) -> None:
+        text = self._get_text(buffer)
         if not text:
             self._toast(empty_message)
             return
@@ -1172,15 +1036,15 @@ class MainWindow(Adw.ApplicationWindow):
 
     def copy_transcript(self) -> None:
         self._stop_dictation_for_action()
-        self._copy_view_text(
-            self.transcript_view,
+        self._copy_buffer_text(
+            self._transcript_buffer,
             empty_message="There is no transcript to copy.",
             done_message="Transcript copied.",
         )
 
     def copy_response(self) -> None:
-        self._copy_view_text(
-            self.response_view,
+        self._copy_buffer_text(
+            self._response_buffer,
             empty_message="There is no AI response to copy.",
             done_message="Response copied.",
         )
@@ -1192,22 +1056,22 @@ class MainWindow(Adw.ApplicationWindow):
         # shouldn't carry context from a cleared transcript into the next turn.
         self._conversation_history.clear()
         self._pending_user_generation = None
-        self._set_text(self.transcript_view, "")
-        self._set_text(self.response_view, "")
+        self._set_text(self._transcript_buffer, "")
+        self._set_text(self._response_buffer, "")
         self._set_status("Ready")
 
     def ask_ai(self, prompt: str | None = None) -> None:
         self._stop_dictation_for_action()
         if prompt is None:
-            prompt = self._get_text(self.transcript_view)
+            prompt = self._get_text(self._transcript_buffer)
         else:
             if self.conversation_active:
                 # Keep the exchange visible while talking hands-free: each new
                 # question adds a line instead of wiping the conversation.
-                existing = self._get_text(self.transcript_view)
-                self._set_text(self.transcript_view, f"{existing}\n{prompt}" if existing else prompt)
+                existing = self._get_text(self._transcript_buffer)
+                self._set_text(self._transcript_buffer, f"{existing}\n{prompt}" if existing else prompt)
             else:
-                self._set_text(self.transcript_view, prompt)
+                self._set_text(self._transcript_buffer, prompt)
         if not prompt:
             self._toast("Speak or type something first.")
             return
@@ -1236,9 +1100,8 @@ class MainWindow(Adw.ApplicationWindow):
 
         model = self.settings.ollama_model
         endpoint = self.settings.ollama_url
-        self._set_text(self.response_view, "")
-        self.ask_button.set_sensitive(False)
-        self._set_status(f"Asking {model}…", busy=True)
+        self._set_text(self._response_buffer, "")
+        self.set_assistant_state(AssistantState.THINKING, f"Asking {model}…")
         self._start_gpu_monitor()
 
         # Batch streamed chunks so the main loop schedules at most one idle
@@ -1280,9 +1143,7 @@ class MainWindow(Adw.ApplicationWindow):
     def _append_response(self, batch: str, generation: int, cancel_event: threading.Event) -> bool:
         if not self._query_is_current(generation, cancel_event) or cancel_event.is_set():
             return False
-        buffer = self.response_view.get_buffer()
-        buffer.insert(buffer.get_end_iter(), batch)
-        self._scroll_to_end(self.response_view)
+        self._response_buffer.insert(self._response_buffer.get_end_iter(), batch)
         return False
 
     def _on_query_finished(
@@ -1290,7 +1151,6 @@ class MainWindow(Adw.ApplicationWindow):
     ) -> bool:
         if not self._query_is_current(generation, cancel_event):
             return False
-        self.ask_button.set_sensitive(True)
         if (
             self.conversation_active
             and self._conversation_history
@@ -1310,14 +1170,17 @@ class MainWindow(Adw.ApplicationWindow):
         # neither left on screen nor read aloud in conversation mode.
         spoken = strip_reasoning(answer)
         if spoken != answer:
-            buffer = self.response_view.get_buffer()
-            buffer.set_text(spoken)
-            self._scroll_to_end(self.response_view)
+            self._response_buffer.set_text(spoken)
         if spoken and self.conversation_active:
             self._conversation_history.append({"role": "assistant", "content": spoken})
             self._conversation_speak(spoken)
         elif answer and self.settings.auto_speak:
             self.speak_response()
+        else:
+            self.set_assistant_state(
+                AssistantState.LISTENING if self.conversation_active else AssistantState.READY,
+                "AI response complete.",
+            )
         return False
 
     def _on_query_error(
@@ -1325,7 +1188,6 @@ class MainWindow(Adw.ApplicationWindow):
     ) -> bool:
         if not self._query_is_current(generation, cancel_event) or cancel_event.is_set():
             return False
-        self.ask_button.set_sensitive(True)
         if (
             self.conversation_active
             and self._conversation_history
@@ -1340,22 +1202,32 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def speak_response(self) -> None:
-        text = self._get_text(self.response_view) or self._get_text(self.transcript_view)
+        text = self._get_text(self._response_buffer) or self._get_text(self._transcript_buffer)
         if not text:
             self._toast("There is no text to speak.")
             return
-        self._set_status("Starting speech…", busy=True)
+        self.set_assistant_state(AssistantState.SPEAKING, "Starting speech…")
         self.speech.speak(
             text,
             self.settings.tts_rate,
             self.settings.tts_voice,
-            on_started=lambda: idle(self._set_status, "Speaking…", True),
-            on_done=lambda: idle(self._set_status, "Ready"),
+            on_started=lambda: idle(
+                self.set_assistant_state, AssistantState.SPEAKING, "Speaking…"
+            ),
+            on_done=lambda: idle(
+                self.set_assistant_state,
+                AssistantState.LISTENING
+                if self.conversation_active
+                else AssistantState.READY,
+            ),
             on_error=lambda error: idle(self._speech_error, error),
         )
 
     def _speech_error(self, error: str) -> bool:
-        self._set_status("Speech playback failed.")
+        self.set_assistant_state(
+            AssistantState.LISTENING if self.conversation_active else AssistantState.READY,
+            "Speech playback failed.",
+        )
         self._toast(error)
         return False
 
@@ -1369,8 +1241,11 @@ class MainWindow(Adw.ApplicationWindow):
         self.query_cancel.set()
         self._query_generation += 1
         self.speech.stop()
-        self.ask_button.set_sensitive(True)
-        self._set_status("Stopped.")
+        if not self.conversation_active and not self.listening:
+            self.set_assistant_state(
+                AssistantState.OFFLINE if self._offline else AssistantState.READY,
+                "Stopped.",
+            )
 
     @staticmethod
     def _gtk_theme_prefers_dark() -> bool:

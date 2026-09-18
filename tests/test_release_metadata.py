@@ -37,6 +37,19 @@ def test_flatpak_manifest_and_launcher_agree() -> None:
     assert "/app/lib/voxa/voxa.py" in launcher
 
 
+def test_release_bundle_name_includes_version_and_arch() -> None:
+    workflow = (ROOT / ".github/workflows/build.yml").read_text(encoding="utf-8")
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+
+    # voxa#1: release bundles must carry the version and arch so older and
+    # newer downloads are distinguishable on disk.
+    assert "Voxa-${{ steps.version.outputs.version }}-x86_64.flatpak" in workflow
+    assert "Voxa-*-x86_64.flatpak" in workflow
+    assert "\n          Voxa.flatpak\n" not in workflow
+    assert "Voxa-*-x86_64.flatpak" in readme
+    assert "Voxa.flatpak" not in readme.replace("Voxa-*-x86_64.flatpak", "")
+
+
 def test_cuda_payload_stays_below_ostree_safety_limit() -> None:
     manifest = (ROOT / "io.github.crhy.voxa.yml").read_text(encoding="utf-8")
 
@@ -76,3 +89,21 @@ def test_application_icon_pack_is_complete() -> None:
     assert exported.read_bytes() == (
         ROOT / "icons" / "io.github.crhy.voxa-256.png"
     ).read_bytes()
+
+
+def test_rhubarb_module_is_pinned_and_installs_to_app_bin() -> None:
+    manifest = (ROOT / "io.github.crhy.voxa.yml").read_text(encoding="utf-8")
+
+    # Avatar lip-sync (docs/AVATAR.md): rhubarb must come from a pinned tag
+    # with its resources next to the installed binary.
+    assert "tag: v1.9.1" in manifest
+    assert "rhubarb-lip-sync/rhubarb -B _rhubarb_build" in manifest
+    assert "CMAKE_INSTALL_PREFIX=/app/bin" in manifest
+    assert "EsotericSoftwareSpine" not in manifest
+
+
+def test_flatpak_installs_ui_subpackage() -> None:
+    manifest = (ROOT / "io.github.crhy.voxa.yml").read_text(encoding="utf-8")
+
+    # voxa/ui/ must ship or the installed app cannot import the new view.
+    assert "voxa/ui/*.py /app/lib/voxa/voxa/ui/" in manifest
