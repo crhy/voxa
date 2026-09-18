@@ -23,7 +23,7 @@ def _cuda_compute_usable() -> bool:
     at inference time. Probe the compute libraries directly with dlopen because
     LD_LIBRARY_PATH-based lookups are not reflected in ldconfig's cache.
     """
-    if os.getenv("VOICE2TEXT_FORCE_CUDA") == "1":
+    if os.getenv("VOXA_FORCE_CUDA", os.getenv("VOICE2TEXT_FORCE_CUDA")) == "1":
         return True
     for name in ("libcublas.so.12", "libcudart.so.12"):
         try:
@@ -86,7 +86,7 @@ class WhisperService:
             with contextlib.suppress(OSError):
                 available = len(os.sched_getaffinity(0))
             cpu_threads = max(1, min(8, available or os.cpu_count() or 4))
-            requested = os.environ.get("VOICE2TEXT_DEVICE", "auto")
+            requested = os.environ.get("VOXA_DEVICE") or os.environ.get("VOICE2TEXT_DEVICE", "auto")
             attempts = []
             if requested == "auto":
                 if _cuda_compute_usable():
@@ -134,13 +134,14 @@ class WhisperService:
         compute kernel runs (e.g. missing cuBLAS), so verify before committing.
         """
         audio = np.zeros(2560, dtype=np.float32)
-        for _segment in model.transcribe(
+        segments, _info = model.transcribe(
             audio,
             language="en",
             beam_size=1,
             vad_filter=False,
             condition_on_previous_text=False,
-        ):
+        )
+        for _segment in segments:
             pass
 
     def transcribe(self, pcm_s16le: bytes, language: str = "en") -> str:
@@ -151,7 +152,7 @@ class WhisperService:
         if model is None:
             raise TranscriptionError("The Whisper model has not finished loading.")
 
-        audio = np.frombuffer(pcm_s16le, dtype="<i2").astype(np.float32)
+        audio = np.frombuffer(pcm_s16le[: len(pcm_s16le) & ~1], dtype="<i2").astype(np.float32)
         audio /= 32768.0
         segments, _info = model.transcribe(
             audio,

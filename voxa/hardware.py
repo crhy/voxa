@@ -113,7 +113,10 @@ def _nvidia_vram_gb() -> float | None:
         )
     except (OSError, subprocess.SubprocessError):
         return None
-    values = [float(line.strip()) for line in result.stdout.splitlines() if line.strip()]
+    try:
+        values = [float(line.strip()) for line in result.stdout.splitlines() if line.strip()]
+    except ValueError:
+        return None
     if not values:
         return None
     return max(values) / 1024.0

@@ -102,9 +102,6 @@ OPENCODE_SKIP_DIRS = {
 }
 OPENCODE_SKIP_SUFFIXES = {".log", ".db", ".sqlite", ".sqlite3", ".lock"}
 
-GPG_PATH = shutil.which("gpg")
-GPG2_PATH = shutil.which("gpg2")
-
 
 class BackupError(Exception):
     """Raised for backup/restore conditions that should abort the operation."""
@@ -164,9 +161,10 @@ def _read_passphrase_file(path: Path) -> str:
 
 
 def _gpg_binary() -> str:
-    if GPG_PATH is None and GPG2_PATH is None:
+    path = shutil.which("gpg") or shutil.which("gpg2")
+    if path is None:
         raise BackupError("gpg is not installed; cannot encrypt or decrypt archives.")
-    return GPG_PATH or GPG2_PATH or "gpg"
+    return path
 
 
 def _gpg_passphrase_file(tmp_dir: Path, passphrase: str) -> Path:
@@ -181,7 +179,6 @@ def _gpg_passphrase_file(tmp_dir: Path, passphrase: str) -> Path:
 
 def _encrypt_file(source: Path, destination: Path, passphrase: str) -> None:
     tmp_dir = Path(tempfile.mkdtemp(prefix="voxa-backup-"))
-    pass_file = None
     try:
         pass_file = _gpg_passphrase_file(tmp_dir, passphrase)
         command = [
@@ -206,13 +203,10 @@ def _encrypt_file(source: Path, destination: Path, passphrase: str) -> None:
             raise BackupError(f"gpg failed (exit {result.returncode}): {detail}")
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
-        if pass_file is not None and pass_file.exists():
-            pass_file.unlink(missing_ok=True)
 
 
 def _decrypt_file(source: Path, destination: Path, passphrase: str) -> None:
     tmp_dir = Path(tempfile.mkdtemp(prefix="voxa-backup-"))
-    pass_file = None
     try:
         pass_file = _gpg_passphrase_file(tmp_dir, passphrase)
         command = [
@@ -235,8 +229,6 @@ def _decrypt_file(source: Path, destination: Path, passphrase: str) -> None:
             raise BackupError(f"gpg decrypt failed (exit {result.returncode}): {detail}")
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
-        if pass_file is not None and pass_file.exists():
-            pass_file.unlink(missing_ok=True)
 
 
 def _looks_like_gpg_data(data: bytes) -> bool:
@@ -625,7 +617,7 @@ def create_backup(
 
     items, models_found, warnings = build_inventory(paths, hash_blobs=hash_blobs)
     if not items:
-        raise BackupError("Nothing found to back up: no config files or Ollama manifolds present.")
+        raise BackupError("Nothing found to back up: no config files or Ollama manifests present.")
     unknown = []
     known_names = {model.name for model in models_found} | {model.name.rsplit(":", 1)[0] for model in models_found}
     for chosen in selected:

@@ -4,6 +4,8 @@ __pycache__/
 .ruff_cache/
 .venv*/
 build-dir/
+flatpak-build*/
 .flatpak-builder/
 repo/
+voice2text-repo-*/
 *.flatpak

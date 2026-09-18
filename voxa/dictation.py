@@ -29,7 +29,6 @@ def segment_stream(
     segment = bytearray()
     heard_voice = False
     last_voice = time.monotonic()
-    last_any_voice = last_voice
 
     while not stop_event.is_set():
         try:
@@ -47,7 +46,6 @@ def segment_stream(
             if level >= threshold:
                 heard_voice = True
                 last_voice = now
-                last_any_voice = now
 
         duration = len(segment) / (16000 * 2)
         # Require a little recorded content before treating a pause as a
@@ -65,7 +63,7 @@ def segment_stream(
         if not heard_voice and duration > 2.0:
             segment = bytearray()
 
-        if idle_timeout_seconds is not None and now - last_any_voice > idle_timeout_seconds:
+        if idle_timeout_seconds is not None and now - last_voice > idle_timeout_seconds:
             if on_idle_timeout is not None:
                 on_idle_timeout()
             return
