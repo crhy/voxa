@@ -61,7 +61,9 @@ modules:
       - cd boost_1_86_0 && ./bootstrap.sh --with-libraries=filesystem,locale,system --prefix="$PWD/../boost-root" && ./b2 -j${FLATPAK_BUILDER_N_JOBS} link=static threading=multi install
       # NOTE: the git source is checked out at the module build root, so the
       # core target lives at ./rhubarb (not ./rhubarb-lip-sync/rhubarb).
-      - cmake -S rhubarb -B _rhubarb_build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/app/bin -DBOOST_ROOT="$PWD/boost-root"
+      # CMAKE_POLICY_VERSION_MINIMUM: rhubarb targets CMake 3.2-era policies;
+      # CMake 4 in the SDK requires this opt-in to configure it unchanged.
+      - cmake -S rhubarb -B _rhubarb_build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_INSTALL_PREFIX=/app/bin -DBOOST_ROOT="$PWD/boost-root"
       - cmake --build _rhubarb_build
       - cmake --install _rhubarb_build
 
