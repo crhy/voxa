@@ -130,6 +130,9 @@ class MainWindow(Adw.ApplicationWindow):
         self._has_gpu = False
         self._gpu_poll_stop: threading.Event | None = None
         self._model_combo_updating = False
+        # Set from do_close_request so late idle callbacks (e.g. hardware
+        # detection) stop touching a window that is being disposed.
+        self._closing = False
 
         self._build_ui()
         self._install_actions()
@@ -446,7 +449,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._has_gpu = source == "GPU VRAM"
         # Keep the gauge live for the app's lifetime once a GPU is detected,
         # not only while an Ollama query is in flight.
-        if not self.is_destroyed():
+        if not self._closing:
             self._start_gpu_monitor()
         return False
 
@@ -1605,6 +1608,7 @@ class MainWindow(Adw.ApplicationWindow):
         window.present()
 
     def do_close_request(self) -> bool:
+        self._closing = True
         self.stop_current_work()
         self._stop_gpu_monitor()
         self.audio.stop()
