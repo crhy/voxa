@@ -10,7 +10,14 @@ from pathlib import Path
 import pytest
 
 from voxa import lipsync
-from voxa.lipsync import LipSyncError, MouthCue, analyze, parse_cues, shape_at
+from voxa.lipsync import (
+    LipSyncError,
+    MouthCue,
+    analyze,
+    ensure_valid_wav,
+    parse_cues,
+    shape_at,
+)
 
 # The 'Hi.' example from Rhubarb's own README (JSON export format).
 HI_JSON = {
@@ -94,7 +101,7 @@ def test_analyze_runs_binary_and_parses(
     script = _fake_rhubarb(tmp_path, json.dumps(HI_JSON))
     monkeypatch.setattr(lipsync, "find_binary", lambda: str(script))
     wav = tmp_path / "hi.wav"
-    wav.write_bytes(b"RIFF....")
+    _write_wav(wav)
 
     cues = analyze(wav, "Hi.")
     assert cues is not None and cues[1] == MouthCue(0.05, 0.27, "D")
@@ -112,8 +119,10 @@ def test_analyze_failure_raises(
 ) -> None:
     script = _fake_rhubarb(tmp_path, "boom", exit_code=1)
     monkeypatch.setattr(lipsync, "find_binary", lambda: str(script))
+    wav = tmp_path / "hi.wav"
+    _write_wav(wav)
     with pytest.raises(LipSyncError):
-        analyze(tmp_path / "hi.wav", "Hi.")
+        analyze(wav, "Hi.")
 
 
 def test_analyze_bad_json_raises(
@@ -121,5 +130,59 @@ def test_analyze_bad_json_raises(
 ) -> None:
     script = _fake_rhubarb(tmp_path, "not json")
     monkeypatch.setattr(lipsync, "find_binary", lambda: str(script))
+    wav = tmp_path / "hi.wav"
+    _write_wav(wav)
     with pytest.raises(LipSyncError):
-        analyze(tmp_path / "hi.wav", "Hi.")
+        analyze(wav, "Hi.")
+
+
+def _write_wav(path: Path, *, data_size: int | None = None) -> None:
+    import wave
+
+    with wave.open(str(path), "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(22050)
+        wav.writeframes(b"\x00\x01" * 1000)
+    if data_size is not None:  # corrupt the data-chunk length like espeak does
+        raw = bytearray(path.read_bytes())
+        raw[40:44] = data_size.to_bytes(4, "little")
+        path.write_bytes(bytes(raw))
+
+
+def test_valid_wav_passes_through(tmp_path: Path) -> None:
+    wav = tmp_path / "ok.wav"
+    _write_wav(wav)
+    assert ensure_valid_wav(wav) == wav
+
+
+def test_bogus_header_gets_fixed_copy(tmp_path: Path) -> None:
+    import wave
+
+    wav = tmp_path / "espeak.wav"
+    _write_wav(wav, data_size=0xFFFFFFFF)
+    fixed = ensure_valid_wav(wav)
+    assert fixed != wav and fixed.name == "espeak.fixed.wav"
+    with wave.open(str(fixed)) as parsed:
+        assert parsed.getnframes() == 1000
+    # Idempotent: the fixed copy validates as-is.
+    assert ensure_valid_wav(fixed) == fixed
+
+
+def test_non_wav_rejected(tmp_path: Path) -> None:
+    text = tmp_path / "note.txt"
+    text.write_text("nope")
+    with pytest.raises(LipSyncError):
+        ensure_valid_wav(text)
+
+
+def test_analyze_fixes_header_before_running(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    script = _fake_rhubarb(tmp_path, json.dumps(HI_JSON))
+    monkeypatch.setattr(lipsync, "find_binary", lambda: str(script))
+    wav = tmp_path / "espeak.wav"
+    _write_wav(wav, data_size=0xFFFFFFFF)
+    assert analyze(wav, "Hi.") is not None
+    argv = (tmp_path / "argv.txt").read_text().splitlines()
+    assert argv[-1].endswith("espeak.fixed.wav")

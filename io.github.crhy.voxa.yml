@@ -36,36 +36,26 @@ modules:
   # Generated with flatpak-pip-generator (committed; see requirements.txt note).
   - python3-requirements-flatpak.json
 
-  # Rhubarb Lip Sync (MIT, DanielSWolf/rhubarb-lip-sync): wav + dialog text
-  # -> timestamped mouth shapes for the avatar (see docs/AVATAR.md and
-  # voxa/lipsync.py). PocketSphinx/Flite/WebRTC are vendored in its lib/;
-  # only Boost filesystem+locale+system are built (static, into a staging
-  # prefix that never reaches /app). Root CMake also builds JDK-needing
-  # Spine extras, so only the core `rhubarb` target is configured/built.
-  # Resources install next to the binary, which is where its
-  # executable-relative lookup expects them.
+  # Rhubarb Lip Sync 1.9.1 (MIT): wav + dialog text -> timestamped mouth
+  # shapes for the avatar (see docs/AVATAR.md and voxa/lipsync.py). The
+  # upstream release binary is used instead of building from source: the
+  # SDK ships no Boost, its iconv check fails, and its CMake targets
+  # pre-3.5 policies. The binary was verified to run and analyze speech
+  # inside the GNOME runtime. Only the binary plus its res/ acoustic
+  # models ship (no extras/docs).
   - name: rhubarb-lip-sync
     buildsystem: simple
+    only-arches:
+      - x86_64
     sources:
-      - type: git
-        url: https://github.com/DanielSWolf/rhubarb-lip-sync.git
-        tag: v1.9.1
-        commit: 80e04b36ab294213d9b879a721042a49931b8013
       - type: archive
-        url: https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.gz
-        sha256: 2575e74ffc3ef1cd0babac2c1ee8bdb5782a0ee672b1912da40e5b4b591ca01f
-        # Keep the top-level directory (flatpak-builder strips one by
-        # default): the build below expects ./boost_1_86_0/bootstrap.sh.
-        strip-components: 0
+        url: https://github.com/DanielSWolf/rhubarb-lip-sync/releases/download/v1.9.1/rhubarb-lip-sync-1.9.1-linux.zip
+        sha256: f55dc23ac75017b0ce5f1a84a92fbfa89720ff8962972321dcbcf554c80f9594
+        strip-components: 1
     build-commands:
-      - cd boost_1_86_0 && ./bootstrap.sh --with-libraries=filesystem,locale,system --prefix="$PWD/../boost-root" && ./b2 -j${FLATPAK_BUILDER_N_JOBS} link=static runtime-link=static threading=multi install
-      # NOTE: the git source is checked out at the module build root, so the
-      # core target lives at ./rhubarb (not ./rhubarb-lip-sync/rhubarb).
-      # CMAKE_POLICY_VERSION_MINIMUM: rhubarb targets CMake 3.2-era policies;
-      # CMake 4 in the SDK requires this opt-in to configure it unchanged.
-      - cmake -S rhubarb -B _rhubarb_build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_INSTALL_PREFIX=/app/bin -DBOOST_ROOT="$PWD/boost-root"
-      - cmake --build _rhubarb_build
-      - cmake --install _rhubarb_build
+      - install -Dm755 rhubarb /app/bin/rhubarb
+      - mkdir -p /app/bin/res
+      - cp -r res/sphinx /app/bin/res/sphinx
 
   - name: nvidia-cuda-runtime
     buildsystem: simple

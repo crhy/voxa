@@ -71,6 +71,32 @@ def shape_at(cues: list[MouthCue], moment: float) -> str:
     return cue.shape if cue.start <= moment <= cue.end else "X"
 
 
+def ensure_valid_wav(wav_path: str | Path) -> Path:
+    """Return a wav Rhubarb can parse.
+
+    ``espeak-ng --stdout`` writes a RIFF header with a placeholder data
+    length that Rhubarb's reader rejects outright; GStreamer tolerates it,
+    so the playback file is left alone and a corrected copy is returned.
+    """
+    source = Path(wav_path)
+    raw = source.read_bytes()
+    if len(raw) < 44 or raw[:4] != b"RIFF" or raw[8:12] != b"WAVE":
+        raise LipSyncError(f"Not a WAV file: {wav_path}")
+    data_size = int.from_bytes(raw[40:44], "little")
+    actual = len(raw) - 44
+    if 0 < data_size <= actual + 1:  # tolerate odd-byte padding
+        return source
+    fixed = source.with_name(f"{source.stem}.fixed{source.suffix}")
+    fixed.write_bytes(
+        raw[:4]
+        + (len(raw) - 8).to_bytes(4, "little")
+        + raw[8:40]
+        + actual.to_bytes(4, "little")
+        + raw[44:]
+    )
+    return fixed
+
+
 def analyze(
     wav_path: str | Path,
     dialog_text: str,
@@ -86,6 +112,7 @@ def analyze(
     binary = find_binary()
     if binary is None:
         return None
+    wav_path = ensure_valid_wav(wav_path)
     with tempfile.TemporaryDirectory(prefix="voxa-lipsync-") as tmp:
         dialog_file = Path(tmp) / "dialog.txt"
         dialog_file.write_text(dialog_text, encoding="utf-8")

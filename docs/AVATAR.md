@@ -62,15 +62,18 @@ Ollama reply text ─┬─► Edge/espeak TTS ──► wav ──► GStreamer
 
 ## Flatpak notes
 
-- `rhubarb-lip-sync` module builds the core `rhubarb` target only
-  (root CMake also builds JDK-needing Spine extras — skipped).
-- Only external dep is Boost filesystem/locale/system, built static
-  into a staging prefix that never reaches `/app`.
-- Install prefix is `/app/bin` so the `res/sphinx` acoustic models land
-  next to the binary, where its executable-relative lookup finds them.
+- `rhubarb-lip-sync` module ships the upstream 1.9.1 release binary
+  (pinned URL + sha256) plus its `res/` acoustic models next to the
+  binary, where its executable-relative lookup finds them. Building
+  from source was tried and abandoned: the SDK ships no Boost, its
+  iconv check fails, and its CMake targets pre-3.5 policies. The
+  binary was verified to run and analyze real TTS audio inside the
+  GNOME 50 runtime.
 - `voxa/lipsync.py`: `analyze()` returns `None` when the binary is
   absent (dev machines); raises `LipSyncError` on failure. Shapes are
-  validated against `ABCDEFGHX`.
+  validated against `ABCDEFGHX`. `ensure_valid_wav()` repairs the
+  placeholder RIFF data length `espeak-ng --stdout` writes (Rhubarb
+  rejects it; GStreamer tolerates it).
 - Renderer page + model are vendored (offline rule); WebKitGTK comes
   from the GNOME runtime at no extra bundle cost.
 
