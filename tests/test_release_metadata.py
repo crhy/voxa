@@ -108,3 +108,14 @@ def test_flatpak_installs_ui_subpackage() -> None:
 
     # voxa/ui/ must ship or the installed app cannot import the new view.
     assert "voxa/ui/*.py /app/lib/voxa/voxa/ui/" in manifest
+
+
+def test_launcher_sets_no_rejected_gdk_flags() -> None:
+    launcher = (ROOT / "packaging" / "flatpak" / "voxa").read_text(encoding="utf-8")
+
+    # GDK_DISABLE=incremental-present is fatal on current GTK (the app
+    # exits before showing a window); GSK full-redraw covers the old
+    # NVIDIA damage-fragment workaround instead.
+    assert "incremental-present" not in launcher.replace(
+        "Do NOT set GDK_DISABLE=incremental-present here", ""
+    )
