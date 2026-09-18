@@ -48,14 +48,17 @@ modules:
     only-arches:
       - x86_64
     sources:
-      - type: archive
+      - type: file
         url: https://github.com/DanielSWolf/rhubarb-lip-sync/releases/download/v1.9.1/rhubarb-lip-sync-1.9.1-linux.zip
         sha256: f55dc23ac75017b0ce5f1a84a92fbfa89720ff8962972321dcbcf554c80f9594
-        strip-components: 1
+        dest-filename: rhubarb-lip-sync.zip
     build-commands:
-      - install -Dm755 rhubarb /app/bin/rhubarb
+      # bsdunzip is not guaranteed on build hosts, so extract with the
+      # SDK's own Python instead. Inner dir name matches this pinned zip.
+      - python3 -m zipfile -e rhubarb-lip-sync.zip extracted
+      - install -Dm755 extracted/rhubarb-lip-sync-1.9.1-linux/rhubarb /app/bin/rhubarb
       - mkdir -p /app/bin/res
-      - cp -r res/sphinx /app/bin/res/sphinx
+      - cp -r extracted/rhubarb-lip-sync-1.9.1-linux/res/sphinx /app/bin/res/sphinx
 
   - name: nvidia-cuda-runtime
     buildsystem: simple
