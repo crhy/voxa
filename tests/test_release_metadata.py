@@ -98,8 +98,8 @@ def test_rhubarb_module_is_pinned_and_installs_to_app_bin() -> None:
     # URL + hash, with its res/ models next to the installed binary.
     assert "rhubarb-lip-sync-1.9.1-linux.zip" in manifest
     assert "f55dc23ac75017b0ce5f1a84a92fbfa89720ff8962972321dcbcf554c80f9594" in manifest
-    assert "install -Dm755 rhubarb /app/bin/rhubarb" in manifest
-    assert "cp -r res/sphinx /app/bin/res/sphinx" in manifest
+    assert "extracted/rhubarb-lip-sync-1.9.1-linux/rhubarb /app/bin/rhubarb" in manifest
+    assert "cp -r extracted/rhubarb-lip-sync-1.9.1-linux/res/sphinx /app/bin/res/sphinx" in manifest
     assert "EsotericSoftwareSpine" not in manifest
 
 
