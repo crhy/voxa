@@ -16,32 +16,14 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from gi.repository import Adw, Gdk, Gio, Gtk
+from gi.repository import Adw, Gio, Gtk
 
 from voxa.tasks import TaskStore
 from voxa.ui.assistant_view import AssistantView
 from voxa.ui.model_selector import ModelSelector
 from voxa.ui.status_controls import ActiveOfflineControls
+from voxa.ui.styles import install_css
 from voxa.ui.task_panel import TaskPanel
-
-_SHELL_CSS = b"""
-.voxa-task-panel {
-  background-color: rgba(0, 0, 0, 0.28);
-  border-radius: 12px;
-  padding: 12px;
-}
-.voxa-panel-heading { font-weight: bold; font-size: 0.85em; }
-.voxa-task-row { padding: 2px 0; }
-.voxa-choice {
-  background-color: rgba(0, 0, 0, 0.25);
-  border-radius: 8px;
-  padding: 8px;
-}
-.voxa-model-select { min-width: 170px; }
-.voxa-mode-button { font-weight: bold; }
-.voxa-active-on { background-image: none; background-color: #2e7d32; color: white; }
-.voxa-offline-on { background-image: none; background-color: #c62828; color: white; }
-"""
 
 
 class AssistantShell(Gtk.Box):
@@ -57,7 +39,7 @@ class AssistantShell(Gtk.Box):
         on_attach: Callable[[], None],
     ) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        self._install_css()
+        install_css()
 
         header = Adw.HeaderBar()
         title = Gtk.Label(label="Voxa")
@@ -115,19 +97,6 @@ class AssistantShell(Gtk.Box):
         menu.append("Keyboard Shortcuts", "win.shortcuts")
         menu.append("About Voxa", "app.about")
         return Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=menu)
-
-    @staticmethod
-    def _install_css() -> None:
-        display = Gdk.Display.get_default()
-        if display is None:
-            return
-        provider = Gtk.CssProvider()
-        provider.load_from_data(_SHELL_CSS)
-        Gtk.StyleContext.add_provider_for_display(
-            display,
-            provider,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
-        )
 
     def set_agent_state(self, *, running: bool, offline: bool) -> None:
         self.agent.set_agent_state(running=running, offline=offline)
