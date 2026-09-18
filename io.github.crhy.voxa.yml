@@ -58,7 +58,7 @@ modules:
         # default): the build below expects ./boost_1_86_0/bootstrap.sh.
         strip-components: 0
     build-commands:
-      - cd boost_1_86_0 && ./bootstrap.sh --with-libraries=filesystem,locale,system --prefix="$PWD/../boost-root" && ./b2 -j${FLATPAK_BUILDER_N_JOBS} link=static threading=multi install
+      - cd boost_1_86_0 && ./bootstrap.sh --with-libraries=filesystem,locale,system --prefix="$PWD/../boost-root" && ./b2 -j${FLATPAK_BUILDER_N_JOBS} link=static runtime-link=static threading=multi install
       # NOTE: the git source is checked out at the module build root, so the
       # core target lives at ./rhubarb (not ./rhubarb-lip-sync/rhubarb).
       # CMAKE_POLICY_VERSION_MINIMUM: rhubarb targets CMake 3.2-era policies;
