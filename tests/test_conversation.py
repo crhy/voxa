@@ -35,6 +35,13 @@ def test_strip_wake_word_with_empty_configured_word_never_matches() -> None:
     assert strip_wake_word("computer", "") is None
 
 
+def test_strip_wake_word_strips_repeated_wake_words() -> None:
+    # A duplicated wake word is a common whisper artifact; it must never
+    # leak into the prompt as bare text.
+    for utterance in ("Voxa voxa", "Voxa, Voxa!", "voxa. voxa"):
+        assert strip_wake_word(utterance, "voxa") == "", utterance
+
+
 def test_detect_exit_phrase_matches_cancel_phrases() -> None:
     for utterance in ("Never mind.", "CANCEL", "Stop talking", "stop it", "Forget it!", "nevermind"):
         assert detect_exit_phrase(utterance) == "cancel", utterance
@@ -70,13 +77,17 @@ LOUD_CHUNK = (b"\x00\x10" * 1000, 1000.0)  # 0.0625 s of "speech", above thresho
 class FakeWhisper:
     """A stand-in for WhisperService with canned transcripts and call counts."""
 
-    def __init__(self, canned=()) -> None:
+    def __init__(self, canned=(), ready: bool = True, delay: float = 0.0) -> None:
         self.canned = list(canned)
         self.calls = 0
         self.error: Exception | None = None
+        self.ready = ready
+        self.delay = delay
 
     def transcribe(self, pcm: bytes, language: str = "en") -> str:
         self.calls += 1
+        if self.delay:
+            time.sleep(self.delay)
         if self.error is not None:
             raise self.error
         if self.canned:
@@ -137,7 +148,7 @@ def make_controller(
 
 
 @pytest.fixture()
-def run_controller() -> "Callable[ConversationController, ConversationController]":
+def run_controller() -> Callable[ConversationController, ConversationController]:
     def start(controller: ConversationController) -> ConversationController:
         controller.start()
         started.append(controller)
@@ -149,6 +160,8 @@ def run_controller() -> "Callable[ConversationController, ConversationController
         controller.stop()
         if controller.thread is not None:
             controller.thread.join(timeout=5)
+        if controller._wake_thread is not None:
+            controller._wake_thread.join(timeout=5)
 
 
 def feed_speech(controller: ConversationController, chunks: int = 6) -> None:
@@ -213,18 +226,20 @@ def test_armed_prompt_bypasses_wake_word(run_controller):
     assert controller.waiting_for_prompt is False
 
 
-def test_muted_controller_drops_audio_until_unmuted(run_controller):
-    wake = FakeWhisper(["Voxa"])
+def test_muted_stream_is_never_treated_as_a_prompt(run_controller):
+    # While muted the assistant's reply is playing through the speakers, so
+    # nothing the mic picks up may become a prompt — only the wake word
+    # matters, and this transcript doesn't contain it (echo guard).
+    wake = FakeWhisper(["what's the weather"])
     prompt = FakeWhisper()
     controller, events = make_controller(wake, prompt)
     run_controller(controller)
     controller.mute()
     feed_speech(controller)
-    time.sleep(1.0)
-    assert events.woken == 0 and events.prompts == [] and events.statuses == []
-    controller.unmute()
-    feed_speech(controller)
-    assert wait_for(lambda: "Listening for your request…" in events.statuses)
+    assert wait_for(lambda: wake.calls >= 1)
+    assert events.prompts == [] and events.woken == 0
+    assert prompt.calls == 0
+    assert controller.muted
 
 
 def test_cancel_ends_turn_but_keeps_listening(run_controller):
@@ -297,3 +312,136 @@ def test_transcription_error_is_reported_and_worker_survives(run_controller):
     feed_speech(controller)
     assert wait_for(lambda: events.woken == 1)
     assert controller.thread is not None and controller.thread.is_alive()
+
+
+def test_wake_word_while_muted_wakes_and_unmutes(run_controller):
+    # The bare wake word said over a reply wakes the controller and hands the
+    # very next utterance to the prompt phase, unmuted.
+    wake = FakeWhisper(["Voxa"])
+    prompt = FakeWhisper(["what's the weather tomorrow"])
+    controller, events = make_controller(wake, prompt)
+    run_controller(controller)
+    controller.mute()
+    feed_speech(controller)
+    assert wait_for(lambda: controller.waiting_for_prompt is True)
+    assert wait_for(lambda: not controller.muted)
+    assert events.woken == 1
+    assert "Listening for your request…" in events.statuses
+    feed_speech(controller)
+    assert wait_for(lambda: events.prompts == ["what's the weather tomorrow"])
+    assert events.woken == 1
+    assert prompt.calls == 1
+    assert controller.waiting_for_prompt is False
+
+
+def test_wake_word_with_remainder_while_muted_prompts_directly(run_controller):
+    wake = FakeWhisper(["Voxa, what's the time"])
+    prompt = FakeWhisper()
+    controller, events = make_controller(wake, prompt)
+    run_controller(controller)
+    controller.mute()
+    feed_speech(controller)
+    assert wait_for(lambda: events.prompts == ["what's the time"])
+    assert wait_for(lambda: not controller.muted)
+    assert events.woken == 1
+    assert controller.waiting_for_prompt is False
+    assert prompt.calls == 0  # the remainder never needs the real model
+
+
+def test_repeated_wake_word_is_treated_as_bare_wake(run_controller):
+    # Whisper artifacts like "voxa voxa" must wake but not become a prompt.
+    wake = FakeWhisper(["Voxa voxa"])
+    prompt = FakeWhisper(["the weather today"])
+    controller, events = make_controller(wake, prompt)
+    run_controller(controller)
+    feed_speech(controller)
+    assert wait_for(lambda: "Listening for your request…" in events.statuses)
+    assert controller.waiting_for_prompt is True
+    assert events.prompts == []
+    assert wake.calls == 1 and prompt.calls == 0
+    feed_speech(controller)
+    assert wait_for(lambda: events.prompts == ["the weather today"])
+    assert prompt.calls == 1
+    assert controller.waiting_for_prompt is False
+
+
+def test_repeated_wake_word_while_muted_is_a_bare_wake(run_controller):
+    wake = FakeWhisper(["Voxa voxa"])
+    prompt = FakeWhisper()
+    controller, events = make_controller(wake, prompt)
+    run_controller(controller)
+    controller.mute()
+    feed_speech(controller)
+    assert wait_for(lambda: controller.waiting_for_prompt is True)
+    assert wait_for(lambda: not controller.muted)
+    assert events.prompts == []
+    assert events.woken == 1
+    assert prompt.calls == 0
+
+
+def test_unmute_discards_stale_muted_audio(run_controller):
+    # Audio still queued while muted (possibly the reply's own speaker echo)
+    # is dropped on unmute, so it can never become a spurious wake.
+    wake = FakeWhisper(canned=["hello there"], delay=1.0)
+    prompt = FakeWhisper()
+    controller, events = make_controller(wake, prompt)
+    run_controller(controller)
+    controller.mute()
+    feed_speech(controller)
+    assert wait_for(lambda: wake.calls == 1)  # busy transcribing the first segment
+    controller.feed(*LOUD_CHUNK)  # arrives while the worker is blocked
+    assert controller._wake_queue.qsize() >= 1
+    controller.unmute()
+    assert controller._wake_queue.qsize() == 0
+    time.sleep(1.5)  # let the blocked transcribe finish and the loop settle
+    assert events.woken == 0 and events.prompts == []
+    assert prompt.calls == 0
+
+
+def test_muted_stream_uses_fallback_model_when_wake_model_not_ready(run_controller):
+    wake = FakeWhisper(ready=False)
+    prompt = FakeWhisper(["Voxa"])
+    controller, events = make_controller(wake, prompt)
+    run_controller(controller)
+    assert controller._muted_whisper is prompt
+    controller.mute()
+    feed_speech(controller)
+    assert wait_for(lambda: events.woken == 1)
+    assert prompt.calls == 1
+    assert wake.calls == 0
+
+
+def test_muted_stream_upgrades_to_wake_model_when_it_becomes_ready(run_controller):
+    # The tiny model may finish loading after construction (the fallback was
+    # used at build time); the muted worker must switch to it when ready.
+    wake = FakeWhisper(ready=False)
+    prompt = FakeWhisper()
+    controller, events = make_controller(wake, prompt)
+    run_controller(controller)
+    assert controller._muted_whisper is prompt  # fallback while the tiny model loads
+    controller.mute()
+    wake.canned.append("Voxa")
+    wake.ready = True  # the tiny model finished loading while muted
+    feed_speech(controller)
+    assert wait_for(lambda: events.woken == 1)
+    assert wake.calls == 1
+    assert prompt.calls == 0
+    assert wait_for(lambda: not controller.muted)
+
+
+def test_wake_model_error_while_muted_is_reported_and_worker_survives(run_controller):
+    wake = FakeWhisper()
+    prompt = FakeWhisper()
+    controller, events = make_controller(wake, prompt)
+    run_controller(controller)
+    controller.mute()
+    wake.error = RuntimeError("wake model crash")
+    feed_speech(controller)
+    assert wait_for(lambda: events.errors == ["wake model crash"])
+    assert events.woken == 0
+    wake.error = None
+    wake.canned.append("Voxa")
+    feed_speech(controller)
+    assert wait_for(lambda: events.woken == 1)
+    assert wait_for(lambda: not controller.muted)
+    assert controller._wake_thread is not None and controller._wake_thread.is_alive()

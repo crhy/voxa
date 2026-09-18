@@ -10,21 +10,26 @@ from .transcription import WhisperService
 
 
 def strip_wake_word(text: str, wake_word: str) -> str | None:
-    """Return the text with the wake word removed, or ``None`` if absent.
+    """Return the text with every wake word occurrence removed, or ``None``.
 
     Matching is a case-insensitive substring search, so "Hey Computer, what
-    time is it" and "Computer" both match a wake word of "computer". The
-    returned remainder has leading punctuation left over from the wake word
-    trimmed off.
+    time is it" and "Computer" both match a wake word of "computer". Every
+    occurrence is stripped, so a duplicated wake word — a common whisper
+    artifact such as "voxa voxa" — can never leak into the prompt: a bare or
+    doubled wake word yields ``""``. The remainder has surrounding
+    punctuation trimmed off.
     """
     wake = wake_word.casefold().strip()
     if not wake:
         return None
-    lowered = text.casefold()
-    index = lowered.find(wake)
-    if index == -1:
+    if wake not in text.casefold():
         return None
-    remainder = text[:index] + text[index + len(wake) :]
+    remainder = text
+    while True:
+        index = remainder.casefold().find(wake)
+        if index == -1:
+            break
+        remainder = remainder[:index] + remainder[index + len(wake) :]
     return remainder.strip(" ,.!?—-\t\n")
 
 
@@ -81,9 +86,14 @@ class ConversationController:
     while waiting, and the result is checked for the configured wake word.
     Once woken, the caller's real (possibly much larger) model transcribes
     the actual command, since accuracy matters there but not during idle
-    listening. A dedicated low-latency wake-word engine could replace the
-    wake phase later without changing the caller contract (``feed``/
-    ``start``/``stop`` plus the four callbacks).
+    listening.
+    Even while muted — the assistant's own reply playing through the
+    speakers — the stream keeps being checked for the wake word (never for
+    a prompt), so saying the wake word over the reply wakes and interrupts
+    it (the caller stops the reply in response to ``on_woken``). A
+    dedicated low-latency wake-word engine could replace the wake phase
+    later without changing the caller contract (``feed``/``start``/``stop``
+    plus the four callbacks).
     """
 
     PROMPT_TIMEOUT_SECONDS = 8.0
@@ -121,8 +131,20 @@ class ConversationController:
         self.on_error = on_error
         self.on_exit = on_exit or (lambda _kind: None)
         self.queue: queue.Queue[tuple[bytes, float] | None] = queue.Queue(maxsize=80)
+        # Fed instead of the main queue while muted: the stream plays through
+        # the speakers, so it is never treated as a prompt — but it still has
+        # to reach the wake word, so saying it over a reply interrupts it.
+        self._wake_queue: queue.Queue[tuple[bytes, float] | None] = queue.Queue(maxsize=80)
+        # Fallback model for the muted stream: never a model still warming up
+        # (mirrors the wake-phase pick in window.py). The muted worker
+        # switches to the tiny wake model itself as soon as it is ready, even
+        # if it only finished loading after construction.
+        self._muted_whisper: WhisperService = (
+            self.wake_whisper if self.wake_whisper.ready else self.prompt_whisper
+        )
         self.stop_event = threading.Event()
         self.thread: threading.Thread | None = None
+        self._wake_thread: threading.Thread | None = None
         self._muted = threading.Event()
         # An utterance currently heard becomes a prompt without requiring the
         # wake word first (set by the caller after a barge-in, so the user can
@@ -139,21 +161,29 @@ class ConversationController:
         self.waiting_for_prompt = False
         self.thread = threading.Thread(target=self._run, name="conversation-worker", daemon=True)
         self.thread.start()
+        self._wake_thread = threading.Thread(
+            target=self._run_muted, name="conversation-wake-worker", daemon=True
+        )
+        self._wake_thread.start()
 
     def feed(self, pcm: bytes, level: float) -> None:
-        # Dropped while muted so the assistant's own spoken reply, played
-        # through the speakers, is never picked back up as a new utterance.
-        if self.stop_event.is_set() or self._muted.is_set():
+        # Dropped while stopped. While muted the stream still goes in, but for the
+        # wake worker only: the assistant's own reply, played through the
+        # speakers, must never be picked up as a new prompt — yet the wake
+        # word must still reach the tiny model, so saying it over the reply
+        # wakes and interrupts it.
+        if self.stop_event.is_set():
             return
+        target = self._wake_queue if self._muted.is_set() else self.queue
         try:
-            self.queue.put_nowait((pcm, level))
+            target.put_nowait((pcm, level))
         except queue.Full:
             try:
-                self.queue.get_nowait()
+                target.get_nowait()
             except queue.Empty:
                 pass
             try:
-                self.queue.put_nowait((pcm, level))
+                target.put_nowait((pcm, level))
             except queue.Full:
                 pass
 
@@ -162,6 +192,13 @@ class ConversationController:
 
     def unmute(self) -> None:
         self._muted.clear()
+        # Drop muted audio captured before the unmute: it may be the reply's
+        # own speaker echo, which must not become a spurious wake.
+        while True:
+            try:
+                self._wake_queue.get_nowait()
+            except queue.Empty:
+                break
 
     def arm_prompt(self) -> None:
         """Skip the wake word: the next utterance becomes a prompt directly.
@@ -174,14 +211,17 @@ class ConversationController:
     def stop(self) -> None:
         self.stop_event.set()
         self.waiting_for_prompt = False
-        try:
-            self.queue.put_nowait(None)
-        except queue.Full:
-            pass
+        for q in (self.queue, self._wake_queue):
+            try:
+                q.put_nowait(None)
+            except queue.Full:
+                pass
 
-    def _next_segment(self, idle_timeout_seconds: float | None) -> bytes | None:
+    def _next_segment(
+        self, q: queue.Queue[tuple[bytes, float] | None], idle_timeout_seconds: float | None
+    ) -> bytes | None:
         for segment in segment_stream(
-            self.queue,
+            q,
             self.stop_event,
             threshold=self.threshold,
             silence_seconds=self.silence_seconds,
@@ -202,7 +242,7 @@ class ConversationController:
     def _run(self) -> None:
         while not self.stop_event.is_set():
             idle_timeout = self.PROMPT_TIMEOUT_SECONDS if self.waiting_for_prompt else None
-            segment = self._next_segment(idle_timeout)
+            segment = self._next_segment(self.queue, idle_timeout)
             # Re-read after the segment: a barge-in can arm the prompt state
             # while the user is mid-utterance, and that utterance must be the
             # prompt, not a wake-word candidate.
@@ -243,3 +283,29 @@ class ConversationController:
             else:
                 self.on_prompt(text)
                 self.waiting_for_prompt = False
+
+    def _run_muted(self) -> None:
+        # The same wake-word loop as the main worker, but it only ever hears
+        # the muted stream and only ever emits a wake — never a bare prompt —
+        # so the reply's own speaker echo can never be mistaken for a command.
+        while not self.stop_event.is_set():
+            segment = self._next_segment(self._wake_queue, None)
+            if segment is None:
+                continue
+            # Prefer the tiny wake model whenever it is ready — it may have
+            # finished loading after construction — otherwise keep the
+            # fallback chosen in __init__.
+            whisper = self.wake_whisper if self.wake_whisper.ready else self._muted_whisper
+            text = self._transcribe(segment, whisper)
+            if not text:
+                continue
+            remainder = strip_wake_word(text, self.wake_word)
+            if remainder is None:
+                continue
+            self.on_woken()
+            if remainder:
+                self.on_prompt(remainder)
+            else:
+                self.on_status("Listening for your request…")
+                self.waiting_for_prompt = True
+            self.unmute()

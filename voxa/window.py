@@ -973,7 +973,18 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def _on_conversation_woken(self) -> bool:
-        self._toast(f"Heard “{self.settings.wake_word}” — listening…")
+        if self._speaking_since > 0.0:
+            # The wake word was heard over the assistant's own reply: stop it.
+            # speech.stop() fires no callbacks, so reset the mute/barge-in
+            # state explicitly (mirrors stop_conversation_mode).
+            self.speech.stop()
+            self._speaking_since = 0.0
+            self._barge_in_streak = 0
+            if self.conversation is not None:
+                self.conversation.unmute()
+            self._toast("Interrupted — go ahead.")
+        else:
+            self._toast(f"Heard “{self.settings.wake_word}” — listening…")
         self._set_status("Listening for your request…", busy=True)
         return False
 
