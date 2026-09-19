@@ -142,3 +142,15 @@ def test_application_icon_pack_is_complete() -> None:
     assert exported.read_bytes() == (
         ROOT / "icons" / "io.github.crhy.voxa-256.png"
     ).read_bytes()
+
+
+def test_ci_publishes_the_update_repository_to_pages_on_release_tags() -> None:
+    import yaml
+
+    workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "build.yml").read_text(encoding="utf-8"))
+    pages = workflow["jobs"]["pages"]
+    assert pages["if"] == "startsWith(github.ref, 'refs/tags/v')"  # never on ordinary pushes
+    assert pages["permissions"] == {"pages": "write", "id-token": "write"}
+    text = (ROOT / ".github" / "workflows" / "build.yml").read_text(encoding="utf-8")
+    assert "actions/deploy-pages" in text and "site/flatpak-repo" in text and "voxa.flatpakrepo" in text
+    assert "https://crhy.github.io/voxa/flatpak-repo/" in text

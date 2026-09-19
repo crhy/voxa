@@ -38,8 +38,18 @@ The bundle records `https://crhy.github.io/voxa/flatpak-repo/` as its update rep
 Voxa's own GitHub Pages site, not another project's. That address is what a user who
 installs the `.flatpak` file will follow for updates.
 
-**Status: not published yet.** GitHub Pages is not enabled for this repository, so nothing
-answers at that URL today; installs from the bundle work, updates will not until the
-repository is published there. Before relying on updates, publish the OSTree repository to
-Pages and then test, in this order: first installation from the bundle, an update to a
-newer bundle, downgrade/rollback expectations, AppStream metadata, screenshots and icons.
+**Status: enable Pages once, then the next release tag publishes it.**
+
+1. In the repository settings, open **Pages** and set **Source** to **GitHub Actions**
+   (one-time; there is no branch to configure).
+2. Push a release tag (`v<version>`, see above). The `pages` job in the workflow builds
+   the update repository (`flatpak build-update-repo`), adds `voxa.flatpakrepo`, and deploys
+   both to `https://crhy.github.io/voxa/`.
+3. Users can then add the remote from the `.flatpakrepo` file, and `flatpak update` follows
+   the bundle's recorded repository URL.
+
+Until the first tagged release is published nothing answers at that address, so updates
+from a bundle installed before then will fail with a "could not load summary" message.
+After the first publish, test in this order: first installation from the bundle, an update
+to a newer bundle, downgrade/rollback expectations, AppStream metadata, screenshots and icons.
+The repository is currently **unsigned**; adding a GPG key is a follow-up (issue #7 section 22).

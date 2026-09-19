@@ -141,6 +141,52 @@ jobs:
         with:
           name: Voxa-Flatpak
           path: ${{ needs.test.outputs.artifact }}
+      # The OSTree repository that GitHub Pages will serve as Voxa's update source.
+      # build-update-repo writes the summary that "flatpak update" reads.
+      - name: Prepare the update repository
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: flatpak build-update-repo --generate-static-deltas voxa-repo
+      - name: Upload the update repository
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: Voxa-update-repo
+          path: voxa-repo
+          include-hidden-files: true
+
+  # Publishes the update repository to https://crhy.github.io/voxa/flatpak-repo/ on release
+  # tags. Requires Settings > Pages > Source = "GitHub Actions" (see docs/RELEASING.md).
+  pages:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [test, flatpak]
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Voxa-update-repo
+          path: site/flatpak-repo
+      - name: Add a .flatpakrepo file so the remote is one command to add
+        run: |
+          cat > site/voxa.flatpakrepo <<'REPO'
+          [Flatpak Repo]
+          Title=Voxa
+          Url=https://crhy.github.io/voxa/flatpak-repo/
+          Homepage=https://github.com/crhy/voxa
+          Comment=Voxa, a local-first voice assistant for Linux
+          RuntimeRepo=https://flathub.org/repo/flathub.flatpakrepo
+          REPO
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
