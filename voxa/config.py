@@ -15,6 +15,8 @@ class Settings:
     whisper_model: str = "base"
     ollama_model: str = ""
     ollama_url: str = "http://127.0.0.1:11434"
+    ai_backend: str = "llamacpp"
+    llamacpp_url: str = "http://127.0.0.1:8080"
     language: str = "en"
     tts_rate: int = 180
     tts_voice: str = "en-US-AriaNeural"
@@ -34,6 +36,9 @@ class Settings:
         self.voice_threshold = max(50, min(5000, int(self.voice_threshold)))
         self.max_segment_seconds = max(2.0, min(20.0, float(self.max_segment_seconds)))
         self.ollama_url = self.ollama_url.rstrip("/") or "http://127.0.0.1:11434"
+        self.llamacpp_url = self.llamacpp_url.rstrip("/") or "http://127.0.0.1:8080"
+        if self.ai_backend not in {"llamacpp", "ollama"}:
+            self.ai_backend = "llamacpp"
         self.language = (self.language or "en").strip()[:16]
         self.wake_word = (self.wake_word or "voxa").strip()[:32] or "voxa"
         return self
@@ -67,6 +72,10 @@ class ConfigStore:
             clean["ollama_model"] = payload["selected_model"]
         if "microphone_name" in payload:
             clean["microphone_name"] = payload["microphone_name"]
+        # Configs written before the llama.cpp backend existed have no
+        # ``ai_backend`` key; those users stay on Ollama, today's behaviour.
+        if "ai_backend" not in clean:
+            clean["ai_backend"] = "ollama"
 
         try:
             return Settings(**clean).normalized()

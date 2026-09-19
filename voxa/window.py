@@ -18,6 +18,7 @@ from .conversation import ConversationController  # noqa: E402
 from .dictation import DictationController  # noqa: E402
 from .hardware import GpuUsage, detect_available_model_memory_gb, sample_gpu_usage, suggest_models  # noqa: E402
 from .installer import InstallerError, install_ollama  # noqa: E402
+from .llamacpp import LlamaCppClient  # noqa: E402
 from .ollama import OllamaClient, OllamaError, strip_reasoning  # noqa: E402
 from .speech import SpeechService  # noqa: E402
 from .transcription import WhisperService  # noqa: E402
@@ -219,7 +220,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.model_combo = Gtk.DropDown()
         self.model_combo.set_visible(False)
         self.model_combo.add_css_class("model-select")
-        self.model_combo.set_tooltip_text("Ollama model used by Ask AI")
+        self.model_combo.set_tooltip_text("Model used by Ask AI")
         self.model_combo.connect("notify::selected", self._on_model_selected)
 
         self.status_box.append(self.status_spinner)
@@ -400,13 +401,25 @@ class MainWindow(Adw.ApplicationWindow):
         except Exception as exc:  # noqa: BLE001 - platform boundary
             self._toast(f"Microphone scan failed: {exc}")
 
+    def _ai_client(self) -> OllamaClient | LlamaCppClient:
+        """The Ask AI client for whichever backend the user picked."""
+        if self.settings.ai_backend == "ollama":
+            return OllamaClient(self.settings.ollama_url)
+        return LlamaCppClient(self.settings.llamacpp_url)
+
+    def _backend_label(self) -> str:
+        return "Ollama" if self.settings.ai_backend == "ollama" else "llama.cpp"
+
     def _refresh_ollama_models(self) -> None:
         def worker() -> None:
             try:
-                models = OllamaClient(self.settings.ollama_url).list_models()
+                models = self._ai_client().list_models()
                 idle(self._apply_ollama_models, models)
             except OllamaError as exc:
-                idle(self._set_status, "Ollama is offline. Dictation is still available.")
+                idle(
+                    self._set_status,
+                    f"The AI server ({self._backend_label()}) is offline. Dictation is still available.",
+                )
                 idle(self._toast, str(exc))
 
         threading.Thread(target=worker, name="ollama-models", daemon=True).start()
@@ -1199,7 +1212,7 @@ class MainWindow(Adw.ApplicationWindow):
             return
         if not self.settings.ollama_model:
             self._refresh_ollama_models()
-            self._toast("No Ollama model is selected.")
+            self._toast("No model is selected yet.")
             return
 
         self.query_cancel.set()
@@ -1221,7 +1234,6 @@ class MainWindow(Adw.ApplicationWindow):
             self._pending_user_generation = None
 
         model = self.settings.ollama_model
-        endpoint = self.settings.ollama_url
         self._set_text(self.response_view, "")
         self.ask_button.set_sensitive(False)
         self._set_status(f"Asking {model}…", busy=True)
@@ -1244,7 +1256,7 @@ class MainWindow(Adw.ApplicationWindow):
 
         def worker() -> None:
             try:
-                client = OllamaClient(endpoint)
+                client = self._ai_client()
                 answer = client.generate_stream(
                     model=model,
                     prompt=prompt,
@@ -1448,44 +1460,68 @@ class MainWindow(Adw.ApplicationWindow):
         dialog.add(speech_page)
 
         ai_page = Adw.PreferencesPage(title="Local AI", icon_name="system-run-symbolic")
-        ai_page.set_description("The Ollama server that answers questions on this machine.")
+        ai_page.set_description("The local server that answers questions: llama.cpp or Ollama.")
         ai_group = Adw.PreferencesGroup()
         ai_page.add(ai_group)
+
+        backend_row = Adw.ComboRow(
+            title="AI backend",
+            subtitle="llama.cpp runs a GGUF model through a llama.cpp server; Ollama manages models itself",
+        )
+        backend_row.set_model(Gtk.StringList.new(["llama.cpp", "Ollama"]))
+        backend_row.set_selected(0 if self.settings.ai_backend == "llamacpp" else 1)
+        ai_group.add(backend_row)
+
         model_names = self.ollama_models or ["No models found"]
-        ai_row = Adw.ComboRow(title="Ollama model", subtitle=self._hardware_summary)
+        ai_row = Adw.ComboRow(title="Model", subtitle=self._hardware_summary)
         ai_row.set_model(Gtk.StringList.new(model_names))
         if self.settings.ollama_model in model_names:
             ai_row.set_selected(model_names.index(self.settings.ollama_model))
         ai_group.add(ai_row)
 
+        llamacpp_row = Adw.EntryRow(title="llama.cpp server address")
+        llamacpp_row.set_text(self.settings.llamacpp_url)
+        llamacpp_row.set_visible(self.settings.ai_backend == "llamacpp")
+        backend_row.connect("notify::selected", lambda *_: llamacpp_row.set_visible(
+            backend_row.get_selected() == 0
+        ))
+        ai_group.add(llamacpp_row)
+
         endpoint_row = Adw.EntryRow(title="Ollama address")
         endpoint_row.set_text(self.settings.ollama_url)
+        endpoint_row.set_visible(self.settings.ai_backend == "ollama")
+        backend_row.connect("notify::selected", lambda *_: endpoint_row.set_visible(
+            backend_row.get_selected() == 1
+        ))
         ai_group.add(endpoint_row)
 
         auto_speak_row = Adw.SwitchRow(title="Speak AI responses automatically")
         auto_speak_row.set_active(self.settings.auto_speak)
         ai_group.add(auto_speak_row)
 
-        install_row = Adw.ActionRow(
-            title="Install or update Ollama",
-            subtitle="Downloads the latest installer from ollama.com and runs it with a password prompt",
-        )
-        install_button = Gtk.Button(label="Install", valign=Gtk.Align.CENTER)
-        install_button.connect("clicked", lambda *_: self._start_ollama_install())
-        install_row.add_suffix(install_button)
-        ai_group.add(install_row)
+        # Installing and pulling models is an Ollama-only convenience; a
+        # llama.cpp server serves whichever GGUF the user started it with.
+        if self.settings.ai_backend == "ollama":
+            install_row = Adw.ActionRow(
+                title="Install or update Ollama",
+                subtitle="Downloads the latest installer from ollama.com and runs it with a password prompt",
+            )
+            install_button = Gtk.Button(label="Install", valign=Gtk.Align.CENTER)
+            install_button.connect("clicked", lambda *_: self._start_ollama_install())
+            install_row.add_suffix(install_button)
+            ai_group.add(install_row)
 
-        manage_row = Adw.ActionRow(title="Pull or remove models")
-        manage_button = Gtk.Button(label="Manage models…", valign=Gtk.Align.CENTER)
-        manage_button.connect("clicked", lambda *_: self._show_model_manager())
-        manage_row.add_suffix(manage_button)
-        ai_group.add(manage_row)
+            manage_row = Adw.ActionRow(title="Pull or remove models")
+            manage_button = Gtk.Button(label="Manage models…", valign=Gtk.Align.CENTER)
+            manage_button.connect("clicked", lambda *_: self._show_model_manager())
+            manage_row.add_suffix(manage_button)
+            ai_group.add(manage_row)
         dialog.add(ai_page)
 
         conversation_page = Adw.PreferencesPage(title="Conversation mode", icon_name="microphone-sensitivity-muted-symbolic")
         conversation_page.set_description("Hands-free exchanges: say the wake word, then your question.")
         conversation_group = Adw.PreferencesGroup(
-            description="Say the wake word to start talking, then ask something — it's transcribed and sent to the Ollama model automatically.",
+            description="Say the wake word to start talking, then ask something — it's transcribed and sent to the AI model automatically.",
         )
         conversation_page.add(conversation_group)
         wake_word_row = Adw.EntryRow(title="Wake word")
@@ -1519,7 +1555,9 @@ class MainWindow(Adw.ApplicationWindow):
             appearance_row,
             whisper_row,
             mic_row,
+            backend_row,
             ai_row,
+            llamacpp_row,
             endpoint_row,
             auto_speak_row,
             wake_word_row,
@@ -1534,7 +1572,9 @@ class MainWindow(Adw.ApplicationWindow):
         appearance_row,
         whisper_row,
         mic_row,
+        backend_row,
         ai_row,
+        llamacpp_row,
         endpoint_row,
         auto_speak_row,
         wake_word_row,
@@ -1548,6 +1588,8 @@ class MainWindow(Adw.ApplicationWindow):
             self.settings.microphone_name = device.name
         if self.ollama_models:
             self.settings.ollama_model = self.ollama_models[min(ai_row.get_selected(), len(self.ollama_models) - 1)]
+        self.settings.ai_backend = "ollama" if backend_row.get_selected() == 1 else "llamacpp"
+        self.settings.llamacpp_url = llamacpp_row.get_text().strip()
         self.settings.ollama_url = endpoint_row.get_text().strip()
         self.settings.auto_speak = auto_speak_row.get_active()
         self.settings.wake_word = wake_word_row.get_text().strip()

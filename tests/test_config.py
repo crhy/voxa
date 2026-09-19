@@ -47,6 +47,31 @@ def test_wake_word_falls_back_to_default_when_blank(tmp_path: Path) -> None:
     assert store.load().wake_word == "voxa"
 
 
+def test_ai_backend_defaults_to_llamacpp(tmp_path: Path) -> None:
+    store = ConfigStore(tmp_path / "config.json")
+    assert store.load().ai_backend == "llamacpp"
+    assert store.load().llamacpp_url == "http://127.0.0.1:8080"
+    assert Settings().ai_backend == "llamacpp"
+
+
+def test_existing_config_without_ai_backend_keeps_ollama(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"ollama_model": "qwen3:8b"}), encoding="utf-8")
+    loaded = ConfigStore(path).load()
+    assert loaded.ai_backend == "ollama"
+    assert loaded.ollama_model == "qwen3:8b"
+
+
+def test_ai_backend_is_validated_and_llamacpp_url_normalized(tmp_path: Path) -> None:
+    store = ConfigStore(tmp_path / "config.json")
+    store.save(Settings(ai_backend="mistral", llamacpp_url="http://box:8080/"))
+    loaded = store.load()
+    assert loaded.ai_backend == "llamacpp"
+    assert loaded.llamacpp_url == "http://box:8080"
+    store.save(Settings(ai_backend="ollama", llamacpp_url="http://box:8080"))
+    assert store.load().ai_backend == "ollama"
+
+
 def test_legacy_config_dir_is_migrated(tmp_path: Path) -> None:
     old_dir = tmp_path / "config" / "voice2text-ai"
     old_dir.mkdir(parents=True)

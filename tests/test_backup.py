@@ -23,6 +23,7 @@ from voxa.backup import (
     _looks_like_gpg_data,
     _ollama_display_name,
     _open_archive,
+    _restore_destination,
     _sha256_bytes,
     _verify_archive,
     build_arg_parser,
@@ -421,3 +422,37 @@ def test_main_cli_home_dir_flag(
     assert "Backed up 7 items (2 models known)" in capsys.readouterr().out
     manifest = read_manifest(out)
     assert not [item for item in manifest["items"] if item["kind"] == KIND_MODEL_BLOB]
+
+
+def test_restore_destination_rejects_absolute_and_parent_keys(tmp_path: Path) -> None:
+    root = tmp_path / "root"
+    root.mkdir()
+
+    for key in (
+        "items/.bashrc/../../.bashrc",
+        "items//etc/passwd",
+        "items/../root/.bashrc",
+        "items/../.bashrc",
+        "items/../etc/passwd",
+        "items/../../evil.txt",
+        "items/.config/voxa/../escape.json",
+    ):
+        with pytest.raises(BackupError, match="unsafe archive key"):
+            _restore_destination({"key": key}, root)
+
+
+def test_restore_destination_normalizes_and_renames_legacy_config(tmp_path: Path) -> None:
+    root = tmp_path / "root"
+    root.mkdir()
+
+    normal = _restore_destination({"key": "items/.config/voxa/config.json"}, root)
+    assert normal == root / ".config" / "voxa" / "config.json"
+
+    legacy = _restore_destination({"key": "items/.config/voice2text-ai/config.json"}, root)
+    assert legacy == root / ".config" / "voxa" / "config.json"
+
+    nested = _restore_destination(
+        {"key": "items/.ollama/models/manifests/registry.ollama.ai/library/qwen2.5/0.5b"},
+        root,
+    )
+    assert nested == root / ".ollama" / "models" / "manifests" / "registry.ollama.ai" / "library" / "qwen2.5" / "0.5b"

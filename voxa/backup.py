@@ -756,7 +756,13 @@ def _restore_destination(entry: dict[str, Any], root: Path) -> Path:
     # ``.config/voice2text-ai`` directory; restore it to the new location.
     if rel == ".config/voice2text-ai/config.json":
         rel = ".config/voxa/config.json"
-    return root / rel
+    rel_path = Path(rel)
+    if rel_path.is_absolute() or ".." in rel_path.parts:
+        raise BackupError(f"Refusing to restore unsafe archive key {key!r}.")
+    target = root / rel_path
+    if not target.resolve().is_relative_to(root.resolve()):
+        raise BackupError(f"Refusing to restore unsafe archive key {key!r}.")
+    return target
 
 
 def _item_matches_filters(entry: dict[str, Any], only_kinds: set[str] | None, only_names: set[str] | None) -> bool:
