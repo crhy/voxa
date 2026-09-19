@@ -13,6 +13,7 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 from .audio import AudioCapture, AudioDevice  # noqa: E402
 from .catalog import CatalogUnavailable, load_catalog, refresh_and_cache, refresh_due  # noqa: E402
 from .config import ConfigStore  # noqa: E402
+from .controller import AssistantController, ControllerPorts  # noqa: E402
 from .conversation import ConversationController, ConversationHistory  # noqa: E402
 from .dictation import DictationController  # noqa: E402
 from .hardware import GpuUsage, detect_available_model_memory_gb, sample_gpu_usage, suggest_models  # noqa: E402
@@ -22,7 +23,7 @@ from .ollama import OllamaClient, OllamaError, strip_reasoning  # noqa: E402
 from .speech import SpeechService  # noqa: E402
 from .transcription import WhisperService  # noqa: E402
 from .ui.shell import AssistantShell, build_header  # noqa: E402
-from .ui.state import AssistantModel, AssistantState  # noqa: E402
+from .ui.state import AssistantModel  # noqa: E402
 from .ui.styles import install_styles  # noqa: E402
 
 WHISPER_MODELS = ["tiny", "base", "small", "medium", "large-v3", "turbo"]
@@ -137,6 +138,19 @@ class MainWindow(Adw.ApplicationWindow):
         self._closing = False
         # The single source of truth for what the assistant is doing; the shell renders it.
         self.assistant_model = AssistantModel()
+        # ACTIVE / OFFLINE and every stale-callback decision go through this controller.
+        self.assistant = AssistantController(
+            self.assistant_model,
+            ControllerPorts(
+                start_listening=self._port_start_listening,
+                stop_listening=self._port_stop_listening,
+                stop_speech=self._port_stop_speech,
+                cancel_inference=self._port_cancel_inference,
+                microphone_active=lambda: self.audio.is_active,
+            ),
+        )
+        self._start_failure = ""
+        self._query_task_id: str | None = None
         install_styles()
 
         self._build_ui()
@@ -175,6 +189,10 @@ class MainWindow(Adw.ApplicationWindow):
         self.shell.on_active = self._on_shell_active
         self.shell.on_offline = self._on_shell_offline
         self.shell.on_model_selected = self._on_shell_model_selected
+        # Attachments are a later milestone (issue #7 section 16); until then the paperclip
+        # says so instead of silently doing nothing.
+        self.shell.attachment_button.set_sensitive(False)
+        self.shell.attachment_button.set_tooltip_text("Attaching files is coming in a later update")
         self.toast_overlay.set_child(self.shell)
         toolbar.set_content(self.toast_overlay)
 
@@ -362,15 +380,83 @@ class MainWindow(Adw.ApplicationWindow):
     # ---------------------------------------------- the assistant shell's controls
 
     def _on_shell_active(self) -> None:
-        if not self.conversation_active:
-            self.start_conversation_mode()
-        self.assistant_model.set_state(
-            AssistantState.READY if self.conversation_active else AssistantState.OFFLINE
-        )
+        self.assistant.activate()
 
     def _on_shell_offline(self) -> None:
         self.stop_current_work()
-        self.assistant_model.set_state(AssistantState.OFFLINE, "Offline")
+
+    # The controller's ports: the real services behind ACTIVE and OFFLINE. Each is
+    # idempotent, and the controller calls all of them even if one raises.
+
+    def _port_start_listening(self) -> None:
+        self._start_failure = ""
+        if self.listening:
+            self.stop_recording()
+        if not self.start_conversation_mode():
+            raise RuntimeError(self._start_failure or "Could not start listening")
+
+    def _port_stop_listening(self) -> None:
+        if self.listening:
+            self.stop_recording()
+        if self.conversation_active or self.conversation is not None:
+            self.stop_conversation_mode()
+        self.audio.stop()
+
+    def _port_stop_speech(self) -> None:
+        self.speech.stop()
+        self._speaking_since = 0.0
+        self._barge_in_streak = 0
+        if self.conversation is not None:
+            self.conversation.unmute()
+
+    def _port_cancel_inference(self) -> None:
+        if self._pending_user_generation is not None:
+            self._conversation_history.drop_last()
+        self._pending_user_generation = None
+        self.query_cancel.set()
+        self._query_generation += 1
+        self._query_task_id = None  # the controller cancels the task itself
+        self.ask_button.set_sensitive(True)
+
+    def _for_session(self, token: int, callback: Callable) -> Callable:
+        """Wrap a queued callback so it is dropped if Voxa went OFFLINE (or was re-activated) since.
+
+        Microphone, transcription, model and speech callbacks are queued with GLib.idle_add
+        from worker threads; without this a callback queued just before OFFLINE could still
+        run afterwards and restart work.
+        """
+
+        def run(*args) -> bool:
+            if self._closing or not self.assistant.accepts(token):
+                return False
+            callback(*args)
+            return False
+
+        return run
+
+    def _fail_assistant(self, detail: str) -> None:
+        """A global assistant failure: show ERROR briefly, then return to READY."""
+        token = self.assistant.token()
+        if self.assistant.failed(token, detail):
+            GLib.timeout_add_seconds(4, self._recover_assistant, token)
+
+    def _recover_assistant(self, token: int) -> bool:
+        self.assistant.recover(token)
+        return False
+
+    def _end_query_task(self, outcome: str, detail: str = "") -> None:
+        task_id, self._query_task_id = self._query_task_id, None
+        if task_id is None:
+            return
+        try:
+            if outcome == "done":
+                self.assistant_model.complete_task(task_id)
+            elif outcome == "failed":
+                self.assistant_model.fail_task(task_id, detail or "The request failed.")
+            else:
+                self.assistant_model.cancel_task(task_id)
+        except (KeyError, ValueError):  # already finished or cancelled (for example by OFFLINE)
+            pass
 
     def _on_shell_model_selected(self, name: str) -> None:
         if name and name != self.settings.ollama_model:
@@ -897,8 +983,8 @@ class MainWindow(Adw.ApplicationWindow):
             self.record_button.set_active(False)
             self._toast("No microphone is available.")
             return
-        if self.conversation_active:
-            self.stop_conversation_mode()
+        if self.assistant.is_active:
+            self.assistant.go_offline()  # dictation and hands-free mode never share the microphone
 
         self.dictation = DictationController(
             self.whisper,
@@ -960,25 +1046,35 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def _on_conversation_toggled(self, button: Gtk.ToggleButton) -> None:
-        if button.get_active() and not self.conversation_active:
-            self.start_conversation_mode()
-        elif not button.get_active() and self.conversation_active:
-            self.stop_conversation_mode()
+        if button.get_active() and not self.assistant.is_active:
+            self.assistant.activate()
+        elif not button.get_active() and self.assistant.is_active:
+            self.assistant.go_offline()
 
     def toggle_conversation(self) -> None:
         self.conversation_button.set_active(not self.conversation_button.get_active())
 
-    def start_conversation_mode(self) -> None:
+    def start_conversation_mode(self) -> bool:
+        """Start the hands-free conversation pipeline; returns False (and says why) if it cannot."""
         if not self.whisper.ready:
             self.conversation_button.set_active(False)
-            self._toast("Whisper is still loading.")
-            return
+            self._start_failure = "Whisper is still loading."
+            self._toast(self._start_failure)
+            return False
         if not self.devices:
             self.conversation_button.set_active(False)
-            self._toast("No microphone is available.")
-            return
+            self._start_failure = "No microphone is available."
+            self._toast(self._start_failure)
+            return False
         if self.listening:
             self.stop_recording()
+
+        # Everything the pipeline queues back to the GTK thread is tied to this session:
+        # once OFFLINE (or re-activated) a late callback is dropped, never acted on.
+        token = self.assistant.token()
+
+        def session(callback: Callable) -> Callable:
+            return self._for_session(token, callback)
 
         self.conversation = ConversationController(
             wake_whisper=self.wake_whisper if self.wake_whisper.ready else self.whisper,
@@ -988,11 +1084,11 @@ class MainWindow(Adw.ApplicationWindow):
             threshold=self.settings.voice_threshold,
             silence_ms=self.settings.silence_ms,
             max_segment_seconds=self.settings.max_segment_seconds,
-            on_woken=lambda: idle(self._on_conversation_woken),
-            on_prompt=lambda text: idle(self._on_conversation_prompt, text),
-            on_status=lambda text: idle(self._set_status, text, True),
-            on_error=lambda text: idle(self._toast, text),
-            on_exit=lambda kind: idle(self._on_conversation_exit, kind),
+            on_woken=lambda: idle(session(self._on_conversation_woken)),
+            on_prompt=lambda text: idle(session(self._on_conversation_prompt), text),
+            on_status=lambda text: idle(session(self._set_status), text, True),
+            on_error=lambda text: idle(session(self._toast), text),
+            on_exit=lambda kind: idle(session(self._on_conversation_exit), kind),
         )
         self.conversation.start()
         try:
@@ -1000,14 +1096,15 @@ class MainWindow(Adw.ApplicationWindow):
                 self.settings.microphone_id,
                 self.conversation.feed,
                 self._queue_level,
-                lambda error: idle(self._conversation_capture_error, error),
+                lambda error: idle(session(self._conversation_capture_error), error),
             )
         except Exception as exc:  # noqa: BLE001 - platform boundary
             self.conversation.stop()
             self.conversation = None
             self.conversation_button.set_active(False)
-            self._toast(str(exc))
-            return
+            self._start_failure = str(exc)
+            self._toast(self._start_failure)
+            return False
 
         self.conversation_active = True
         self._latest_level = 0.0
@@ -1016,6 +1113,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.conversation_button.add_css_class("destructive-action")
         self.record_button.set_sensitive(False)
         self._set_status(f"Conversation mode — say “{self.settings.wake_word}” to begin", busy=True)
+        return True
 
     def stop_conversation_mode(self) -> None:
         self.audio.stop()
@@ -1044,11 +1142,12 @@ class MainWindow(Adw.ApplicationWindow):
         self._set_status("Ready")
 
     def _conversation_capture_error(self, error: str) -> bool:
-        self.stop_conversation_mode()
+        self.assistant.go_offline()
         self._toast(f"Microphone error: {error}")
         return False
 
     def _on_conversation_woken(self) -> bool:
+        self.assistant.wake(self.assistant.token())
         self._toast(f"Heard “{self.settings.wake_word}” — listening…")
         self._set_status("Listening for your request…", busy=True)
         return False
@@ -1074,7 +1173,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._speaking_since = 0.0
         self._barge_in_streak = 0
         if kind == "goodbye":
-            self.stop_conversation_mode()
+            self.assistant.go_offline()
             self._set_status("Goodbye!")
         else:
             self._set_status(self._conversation_idle_status())
@@ -1085,14 +1184,16 @@ class MainWindow(Adw.ApplicationWindow):
             self.conversation.mute()
         self._speaking_since = time.monotonic()
         self._barge_in_streak = 0
+        token = self.assistant.token()
+        self.assistant.reply_started(token)
         self._set_status("Speaking…", busy=True)
         self.speech.speak(
             text,
             self.settings.tts_rate,
             self.settings.tts_voice,
-            on_started=lambda: idle(self._set_status, "Speaking…", True),
-            on_done=lambda: idle(self._on_conversation_speech_done),
-            on_error=lambda error: idle(self._on_conversation_speech_error, error),
+            on_started=lambda: idle(self._for_session(token, self._set_status), "Speaking…", True),
+            on_done=lambda: idle(self._for_session(token, self._on_conversation_speech_done)),
+            on_error=lambda error: idle(self._for_session(token, self._on_conversation_speech_error), error),
         )
 
     def _conversation_idle_status(self) -> str:
@@ -1103,10 +1204,12 @@ class MainWindow(Adw.ApplicationWindow):
         )
 
     def _on_conversation_speech_done(self) -> bool:
+        waiting = self.conversation is not None and self.conversation.waiting_for_prompt
         if self.conversation is not None:
             self.conversation.unmute()
         self._speaking_since = 0.0
         self._barge_in_streak = 0
+        self.assistant.reply_finished(self.assistant.token(), waiting_for_prompt=waiting)
         self._set_status(self._conversation_idle_status())
         return False
 
@@ -1115,6 +1218,7 @@ class MainWindow(Adw.ApplicationWindow):
             self.conversation.unmute()
         self._speaking_since = 0.0
         self._barge_in_streak = 0
+        self._fail_assistant("Speech playback failed")
         self._toast(error)
         self._set_status(self._conversation_idle_status())
         return False
@@ -1143,6 +1247,7 @@ class MainWindow(Adw.ApplicationWindow):
             self._level_source = 0
             return False
         self.level.set_value(self._latest_level)
+        self.shell.set_audio_level(self._latest_level / 4000.0)
         self.status_box.queue_draw()
         self._maybe_barge_in()
         return True
@@ -1178,6 +1283,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.speech.stop()
         self.conversation.unmute()
         self.conversation.arm_prompt()
+        self.assistant.barge_in(self.assistant.token())
         self._toast("Interrupted — go ahead.")
         self._set_status("Listening for your request…", busy=True)
 
@@ -1295,6 +1401,12 @@ class MainWindow(Adw.ApplicationWindow):
             self._pending_user_generation = None
 
         model = self.settings.ollama_model
+        # A visible task for the request, and THINKING while hands-free. When OFFLINE
+        # (for example an explicit Ask AI from the transcript window) no task is created.
+        self._end_query_task("cancelled")
+        task = self.assistant.begin_task(f"Answering: {prompt[:40]}")
+        self._query_task_id = task.id if task is not None else None
+        self.assistant.prompt_accepted(self.assistant.token())
         self._set_text(self.response_view, "")
         self.ask_button.set_sensitive(False)
         self._set_status(f"Asking {model}…", busy=True)
@@ -1361,8 +1473,10 @@ class MainWindow(Adw.ApplicationWindow):
             self._conversation_history.drop_last()
         self._pending_user_generation = None
         if cancel_event.is_set():
+            self._end_query_task("cancelled")
             self._set_status("AI request stopped.")
             return False
+        self._end_query_task("done")
         self._set_status("AI response complete.")
         # A thinking model streams its scratchpad in with the reply. Replace
         # what was streamed with just the answer, so the chain of thought is
@@ -1375,8 +1489,12 @@ class MainWindow(Adw.ApplicationWindow):
         if spoken and self.conversation_active:
             self._conversation_history.add_assistant(spoken)
             self._conversation_speak(spoken)
-        elif answer and self.settings.auto_speak:
-            self.speak_response()
+        else:
+            if self.conversation_active:  # nothing to say: back to waiting
+                waiting = self.conversation is not None and self.conversation.waiting_for_prompt
+                self.assistant.reply_finished(self.assistant.token(), waiting_for_prompt=waiting)
+            if answer and self.settings.auto_speak:
+                self.speak_response()
         return False
 
     def _on_query_error(
@@ -1394,6 +1512,9 @@ class MainWindow(Adw.ApplicationWindow):
             # conversation history as an unanswered question with no reply.
             self._conversation_history.drop_last()
         self._pending_user_generation = None
+        self._end_query_task("failed", error)
+        if self.conversation_active:
+            self._fail_assistant("The AI request failed")
         self._toast(error)
         self._set_status(self._conversation_idle_status() if self.conversation_active else "AI request failed.")
         return False
@@ -1419,15 +1540,11 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def stop_current_work(self) -> None:
-        if self.listening:
-            self.stop_recording()
-        if self.conversation_active:
-            self.stop_conversation_mode()
+        # The OFFLINE kill switch: stops the microphone, wake-word monitoring, dictation,
+        # speech and the running request, cancels tasks, and makes late callbacks stale.
+        self.assistant.go_offline()
         if self._installing:
             self._install_cancel.set()
-        self.query_cancel.set()
-        self._query_generation += 1
-        self.speech.stop()
         self.ask_button.set_sensitive(True)
         self._set_status("Stopped.")
 

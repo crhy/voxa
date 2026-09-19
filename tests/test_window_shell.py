@@ -111,3 +111,9 @@ def test_late_hardware_callback_after_close_is_harmless(window) -> None:
 def test_shell_controls_drive_the_assistant_model(window) -> None:
     window.shell.on_offline()
     assert window.assistant_model.state is AssistantState.OFFLINE
+
+
+def test_paperclip_is_honest_until_attachments_exist(window) -> None:
+    button = window.shell.attachment_button
+    assert not button.get_sensitive()
+    assert "later" in button.get_tooltip_text()

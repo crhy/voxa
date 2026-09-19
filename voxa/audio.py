@@ -200,6 +200,11 @@ class AudioCapture:
             self._on_error(detail)
         self.stop()
 
+    @property
+    def is_active(self) -> bool:
+        """True while a capture pipeline exists, i.e. the microphone may be recording."""
+        return self.pipeline is not None
+
     def stop(self) -> None:
         gst = _ensure_gstreamer() if self.pipeline is not None else None
         pipeline, self.pipeline = self.pipeline, None
