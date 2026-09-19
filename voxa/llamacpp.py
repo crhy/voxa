@@ -38,6 +38,18 @@ class LlamaCppClient:
         names = [item.get("id", "") for item in data if isinstance(item, dict)]
         return sorted(name for name in names if name)
 
+    def is_busy(self) -> bool:
+        """True when every server slot is already working on another request."""
+        request = urllib.request.Request(f"{self.base_url}/slots", method="GET")
+        try:
+            with open_url(request, timeout=self.timeout) as response:
+                slots = json.load(response)
+        except (urllib.error.URLError, TimeoutError, ValueError, json.JSONDecodeError):
+            return False
+        if not isinstance(slots, list) or not slots:
+            return False
+        return all(isinstance(slot, dict) and slot.get("is_processing") for slot in slots)
+
     def generate_stream(
         self,
         *,

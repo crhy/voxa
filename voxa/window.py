@@ -24,7 +24,7 @@ from .speech import SpeechService  # noqa: E402
 from .transcription import WhisperService  # noqa: E402
 from .ui.legacy_view import LegacyCallbacks, LegacyView  # noqa: E402
 from .ui.shell import AssistantShell, build_header  # noqa: E402
-from .ui.state import AssistantModel  # noqa: E402
+from .ui.state import AssistantModel, AssistantState  # noqa: E402
 from .ui.styles import install_styles  # noqa: E402
 
 WHISPER_MODELS = ["tiny", "base", "small", "medium", "large-v3", "turbo"]
@@ -1307,6 +1307,8 @@ class MainWindow(Adw.ApplicationWindow):
         def worker() -> None:
             try:
                 client = self._ai_client()
+                if isinstance(client, LlamaCppClient) and client.is_busy():
+                    idle(self._on_server_busy, generation, cancel_event)
                 answer = client.generate_stream(
                     model=model,
                     prompt=prompt,
@@ -1321,6 +1323,14 @@ class MainWindow(Adw.ApplicationWindow):
                 idle(self._on_query_error, str(exc), generation, cancel_event)
 
         threading.Thread(target=worker, name=f"ollama-query-{generation}", daemon=True).start()
+
+    def _on_server_busy(self, generation: int, cancel_event: threading.Event) -> bool:
+        if self._query_is_current(generation, cancel_event) and not cancel_event.is_set():
+            note = "The AI server is busy with another request. Voxa will answer as soon as it is free."
+            self._set_status(note, busy=True)
+            self._toast(note)
+            self.assistant_model.set_state(AssistantState.THINKING, "AI server busy — waiting in line")
+        return False
 
     def _query_is_current(self, generation: int, cancel_event: threading.Event) -> bool:
         return generation == self._query_generation and cancel_event is self.query_cancel

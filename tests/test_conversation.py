@@ -133,3 +133,14 @@ def test_stop_during_transcription_drops_prompt_callback() -> None:
 
     assert prompts == []
     assert woken == []
+
+
+def test_strip_wake_word_tolerates_close_misspelling_at_start() -> None:
+    assert strip_wake_word("Vox, what time is it", "voxa") == "what time is it"
+    assert strip_wake_word("Voxer what time is it", "voxa") == "what time is it"
+
+
+def test_strip_wake_word_fuzzy_does_not_fire_on_ordinary_speech() -> None:
+    assert strip_wake_word("what time is it", "voxa") is None
+    assert strip_wake_word("Mark, sir, what time is it?", "voxa") is None
+    assert strip_wake_word("the voice is loud", "voxa") is None

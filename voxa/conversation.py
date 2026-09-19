@@ -4,6 +4,7 @@ import queue
 import re
 import threading
 from collections import deque
+from difflib import SequenceMatcher
 from collections.abc import Callable
 
 from .dictation import segment_stream
@@ -24,9 +25,27 @@ def strip_wake_word(text: str, wake_word: str) -> str | None:
     lowered = text.casefold()
     index = lowered.find(wake)
     if index == -1:
-        return None
+        return _fuzzy_strip(text, wake)
     remainder = text[:index] + text[index + len(wake) :]
     return remainder.strip(" ,.!?—-\t\n")
+
+
+def _fuzzy_strip(text: str, wake: str) -> str | None:
+    """Match a wake word the tiny Whisper model spelled slightly differently.
+
+    Only the start of the utterance is checked (wake words come first), and a
+    word or word pair must be very close to the wake word, so ordinary speech
+    is not mistaken for it.
+    """
+    words = list(re.finditer(r"[\w']+", text))
+    for count in (1, 2):
+        window = words[:count]
+        if len(window) < count:
+            continue
+        candidate = "".join(m.group().casefold() for m in window)
+        if len(candidate) >= 3 and SequenceMatcher(None, candidate, wake).ratio() >= 0.75:
+            return text[window[-1].end() :].strip(" ,.!?—-\t\n")
+    return None
 
 
 # Utterances that end a conversation turn, matched exactly (whitespace and
