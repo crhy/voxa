@@ -27,6 +27,16 @@ def test_license_metadata_matches_license_file() -> None:
     assert (ROOT / "LICENSE").read_text(encoding="utf-8").startswith("MIT License")
 
 
+def test_flatpak_manifest_copies_the_package_recursively() -> None:
+    manifest = (ROOT / "io.github.crhy.voxa.yml").read_text(encoding="utf-8")
+
+    # A bare voxa/*.py glob would drop subpackages such as voxa/ui/ from the
+    # Flatpak payload and crash the app on import.
+    assert "voxa/*.py" not in manifest
+    assert "cp -r voxa /app/lib/voxa/" in manifest
+    assert "__pycache__" in manifest
+
+
 def test_flatpak_manifest_and_launcher_agree() -> None:
     manifest = (ROOT / "io.github.crhy.voxa.yml").read_text(encoding="utf-8")
     launcher = (ROOT / "packaging/flatpak/voxa").read_text(encoding="utf-8")

@@ -88,9 +88,12 @@ modules:
       - type: dir
         path: .
     build-commands:
-      - install -d /app/lib/voxa/voxa
+      - install -d /app/lib/voxa
       - install -Dm755 voxa.py /app/lib/voxa/voxa.py
-      - install -Dm644 voxa/*.py /app/lib/voxa/voxa/
+      # Copy the whole package recursively so subpackages (voxa/ui, ...) are
+      # included, then strip __pycache__ so the payload stays clean.
+      - cp -r voxa /app/lib/voxa/
+      - find /app/lib/voxa -name __pycache__ -prune -exec rm -rf {} +
       - install -Dm755 packaging/flatpak/voxa /app/bin/voxa
       - install -Dm755 packaging/flatpak/voxa-backup /app/bin/voxa-backup
       - install -Dm644 io.github.crhy.voxa.desktop /app/share/applications/io.github.crhy.voxa.desktop
