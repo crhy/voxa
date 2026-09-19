@@ -117,3 +117,11 @@ def test_paperclip_is_honest_until_attachments_exist(window) -> None:
     button = window.shell.attachment_button
     assert not button.get_sensitive()
     assert "later" in button.get_tooltip_text()
+
+
+def test_user_is_told_once_when_the_speech_model_is_ready(window, monkeypatch) -> None:
+    toasts: list[str] = []
+    monkeypatch.setattr(window, "_toast", toasts.append)
+    window._on_whisper_ready("base", "CPU")
+    window._on_whisper_ready("small", "CPU")  # switching models later must not repeat the hint
+    assert [t for t in toasts if "ACTIVE" in t] == ["Voxa is ready. Press ACTIVE to start listening."]

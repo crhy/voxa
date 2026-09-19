@@ -151,6 +151,7 @@ class MainWindow(Adw.ApplicationWindow):
         )
         self._start_failure = ""
         self._query_task_id: str | None = None
+        self._announced_ready = False
         install_styles()
 
         self._build_ui()
@@ -957,6 +958,10 @@ class MainWindow(Adw.ApplicationWindow):
         self.config_store.save(self.settings)
         self._stop_progress()
         self._set_status(f"Ready — Whisper {name} on {backend}")
+        if not self._announced_ready and not self.assistant.is_active:
+            # ACTIVE cannot start listening until the speech model has loaded; say when it can.
+            self._announced_ready = True
+            self._toast("Voxa is ready. Press ACTIVE to start listening.")
         return False
 
     def _on_whisper_error(self, error: str) -> bool:
