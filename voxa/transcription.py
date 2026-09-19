@@ -142,7 +142,7 @@ class WhisperService:
         for _segment in segments:
             pass
 
-    def transcribe(self, pcm_s16le: bytes, language: str = "en") -> str:
+    def transcribe(self, pcm_s16le: bytes, language: str = "en", hint: str = "") -> str:
         if not pcm_s16le:
             return ""
         with self._lock:
@@ -160,5 +160,6 @@ class WhisperService:
             vad_parameters={"min_silence_duration_ms": 350},
             condition_on_previous_text=False,
             word_timestamps=False,
+            initial_prompt=hint or None,
         )
         return " ".join(segment.text.strip() for segment in segments if segment.text.strip()).strip()

@@ -243,12 +243,12 @@ class ConversationController:
             return segment
         return None
 
-    def _transcribe(self, segment: bytes, whisper: WhisperService) -> str:
+    def _transcribe(self, segment: bytes, whisper: WhisperService, hint: str = "") -> str:
         if self.stop_event.is_set():
             return ""
         try:
             self.on_status("Transcribing…")
-            text = whisper.transcribe(segment, self.language)
+            text = whisper.transcribe(segment, self.language, hint) if hint else whisper.transcribe(segment, self.language)
         except Exception as exc:  # noqa: BLE001 - worker boundary
             if not self.stop_event.is_set():
                 self.on_error(str(exc))
@@ -272,7 +272,7 @@ class ConversationController:
                 continue
 
             whisper = self.prompt_whisper if waiting_for_prompt else self.wake_whisper
-            text = self._transcribe(segment, whisper)
+            text = self._transcribe(segment, whisper, hint="" if waiting_for_prompt else f"{self.wake_word.strip().capitalize()}.")
             if not text:
                 continue
             if self.stop_event.is_set():
