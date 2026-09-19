@@ -422,6 +422,9 @@ class MainWindow(Adw.ApplicationWindow):
                 models = self._ai_client().list_models()
                 idle(self._apply_ollama_models, models)
             except OllamaError as exc:
+                # Say so in the model picker too ("No models available - Ollama") instead of
+                # leaving it blank, and keep the saved model selection untouched.
+                idle(self._show_no_models)
                 idle(
                     self._set_status,
                     f"The AI server ({self._backend_label()}) is offline. Dictation is still available.",
@@ -429,6 +432,11 @@ class MainWindow(Adw.ApplicationWindow):
                 idle(self._toast, str(exc))
 
         threading.Thread(target=worker, name="ollama-models", daemon=True).start()
+
+    def _show_no_models(self) -> bool:
+        self.ollama_models = []
+        self._apply_model_combo([])
+        return False
 
     def _detect_hardware_async(self) -> None:
         def worker() -> None:

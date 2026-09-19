@@ -18,9 +18,12 @@ if not Gtk.init_check():
     pytest.skip("no GTK display available")
 Adw.init()
 
+from voxa.ollama import OllamaError  # noqa: E402
 from voxa.ui.shell import AssistantShell  # noqa: E402
 from voxa.ui.state import AssistantState  # noqa: E402
 from voxa.window import MainWindow  # noqa: E402
+
+_REAL_REFRESH = MainWindow._refresh_ollama_models  # the fixture stubs the class attribute
 
 
 def _pump(iterations: int = 150) -> None:
@@ -125,3 +128,23 @@ def test_user_is_told_once_when_the_speech_model_is_ready(window, monkeypatch) -
     window._on_whisper_ready("base", "CPU")
     window._on_whisper_ready("small", "CPU")  # switching models later must not repeat the hint
     assert [t for t in toasts if "ACTIVE" in t] == ["Voxa is ready. Press ACTIVE to start listening."]
+
+
+def test_an_offline_ai_server_is_explained_in_the_model_picker(window, monkeypatch) -> None:
+    class Offline:
+        def list_models(self):
+            raise OllamaError("Could not connect")
+
+    monkeypatch.setattr(window, "_ai_client", lambda: Offline())
+    window.settings.ollama_model = "keep-me"
+    _REAL_REFRESH(window)
+
+    selector = window.shell.model_selector
+    deadline_ok = False
+    for _ in range(200):
+        _pump(5)
+        if selector._items.get_n_items() == 1 and selector._items.get_item(0).get_string() == "No models available":
+            deadline_ok = True
+            break
+    assert deadline_ok
+    assert window.settings.ollama_model == "keep-me"  # an outage must not erase the saved choice
