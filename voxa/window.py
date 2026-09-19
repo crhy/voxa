@@ -22,6 +22,7 @@ from .llamacpp import LlamaCppClient  # noqa: E402
 from .ollama import OllamaClient, OllamaError, strip_reasoning  # noqa: E402
 from .speech import SpeechService  # noqa: E402
 from .transcription import WhisperService  # noqa: E402
+from .ui.legacy_view import LegacyCallbacks, LegacyView  # noqa: E402
 from .ui.shell import AssistantShell, build_header  # noqa: E402
 from .ui.state import AssistantModel  # noqa: E402
 from .ui.styles import install_styles  # noqa: E402
@@ -206,152 +207,26 @@ class MainWindow(Adw.ApplicationWindow):
         It is built but not attached to the main window: the new assistant shell is
         the production view. It is reachable from the menu ("Transcript and
         dictation...") and through the existing keyboard shortcuts, in a secondary
-        window, so no capability was lost. Many methods drive these widgets.
+        window, so no capability was lost. The view itself lives in
+        :class:`voxa.ui.legacy_view.LegacyView`; every widget it builds is aliased
+        back onto this window under the name the rest of the code already uses.
         """
-        toolbar = Adw.ToolbarView()
-        self._legacy_view = toolbar
-
-        header = Adw.HeaderBar()
-        header.set_title_widget(Adw.WindowTitle(title="Voxa", subtitle="Your personal voice assistant"))
-        toolbar.add_top_bar(header)
-
-        self.record_button = Gtk.ToggleButton(label="Dictate")
-        self.record_button.set_tooltip_text("Start or stop dictation (Ctrl+R)")
-        self.record_button.connect("toggled", self._on_record_toggled)
-        header.pack_start(self.record_button)
-
-        self.conversation_button = Gtk.ToggleButton(label="Conversation")
-        self.conversation_button.set_tooltip_text(
-            "Actively listen for the wake word, then transcribe and ask AI automatically (Ctrl+Shift+R)"
+        legacy = LegacyView(
+            LegacyCallbacks(
+                record_toggled=self._on_record_toggled,
+                conversation_toggled=self._on_conversation_toggled,
+                copy=self.copy_transcript,
+                copy_reply=self.copy_response,
+                clear=self.clear_all,
+                ask=self.ask_ai,
+                speak=self.speak_response,
+                stop=self.stop_current_work,
+                model_selected=self._on_model_selected,
+            )
         )
-        self.conversation_button.connect("toggled", self._on_conversation_toggled)
-        header.pack_start(self.conversation_button)
-
-        root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        toolbar.set_content(root)
-
-        self.progress = Gtk.ProgressBar()
-        self.progress.set_visible(False)
-        root.append(self.progress)
-
-        self.status_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        self.status_box.add_css_class("status-strip")
-        self.status_box.set_margin_top(10)
-        self.status_box.set_margin_bottom(8)
-        self.status_box.set_margin_start(18)
-        self.status_box.set_margin_end(18)
-        self.status_spinner = Adw.Spinner()
-        self.status_spinner.set_visible(False)
-        self.status_label = Gtk.Label(label="Starting…", xalign=0)
-        self.status_label.set_hexpand(True)
-        self.level = Gtk.LevelBar()
-        self.level.set_min_value(0)
-        self.level.set_max_value(4000)
-        self.level.set_value(0)
-        self.level.set_size_request(150, -1)
-        self.level.set_tooltip_text("Microphone level")
-
-        self.gpu_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        self.gpu_box.set_visible(False)
-        gpu_caption = Gtk.Label(label="GPU")
-        gpu_caption.add_css_class("dim-label")
-        self.gpu_level = Gtk.LevelBar()
-        self.gpu_level.set_min_value(0)
-        self.gpu_level.set_max_value(100)
-        self.gpu_level.set_size_request(80, -1)
-        self.gpu_label = Gtk.Label(label="0%")
-        self.gpu_label.set_width_chars(4)
-        self.gpu_box.append(gpu_caption)
-        self.gpu_box.append(self.gpu_level)
-        self.gpu_box.append(self.gpu_label)
-
-        self.model_combo = Gtk.DropDown()
-        self.model_combo.set_visible(False)
-        self.model_combo.add_css_class("model-select")
-        self.model_combo.set_tooltip_text("Model used by Ask AI")
-        self.model_combo.connect("notify::selected", self._on_model_selected)
-
-        self.status_box.append(self.status_spinner)
-        self.status_box.append(self.status_label)
-        self.status_box.append(self.gpu_box)
-        self.status_box.append(self.model_combo)
-        self.status_box.append(self.level)
-        root.append(self.status_box)
-        self._install_status_css()
-
-        paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
-        paned.set_wide_handle(True)
-        paned.set_position(525)
-        paned.set_vexpand(True)
-        paned.set_start_child(self._build_editor("Transcript", editable=True, transcript=True))
-        paned.set_end_child(self._build_editor("AI response", editable=False, transcript=False))
-        root.append(paned)
-
-        action_bar = Gtk.ActionBar()
-        action_bar.set_revealed(True)
-        toolbar.add_bottom_bar(action_bar)
-
-        self.copy_button = Gtk.Button(label="Copy")
-        self.copy_button.set_tooltip_text("Copy the transcript (Ctrl+Shift+C)")
-        self.copy_button.connect("clicked", lambda *_: self.copy_transcript())
-        action_bar.pack_start(self.copy_button)
-
-        self.copy_response_button = Gtk.Button(label="Copy Reply")
-        self.copy_response_button.set_tooltip_text("Copy the AI response")
-        self.copy_response_button.connect("clicked", lambda *_: self.copy_response())
-        action_bar.pack_start(self.copy_response_button)
-
-        self.clear_button = Gtk.Button(label="Clear")
-        self.clear_button.connect("clicked", lambda *_: self.clear_all())
-        action_bar.pack_start(self.clear_button)
-
-        self.ask_button = Gtk.Button(label="Ask AI")
-        self.ask_button.add_css_class("suggested-action")
-        self.ask_button.connect("clicked", lambda *_: self.ask_ai())
-        action_bar.pack_end(self.ask_button)
-
-        self.speak_button = Gtk.Button(label="Speak")
-        self.speak_button.connect("clicked", lambda *_: self.speak_response())
-        action_bar.pack_end(self.speak_button)
-
-        self.stop_button = Gtk.Button(label="Stop")
-        self.stop_button.connect("clicked", lambda *_: self.stop_current_work())
-        action_bar.pack_end(self.stop_button)
-
-
-    def _build_editor(self, title: str, *, editable: bool, transcript: bool) -> Gtk.Widget:
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        box.set_margin_top(6)
-        box.set_margin_bottom(12)
-        box.set_margin_start(12)
-        box.set_margin_end(12)
-
-        heading = Gtk.Label(label=title, xalign=0)
-        heading.add_css_class("heading")
-        box.append(heading)
-
-        view = Gtk.TextView()
-        view.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
-        view.set_editable(editable)
-        view.set_cursor_visible(editable)
-        view.set_top_margin(12)
-        view.set_bottom_margin(12)
-        view.set_left_margin(12)
-        view.set_right_margin(12)
-        view.add_css_class("card")
-        view.add_css_class("document")
-        view.set_vexpand(True)
-        scroller = Gtk.ScrolledWindow()
-        scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-        scroller.set_child(view)
-        scroller.set_vexpand(True)
-        box.append(scroller)
-
-        if transcript:
-            self.transcript_view = view
-        else:
-            self.response_view = view
-        return box
+        self._legacy_view = legacy.view
+        for name in LegacyView.WIDGET_NAMES:
+            setattr(self, name, getattr(legacy, name))
 
     def _install_actions(self) -> None:
         actions = {
@@ -476,24 +351,6 @@ class MainWindow(Adw.ApplicationWindow):
             window.set_content(self._legacy_view)
             self._legacy_window = window
         self._legacy_window.present()
-
-    def _install_status_css(self) -> None:
-        display = Gdk.Display.get_default()
-        if display is None:
-            return
-        provider = Gtk.CssProvider()
-        provider.load_from_data(
-            b"""
-            .status-strip { background-color: @window_bg_color; }
-            .model-select { min-width: 170px; }
-            """
-        )
-        Gtk.StyleContext.add_provider_for_display(
-            display,
-            provider,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
-        )
-        self._status_css_provider = provider
 
     def _set_status(self, text: str, busy: bool = False) -> None:
         if self.status_label.get_text() != text:
