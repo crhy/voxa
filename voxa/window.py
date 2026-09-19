@@ -22,6 +22,7 @@ from .llamacpp import LlamaCppClient  # noqa: E402
 from .ollama import OllamaClient, OllamaError, strip_reasoning  # noqa: E402
 from .speech import SpeechService  # noqa: E402
 from .transcription import WhisperService  # noqa: E402
+from . import websearch  # noqa: E402
 from .ui.legacy_view import LegacyCallbacks, LegacyView  # noqa: E402
 from .ui.shell import AssistantShell, build_header  # noqa: E402
 from .ui.state import AssistantModel, AssistantState  # noqa: E402
@@ -1326,6 +1327,14 @@ class MainWindow(Adw.ApplicationWindow):
         def worker() -> None:
             try:
                 client = self._ai_client()
+                nonlocal messages, prompt
+                if self.settings.web_search:
+                    context = self._web_context(prompt, generation, cancel_event)
+                    if context:
+                        if messages:
+                            messages = [*messages[:-1], {**messages[-1], "content": f"{context}\n\n{messages[-1]['content']}"}]
+                        else:
+                            prompt = f"{context}\n\nQuestion: {prompt}"
                 if isinstance(client, LlamaCppClient) and client.is_busy():
                     idle(self._on_server_busy, generation, cancel_event)
                 answer = client.generate_stream(
@@ -1342,6 +1351,29 @@ class MainWindow(Adw.ApplicationWindow):
                 idle(self._on_query_error, str(exc), generation, cancel_event)
 
         threading.Thread(target=worker, name=f"ollama-query-{generation}", daemon=True).start()
+
+    def _web_context(self, prompt: str, generation: int, cancel_event: threading.Event) -> str:
+        query = websearch.search_query_for(prompt)
+        if not query:
+            return ""
+        idle(self._on_web_search, query, generation, cancel_event)
+        try:
+            results = websearch.search(query)
+        except Exception:  # noqa: BLE001 - offline or blocked: answer without the web
+            idle(self._on_web_unavailable, generation, cancel_event)
+            return ""
+        return websearch.format_for_prompt(query, results) if results else ""
+
+    def _on_web_search(self, query: str, generation: int, cancel_event: threading.Event) -> bool:
+        if self._query_is_current(generation, cancel_event) and not cancel_event.is_set():
+            self._set_status(f"Searching the web for “{query}”…", busy=True)
+            self.assistant_model.set_state(AssistantState.THINKING, "Searching the web…")
+        return False
+
+    def _on_web_unavailable(self, generation: int, cancel_event: threading.Event) -> bool:
+        if self._query_is_current(generation, cancel_event) and not cancel_event.is_set():
+            self._toast("Couldn't reach the web, so Voxa is answering from the model's own knowledge.")
+        return False
 
     def _on_server_busy(self, generation: int, cancel_event: threading.Event) -> bool:
         if self._query_is_current(generation, cancel_event) and not cancel_event.is_set():
@@ -1578,6 +1610,12 @@ class MainWindow(Adw.ApplicationWindow):
         auto_speak_row = Adw.SwitchRow(title="Speak AI responses automatically")
         auto_speak_row.set_active(self.settings.auto_speak)
         ai_group.add(auto_speak_row)
+        web_search_row = Adw.SwitchRow(
+            title="Search the web for current questions",
+            subtitle="Sends the question text to DuckDuckGo when it needs fresh information.",
+        )
+        web_search_row.set_active(self.settings.web_search)
+        ai_group.add(web_search_row)
 
         # Installing and pulling models is an Ollama-only convenience; a
         # llama.cpp server serves whichever GGUF the user started it with.
@@ -1652,6 +1690,7 @@ class MainWindow(Adw.ApplicationWindow):
             llamacpp_row,
             endpoint_row,
             auto_speak_row,
+            web_search_row,
             wake_word_row,
             voice_row,
             rate_row,
@@ -1669,6 +1708,7 @@ class MainWindow(Adw.ApplicationWindow):
         llamacpp_row,
         endpoint_row,
         auto_speak_row,
+        web_search_row,
         wake_word_row,
         voice_row,
         rate_row,
@@ -1684,6 +1724,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.settings.llamacpp_url = llamacpp_row.get_text().strip()
         self.settings.ollama_url = endpoint_row.get_text().strip()
         self.settings.auto_speak = auto_speak_row.get_active()
+        self.settings.web_search = web_search_row.get_active()
         self.settings.wake_word = wake_word_row.get_text().strip()
         self.settings.appearance = APPEARANCE_VALUES[appearance_row.get_selected()]
         self.settings.tts_voice = TTS_VOICES[voice_row.get_selected()][1]

@@ -22,6 +22,7 @@ class Settings:
     tts_voice: str = "en-US-AriaNeural"
     appearance: str = "system"
     auto_speak: bool = True
+    web_search: bool = True
     silence_ms: int = 900
     voice_threshold: int = 450
     max_segment_seconds: float = 6.0
