@@ -1,8 +1,12 @@
 # Voxa
 
 <p align="center">
-  <img src="docs/branding/logo-metal.png" alt="Voxa logo, metal coin badge" width="200">
-  <img src="docs/branding/logo-neon.png" alt="Voxa logo, neon mark" width="200">
+  <img src="docs/branding/logo-metal-dark.png" alt="Voxa app icon: metal V badge on dark stone" width="200"><br>
+  <sub>App icon</sub>
+</p>
+<p align="center">
+  <img src="docs/branding/logo-metal.png" alt="Voxa logo, metal coin badge" width="160">
+  <img src="docs/branding/logo-neon.png" alt="Voxa logo, neon mark" width="160">
 </p>
 
 Your personal voice assistant for Linux. Dictate text with on-device
