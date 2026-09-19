@@ -1043,15 +1043,26 @@ class MainWindow(Adw.ApplicationWindow):
         self._speaking_since = 0.0
         self._barge_in_streak = 0
         if kind == "goodbye":
-            self.assistant.go_offline()
+            # Exactly what pressing the red OFFLINE button does.
+            self.stop_current_work()
             self._set_status("Goodbye!")
         else:
             # A spoken "cancel": the request was abandoned and its late completion is
             # ignored on purpose, so the assistant must be returned to READY right here.
             self._end_query_task("cancelled")
             self.assistant.abandon(self.assistant.token())
+            if kind == "stop":
+                self._clear_display()
             self._set_status(self._conversation_idle_status())
         return False
+
+    def _clear_display(self) -> None:
+        """A blank interface: no transcript, answer, exchange card or remembered turns."""
+        self._conversation_history.clear()
+        self._pending_user_generation = None
+        self._set_text(self.transcript_view, "")
+        self._set_text(self.response_view, "")
+        self.shell.exchange_panel.clear()
 
     def _conversation_speak(self, text: str) -> None:
         if self.conversation is not None:

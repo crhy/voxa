@@ -301,6 +301,19 @@ def test_a_spoken_cancel_returns_to_ready_instead_of_sticking_on_thinking(window
     assert window.audio.is_active  # "cancel" does not switch the microphone off
 
 
+def test_a_spoken_stop_blanks_the_interface_but_stays_active(window) -> None:
+    window.assistant.activate()
+    window.shell.exchange_panel.show_question("what time is it")
+    window.shell.exchange_panel.show_answer("Noon.")
+    window._set_text(window.transcript_view, "what time is it")
+    window._set_text(window.response_view, "Noon.")
+
+    window._on_conversation_exit("stop")
+    assert not window.shell.exchange_panel.get_visible()
+    assert window._get_text(window.transcript_view) == "" and window._get_text(window.response_view) == ""
+    assert _state(window) is AssistantState.READY and window.audio.is_active
+
+
 def test_a_spoken_goodbye_goes_offline(window) -> None:
     window.assistant.activate()
     window._on_conversation_exit("goodbye")

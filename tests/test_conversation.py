@@ -27,7 +27,7 @@ def test_strip_wake_word_with_empty_configured_word_never_matches() -> None:
 
 
 def test_detect_exit_phrase_matches_cancel_phrases() -> None:
-    for utterance in ("Never mind.", "CANCEL", "Stop talking", "stop it", "Forget it!", "nevermind"):
+    for utterance in ("Never mind.", "CANCEL", "Forget it!", "nevermind"):
         assert detect_exit_phrase(utterance) == "cancel", utterance
 
 
@@ -144,3 +144,11 @@ def test_strip_wake_word_fuzzy_does_not_fire_on_ordinary_speech() -> None:
     assert strip_wake_word("what time is it", "voxa") is None
     assert strip_wake_word("Mark, sir, what time is it?", "voxa") is None
     assert strip_wake_word("the voice is loud", "voxa") is None
+
+
+def test_detect_exit_phrase_stop_and_go_offline() -> None:
+    for utterance in ("Stop.", "Stop talking", "stop it", "Stop dictation"):
+        assert detect_exit_phrase(utterance) == "stop", utterance
+    for utterance in ("Go offline", "go offline.", "Turn off", "Goodbye"):
+        assert detect_exit_phrase(utterance) == "goodbye", utterance
+    assert detect_exit_phrase("stop the presses and tell me the news") is None

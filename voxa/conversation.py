@@ -56,16 +56,20 @@ _CANCEL_PHRASES = frozenset(
     {
         "cancel",
         "cancelled",
-        "stop",
-        "stop talking",
-        "stop it",
         "never mind",
         "nevermind",
         "forget it",
     }
 )
+_STOP_PHRASES = frozenset({"stop", "stop talking", "stop it", "stop dictation", "stop listening"})
 _GOODBYE_PHRASES = frozenset(
     {
+        "go offline",
+        "go off line",
+        "offline",
+        "turn off",
+        "shut down",
+        "go to sleep",
         "goodbye",
         "bye",
         "goodbye for now",
@@ -79,7 +83,7 @@ _GOODBYE_PHRASES = frozenset(
 
 
 def detect_exit_phrase(text: str) -> str | None:
-    """Return "cancel" or "goodbye" if the utterance ends the conversation.
+    """Return "cancel", "stop" or "goodbye" if the utterance ends the conversation.
 
     Comparison is exact after casefolding and stripping punctuation, so
     "Never mind." and "Goodbye!" match while "never mind that" does not.
@@ -87,6 +91,8 @@ def detect_exit_phrase(text: str) -> str | None:
     normalized = " ".join(re.sub(r"[^a-z0-9'\s]", " ", text.casefold()).split())
     if normalized in _GOODBYE_PHRASES:
         return "goodbye"
+    if normalized in _STOP_PHRASES:
+        return "stop"
     if normalized in _CANCEL_PHRASES:
         return "cancel"
     return None
