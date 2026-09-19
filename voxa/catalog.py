@@ -81,7 +81,7 @@ def _visible_text(page: str) -> str:
     return re.sub(r"[ \t\xa0]+", " ", html.unescape(_TAGS.sub("\n", page)))
 
 
-def list_families(*, base_url: str = LIBRARY_URL, timeout: float = 20.0) -> tuple[str, ...]:
+def list_families(*, base_url: str = LIBRARY_URL, timeout: float = 8.0) -> tuple[str, ...]:
     """Every model family the library index links to."""
     families = sorted(set(_FAMILY_HREF.findall(_fetch(base_url, timeout))))
     if not families:
@@ -126,7 +126,7 @@ def select_families(
 
 
 def family_tags(
-    family: str, *, base_url: str = LIBRARY_URL, timeout: float = 20.0
+    family: str, *, base_url: str = LIBRARY_URL, timeout: float = 8.0
 ) -> tuple[LibraryTag, ...]:
     """Plain size tags for one family, with the size and context window listed.
 
@@ -163,21 +163,28 @@ def family_tags(
 def discover_catalog(
     *,
     base_url: str = LIBRARY_URL,
-    timeout: float = 20.0,
+    timeout: float = 8.0,
+    overall_timeout: float = 45.0,
     catalog: tuple[ModelSuggestion, ...] = MODEL_CATALOG,
 ) -> tuple[ModelSuggestion, ...]:
     """Current models for the tracked families, merged with the curated catalog.
 
     Curated entries keep their wording and are dropped only when the library no
-    longer lists them; anything new the library offers is added.
+    longer lists them; anything new the library offers is added. Discovery runs
+    on the hardware-detection thread, so it stops fetching families once the
+    overall wall-clock deadline passes and keeps whatever was already fetched;
+    only a run that read nothing at all raises.
     """
     known = {model.name: model for model in catalog}
     keep = tuple({name.split(":", 1)[0] for name in known})
     families = select_families(list_families(base_url=base_url, timeout=timeout), keep=keep)
 
+    deadline = time.monotonic() + overall_timeout
     listed: dict[str, LibraryTag] = {}
     reachable = 0
     for family in families:
+        if time.monotonic() >= deadline:
+            break
         try:
             tags = family_tags(family, base_url=base_url, timeout=timeout)
         except CatalogUnavailable:
@@ -300,10 +307,14 @@ def refresh_due(cache: CatalogCache | None = None) -> bool:
 
 
 def refresh_and_cache(
-    cache: CatalogCache | None = None, *, base_url: str = LIBRARY_URL, timeout: float = 20.0
+    cache: CatalogCache | None = None,
+    *,
+    base_url: str = LIBRARY_URL,
+    timeout: float = 8.0,
+    overall_timeout: float = 45.0,
 ) -> tuple[ModelSuggestion, ...]:
     """Discover current models and store the result for the next launch."""
     store = cache or CatalogCache()
-    discovered = discover_catalog(base_url=base_url, timeout=timeout)
+    discovered = discover_catalog(base_url=base_url, timeout=timeout, overall_timeout=overall_timeout)
     store.save(discovered)
     return discovered

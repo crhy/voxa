@@ -8,3 +8,4 @@ Type=Application
 Categories=Utility;AudioVideo;Accessibility;
 Keywords=voice;dictation;transcription;whisper;ollama;speech;assistant;
 StartupNotify=true
+StartupWMClass=Voxa

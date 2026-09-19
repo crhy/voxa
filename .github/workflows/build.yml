@@ -32,6 +32,16 @@ jobs:
       options: --privileged
     steps:
       - uses: actions/checkout@v4
+      # Stable cache key: a commit sha is unique per run and never hits a cache
+      # from a previous build, so key on the manifest contents plus runtime
+      # version instead.
+      - name: Compute Flatpak cache key
+        shell: bash
+        run: |
+          runtime=$(grep -m1 'runtime-version:' io.github.crhy.voxa.yml | tr -d "' ")
+          hash=$(sha256sum io.github.crhy.voxa.yml | cut -c1-16)
+          echo "cache-key=flatpak-builder-${runtime}-${hash}" >> "$GITHUB_OUTPUT"
+        id: flatpak-cache
       # python3-requirements-flatpak.json is committed. To regenerate it after
       # changing packaging/flatpak/requirements.txt, run flatpak-pip-generator
       # with org.gnome.Sdk//50 and the same --prefer-wheels/--wheel-arches args,
@@ -45,7 +55,7 @@ jobs:
           repo-dir: voxa-repo
           build-bundle: false
           upload-artifact: false
-          cache-key: flatpak-builder-${{ github.sha }}
+          cache-key: ${{ steps.flatpak-cache.outputs.cache-key }}
           # Do NOT mirror screenshots to https://dl.flathub.org/media. That
           # option rewrites every screenshot URL in the exported AppStream to
           # Flathub's media CDN, but this application is published from its
@@ -54,6 +64,8 @@ jobs:
           # app showed with no screenshots at all (crhy/spaced#181). Leaving
           # it unset keeps the raw githubusercontent URLs declared in the
           # metainfo, which resolve.
+      # TODO(rhY): confirm the real repo URL once voxa publishes one; this
+      # spacedbazaar URL looks copied from a different project.
       - name: Create updateable release bundle
         run: >-
           flatpak build-bundle

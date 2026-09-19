@@ -10,6 +10,7 @@ from voxa import catalog as cat
 from voxa.catalog import (
     CatalogCache,
     CatalogUnavailable,
+    LibraryTag,
     discover_catalog,
     family_tags,
     load_catalog,
@@ -129,6 +130,26 @@ def test_curated_entry_wins_a_size_tie_so_it_is_suggested_first():
     with patch.object(cat, "list_families", lambda **_: ("qwen2.5",)), _with_page(page):
         result = discover_catalog(catalog=curated)
     assert suggest_models(16.0, catalog=result)[0].name == "qwen2.5:14b"
+
+
+def test_overall_timeout_stops_slow_families_and_keeps_early_results():
+    families = ("qwen3.5", "llama4", "gemma3", "mistral")
+    fetched: list[str] = []
+
+    def slow_tags(family, *, base_url, timeout):
+        fetched.append(family)
+        time.sleep(0.2)
+        return (LibraryTag(f"{family}:1b", 1.0, "8K", ""),)
+
+    with patch.object(cat, "list_families", lambda **_: families), patch.object(
+        cat, "family_tags", slow_tags
+    ):
+        result = discover_catalog(catalog=(), overall_timeout=0.35)
+    # Each slow family sleeps 0.2s, so the 0.35s deadline stops the loop after
+    # two of the four families: the ones fetched before it are still returned.
+    assert len(fetched) < len(families)
+    assert [m.name for m in result] == [f"{family}:1b" for family in fetched]
+    assert fetched == ["gemma3", "llama4"], "families past the deadline must not be fetched"
 
 
 def test_cache_round_trip(tmp_path):
