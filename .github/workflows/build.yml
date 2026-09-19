@@ -62,7 +62,12 @@ jobs:
             xorg-x11-server-Xvfb xorg-x11-xauth mesa-dri-drivers adwaita-icon-theme
       - uses: actions/checkout@v4
       - name: UI and window tests
-        run: xvfb-run -a python3 -m pytest -q tests/test_ui_*.py tests/test_assistant_*.py tests/test_window_*.py
+        # No GPU on the runner: use GTK's software renderer and Mesa's software GL.
+        env:
+          GSK_RENDERER: cairo
+          GDK_BACKEND: x11
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: xvfb-run -a python3 -X faulthandler -m pytest -q -s tests/test_ui_*.py tests/test_assistant_*.py tests/test_window_*.py
 
   flatpak:
     needs: test
