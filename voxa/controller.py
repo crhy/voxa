@@ -27,6 +27,9 @@ from .ui.state import AssistantModel, AssistantState, VoxaTask
 
 log = logging.getLogger(__name__)
 
+#: States in which a reply (or a request that will not produce one) can finish.
+_REPLY_IN_PROGRESS = frozenset({AssistantState.THINKING, AssistantState.SPEAKING, AssistantState.WORKING})
+
 OFFLINE_CONFIRMED = "Offline — microphone off"
 OFFLINE_UNCONFIRMED = "Offline — microphone may still be active"
 
@@ -50,6 +53,10 @@ class AssistantController:
     def __init__(self, model: AssistantModel, ports: ControllerPorts) -> None:
         self.model = model
         self.ports = ports
+        # Identifies the spoken reply in progress. Barge-in and abandoning a request
+        # advance it, so the "speech finished" notification of an interrupted reply
+        # can never be mistaken for the end of a newer one.
+        self._reply_id = 0
 
     # ------------------------------------------------------------ session tokens
 
@@ -116,16 +123,49 @@ class AssistantController:
         return self._apply(token, AssistantState.THINKING, detail)
 
     def reply_started(self, token: int) -> bool:
-        return self._apply(token, AssistantState.SPEAKING)
+        """Voxa starts speaking. Pass ``current_reply()`` back to ``reply_finished`` later."""
+        applied = self._apply(token, AssistantState.SPEAKING)
+        if applied:
+            self._reply_id += 1
+        return applied
 
-    def reply_finished(self, token: int, waiting_for_prompt: bool = False) -> bool:
+    def current_reply(self) -> int:
+        """The id of the reply in progress; capture it when speech starts."""
+        return self._reply_id
+
+    def reply_finished(self, token: int, waiting_for_prompt: bool = False, reply_id: int | None = None) -> bool:
+        """The reply (or the request that produced no reply) is over.
+
+        Ignored unless a reply is actually in progress (THINKING, SPEAKING or WORKING), and,
+        when ``reply_id`` is given, unless it is still the current reply. A reply the user
+        talked over ended at the barge-in, so its late completion notification must neither
+        pull the assistant back to READY while it listens, nor cut short a newer request.
+        """
+        if reply_id is not None and reply_id != self._reply_id:
+            return False
+        if self.model.state not in _REPLY_IN_PROGRESS:
+            return False
         return self._apply(token, AssistantState.LISTENING if waiting_for_prompt else AssistantState.READY)
 
     def barge_in(self, token: int) -> bool:
-        """The user talked over Voxa: SPEAKING -> LISTENING."""
+        """The user talked over Voxa: SPEAKING -> LISTENING, and the interrupted reply goes stale."""
         if self.model.state is not AssistantState.SPEAKING:
             return False
-        return self._apply(token, AssistantState.LISTENING)
+        applied = self._apply(token, AssistantState.LISTENING)
+        if applied:
+            self._reply_id += 1
+        return applied
+
+    def abandon(self, token: int) -> bool:
+        """The request or reply was cancelled (a spoken "cancel"): back to READY, still ACTIVE."""
+        if not self.accepts(token):
+            return False
+        self._reply_id += 1
+        if self.model.state in (AssistantState.READY, AssistantState.ERROR):
+            return self.model.state is AssistantState.READY or self.model.set_state(
+                AssistantState.READY, generation=token
+            )
+        return self._apply(token, AssistantState.READY)
 
     def failed(self, token: int, detail: str) -> bool:
         return self._apply(token, AssistantState.ERROR, detail)
