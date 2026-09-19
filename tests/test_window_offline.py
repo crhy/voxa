@@ -298,3 +298,29 @@ def test_a_spoken_goodbye_goes_offline(window) -> None:
     window.assistant.activate()
     window._on_conversation_exit("goodbye")
     assert _state(window) is AssistantState.OFFLINE and not window.audio.is_active
+
+
+def test_speech_finishing_after_a_barge_in_cannot_cut_short_the_next_request(window) -> None:
+    window.assistant.activate()
+    token = window.assistant.token()
+    window.assistant.wake(token)
+    window.assistant.prompt_accepted(token)
+    window._conversation_speak("A long answer")
+    assert _state(window) is AssistantState.SPEAKING
+    old_done = window.speech.callbacks["done"]
+
+    assert window.assistant.barge_in(token)  # the user talks over Voxa
+    window.assistant.prompt_accepted(token)  # ...and the interruption becomes the next request
+    assert _state(window) is AssistantState.THINKING
+
+    old_done()  # the old speech's completion notification arrives late
+    _pump()
+    assert _state(window) is AssistantState.THINKING
+
+
+def test_a_spoken_cancel_after_the_wake_word_returns_to_ready(window) -> None:
+    window.assistant.activate()
+    window.assistant.wake(window.assistant.token())
+    assert _state(window) is AssistantState.LISTENING
+    window._on_conversation_exit("cancel")
+    assert _state(window) is AssistantState.READY

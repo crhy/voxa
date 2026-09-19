@@ -1041,7 +1041,7 @@ class MainWindow(Adw.ApplicationWindow):
             # A spoken "cancel": the request was abandoned and its late completion is
             # ignored on purpose, so the assistant must be returned to READY right here.
             self._end_query_task("cancelled")
-            self.assistant.reply_finished(self.assistant.token())
+            self.assistant.abandon(self.assistant.token())
             self._set_status(self._conversation_idle_status())
         return False
 
@@ -1052,13 +1052,16 @@ class MainWindow(Adw.ApplicationWindow):
         self._barge_in_streak = 0
         token = self.assistant.token()
         self.assistant.reply_started(token)
+        # Tie the completion notification to this reply: after a barge-in the old speech's
+        # "done" must not touch a newer request.
+        reply_id = self.assistant.current_reply()
         self._set_status("Speaking…", busy=True)
         self.speech.speak(
             text,
             self.settings.tts_rate,
             self.settings.tts_voice,
             on_started=lambda: idle(self._for_session(token, self._set_status), "Speaking…", True),
-            on_done=lambda: idle(self._for_session(token, self._on_conversation_speech_done)),
+            on_done=lambda: idle(self._for_session(token, self._on_conversation_speech_done), reply_id),
             on_error=lambda error: idle(self._for_session(token, self._on_conversation_speech_error), error),
         )
 
@@ -1069,13 +1072,13 @@ class MainWindow(Adw.ApplicationWindow):
             else "Ready"
         )
 
-    def _on_conversation_speech_done(self) -> bool:
+    def _on_conversation_speech_done(self, reply_id: int | None = None) -> bool:
         waiting = self.conversation is not None and self.conversation.waiting_for_prompt
         if self.conversation is not None:
             self.conversation.unmute()
         self._speaking_since = 0.0
         self._barge_in_streak = 0
-        self.assistant.reply_finished(self.assistant.token(), waiting_for_prompt=waiting)
+        self.assistant.reply_finished(self.assistant.token(), waiting_for_prompt=waiting, reply_id=reply_id)
         self._set_status(self._conversation_idle_status())
         return False
 
