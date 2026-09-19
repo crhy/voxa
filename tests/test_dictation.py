@@ -3,7 +3,7 @@ from __future__ import annotations
 import queue
 import threading
 
-from voxa.dictation import segment_stream
+from voxa.dictation import DictationController, segment_stream
 
 LOUD_CHUNK = (b"\x00\x10" * 1000, 1000.0)  # 2000 bytes, above any test threshold
 QUIET_CHUNK = (b"\x00\x00" * 1000, 0.0)
@@ -84,3 +84,40 @@ def test_segment_stream_calls_on_idle_timeout() -> None:
 
     assert segments == []
     assert called.is_set()
+
+
+class StoppingTranscriber:
+    """Sets the controller's stop event mid-"transcription"."""
+
+    def __init__(self, controller: DictationController) -> None:
+        self.controller = controller
+
+    def transcribe(self, segment: bytes, language: str) -> str:
+        self.controller.stop()
+        return "hello there"
+
+
+def test_stop_during_transcription_drops_text_callback() -> None:
+    texts: list[str] = []
+    controller = DictationController(
+        whisper=object(),
+        language="en",
+        threshold=500,
+        silence_ms=100,
+        max_segment_seconds=5.0,
+        on_text=texts.append,
+        on_status=lambda _status: None,
+        on_auto_stop=lambda: None,
+        on_error=lambda _error: None,
+    )
+    controller.whisper = StoppingTranscriber(controller)
+
+    controller.start()
+    for _ in range(10):
+        controller.feed(*LOUD_CHUNK)
+    for _ in range(5):
+        controller.feed(*QUIET_CHUNK)
+    if controller.thread is not None:
+        controller.thread.join(timeout=3.0)
+
+    assert texts == []

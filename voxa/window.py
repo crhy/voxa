@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import threading
 import time
-from collections import deque
 from collections.abc import Callable
 
 import gi
@@ -14,7 +13,7 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 from .audio import AudioCapture, AudioDevice  # noqa: E402
 from .catalog import CatalogUnavailable, load_catalog, refresh_and_cache, refresh_due  # noqa: E402
 from .config import ConfigStore  # noqa: E402
-from .conversation import ConversationController  # noqa: E402
+from .conversation import ConversationController, ConversationHistory  # noqa: E402
 from .dictation import DictationController  # noqa: E402
 from .hardware import GpuUsage, detect_available_model_memory_gb, sample_gpu_usage, suggest_models  # noqa: E402
 from .installer import InstallerError, install_ollama  # noqa: E402
@@ -29,7 +28,7 @@ WHISPER_MODELS = ["tiny", "base", "small", "medium", "large-v3", "turbo"]
 # larger) model the user picked for real dictation — that one only has to
 # run once per turn, after the wake word is actually heard.
 WAKE_WHISPER_MODEL = "tiny"
-GPU_POLL_INTERVAL_SECONDS = 0.75
+GPU_POLL_INTERVAL_SECONDS = 2.0
 APPEARANCE_VALUES = ["system", "light", "dark"]
 APPEARANCE_LABELS = ["System", "Light", "Dark"]
 TTS_VOICES = [
@@ -107,8 +106,8 @@ class MainWindow(Adw.ApplicationWindow):
         self.conversation_active = False
         # Earlier turns of the current hands-free conversation, sent to the
         # model as a chat message list so it can follow the thread.
-        self._conversation_history: deque[dict[str, str]] = deque(
-            maxlen=CONVERSATION_HISTORY_MESSAGES
+        self._conversation_history = ConversationHistory(
+            CONVERSATION_SYSTEM_PROMPT, CONVERSATION_HISTORY_MESSAGES
         )
         # Barge-in bookkeeping: when the reply started being spoken (0 = not
         # speaking) and how many recent level ticks were loud enough to count.
@@ -966,8 +965,8 @@ class MainWindow(Adw.ApplicationWindow):
         self.speech.stop()
         self._speaking_since = 0.0
         self._barge_in_streak = 0
-        if self._pending_user_generation is not None and self._conversation_history:
-            self._conversation_history.pop()
+        if self._pending_user_generation is not None:
+            self._conversation_history.drop_last()
         self._pending_user_generation = None
         self.query_cancel.set()
         self._query_generation += 1
@@ -1002,8 +1001,8 @@ class MainWindow(Adw.ApplicationWindow):
         # the wake word ("cancel") or leave conversation mode ("goodbye").
         self.query_cancel.set()
         self._query_generation += 1
-        if self._pending_user_generation is not None and self._conversation_history:
-            self._conversation_history.pop()
+        if self._pending_user_generation is not None:
+            self._conversation_history.drop_last()
         self._pending_user_generation = None
         if self.conversation is not None:
             self.conversation.unmute()
@@ -1224,10 +1223,8 @@ class MainWindow(Adw.ApplicationWindow):
         # In conversation mode the question joins the running thread of turns;
         # a plain dictation/typed question stays a single-shot prompt.
         if self.conversation_active:
-            if not self._conversation_history:
-                self._conversation_history.append({"role": "system", "content": CONVERSATION_SYSTEM_PROMPT})
-            self._conversation_history.append({"role": "user", "content": prompt})
-            messages: list[dict[str, str]] | None = list(self._conversation_history)
+            self._conversation_history.add_user(prompt)
+            messages: list[dict[str, str]] | None = self._conversation_history.messages()
             self._pending_user_generation = generation
         else:
             messages = None
@@ -1297,7 +1294,7 @@ class MainWindow(Adw.ApplicationWindow):
             # This turn was abandoned (a spoken "cancel" or the Stop button),
             # or its answer was lost: undo the user turn pushed when it started
             # so the model's history stays coherent.
-            self._conversation_history.pop()
+            self._conversation_history.drop_last()
         self._pending_user_generation = None
         if cancel_event.is_set():
             self._set_status("AI request stopped.")
@@ -1312,7 +1309,7 @@ class MainWindow(Adw.ApplicationWindow):
             buffer.set_text(spoken)
             self._scroll_to_end(self.response_view)
         if spoken and self.conversation_active:
-            self._conversation_history.append({"role": "assistant", "content": spoken})
+            self._conversation_history.add_assistant(spoken)
             self._conversation_speak(spoken)
         elif answer and self.settings.auto_speak:
             self.speak_response()
@@ -1331,7 +1328,7 @@ class MainWindow(Adw.ApplicationWindow):
         ):
             # The turn produced no usable answer, so it must not sit in the
             # conversation history as an unanswered question with no reply.
-            self._conversation_history.pop()
+            self._conversation_history.drop_last()
         self._pending_user_generation = None
         self._toast(error)
         self._set_status(self._conversation_idle_status() if self.conversation_active else "AI request failed.")

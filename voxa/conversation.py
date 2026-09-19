@@ -3,6 +3,7 @@ from __future__ import annotations
 import queue
 import re
 import threading
+from collections import deque
 from collections.abc import Callable
 
 from .dictation import segment_stream
@@ -70,6 +71,38 @@ def detect_exit_phrase(text: str) -> str | None:
     if normalized in _CANCEL_PHRASES:
         return "cancel"
     return None
+
+
+class ConversationHistory:
+    """The system prompt plus a bounded list of user/assistant turns.
+
+    The system prompt is stored separately from the turns so it survives the
+    turn cap: a single deque holding it would evict it once the conversation
+    grows past the limit.
+    """
+
+    def __init__(self, system_prompt: str, max_turns: int) -> None:
+        self.system_prompt = system_prompt
+        self._turns: deque[dict[str, str]] = deque(maxlen=max_turns)
+
+    def add_user(self, content: str) -> None:
+        self._turns.append({"role": "user", "content": content})
+
+    def add_assistant(self, content: str) -> None:
+        self._turns.append({"role": "assistant", "content": content})
+
+    def drop_last(self) -> None:
+        if self._turns:
+            self._turns.pop()
+
+    def clear(self) -> None:
+        self._turns.clear()
+
+    def messages(self) -> list[dict[str, str]]:
+        return [{"role": "system", "content": self.system_prompt}, *self._turns]
+
+    def __bool__(self) -> bool:
+        return bool(self._turns)
 
 
 class ConversationController:
@@ -192,12 +225,18 @@ class ConversationController:
         return None
 
     def _transcribe(self, segment: bytes, whisper: WhisperService) -> str:
+        if self.stop_event.is_set():
+            return ""
         try:
             self.on_status("Transcribing…")
-            return whisper.transcribe(segment, self.language)
+            text = whisper.transcribe(segment, self.language)
         except Exception as exc:  # noqa: BLE001 - worker boundary
-            self.on_error(str(exc))
+            if not self.stop_event.is_set():
+                self.on_error(str(exc))
             return ""
+        # A stop pressed while the transcription was in flight must not
+        # deliver its result to the UI.
+        return "" if self.stop_event.is_set() else text
 
     def _run(self) -> None:
         while not self.stop_event.is_set():
@@ -217,6 +256,8 @@ class ConversationController:
             text = self._transcribe(segment, whisper)
             if not text:
                 continue
+            if self.stop_event.is_set():
+                break
 
             exit_kind = detect_exit_phrase(text)
             if exit_kind is not None:
@@ -225,7 +266,8 @@ class ConversationController:
                 # leave conversation mode entirely (goodbye — the caller stops
                 # us when it hears that).
                 self.waiting_for_prompt = False
-                self.on_exit(exit_kind)
+                if not self.stop_event.is_set():
+                    self.on_exit(exit_kind)
                 if exit_kind == "goodbye":
                     break
                 continue
@@ -234,6 +276,8 @@ class ConversationController:
                 remainder = strip_wake_word(text, self.wake_word)
                 if remainder is None:
                     continue
+                if self.stop_event.is_set():
+                    break
                 self.on_woken()
                 if remainder:
                     self.on_prompt(remainder)
@@ -241,5 +285,7 @@ class ConversationController:
                     self.on_status("Listening for your request…")
                     self.waiting_for_prompt = True
             else:
+                if self.stop_event.is_set():
+                    break
                 self.on_prompt(text)
                 self.waiting_for_prompt = False

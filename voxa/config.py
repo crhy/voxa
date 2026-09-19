@@ -77,10 +77,18 @@ class ConfigStore:
         if "ai_backend" not in clean:
             clean["ai_backend"] = "ollama"
 
-        try:
-            return Settings(**clean).normalized()
-        except (TypeError, ValueError):
-            return Settings()
+        # Apply fields one at a time so a single invalid value (e.g.
+        # "tts_rate": "fast") only resets that field to its default instead
+        # of discarding every saved setting.
+        settings = Settings()
+        for name, value in clean.items():
+            try:
+                candidate = Settings(**asdict(settings))
+                setattr(candidate, name, value)
+                settings = candidate.normalized()
+            except (TypeError, ValueError, AttributeError):
+                continue
+        return settings
 
     def save(self, settings: Settings) -> None:
         settings.normalized()

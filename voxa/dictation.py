@@ -133,6 +133,8 @@ class DictationController:
             pass
 
     def _on_idle_timeout(self) -> None:
+        if self.stop_event.is_set():
+            return
         self.on_status("No speech detected; dictation stopped.")
         self.on_auto_stop()
 
@@ -149,12 +151,14 @@ class DictationController:
             self._flush(segment)
 
     def _flush(self, segment: bytes) -> None:
-        if not segment:
+        if not segment or self.stop_event.is_set():
             return
         self.on_status("Transcribing…")
         try:
             text = self.whisper.transcribe(segment, self.language)
-            if text:
-                self.on_text(text)
         except Exception as exc:  # noqa: BLE001 - worker boundary
-            self.on_error(str(exc))
+            if not self.stop_event.is_set():
+                self.on_error(str(exc))
+            return
+        if text and not self.stop_event.is_set():
+            self.on_text(text)

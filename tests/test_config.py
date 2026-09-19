@@ -72,6 +72,19 @@ def test_ai_backend_is_validated_and_llamacpp_url_normalized(tmp_path: Path) -> 
     assert store.load().ai_backend == "ollama"
 
 
+def test_one_bad_field_keeps_the_other_saved_fields(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    path.write_text(
+        json.dumps({"tts_rate": "fast", "ollama_url": "http://box:11434", "whisper_model": "small"}),
+        encoding="utf-8",
+    )
+
+    loaded = ConfigStore(path).load()
+    assert loaded.tts_rate == 180
+    assert loaded.ollama_url == "http://box:11434"
+    assert loaded.whisper_model == "small"
+
+
 def test_legacy_config_dir_is_migrated(tmp_path: Path) -> None:
     old_dir = tmp_path / "config" / "voice2text-ai"
     old_dir.mkdir(parents=True)
