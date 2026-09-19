@@ -344,3 +344,21 @@ def test_a_spoken_cancel_after_the_wake_word_returns_to_ready(window) -> None:
     assert _state(window) is AssistantState.LISTENING
     window._on_conversation_exit("cancel")
     assert _state(window) is AssistantState.READY
+
+
+def test_open_command_launches_the_matching_menu_app_and_confirms(window, monkeypatch) -> None:
+    from voxa import apps
+
+    launched = []
+    menu = [apps.DesktopApp("Brutal Chess", "/x/io.github.crhy.BrutalChess.desktop"), apps.DesktopApp("Brave", "/x/brave.desktop")]
+    monkeypatch.setattr(apps, "list_apps", lambda: menu)
+    monkeypatch.setattr(apps, "launch", lambda app: launched.append(app.name))
+    monkeypatch.setattr(window, "_ai_client", lambda: FakeClient("must not be asked"))
+    window.settings.ollama_model = "test-model"
+    window.assistant.activate()
+    window.assistant.wake(window.assistant.token())
+
+    window.ask_ai("Open Brutal Chess.")
+    assert _wait_for(lambda: launched == ["Brutal Chess"])
+    assert _wait_for(lambda: window.shell.exchange_panel.answer.get_text() == "Opening Brutal Chess.")
+    assert window._get_text(window.response_view) == ""  # the AI was never asked

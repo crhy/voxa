@@ -22,7 +22,7 @@ from .llamacpp import LlamaCppClient  # noqa: E402
 from .ollama import OllamaClient, OllamaError, strip_reasoning  # noqa: E402
 from .speech import SpeechService  # noqa: E402
 from .transcription import WhisperService  # noqa: E402
-from . import websearch  # noqa: E402
+from . import apps, websearch  # noqa: E402
 from .ui.legacy_view import LegacyCallbacks, LegacyView  # noqa: E402
 from .ui.shell import AssistantShell, build_header  # noqa: E402
 from .ui.state import AssistantModel, AssistantState  # noqa: E402
@@ -139,6 +139,7 @@ class MainWindow(Adw.ApplicationWindow):
         # Set when the window starts closing, so callbacks that arrive afterwards do nothing.
         self._closing = False
         self._follow_up_token: int | None = None
+        self._app_cache: list[apps.DesktopApp] | None = None
         # The single source of truth for what the assistant is doing; the shell renders it.
         self.assistant_model = AssistantModel()
         # ACTIVE / OFFLINE and every stale-callback decision go through this controller.
@@ -1056,6 +1057,57 @@ class MainWindow(Adw.ApplicationWindow):
             self._set_status(self._conversation_idle_status())
         return False
 
+    def _open_app(self, app_name: str, prompt: str) -> None:
+        """"Open X": launch a menu application directly, without asking the AI."""
+        self.query_cancel.set()
+        self._query_generation += 1
+        self._end_query_task("cancelled")
+        self.shell.exchange_panel.show_question(prompt)
+        task = self.assistant.begin_task(f"Opening {app_name}")
+        self._query_task_id = task.id if task is not None else None
+        token = self.assistant.token()
+        self.assistant.prompt_accepted(token)
+        self._set_status(f"Opening {app_name}…", busy=True)
+
+        # While OFFLINE there is no session to guard: the app still opens, with a toast.
+        active = self.assistant.is_active
+
+        def guard(callback):
+            return self._for_session(token, callback) if active else callback
+
+        def worker() -> None:
+            try:
+                if self._app_cache is None:
+                    self._app_cache = apps.list_apps()
+                app = apps.match_app(app_name, self._app_cache)
+                if app is not None:
+                    apps.launch(app)
+                idle(guard(self._on_app_opened), app.name if app else None, app_name)
+            except Exception as exc:  # noqa: BLE001 - host access may be missing
+                idle(guard(self._on_app_open_failed), str(exc))
+
+        threading.Thread(target=worker, name="open-app", daemon=True).start()
+
+    def _on_app_opened(self, name: str | None, requested: str) -> bool:
+        reply = f"Opening {name}." if name else f"I couldn't find an app called {requested}."
+        self._end_query_task("done" if name else "cancelled")
+        self.shell.exchange_panel.show_answer(reply)
+        if not self.assistant.is_active:
+            self._toast(reply)
+        elif self.conversation_active:
+            self._conversation_speak(reply)
+        else:
+            self.assistant.reply_finished(self.assistant.token())
+            self._toast(reply)
+        self._set_status(reply)
+        return False
+
+    def _on_app_open_failed(self, error: str) -> bool:
+        self._end_query_task("cancelled")
+        self._fail_assistant("Could not open the app")
+        self._toast(f"Could not open the app: {error}")
+        return False
+
     def _clear_display(self) -> None:
         """A blank interface: no transcript, answer, exchange card or remembered turns."""
         self._conversation_history.clear()
@@ -1285,6 +1337,10 @@ class MainWindow(Adw.ApplicationWindow):
                 self._set_text(self.transcript_view, prompt)
         if not prompt:
             self._toast("Speak or type something first.")
+            return
+        app_name = apps.parse_open_command(prompt)
+        if app_name and len(app_name.split()) <= 5:
+            self._open_app(app_name, prompt)
             return
         if not self.settings.ollama_model:
             self._refresh_ollama_models()
