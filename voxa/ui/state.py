@@ -10,16 +10,46 @@ therefore be called from any thread, and the GTK layer must marshal them with
 ``GLib.idle_add`` before touching widgets. Callbacks are invoked with copies of
 the model data *after* the internal lock is released, so a callback may safely
 call back into the model.
+
+Transition policy
+-----------------
+``AssistantState`` is the only high-level presentation state, and ``set_state``
+enforces this policy (anything not listed is rejected)::
+
+    OFFLINE   -> READY
+    READY     -> LISTENING | THINKING | WORKING
+    LISTENING -> THINKING | READY
+    THINKING  -> SPEAKING | READY | WORKING | WAITING
+    SPEAKING  -> READY | LISTENING | THINKING
+    WORKING   -> WAITING | READY | THINKING | SPEAKING
+    WAITING   -> WORKING | READY
+    ERROR     -> READY | OFFLINE
+    (any state) -> OFFLINE and ERROR;  staying in the same state is always fine
+
+``THINKING`` may follow ``READY`` directly because a wake phrase can already
+carry its request. ``SPEAKING -> LISTENING`` is barge-in: the user talks over
+Voxa, so speech stops and Voxa listens.
+
+Generations
+-----------
+``AssistantModel.generation`` is bumped whenever Voxa is activated or goes OFFLINE.
+Async work captures the generation when it starts and passes it back to
+``set_state(..., generation=...)``; a result from an older generation is ignored,
+so a stale callback can never move the assistant backward or revive an OFFLINE
+assistant.
 """
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from enum import Enum, auto
+
+log = logging.getLogger(__name__)
 
 
 class AssistantState(Enum):
@@ -44,6 +74,27 @@ class TaskState(Enum):
     DONE = auto()
     FAILED = auto()
     CANCELLED = auto()
+
+
+_S = AssistantState
+_ANYTIME = frozenset({_S.OFFLINE, _S.ERROR})  # every state may go OFFLINE or ERROR
+
+#: The explicit transition policy (see the module docstring).
+ALLOWED_TRANSITIONS: dict[AssistantState, frozenset[AssistantState]] = {
+    _S.OFFLINE: frozenset({_S.READY}) | _ANYTIME,
+    _S.READY: frozenset({_S.LISTENING, _S.THINKING, _S.WORKING}) | _ANYTIME,
+    _S.LISTENING: frozenset({_S.THINKING, _S.READY}) | _ANYTIME,
+    _S.THINKING: frozenset({_S.SPEAKING, _S.READY, _S.WORKING, _S.WAITING}) | _ANYTIME,
+    _S.SPEAKING: frozenset({_S.READY, _S.LISTENING, _S.THINKING}) | _ANYTIME,
+    _S.WORKING: frozenset({_S.WAITING, _S.READY, _S.THINKING, _S.SPEAKING}) | _ANYTIME,
+    _S.WAITING: frozenset({_S.WORKING, _S.READY}) | _ANYTIME,
+    _S.ERROR: frozenset({_S.READY}) | _ANYTIME,
+}
+
+
+def can_transition(current: AssistantState, new: AssistantState) -> bool:
+    """Whether the policy allows moving from ``current`` to ``new`` (same state always may)."""
+    return current is new or new in ALLOWED_TRANSITIONS[current]
 
 
 #: States a task can never leave.
@@ -83,6 +134,7 @@ class AssistantModel:
         self._lock = threading.RLock()
         self.state = AssistantState.OFFLINE
         self.detail = ""
+        self._generation = 0
         self.tasks: dict[str, VoxaTask] = {}
 
         self.on_state_changed: Callable[[AssistantState, str], None] | None = None
@@ -90,17 +142,40 @@ class AssistantModel:
 
     # ------------------------------------------------------------------ state
 
-    def set_state(self, state: AssistantState, detail: str = "") -> None:
-        """Record a new assistant state; does nothing if nothing changed."""
+    @property
+    def generation(self) -> int:
+        """Bumped on every activation and every OFFLINE; see the module docstring."""
+        return self._generation
+
+    def bump_generation(self) -> int:
+        """Invalidate every callback captured under the previous generation."""
         with self._lock:
+            self._generation += 1
+            return self._generation
+
+    def set_state(self, state: AssistantState, detail: str = "", *, generation: int | None = None) -> bool:
+        """Apply a new assistant state; returns whether it was applied.
+
+        Rejected (False, no callback) when ``generation`` is given and is not the current
+        one - a stale callback - or when the transition policy forbids the move. Asking for
+        the state and detail already in place succeeds without firing the callback.
+        """
+        with self._lock:
+            if generation is not None and generation != self._generation:
+                log.debug("ignored stale state change to %s (generation %s, current %s)", state.name, generation, self._generation)
+                return False
             if self.state is state and self.detail == detail:
-                return
+                return True
+            if not can_transition(self.state, state):
+                log.debug("ignored illegal state change %s -> %s", self.state.name, state.name)
+                return False
             self.state = state
             self.detail = detail
 
         callback = self.on_state_changed
         if callback is not None:
             callback(state, detail)
+        return True
 
     # ------------------------------------------------------------------ tasks
 

@@ -86,6 +86,7 @@ def test_state_wiring_caption_and_buttons() -> None:
     shell = AssistantShell(model)
     _present(shell, 1200, 760)
 
+    model.set_state(AssistantState.READY, "ready")
     model.set_state(AssistantState.LISTENING, "x")
     _pump()
     assert shell.assistant_view.caption.get_text() == "x"
