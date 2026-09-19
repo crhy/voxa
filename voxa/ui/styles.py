@@ -15,6 +15,11 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, Gtk  # noqa: E402
 
 VOXA_CSS = """
+.voxa-brand {
+    font-weight: 700;
+    font-size: 15px;
+}
+
 .voxa-active,
 .voxa-offline {
     min-width: 118px;

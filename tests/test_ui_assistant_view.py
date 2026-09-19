@@ -4,7 +4,7 @@ import pytest
 
 gi = pytest.importorskip("gi")
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk  # noqa: E402
+from gi.repository import GLib, Gtk  # noqa: E402
 
 if not Gtk.init_check():
     pytest.skip("no GTK display available")
@@ -58,3 +58,17 @@ def test_audio_level_clamped() -> None:
     assert view.audio_level == 1.0
     view.set_audio_level(-0.4)
     assert view.audio_level == 0.0
+
+
+def test_artwork_has_a_fixed_size_and_leaves_negative_space() -> None:
+    view = AssistantView()
+    window = Gtk.Window()
+    window.set_default_size(1200, 760)
+    window.set_child(view)
+    window.present()
+    ctx = GLib.MainContext.default()
+    for _ in range(100):
+        ctx.iteration(False)
+    _minimum, natural, _mb, _nb = view.measure(Gtk.Orientation.VERTICAL, -1)
+    assert natural <= 400
+    window.destroy()

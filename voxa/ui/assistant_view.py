@@ -19,7 +19,7 @@ from gi.repository import Gdk, Gtk  # noqa: E402
 from .state import AssistantState  # noqa: E402
 
 BADGE_PATH = Path(__file__).resolve().parent / "assets" / "voxa-badge.png"
-AVATAR_SIZE = 300
+AVATAR_SIZE = 320
 
 STATE_CAPTIONS = {
     AssistantState.OFFLINE: "Offline",
@@ -41,15 +41,16 @@ class AssistantView(Gtk.Box):
         self.add_css_class("voxa-assistant-view")
         self._audio_level = 0.0
 
-        picture = Gtk.Picture()
+        # A Gtk.Image with a pixel size is a hard cap. A Gtk.Picture would grow to the
+        # texture's own size (1024 px) or fill all the space it is offered, which
+        # leaves no negative space around the assistant.
         try:
             texture = Gdk.Texture.new_from_filename(str(BADGE_PATH))
+            picture = Gtk.Image.new_from_paintable(texture)
         except Exception:
-            texture = None
-        if texture is not None:
-            picture.set_paintable(texture)
-        picture.set_can_shrink(True)
-        picture.set_size_request(AVATAR_SIZE, AVATAR_SIZE)
+            picture = Gtk.Image()
+        picture.set_pixel_size(AVATAR_SIZE)
+        picture.set_halign(Gtk.Align.CENTER)
         self.append(picture)
 
         self.caption = Gtk.Label(label="Offline")
