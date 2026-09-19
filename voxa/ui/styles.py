@@ -80,6 +80,19 @@ VOXA_CSS = """
     opacity: 0.9;
 }
 
+.voxa-exchange-answer {
+    font-size: 13px;
+}
+
+.voxa-notice {
+    margin: 12px 24px;
+    padding: 10px 18px;
+    border-radius: 12px;
+    background: alpha(@accent_bg_color, 0.92);
+    color: @accent_fg_color;
+    font-weight: 600;
+}
+
 .voxa-choice {
     padding: 8px 14px;
     border-radius: 10px;

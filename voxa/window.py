@@ -137,6 +137,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._model_combo_updating = False
         # Set when the window starts closing, so callbacks that arrive afterwards do nothing.
         self._closing = False
+        self._follow_up_token: int | None = None
         # The single source of truth for what the assistant is doing; the shell renders it.
         self.assistant_model = AssistantModel()
         # ACTIVE / OFFLINE and every stale-callback decision go through this controller.
@@ -360,9 +361,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.status_box.queue_draw()
 
     def _toast(self, text: str) -> None:
-        self.toast_overlay.add_toast(
-            Adw.Toast(title=GLib.markup_escape_text(text), timeout=4)
-        )
+        self.shell.show_notice(text)
 
     def _start_progress(self) -> None:
         self.progress.set_visible(True)
@@ -1081,13 +1080,30 @@ class MainWindow(Adw.ApplicationWindow):
         )
 
     def _on_conversation_speech_done(self, reply_id: int | None = None) -> bool:
+        if self.conversation is not None:
+            # Listen for a follow-up straight away, without the wake word.
+            self.conversation.arm_prompt()
+            self._follow_up_token = self.assistant.token()
+            GLib.timeout_add_seconds(self.FOLLOW_UP_SECONDS, self._follow_up_expired, self._follow_up_token)
         waiting = self.conversation is not None and self.conversation.waiting_for_prompt
         if self.conversation is not None:
             self.conversation.unmute()
         self._speaking_since = 0.0
         self._barge_in_streak = 0
         self.assistant.reply_finished(self.assistant.token(), waiting_for_prompt=waiting, reply_id=reply_id)
-        self._set_status(self._conversation_idle_status())
+        self._set_status("Listening for a follow-up…" if waiting else self._conversation_idle_status())
+        return False
+
+    FOLLOW_UP_SECONDS = 10
+
+    def _follow_up_expired(self, token: int) -> bool:
+        if token != self._follow_up_token or self.conversation is None:
+            return False
+        self._follow_up_token = None
+        if self.conversation.waiting_for_prompt and self.assistant.model.state is AssistantState.LISTENING:
+            self.conversation.waiting_for_prompt = False
+            self.assistant.abandon(token)
+            self._set_status(self._conversation_idle_status())
         return False
 
     def _on_conversation_speech_error(self, error: str) -> bool:
@@ -1239,9 +1255,11 @@ class MainWindow(Adw.ApplicationWindow):
         self._pending_user_generation = None
         self._set_text(self.transcript_view, "")
         self._set_text(self.response_view, "")
+        self.shell.exchange_panel.clear()
         self._set_status("Ready")
 
     def ask_ai(self, prompt: str | None = None) -> None:
+        self._follow_up_token = None
         self._stop_dictation_for_action()
         if prompt is None:
             prompt = self._get_text(self.transcript_view)
@@ -1281,6 +1299,7 @@ class MainWindow(Adw.ApplicationWindow):
         # A visible task for the request, and THINKING while hands-free. When OFFLINE
         # (for example an explicit Ask AI from the transcript window) no task is created.
         self._end_query_task("cancelled")
+        self.shell.exchange_panel.show_question(prompt)
         task = self.assistant.begin_task(f"Answering: {prompt[:40]}")
         self._query_task_id = task.id if task is not None else None
         self.assistant.prompt_accepted(self.assistant.token())
@@ -1341,6 +1360,7 @@ class MainWindow(Adw.ApplicationWindow):
         buffer = self.response_view.get_buffer()
         buffer.insert(buffer.get_end_iter(), batch)
         self._scroll_to_end(self.response_view)
+        self.shell.exchange_panel.show_answer(strip_reasoning(self._get_text(self.response_view)))
         return False
 
     def _on_query_finished(
@@ -1373,6 +1393,7 @@ class MainWindow(Adw.ApplicationWindow):
             buffer = self.response_view.get_buffer()
             buffer.set_text(spoken)
             self._scroll_to_end(self.response_view)
+        self.shell.exchange_panel.show_answer(spoken)
         if spoken and self.conversation_active:
             self._conversation_history.add_assistant(spoken)
             self._conversation_speak(spoken)

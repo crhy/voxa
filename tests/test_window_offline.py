@@ -260,8 +260,15 @@ def test_a_hands_free_turn_flows_through_the_states_and_the_task_list(window, mo
     assert _wait_for(lambda: _state(window) is AssistantState.SPEAKING)
     assert window.assistant_model.tasks[task.id].state is TaskState.DONE
     window.speech.callbacks["done"]()
-    assert _wait_for(lambda: _state(window) is AssistantState.READY)
-    assert states == [AssistantState.LISTENING, AssistantState.THINKING, AssistantState.SPEAKING, AssistantState.READY]
+    # after the reply Voxa keeps listening for a follow-up without the wake word
+    assert _wait_for(lambda: _state(window) is AssistantState.LISTENING)
+    assert window.conversation.waiting_for_prompt
+    assert window.shell.exchange_panel.get_visible()
+    window._follow_up_expired(window._follow_up_token)
+    assert _state(window) is AssistantState.READY
+    assert not window.conversation.waiting_for_prompt
+    assert states[:3] == [AssistantState.LISTENING, AssistantState.THINKING, AssistantState.SPEAKING]
+    assert states[-2:] == [AssistantState.LISTENING, AssistantState.READY]
 
 
 def test_a_failed_request_fails_its_task_and_briefly_shows_an_error(window, monkeypatch) -> None:

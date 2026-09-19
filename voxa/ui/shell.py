@@ -20,7 +20,9 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk  # noqa: E402
 
 from .assistant_view import BADGE_PATH, AssistantView  # noqa: E402
 from .choice_overlay import ChoiceOverlay  # noqa: E402
+from .exchange_panel import ExchangePanel  # noqa: E402
 from .model_selector import ModelSelector  # noqa: E402
+from .notice import NoticeBar  # noqa: E402
 from .state import AssistantModel, AssistantState  # noqa: E402
 from .status_controls import StatusControls  # noqa: E402
 from .task_panel import TaskPanel  # noqa: E402
@@ -72,6 +74,17 @@ class AssistantShell(Gtk.Overlay):
         self.task_panel.set_valign(Gtk.Align.CENTER)
         self.task_panel.set_margin_start(EDGE_MARGIN)
         self.add_overlay(self.task_panel)
+
+        # Latest question and answer, kept on screen until the next question.
+        self.exchange_panel = ExchangePanel()
+        self.exchange_panel.set_halign(Gtk.Align.END)
+        self.exchange_panel.set_valign(Gtk.Align.CENTER)
+        self.exchange_panel.set_margin_end(EDGE_MARGIN)
+        self.add_overlay(self.exchange_panel)
+
+        # Notifications slide in at the top instead of crowding the controls.
+        self.notice_bar = NoticeBar()
+        self.add_overlay(self.notice_bar)
 
         # Contextual choice card, above the bottom controls.
         self.choice_overlay = ChoiceOverlay(on_choice=self._answer_choice)
@@ -128,6 +141,9 @@ class AssistantShell(Gtk.Overlay):
         """Fill the model dropdown and its backend label."""
         self.model_selector.set_models(models, selected)
         self.model_selector.set_backend_label(backend_label)
+
+    def show_notice(self, text: str) -> None:
+        self.notice_bar.show_text(text)
 
     def set_audio_level(self, level: float) -> None:
         """Forward the microphone level to the assistant view."""
