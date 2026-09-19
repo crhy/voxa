@@ -16,7 +16,7 @@ with a natural neural voice and an offline eSpeak NG fallback.
 Built with GTK 4 and libadwaita, powered by GStreamer, and distributed as a
 Flatpak. Works on Wayland and X11 with PipeWire or PulseAudio.
 
-![Voxa main window](docs/screenshots/v0.4.0-main.png)
+![Voxa main window: the assistant at the center, model picker, and ACTIVE / OFFLINE controls](docs/screenshots/main-window.png)
 
 ## Features
 

@@ -17,8 +17,8 @@
   <url type="bugtracker">https://github.com/crhy/voxa/issues</url>
   <screenshots>
     <screenshot type="default">
-      <image type="source">https://raw.githubusercontent.com/crhy/voxa/f5ad8ae34b86e06d524db705f6672818b7eaa1d1/docs/screenshots/v0.4.0-main.png</image>
-      <caption>Voice transcription and a streamed local AI response in dark mode</caption>
+      <image type="source">https://raw.githubusercontent.com/crhy/voxa/main/docs/screenshots/main-window.png</image>
+      <caption>The Voxa assistant: ACTIVE and OFFLINE controls, a local model picker, and a compact task list</caption>
     </screenshot>
   </screenshots>
   <content_rating type="oars-1.1" />
