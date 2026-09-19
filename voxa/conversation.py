@@ -43,7 +43,7 @@ def _fuzzy_strip(text: str, wake: str) -> str | None:
         if len(window) < count:
             continue
         candidate = "".join(m.group().casefold() for m in window)
-        if len(candidate) >= 3 and SequenceMatcher(None, candidate, wake).ratio() >= 0.75:
+        if len(candidate) >= 3 and SequenceMatcher(None, candidate, wake).ratio() >= 0.65:
             return text[window[-1].end() :].strip(" ,.!?—-\t\n")
     return None
 
