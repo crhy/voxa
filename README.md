@@ -1,5 +1,10 @@
 # Voxa
 
+<p align="center">
+  <img src="docs/branding/logo-metal.png" alt="Voxa logo, metal coin badge" width="200">
+  <img src="docs/branding/logo-neon.png" alt="Voxa logo, neon mark" width="200">
+</p>
+
 Your personal voice assistant for Linux. Dictate text with on-device
 Faster Whisper, ask a local Ollama model, and hear the answer spoken back
 with a natural neural voice and an offline eSpeak NG fallback.
