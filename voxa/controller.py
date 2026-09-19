@@ -108,9 +108,11 @@ class AssistantController:
     # event was ignored (stale generation, OFFLINE, or a transition the policy forbids).
 
     def wake(self, token: int) -> bool:
+        self._resume_if_error(token)
         return self._apply(token, AssistantState.LISTENING)
 
     def prompt_accepted(self, token: int, detail: str = "") -> bool:
+        self._resume_if_error(token)
         return self._apply(token, AssistantState.THINKING, detail)
 
     def reply_started(self, token: int) -> bool:
@@ -144,6 +146,11 @@ class AssistantController:
         return self.model.start_task(task.id)
 
     # ---------------------------------------------------------------------- internals
+
+    def _resume_if_error(self, token: int) -> None:
+        """The user acting again ends a brief ERROR: it must not swallow the next request."""
+        if self.model.state is AssistantState.ERROR and self.accepts(token):
+            self.model.set_state(AssistantState.READY, generation=token)
 
     def _apply(self, token: int, state: AssistantState, detail: str = "") -> bool:
         if not self.accepts(token):
