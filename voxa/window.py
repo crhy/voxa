@@ -21,6 +21,9 @@ from .llamacpp import LlamaCppClient  # noqa: E402
 from .ollama import OllamaClient, OllamaError, strip_reasoning  # noqa: E402
 from .speech import SpeechService  # noqa: E402
 from .transcription import WhisperService  # noqa: E402
+from .ui.shell import AssistantShell, build_header  # noqa: E402
+from .ui.state import AssistantModel, AssistantState  # noqa: E402
+from .ui.styles import install_styles  # noqa: E402
 
 WHISPER_MODELS = ["tiny", "base", "small", "medium", "large-v3", "turbo"]
 # Conversation mode's wake-word phase runs continuously in the background, so
@@ -89,8 +92,8 @@ class MainWindow(Adw.ApplicationWindow):
     def __init__(self, application: Adw.Application) -> None:
         super().__init__(application=application)
         self.set_title("Voxa")
-        self.set_default_size(1080, 720)
-        self.set_size_request(700, 520)
+        self.set_default_size(1200, 760)
+        self.set_size_request(850, 600)
 
         self.config_store = ConfigStore()
         self.settings = self.config_store.load()
@@ -130,6 +133,11 @@ class MainWindow(Adw.ApplicationWindow):
         self._has_gpu = False
         self._gpu_poll_stop: threading.Event | None = None
         self._model_combo_updating = False
+        # Set when the window starts closing, so callbacks that arrive afterwards do nothing.
+        self._closing = False
+        # The single source of truth for what the assistant is doing; the shell renders it.
+        self.assistant_model = AssistantModel()
+        install_styles()
 
         self._build_ui()
         self._install_actions()
@@ -154,6 +162,36 @@ class MainWindow(Adw.ApplicationWindow):
         toolbar = Adw.ToolbarView()
         self.set_content(toolbar)
 
+        menu = Gio.Menu()
+        menu.append("Preferences", "win.preferences")
+        menu.append("Transcript and dictation…", "win.transcript")
+        menu.append("Keyboard Shortcuts", "win.shortcuts")
+        menu.append("About Voxa", "app.about")
+        toolbar.add_top_bar(build_header(menu))
+
+        # The assistant shell is the production interface. Everything it shows is
+        # rendered from self.assistant_model; the window only wires callbacks.
+        self.shell = AssistantShell(self.assistant_model)
+        self.shell.on_active = self._on_shell_active
+        self.shell.on_offline = self._on_shell_offline
+        self.shell.on_model_selected = self._on_shell_model_selected
+        self.toast_overlay.set_child(self.shell)
+        toolbar.set_content(self.toast_overlay)
+
+        self._legacy_window: Adw.Window | None = None
+        self._build_legacy_ui()
+
+    def _build_legacy_ui(self) -> None:
+        """The original dictation/transcript interface, kept fully working.
+
+        It is built but not attached to the main window: the new assistant shell is
+        the production view. It is reachable from the menu ("Transcript and
+        dictation...") and through the existing keyboard shortcuts, in a secondary
+        window, so no capability was lost. Many methods drive these widgets.
+        """
+        toolbar = Adw.ToolbarView()
+        self._legacy_view = toolbar
+
         header = Adw.HeaderBar()
         header.set_title_widget(Adw.WindowTitle(title="Voxa", subtitle="Your personal voice assistant"))
         toolbar.add_top_bar(header)
@@ -170,16 +208,8 @@ class MainWindow(Adw.ApplicationWindow):
         self.conversation_button.connect("toggled", self._on_conversation_toggled)
         header.pack_start(self.conversation_button)
 
-        menu = Gio.Menu()
-        menu.append("Preferences", "win.preferences")
-        menu.append("Keyboard Shortcuts", "win.shortcuts")
-        menu.append("About Voxa", "app.about")
-        menu_button = Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=menu)
-        header.pack_end(menu_button)
-
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        self.toast_overlay.set_child(root)
-        toolbar.set_content(self.toast_overlay)
+        toolbar.set_content(root)
 
         self.progress = Gtk.ProgressBar()
         self.progress.set_visible(False)
@@ -269,6 +299,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.stop_button.connect("clicked", lambda *_: self.stop_current_work())
         action_bar.pack_end(self.stop_button)
 
+
     def _build_editor(self, title: str, *, editable: bool, transcript: bool) -> Gtk.Widget:
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         box.set_margin_top(6)
@@ -306,6 +337,7 @@ class MainWindow(Adw.ApplicationWindow):
     def _install_actions(self) -> None:
         actions = {
             "preferences": self.show_preferences,
+            "transcript": self.show_transcript_window,
             "shortcuts": self.show_shortcuts,
             "record": self.toggle_recording,
             "conversation": self.toggle_conversation,
@@ -326,6 +358,37 @@ class MainWindow(Adw.ApplicationWindow):
         app.set_accels_for_action("win.copy-response", ["<Control><Shift>v"])
         app.set_accels_for_action("win.clear", ["<Control>l"])
         app.set_accels_for_action("win.preferences", ["<Control>comma"])
+
+    # ---------------------------------------------- the assistant shell's controls
+
+    def _on_shell_active(self) -> None:
+        if not self.conversation_active:
+            self.start_conversation_mode()
+        self.assistant_model.set_state(
+            AssistantState.READY if self.conversation_active else AssistantState.OFFLINE
+        )
+
+    def _on_shell_offline(self) -> None:
+        self.stop_current_work()
+        self.assistant_model.set_state(AssistantState.OFFLINE, "Offline")
+
+    def _on_shell_model_selected(self, name: str) -> None:
+        if name and name != self.settings.ollama_model:
+            self.settings.ollama_model = name
+            self.config_store.save(self.settings)
+            self._apply_model_combo(self.ollama_models)  # keep the legacy dropdown in step
+
+    def show_transcript_window(self) -> None:
+        """The original dictation and transcript view, in a secondary window."""
+        if self._legacy_window is None:
+            window = Adw.Window()
+            window.set_title("Transcript and dictation")
+            window.set_default_size(1000, 640)
+            window.set_transient_for(self)
+            window.set_hide_on_close(True)
+            window.set_content(self._legacy_view)
+            self._legacy_window = window
+        self._legacy_window.present()
 
     def _install_status_css(self) -> None:
         display = Gdk.Display.get_default()
@@ -458,7 +521,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._has_gpu = source == "GPU VRAM"
         # Keep the gauge live for the app's lifetime once a GPU is detected,
         # not only while an Ollama query is in flight.
-        if not self.is_destroyed():
+        if not self._closing:
             self._start_gpu_monitor()
         return False
 
@@ -509,6 +572,7 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def _apply_model_combo(self, models: list[str]) -> None:
+        self.shell.set_models(models, self.settings.ollama_model, self._backend_label())
         if not models:
             self.model_combo.set_visible(False)
             return
@@ -1639,6 +1703,7 @@ class MainWindow(Adw.ApplicationWindow):
         window.present()
 
     def do_close_request(self) -> bool:
+        self._closing = True
         self.stop_current_work()
         self._stop_gpu_monitor()
         self.audio.stop()
