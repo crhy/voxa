@@ -795,8 +795,6 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def _load_whisper(self, model_name: str) -> None:
-        self.settings.whisper_model = model_name
-        self.config_store.save(self.settings)
         self._set_status(f"Loading Whisper {model_name}…", busy=True)
         self._start_progress()
         self.whisper.load_async(
@@ -806,6 +804,8 @@ class MainWindow(Adw.ApplicationWindow):
         )
 
     def _on_whisper_ready(self, name: str, backend: str) -> bool:
+        self.settings.whisper_model = name
+        self.config_store.save(self.settings)
         self._stop_progress()
         self._set_status(f"Ready — Whisper {name} on {backend}")
         return False

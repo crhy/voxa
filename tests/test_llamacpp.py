@@ -22,7 +22,7 @@ class FakeResponse(io.BytesIO):
 
 def test_list_models_sorts_ids() -> None:
     response = FakeResponse(b'{"data":[{"id":"zeta"},{"id":"alpha"}]}')
-    with patch("urllib.request.urlopen", return_value=response):
+    with patch("voxa.llamacpp.open_url", return_value=response):
         assert LlamaCppClient().list_models() == ["alpha", "zeta"]
 
 
@@ -33,7 +33,7 @@ def test_streamed_chunks_are_delivered() -> None:
         b"data: [DONE]\n"
     )
     chunks: list[str] = []
-    with patch("urllib.request.urlopen", return_value=response) as mocked:
+    with patch("voxa.llamacpp.open_url", return_value=response) as mocked:
         answer = LlamaCppClient().generate_stream(
             model="test",
             prompt="hello",
@@ -60,7 +60,7 @@ def test_generate_stream_uses_given_messages_and_ignores_reasoning() -> None:
     )
     history = [{"role": "user", "content": "which DEs?"}]
     chunks: list[str] = []
-    with patch("urllib.request.urlopen", return_value=response) as mocked:
+    with patch("voxa.llamacpp.open_url", return_value=response) as mocked:
         answer = LlamaCppClient().generate_stream(
             model="test",
             prompt="which DEs?",
@@ -80,7 +80,7 @@ def test_stream_stops_at_done() -> None:
         b'data: {"choices":[{"delta":{"content":"should not be read"}}]}\n'
     )
     chunks: list[str] = []
-    with patch("urllib.request.urlopen", return_value=response):
+    with patch("voxa.llamacpp.open_url", return_value=response):
         answer = LlamaCppClient().generate_stream(
             model="test",
             prompt="hello",
@@ -100,7 +100,7 @@ def test_generate_stream_stops_on_cancel() -> None:
     cancel_event = threading.Event()
     cancel_event.set()
     chunks: list[str] = []
-    with patch("urllib.request.urlopen", return_value=response):
+    with patch("voxa.llamacpp.open_url", return_value=response):
         answer = LlamaCppClient().generate_stream(
             model="test",
             prompt="hello",
@@ -119,7 +119,7 @@ def test_generate_stream_raises_on_http_error() -> None:
         None,
         io.BytesIO(b"model exploded"),
     )
-    with patch("urllib.request.urlopen", side_effect=error), pytest.raises(LlamaCppError):
+    with patch("voxa.llamacpp.open_url", side_effect=error), pytest.raises(LlamaCppError):
         LlamaCppClient().generate_stream(
             model="test",
             prompt="hello",
@@ -129,7 +129,7 @@ def test_generate_stream_raises_on_http_error() -> None:
 
 
 def test_generate_stream_timeout_mentions_busy_server() -> None:
-    with patch("urllib.request.urlopen", side_effect=TimeoutError("timed out")):
+    with patch("voxa.llamacpp.open_url", side_effect=TimeoutError("timed out")):
         with pytest.raises(LlamaCppError) as exc_info:
             LlamaCppClient().generate_stream(
                 model="test",
@@ -142,7 +142,7 @@ def test_generate_stream_timeout_mentions_busy_server() -> None:
 
 def test_generate_stream_timeout_wrapped_in_urlerror() -> None:
     error = urllib.error.URLError(TimeoutError("timed out"))
-    with patch("urllib.request.urlopen", side_effect=error):
+    with patch("voxa.llamacpp.open_url", side_effect=error):
         with pytest.raises(LlamaCppError) as exc_info:
             LlamaCppClient().generate_stream(
                 model="test",
@@ -155,7 +155,7 @@ def test_generate_stream_timeout_wrapped_in_urlerror() -> None:
 
 def test_generate_stream_raises_on_stream_error_object() -> None:
     response = FakeResponse(b'data: {"error":{"message":"bad request"}}\n')
-    with patch("urllib.request.urlopen", return_value=response), pytest.raises(LlamaCppError):
+    with patch("voxa.llamacpp.open_url", return_value=response), pytest.raises(LlamaCppError):
         LlamaCppClient().generate_stream(
             model="test",
             prompt="hello",

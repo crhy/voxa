@@ -3,11 +3,13 @@ from __future__ import annotations
 import io
 import json
 import threading
+import urllib.request
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from unittest.mock import patch
 
 import pytest
 
-from voxa.ollama import OllamaClient, OllamaError, strip_reasoning
+from voxa.ollama import OllamaClient, OllamaError, open_url, strip_reasoning
 
 
 class FakeResponse(io.BytesIO):
@@ -20,7 +22,7 @@ class FakeResponse(io.BytesIO):
 
 def test_list_models_sorts_names() -> None:
     response = FakeResponse(b'{"models":[{"name":"zeta"},{"name":"alpha"}]}')
-    with patch("urllib.request.urlopen", return_value=response):
+    with patch("voxa.ollama.open_url", return_value=response):
         assert OllamaClient().list_models() == ["alpha", "zeta"]
 
 
@@ -28,7 +30,7 @@ def test_list_models_detailed_returns_sizes_sorted_by_name() -> None:
     response = FakeResponse(
         b'{"models":[{"name":"zeta","size":2000},{"name":"alpha","size":1000}]}'
     )
-    with patch("urllib.request.urlopen", return_value=response):
+    with patch("voxa.ollama.open_url", return_value=response):
         infos = OllamaClient().list_models_detailed()
     assert [(info.name, info.size_bytes) for info in infos] == [("alpha", 1000), ("zeta", 2000)]
 
@@ -40,7 +42,7 @@ def test_pull_model_reports_progress_and_stops_on_success() -> None:
         b'{"status":"success"}\n'
     )
     events: list[tuple[str, int, int]] = []
-    with patch("urllib.request.urlopen", return_value=response):
+    with patch("voxa.ollama.open_url", return_value=response):
         OllamaClient().pull_model(
             "qwen2.5:0.5b",
             cancel_event=threading.Event(),
@@ -55,7 +57,7 @@ def test_pull_model_reports_progress_and_stops_on_success() -> None:
 
 def test_pull_model_raises_on_stream_error() -> None:
     response = FakeResponse(b'{"error":"model not found"}\n')
-    with patch("urllib.request.urlopen", return_value=response), pytest.raises(OllamaError):
+    with patch("voxa.ollama.open_url", return_value=response), pytest.raises(OllamaError):
         OllamaClient().pull_model(
             "does-not-exist",
             cancel_event=threading.Event(),
@@ -70,7 +72,7 @@ def test_pull_model_rejects_blank_name() -> None:
 
 def test_delete_model_sends_request() -> None:
     response = FakeResponse(b"")
-    with patch("urllib.request.urlopen", return_value=response) as mocked:
+    with patch("voxa.ollama.open_url", return_value=response) as mocked:
         OllamaClient().delete_model("qwen2.5:0.5b")
     request = mocked.call_args[0][0]
     assert request.get_method() == "DELETE"
@@ -84,7 +86,7 @@ def test_streaming_response_calls_chunk_callback() -> None:
         b'{"done":true}\n'
     )
     chunks: list[str] = []
-    with patch("urllib.request.urlopen", return_value=response):
+    with patch("voxa.ollama.open_url", return_value=response):
         answer = OllamaClient().generate_stream(
             model="test",
             prompt="hello",
@@ -107,7 +109,7 @@ def test_generate_stream_uses_chat_endpoint_when_messages_are_given() -> None:
         {"role": "assistant", "content": "hi"},
         {"role": "user", "content": "and you?"},
     ]
-    with patch("urllib.request.urlopen", return_value=response) as mocked:
+    with patch("voxa.ollama.open_url", return_value=response) as mocked:
         answer = OllamaClient().generate_stream(
             model="test",
             prompt="and you?",
@@ -144,3 +146,33 @@ def test_strip_reasoning_leaves_an_ordinary_reply_alone():
 
 def test_strip_reasoning_keeps_the_last_answer_when_several_blocks_appear():
     assert strip_reasoning("<think>a</think>mid</think>final") == "final"
+
+
+def test_open_url_bypasses_proxy_for_loopback_urls(monkeypatch):
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b'{"models":[]}')
+
+        def log_message(self, *_args):
+            pass
+
+    server = HTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    monkeypatch.setenv("http_proxy", "http://proxy-that-does-not-exist.invalid:8080")
+    monkeypatch.setenv("HTTP_PROXY", "http://proxy-that-does-not-exist.invalid:8080")
+    try:
+        request = urllib.request.Request(f"http://127.0.0.1:{server.server_port}/api/tags")
+        with open_url(request, timeout=5) as response:
+            assert json.load(response) == {"models": []}
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_open_url_uses_plain_urlopen_for_remote_urls():
+    response = FakeResponse(b"{}")
+    with patch("urllib.request.urlopen", return_value=response) as mocked:
+        open_url(urllib.request.Request("http://example.invalid/api/tags"), timeout=1)
+    assert mocked.called

@@ -23,7 +23,7 @@ def _cuda_compute_usable() -> bool:
     at inference time. Probe the compute libraries directly with dlopen because
     LD_LIBRARY_PATH-based lookups are not reflected in ldconfig's cache.
     """
-    if os.getenv("VOICE2TEXT_FORCE_CUDA") == "1":
+    if os.getenv("VOXA_FORCE_CUDA", os.getenv("VOICE2TEXT_FORCE_CUDA")) == "1":
         return True
     for name in ("libcublas.so.12", "libcudart.so.12"):
         try:
@@ -61,8 +61,6 @@ class WhisperService:
         with self._lock:
             self._load_generation += 1
             generation = self._load_generation
-            self._model = None
-            self._model_name = ""
 
         thread = threading.Thread(
             target=self._load,
@@ -86,7 +84,7 @@ class WhisperService:
             with contextlib.suppress(OSError):
                 available = len(os.sched_getaffinity(0))
             cpu_threads = max(1, min(8, available or os.cpu_count() or 4))
-            requested = os.environ.get("VOICE2TEXT_DEVICE", "auto")
+            requested = os.environ.get("VOXA_DEVICE") or os.environ.get("VOICE2TEXT_DEVICE", "auto")
             attempts = []
             if requested == "auto":
                 if _cuda_compute_usable():

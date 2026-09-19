@@ -6,7 +6,7 @@ import urllib.error
 import urllib.request
 from collections.abc import Callable
 
-from .ollama import OllamaError
+from .ollama import OllamaError, open_url
 
 
 class LlamaCppError(OllamaError):
@@ -30,7 +30,7 @@ class LlamaCppClient:
     def list_models(self) -> list[str]:
         request = urllib.request.Request(f"{self.base_url}/v1/models", method="GET")
         try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+            with open_url(request, timeout=self.timeout) as response:
                 payload = json.load(response)
         except (urllib.error.URLError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
             raise LlamaCppError(f"Could not connect to the llama.cpp server: {exc}") from exc
@@ -70,7 +70,7 @@ class LlamaCppClient:
         chunks: list[str] = []
         stream_error: str | None = None
         try:
-            with urllib.request.urlopen(request, timeout=GENERATE_TIMEOUT_SECONDS) as response:
+            with open_url(request, timeout=GENERATE_TIMEOUT_SECONDS) as response:
                 for raw_line in response:
                     if cancel_event.is_set():
                         break

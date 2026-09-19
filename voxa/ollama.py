@@ -4,6 +4,7 @@ import json
 import re
 import threading
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -11,6 +12,22 @@ from dataclasses import dataclass
 
 class OllamaError(RuntimeError):
     pass
+
+
+_LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
+
+# Local servers must never be reachable through an HTTP proxy: urlopen would
+# happily route a request for 127.0.0.1 to whatever http_proxy is set.
+_local_opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
+def open_url(request: urllib.request.Request, timeout: float):
+    """Open ``request``, bypassing any proxy for loopback URLs."""
+    url = getattr(request, "full_url", str(request))
+    host = urllib.parse.urlparse(url).hostname or ""
+    if host in _LOOPBACK_HOSTS or host.startswith("127."):
+        return _local_opener.open(request, timeout=timeout)
+    return urllib.request.urlopen(request, timeout=timeout)
 
 
 _THINK_BLOCK = re.compile(r"<think>.*?</think>", re.DOTALL)
@@ -45,7 +62,7 @@ class OllamaClient:
     def _list_models_payload(self) -> list[dict]:
         request = urllib.request.Request(f"{self.base_url}/api/tags", method="GET")
         try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+            with open_url(request, timeout=self.timeout) as response:
                 payload = json.load(response)
         except (urllib.error.URLError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
             raise OllamaError(f"Could not connect to Ollama: {exc}") from exc
@@ -105,7 +122,7 @@ class OllamaClient:
         chunks: list[str] = []
         stream_error: str | None = None
         try:
-            with urllib.request.urlopen(request, timeout=180) as response:
+            with open_url(request, timeout=180) as response:
                 for raw_line in response:
                     if cancel_event.is_set():
                         break
@@ -176,7 +193,7 @@ class OllamaClient:
             method="POST",
         )
         try:
-            with urllib.request.urlopen(request, timeout=1800) as response:
+            with open_url(request, timeout=1800) as response:
                 for raw_line in response:
                     if cancel_event.is_set():
                         break
@@ -216,7 +233,7 @@ class OllamaClient:
             method="DELETE",
         )
         try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+            with open_url(request, timeout=self.timeout) as response:
                 response.read()
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")[:300]

@@ -9,17 +9,28 @@ import threading
 from pathlib import Path
 from typing import Any
 
-import gi
-
 try:
     import edge_tts
 except ImportError:  # The offline fallback still works in source-only installs.
     edge_tts = None
 
-gi.require_version("Gst", "1.0")
-from gi.repository import GLib, Gst  # noqa: E402
+Gst: Any = None  # Initialized lazily so importing this module needs no GStreamer or PyGObject.
+GLib: Any = None
 
-Gst.init(None)
+
+def _ensure_gstreamer() -> Any:
+    global Gst, GLib
+    if Gst is None:
+        import gi
+
+        gi.require_version("Gst", "1.0")
+        from gi.repository import GLib as _GLib
+        from gi.repository import Gst as _Gst
+
+        _Gst.init(None)
+        Gst = _Gst
+        GLib = _GLib
+    return Gst
 
 
 class SpeechService:
@@ -73,6 +84,7 @@ class SpeechService:
         voice: str,
         cancel_event: threading.Event,
     ) -> None:
+        _ensure_gstreamer()
         pipeline = Gst.parse_launch(
             "appsrc name=source format=bytes block=true max-bytes=1048576 ! "
             "queue max-size-bytes=2097152 ! "
@@ -109,6 +121,7 @@ class SpeechService:
         appsrc,
         cancel_event: threading.Event,
     ) -> None:
+        _ensure_gstreamer()
         received_audio = threading.Event()
         try:
             asyncio.run(
@@ -148,6 +161,7 @@ class SpeechService:
         cancel_event: threading.Event,
         on_first_audio,
     ) -> None:
+        _ensure_gstreamer()
         if edge_tts is None:
             raise RuntimeError("Edge TTS is unavailable")
         percent = max(-50, min(50, round(((rate - 180) / 120) * 50)))
@@ -196,6 +210,7 @@ class SpeechService:
         cancel_event: threading.Event,
         natural_error: str,
     ) -> bool:
+        _ensure_gstreamer()
         if not self._is_current(cancel_event):
             return False
         self._finish_media()
@@ -223,6 +238,7 @@ class SpeechService:
         cancel_event: threading.Event,
         natural_error: str,
     ) -> None:
+        _ensure_gstreamer()
         try:
             result = subprocess.run(
                 ["espeak-ng", "--stdout", "-s", str(rate), text],
@@ -254,6 +270,7 @@ class SpeechService:
             GLib.idle_add(self._emit_error_for, message, cancel_event)
 
     def _play_file(self, path: str, cancel_event: threading.Event) -> bool:
+        _ensure_gstreamer()
         if not self._is_current(cancel_event):
             with contextlib.suppress(OSError):
                 os.unlink(path)
@@ -314,6 +331,8 @@ class SpeechService:
         self._finish_media()
 
     def _finish_media(self) -> None:
+        if Gst is None:
+            return
         appsrc, self.appsrc = self.appsrc, None
         if appsrc is not None:
             with contextlib.suppress(Exception):
