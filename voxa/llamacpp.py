@@ -13,6 +13,13 @@ class LlamaCppError(OllamaError):
     """Subclasses OllamaError so the window's handlers keep working."""
 
 
+# llama-server serves one request at a time, so a question can queue behind
+# another client (e.g. a coding agent using the same server). The urlopen
+# timeout applies until the first byte arrives, not just connection setup, so
+# generate_stream needs a generous value instead of the short API timeout.
+GENERATE_TIMEOUT_SECONDS = 600
+
+
 class LlamaCppClient:
     """Talks to a llama.cpp server exposing the OpenAI-compatible API."""
 
@@ -63,7 +70,7 @@ class LlamaCppClient:
         chunks: list[str] = []
         stream_error: str | None = None
         try:
-            with urllib.request.urlopen(request, timeout=180) as response:
+            with urllib.request.urlopen(request, timeout=GENERATE_TIMEOUT_SECONDS) as response:
                 for raw_line in response:
                     if cancel_event.is_set():
                         break
@@ -97,6 +104,12 @@ class LlamaCppClient:
             detail = exc.read().decode("utf-8", errors="replace")[:300]
             raise LlamaCppError(f"llama.cpp server returned HTTP {exc.code}: {detail}") from exc
         except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+            timed_out = isinstance(exc, TimeoutError) or isinstance(getattr(exc, "reason", None), TimeoutError)
+            if timed_out:
+                raise LlamaCppError(
+                    f"llama.cpp request timed out after {GENERATE_TIMEOUT_SECONDS} seconds; "
+                    "the llama.cpp server may be busy with another request."
+                ) from exc
             raise LlamaCppError(f"llama.cpp request failed: {exc}") from exc
 
         if stream_error is not None:

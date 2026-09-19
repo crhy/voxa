@@ -128,6 +128,31 @@ def test_generate_stream_raises_on_http_error() -> None:
         )
 
 
+def test_generate_stream_timeout_mentions_busy_server() -> None:
+    with patch("urllib.request.urlopen", side_effect=TimeoutError("timed out")):
+        with pytest.raises(LlamaCppError) as exc_info:
+            LlamaCppClient().generate_stream(
+                model="test",
+                prompt="hello",
+                cancel_event=threading.Event(),
+                on_chunk=lambda *_args: None,
+            )
+    assert "busy" in str(exc_info.value)
+
+
+def test_generate_stream_timeout_wrapped_in_urlerror() -> None:
+    error = urllib.error.URLError(TimeoutError("timed out"))
+    with patch("urllib.request.urlopen", side_effect=error):
+        with pytest.raises(LlamaCppError) as exc_info:
+            LlamaCppClient().generate_stream(
+                model="test",
+                prompt="hello",
+                cancel_event=threading.Event(),
+                on_chunk=lambda *_args: None,
+            )
+    assert "busy" in str(exc_info.value)
+
+
 def test_generate_stream_raises_on_stream_error_object() -> None:
     response = FakeResponse(b'data: {"error":{"message":"bad request"}}\n')
     with patch("urllib.request.urlopen", return_value=response), pytest.raises(LlamaCppError):

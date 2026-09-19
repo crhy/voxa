@@ -1482,17 +1482,11 @@ class MainWindow(Adw.ApplicationWindow):
         llamacpp_row = Adw.EntryRow(title="llama.cpp server address")
         llamacpp_row.set_text(self.settings.llamacpp_url)
         llamacpp_row.set_visible(self.settings.ai_backend == "llamacpp")
-        backend_row.connect("notify::selected", lambda *_: llamacpp_row.set_visible(
-            backend_row.get_selected() == 0
-        ))
         ai_group.add(llamacpp_row)
 
         endpoint_row = Adw.EntryRow(title="Ollama address")
         endpoint_row.set_text(self.settings.ollama_url)
         endpoint_row.set_visible(self.settings.ai_backend == "ollama")
-        backend_row.connect("notify::selected", lambda *_: endpoint_row.set_visible(
-            backend_row.get_selected() == 1
-        ))
         ai_group.add(endpoint_row)
 
         auto_speak_row = Adw.SwitchRow(title="Speak AI responses automatically")
@@ -1501,21 +1495,33 @@ class MainWindow(Adw.ApplicationWindow):
 
         # Installing and pulling models is an Ollama-only convenience; a
         # llama.cpp server serves whichever GGUF the user started it with.
-        if self.settings.ai_backend == "ollama":
-            install_row = Adw.ActionRow(
-                title="Install or update Ollama",
-                subtitle="Downloads the latest installer from ollama.com and runs it with a password prompt",
-            )
-            install_button = Gtk.Button(label="Install", valign=Gtk.Align.CENTER)
-            install_button.connect("clicked", lambda *_: self._start_ollama_install())
-            install_row.add_suffix(install_button)
-            ai_group.add(install_row)
+        # The rows always exist so switching the backend combo shows or hides
+        # them immediately instead of only on the next dialog open.
+        install_row = Adw.ActionRow(
+            title="Install or update Ollama",
+            subtitle="Downloads the latest installer from ollama.com and runs it with a password prompt",
+        )
+        install_button = Gtk.Button(label="Install", valign=Gtk.Align.CENTER)
+        install_button.connect("clicked", lambda *_: self._start_ollama_install())
+        install_row.add_suffix(install_button)
+        install_row.set_visible(self.settings.ai_backend == "ollama")
+        ai_group.add(install_row)
 
-            manage_row = Adw.ActionRow(title="Pull or remove models")
-            manage_button = Gtk.Button(label="Manage models…", valign=Gtk.Align.CENTER)
-            manage_button.connect("clicked", lambda *_: self._show_model_manager())
-            manage_row.add_suffix(manage_button)
-            ai_group.add(manage_row)
+        manage_row = Adw.ActionRow(title="Pull or remove models")
+        manage_button = Gtk.Button(label="Manage models…", valign=Gtk.Align.CENTER)
+        manage_button.connect("clicked", lambda *_: self._show_model_manager())
+        manage_row.add_suffix(manage_button)
+        manage_row.set_visible(self.settings.ai_backend == "ollama")
+        ai_group.add(manage_row)
+
+        def update_backend_rows(*_):
+            using_ollama = backend_row.get_selected() == 1
+            llamacpp_row.set_visible(not using_ollama)
+            endpoint_row.set_visible(using_ollama)
+            install_row.set_visible(using_ollama)
+            manage_row.set_visible(using_ollama)
+
+        backend_row.connect("notify::selected", update_backend_rows)
         dialog.add(ai_page)
 
         conversation_page = Adw.PreferencesPage(title="Conversation mode", icon_name="microphone-sensitivity-muted-symbolic")
