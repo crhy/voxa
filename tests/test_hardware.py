@@ -35,6 +35,12 @@ def test_detect_gpu_vram_gb_parses_nvidia_smi_output() -> None:
         assert detect_gpu_vram_gb() == 24.0
 
 
+def test_nvidia_vram_gb_returns_none_for_malformed_output() -> None:
+    fake = subprocess.CompletedProcess(args=[], returncode=0, stdout="not-a-number\n", stderr="")
+    with patch("subprocess.run", return_value=fake):
+        assert hardware._nvidia_vram_gb() is None
+
+
 def test_detect_gpu_vram_gb_returns_none_when_no_tool_is_available(tmp_path: Path) -> None:
     with patch("subprocess.run", side_effect=FileNotFoundError):
         assert detect_gpu_vram_gb(sysfs_base=tmp_path) is None

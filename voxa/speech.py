@@ -229,6 +229,7 @@ class SpeechService:
                 check=True,
                 capture_output=True,
                 stdin=subprocess.DEVNULL,
+                timeout=30,
             )
             if cancel_event.is_set():
                 return
@@ -245,6 +246,10 @@ class SpeechService:
             GLib.idle_add(self._emit_error_for, detail, cancel_event)
         except subprocess.CalledProcessError as exc:
             detail = exc.stderr.decode("utf-8", errors="replace")[:200]
+            message = f"Natural voice failed ({natural_error}); offline speech failed: {detail}"
+            GLib.idle_add(self._emit_error_for, message, cancel_event)
+        except subprocess.TimeoutExpired:
+            detail = "espeak-ng timed out after 30 seconds"
             message = f"Natural voice failed ({natural_error}); offline speech failed: {detail}"
             GLib.idle_add(self._emit_error_for, message, cancel_event)
 

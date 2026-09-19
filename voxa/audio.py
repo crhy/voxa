@@ -5,6 +5,8 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
+import numpy as np
+
 Gst: Any = None  # Initialized lazily so importing this module needs no GStreamer or PyGObject.
 
 
@@ -182,8 +184,6 @@ class AudioCapture:
 
     @staticmethod
     def _rms(pcm: bytes) -> float:
-        import numpy as np
-
         samples = np.frombuffer(pcm, dtype="<i2")
         if not samples.size:
             return 0.0

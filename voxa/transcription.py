@@ -134,13 +134,14 @@ class WhisperService:
         compute kernel runs (e.g. missing cuBLAS), so verify before committing.
         """
         audio = np.zeros(2560, dtype=np.float32)
-        for _segment in model.transcribe(
+        segments, _info = model.transcribe(
             audio,
             language="en",
             beam_size=1,
             vad_filter=False,
             condition_on_previous_text=False,
-        ):
+        )
+        for _segment in segments:
             pass
 
     def transcribe(self, pcm_s16le: bytes, language: str = "en") -> str:

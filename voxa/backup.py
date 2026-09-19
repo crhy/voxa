@@ -102,10 +102,6 @@ OPENCODE_SKIP_DIRS = {
 }
 OPENCODE_SKIP_SUFFIXES = {".log", ".db", ".sqlite", ".sqlite3", ".lock"}
 
-GPG_PATH = shutil.which("gpg")
-GPG2_PATH = shutil.which("gpg2")
-
-
 class BackupError(Exception):
     """Raised for backup/restore conditions that should abort the operation."""
 
@@ -164,9 +160,10 @@ def _read_passphrase_file(path: Path) -> str:
 
 
 def _gpg_binary() -> str:
-    if GPG_PATH is None and GPG2_PATH is None:
+    binary = shutil.which("gpg") or shutil.which("gpg2")
+    if binary is None:
         raise BackupError("gpg is not installed; cannot encrypt or decrypt archives.")
-    return GPG_PATH or GPG2_PATH or "gpg"
+    return binary
 
 
 def _gpg_passphrase_file(tmp_dir: Path, passphrase: str) -> Path:
@@ -625,7 +622,7 @@ def create_backup(
 
     items, models_found, warnings = build_inventory(paths, hash_blobs=hash_blobs)
     if not items:
-        raise BackupError("Nothing found to back up: no config files or Ollama manifolds present.")
+        raise BackupError("Nothing found to back up: no config files or Ollama manifests present.")
     unknown = []
     known_names = {model.name for model in models_found} | {model.name.rsplit(":", 1)[0] for model in models_found}
     for chosen in selected:
