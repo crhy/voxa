@@ -49,16 +49,18 @@ jobs:
           python -c "import yaml; yaml.safe_load(open('io.github.crhy.voxa.yml')); print('manifest parses')"
 
   # The GTK-independent tests above skip the interface. This job runs the UI and
-  # window tests for real on a virtual display, using the distribution's PyGObject.
+  # window tests for real on a virtual display. It uses a Fedora container because
+  # Voxa needs libadwaita 1.6+ (Adw.Spinner, Adw.ToolbarView...), newer than Ubuntu's.
   gtk-tests:
     runs-on: ubuntu-latest
+    container:
+      image: fedora:latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Install GTK 4, libadwaita and test tools
+      - name: Install GTK 4, libadwaita, Xvfb and test tools
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq xvfb python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 \
-            gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0 python3-numpy python3-pytest
+          dnf -y install git python3-gobject gtk4 libadwaita gstreamer1 python3-numpy python3-pytest \
+            xorg-x11-server-Xvfb xorg-x11-xauth mesa-dri-drivers adwaita-icon-theme
+      - uses: actions/checkout@v4
       - name: UI and window tests
         run: xvfb-run -a python3 -m pytest -q tests/test_ui_*.py tests/test_assistant_*.py tests/test_window_*.py
 
