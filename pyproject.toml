@@ -4,7 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "voxa"
-version = "0.1.1"
+# The version is defined once, in voxa/__init__.py (APP_VERSION); see tools/release_check.py.
+dynamic = ["version"]
 description = "Native Linux voice dictation and local AI desktop application"
 requires-python = ">=3.11"
 dependencies = [
@@ -31,3 +32,6 @@ voxa-backup = "voxa.backup:main"
 
 [tool.setuptools.packages.find]
 include = ["voxa*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "voxa.APP_VERSION"}

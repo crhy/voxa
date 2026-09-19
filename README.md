@@ -48,7 +48,7 @@ Flatpak. Works on Wayland and X11 with PipeWire or PulseAudio.
 The easiest way is the Flatpak from the [releases](https://github.com/crhy/voxa/releases):
 
 ```bash
-flatpak install --user Voxa.flatpak
+flatpak install --user Voxa-<version>-x86_64.flatpak
 flatpak run io.github.crhy.voxa
 ```
 

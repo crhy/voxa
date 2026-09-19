@@ -10,11 +10,27 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    outputs:
+      artifact: ${{ steps.meta.outputs.artifact }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
+      # voxa.APP_VERSION is the single source of the version. This fails the build if
+      # pyproject, the AppStream release entry or a release tag disagree with it, and
+      # derives the versioned bundle name (Voxa-<version>-x86_64.flatpak) used below.
+      - name: Check release metadata
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            python tools/release_check.py --tag "$GITHUB_REF_NAME"
+          else
+            python tools/release_check.py
+          fi
+          echo "artifact=$(python tools/release_check.py --print artifact)" >> "$GITHUB_OUTPUT"
       - name: Install test tools
         run: python -m pip install --upgrade -r requirements-dev.txt
       - name: Compile source
@@ -23,6 +39,28 @@ jobs:
         run: ruff check voxa tests voxa.py
       - name: Unit tests
         run: python -m pytest -q
+      - name: Validate AppStream, desktop file and Flatpak manifest
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq appstream desktop-file-utils
+          python -m pip install --quiet pyyaml
+          appstreamcli validate --no-net io.github.crhy.voxa.metainfo.xml
+          desktop-file-validate io.github.crhy.voxa.desktop
+          python -c "import yaml; yaml.safe_load(open('io.github.crhy.voxa.yml')); print('manifest parses')"
+
+  # The GTK-independent tests above skip the interface. This job runs the UI and
+  # window tests for real on a virtual display, using the distribution's PyGObject.
+  gtk-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GTK 4, libadwaita and test tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 \
+            gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0 python3-numpy python3-pytest
+      - name: UI and window tests
+        run: xvfb-run -a python3 -m pytest -q tests/test_ui_*.py tests/test_assistant_*.py tests/test_window_*.py
 
   flatpak:
     needs: test
@@ -64,16 +102,16 @@ jobs:
           # app showed with no screenshots at all (crhy/spaced#181). Leaving
           # it unset keeps the raw githubusercontent URLs declared in the
           # metainfo, which resolve.
-      # TODO(rhY): confirm the real repo URL once voxa publishes one; this
-      # spacedbazaar URL looks copied from a different project.
+      # Voxa's canonical update repository is its own GitHub Pages site (see
+      # docs/RELEASING.md). Publishing the repository there is a separate release step.
       - name: Create updateable release bundle
         run: >-
           flatpak build-bundle
           --arch=x86_64
-          --repo-url=https://crhy.github.io/spacedbazaar/flatpak-repo/
+          --repo-url=https://crhy.github.io/voxa/flatpak-repo/
           --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
           voxa-repo
-          Voxa.flatpak
+          ${{ needs.test.outputs.artifact }}
           io.github.crhy.voxa
           master
       - name: Verify bundle can be imported by current OSTree
@@ -84,7 +122,7 @@ jobs:
           repo="$probe/repo"
           checkout="$probe/checkout"
           ostree init --repo="$repo" --mode=archive-z2
-          flatpak build-import-bundle --no-update-summary "$repo" Voxa.flatpak
+          flatpak build-import-bundle --no-update-summary "$repo" "${{ needs.test.outputs.artifact }}"
           ref=app/io.github.crhy.voxa/x86_64/master
           ostree --repo="$repo" refs | grep -Fx "$ref"
           ostree --repo="$repo" checkout --user-mode "$ref" "$checkout"
@@ -95,11 +133,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Voxa-Flatpak
-          path: Voxa.flatpak
+          path: ${{ needs.test.outputs.artifact }}
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: flatpak
+    needs: [test, flatpak]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -112,4 +150,4 @@ jobs:
           name: Voxa ${{ github.ref_name }}
           draft: false
           generate_release_notes: true
-          files: Voxa.flatpak
+          files: ${{ needs.test.outputs.artifact }}

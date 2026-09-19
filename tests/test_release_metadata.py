@@ -6,19 +6,75 @@ import tomllib
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from tools import release_check
 from voxa import APP_VERSION
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_release_versions_match() -> None:
+    """One source of truth: APP_VERSION. pyproject derives it; AppStream must agree."""
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     metainfo = ET.parse(ROOT / "io.github.crhy.voxa.metainfo.xml").getroot()
     release = metainfo.find("./releases/release")
 
-    assert project["project"]["version"] == APP_VERSION
+    assert "version" not in project["project"]
+    assert "version" in project["project"]["dynamic"]
+    assert project["tool"]["setuptools"]["dynamic"]["version"] == {"attr": "voxa.APP_VERSION"}
     assert release is not None
     assert release.attrib["version"] == APP_VERSION
+    assert release_check.app_version() == APP_VERSION
+
+
+def test_release_checker_accepts_the_repository_as_it_is() -> None:
+    assert release_check.check() == []
+    assert release_check.check(tag=f"v{APP_VERSION}") == []
+
+
+def test_release_checker_rejects_a_mismatched_tag_and_a_stale_metainfo(tmp_path) -> None:
+    assert any("does not match" in problem for problem in release_check.check(tag="v99.0.0"))
+
+    # A copy of the repository files with an out-of-date AppStream release.
+    (tmp_path / "voxa").mkdir()
+    (tmp_path / "voxa" / "__init__.py").write_text('APP_VERSION = "2.0.0"\n', encoding="utf-8")
+    (tmp_path / "pyproject.toml").write_text((ROOT / "pyproject.toml").read_text(encoding="utf-8"), encoding="utf-8")
+    (tmp_path / "io.github.crhy.voxa.metainfo.xml").write_text(
+        (ROOT / "io.github.crhy.voxa.metainfo.xml").read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    assert any("AppStream" in problem for problem in release_check.check(tmp_path))
+
+
+def test_release_checker_flags_a_static_pyproject_version(tmp_path) -> None:
+    (tmp_path / "voxa").mkdir()
+    (tmp_path / "voxa" / "__init__.py").write_text('APP_VERSION = "0.1.1"\n', encoding="utf-8")
+    (tmp_path / "pyproject.toml").write_text('[project]\nname = "voxa"\nversion = "0.1.1"\n', encoding="utf-8")
+    (tmp_path / "io.github.crhy.voxa.metainfo.xml").write_text(
+        (ROOT / "io.github.crhy.voxa.metainfo.xml").read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    assert any("static" in problem for problem in release_check.check(tmp_path))
+
+
+def test_release_artifact_name_carries_the_version_and_architecture() -> None:
+    assert release_check.artifact_name("0.6.0") == "Voxa-0.6.0-x86_64.flatpak"
+    assert release_check.artifact_name("1.2.3", "aarch64") == "Voxa-1.2.3-aarch64.flatpak"
+
+
+def test_ci_uses_versioned_bundles_and_the_voxa_repository() -> None:
+    workflow = (ROOT / ".github" / "workflows" / "build.yml").read_text(encoding="utf-8")
+
+    # The bundle name is derived from APP_VERSION (issue #1), never a fixed "Voxa.flatpak".
+    assert "Voxa.flatpak" not in workflow
+    assert "tools/release_check.py" in workflow
+    assert "needs.test.outputs.artifact" in workflow
+    # The update URL must not point at another project (issue #7 section 22).
+    assert "spacedbazaar" not in workflow
+    assert "https://crhy.github.io/voxa/flatpak-repo/" in workflow
+
+
+def test_ci_validates_metadata_and_runs_the_ui_tests() -> None:
+    workflow = (ROOT / ".github" / "workflows" / "build.yml").read_text(encoding="utf-8")
+    for expected in ("appstreamcli validate", "desktop-file-validate", "xvfb-run", "tests/test_ui_*.py"):
+        assert expected in workflow
 
 
 def test_license_metadata_matches_license_file() -> None:
