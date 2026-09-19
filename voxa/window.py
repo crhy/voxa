@@ -1181,6 +1181,10 @@ class MainWindow(Adw.ApplicationWindow):
             self.assistant.go_offline()
             self._set_status("Goodbye!")
         else:
+            # A spoken "cancel": the request was abandoned and its late completion is
+            # ignored on purpose, so the assistant must be returned to READY right here.
+            self._end_query_task("cancelled")
+            self.assistant.reply_finished(self.assistant.token())
             self._set_status(self._conversation_idle_status())
         return False
 

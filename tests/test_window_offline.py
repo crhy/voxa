@@ -276,3 +276,25 @@ def test_a_failed_request_fails_its_task_and_briefly_shows_an_error(window, monk
     # one failed request is not a global outage: after the pause Voxa is READY again
     window._recover_assistant(window.assistant.token())
     assert _state(window) is AssistantState.READY
+
+
+def test_a_spoken_cancel_returns_to_ready_instead_of_sticking_on_thinking(window, monkeypatch) -> None:
+    monkeypatch.setattr(window, "_ai_client", lambda: FakeClient("never delivered"))
+    window.settings.ollama_model = "test-model"
+    window.assistant.activate()
+    window.assistant.wake(window.assistant.token())
+    window.assistant.prompt_accepted(window.assistant.token())
+    task = window.assistant.begin_task("Answering: something long")
+    window._query_task_id = task.id  # as ask_ai does for the request being cancelled
+
+    window._on_conversation_exit("cancel")
+    assert _state(window) is AssistantState.READY  # the assistant is still ACTIVE, just idle
+    assert window.assistant_model.tasks[task.id].state is TaskState.CANCELLED
+    assert window._query_task_id is None
+    assert window.audio.is_active  # "cancel" does not switch the microphone off
+
+
+def test_a_spoken_goodbye_goes_offline(window) -> None:
+    window.assistant.activate()
+    window._on_conversation_exit("goodbye")
+    assert _state(window) is AssistantState.OFFLINE and not window.audio.is_active
