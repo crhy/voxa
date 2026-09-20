@@ -4,8 +4,8 @@ import queue
 import re
 import threading
 from collections import deque
-from difflib import SequenceMatcher
 from collections.abc import Callable
+from difflib import SequenceMatcher
 
 from .dictation import segment_stream
 from .transcription import WhisperService

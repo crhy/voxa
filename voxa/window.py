@@ -10,6 +10,7 @@ gi.require_version("Adw", "1")
 gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
+from . import apps, documents, mail, websearch  # noqa: E402
 from .audio import AudioCapture, AudioDevice  # noqa: E402
 from .catalog import CatalogUnavailable, load_catalog, refresh_and_cache, refresh_due  # noqa: E402
 from .config import ConfigStore  # noqa: E402
@@ -22,7 +23,6 @@ from .llamacpp import LlamaCppClient  # noqa: E402
 from .ollama import OllamaClient, OllamaError, strip_reasoning  # noqa: E402
 from .speech import SpeechService  # noqa: E402
 from .transcription import WhisperService  # noqa: E402
-from . import apps, websearch  # noqa: E402
 from .ui.legacy_view import LegacyCallbacks, LegacyView  # noqa: E402
 from .ui.shell import AssistantShell, build_header  # noqa: E402
 from .ui.state import AssistantModel, AssistantState  # noqa: E402
@@ -194,6 +194,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.shell.on_active = self._on_shell_active
         self.shell.on_offline = self._on_shell_offline
         self.shell.on_model_selected = self._on_shell_model_selected
+        self.shell.on_backend_selected = self._on_shell_backend_selected
         # Attachments are a later milestone (issue #7 section 16); until then the paperclip
         # says so instead of silently doing nothing.
         self.shell.attachment_button.set_sensitive(False)
@@ -342,6 +343,13 @@ class MainWindow(Adw.ApplicationWindow):
             self.settings.ollama_model = name
             self.config_store.save(self.settings)
             self._apply_model_combo(self.ollama_models)  # keep the legacy dropdown in step
+
+    def _on_shell_backend_selected(self, backend: str) -> None:
+        if backend != self.settings.ai_backend:
+            self.settings.ai_backend = backend
+            self.config_store.save(self.settings)
+            self.shell.set_backend(backend)
+            self._refresh_ollama_models()
 
     def show_transcript_window(self) -> None:
         """The original dictation and transcript view, in a secondary window."""
@@ -525,7 +533,7 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def _apply_model_combo(self, models: list[str]) -> None:
-        self.shell.set_models(models, self.settings.ollama_model, self._backend_label())
+        self.shell.set_models(models, self.settings.ollama_model, self.settings.ai_backend)
         if not models:
             self.model_combo.set_visible(False)
             return
@@ -1347,6 +1355,27 @@ class MainWindow(Adw.ApplicationWindow):
             self._toast("No model is selected yet.")
             return
 
+        email = mail.parse_email_command(prompt)
+        if email is not None:
+            self._draft_and_act(
+                prompt,
+                mail.DRAFT_SYSTEM_PROMPT,
+                mail.build_prompt(email),
+                "Drafting an email",
+                lambda answer: self._finish_email_draft(email, answer),
+            )
+            return
+        document = documents.parse_document_command(prompt)
+        if document is not None:
+            self._draft_and_act(
+                prompt,
+                documents.DRAFT_SYSTEM_PROMPT,
+                documents.build_prompt(document),
+                "Writing a document",
+                lambda answer: self._finish_document_draft(document, answer),
+            )
+            return
+
         self.query_cancel.set()
         cancel_event = threading.Event()
         self.query_cancel = cancel_event
@@ -1418,6 +1447,111 @@ class MainWindow(Adw.ApplicationWindow):
                 idle(self._on_query_error, str(exc), generation, cancel_event)
 
         threading.Thread(target=worker, name=f"ollama-query-{generation}", daemon=True).start()
+
+    def _draft_and_act(
+        self,
+        prompt: str,
+        system_prompt: str,
+        user_prompt: str,
+        label: str,
+        finish: Callable[[str], str],
+    ) -> None:
+        """One-shot model request whose result is an action, not a chat reply.
+
+        The turn is deliberately kept out of the conversation history: the model
+        wrote a file or a mail draft rather than saying anything aloud, so
+        remembering it as a spoken turn would make later answers refer to text
+        the user never heard.
+        """
+        self.query_cancel.set()
+        cancel_event = threading.Event()
+        self.query_cancel = cancel_event
+        self._query_generation += 1
+        generation = self._query_generation
+
+        self._end_query_task("cancelled")
+        self.shell.exchange_panel.show_question(prompt)
+        task = self.assistant.begin_task(f"{label}: {prompt[:40]}")
+        self._query_task_id = task.id if task is not None else None
+        self.assistant.prompt_accepted(self.assistant.token())
+        self._set_text(self.response_view, "")
+        self.ask_button.set_sensitive(False)
+        self._set_status(f"{label}…", busy=True)
+        self._start_gpu_monitor()
+
+        def worker() -> None:
+            try:
+                answer = self._ai_client().generate_stream(
+                    model=self.settings.ollama_model,
+                    prompt=user_prompt,
+                    cancel_event=cancel_event,
+                    on_chunk=lambda chunk: None,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                )
+                idle(self._on_draft_finished, answer, generation, cancel_event, finish)
+            except OllamaError as exc:
+                idle(self._on_draft_error, str(exc), generation, cancel_event)
+
+        threading.Thread(target=worker, name=f"draft-{generation}", daemon=True).start()
+
+    def _on_draft_finished(
+        self, answer: str, generation: int, cancel_event: threading.Event, finish: Callable[[str], str]
+    ) -> bool:
+        if not self._query_is_current(generation, cancel_event):
+            return False
+        self.ask_button.set_sensitive(True)
+        if cancel_event.is_set():
+            self._end_query_task("cancelled")
+            self._set_status("AI request stopped.")
+            return False
+        try:
+            reply = finish(strip_reasoning(answer))
+        except Exception as exc:  # noqa: BLE001 - the mail client or LibreOffice may not be installed
+            self._end_query_task("failed", str(exc))
+            self._toast(f"Could not complete that: {exc}")
+            self._set_status("Draft failed.")
+            return False
+        self._end_query_task("done")
+        self.shell.exchange_panel.show_answer(reply)
+        if not self.assistant.is_active:
+            self._toast(reply)
+        elif self.conversation_active:
+            self._conversation_speak(reply)
+        else:
+            self.assistant.reply_finished(self.assistant.token())
+            self._toast(reply)
+        self._set_status(reply)
+        return False
+
+    def _on_draft_error(
+        self, error: str, generation: int, cancel_event: threading.Event
+    ) -> bool:
+        if not self._query_is_current(generation, cancel_event) or cancel_event.is_set():
+            return False
+        self.ask_button.set_sensitive(True)
+        self._end_query_task("failed", error)
+        if self.conversation_active:
+            self._fail_assistant("The AI request failed")
+        self._toast(error)
+        self._set_status(self._conversation_idle_status() if self.conversation_active else "AI request failed.")
+        return False
+
+    def _finish_email_draft(self, request: mail.EmailRequest, answer: str) -> str:
+        subject, body = mail.parse_draft(answer)
+        mail.compose(request.to, subject, body)
+        recipient = f" to {request.to}" if request.to else ""
+        subject_note = f" — subject “{subject}”" if subject else ""
+        return f"I've drafted an email{recipient} in your mail app{subject_note}. Review it and hit send."
+
+    def _finish_document_draft(self, request: documents.DocumentRequest, answer: str) -> str:
+        title, body = documents.parse_draft(answer, request.title)
+        path = documents.unique_path(title or request.title or request.kind)
+        documents.write_odt(path, title, body)
+        documents.open_in_libreoffice(path)
+        return f"I've written “{title}” and opened it in LibreOffice — it's saved in Voxa Drafts."
 
     def _web_context(self, prompt: str, generation: int, cancel_event: threading.Event) -> str:
         query = websearch.search_query_for(prompt)
@@ -1801,6 +1935,8 @@ class MainWindow(Adw.ApplicationWindow):
         if new_whisper != self.settings.whisper_model:
             self._load_whisper(new_whisper)
         self._refresh_ollama_models()
+        # Keep the main-shell backend dropdown in step with what was just saved.
+        self.shell.set_backend(self.settings.ai_backend)
 
     def show_shortcuts(self) -> None:
         builder = Gtk.Builder.new_from_string(
