@@ -20,7 +20,7 @@ from .state import AssistantModel, AssistantState  # noqa: E402
 from .styles import install_styles  # noqa: E402
 
 MODELS = ["qwen3.8-flash-next", "llama3.1"]
-BACKEND = "llama.cpp"
+BACKEND = "llamacpp"
 CYCLE_STATES = [
     AssistantState.READY,
     AssistantState.LISTENING,
@@ -66,7 +66,7 @@ class PreviewApp(Adw.Application):
 
         self.model = _demo_model()
         shell = AssistantShell(self.model)
-        shell.set_models(MODELS, selected=MODELS[0], backend_label=BACKEND)
+        shell.set_models(MODELS, selected=MODELS[0], backend=BACKEND)
 
         menu = Gio.Menu()
         menu.append_item(Gio.MenuItem.new("Preferences", "app.preferences"))

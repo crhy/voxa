@@ -44,8 +44,37 @@ def test_empty_model_list() -> None:
     assert fired == []
 
 
-def test_backend_label() -> None:
+def test_backend_dropdown_exists_and_defaults_to_llamacpp() -> None:
     selector = ModelSelector()
-    selector.set_backend_label("llama.cpp")
-    backend = selector.get_first_child().get_next_sibling().get_next_sibling()
-    assert backend.get_text() == "llama.cpp"
+    backend = selector._backend_dropdown
+    assert isinstance(backend, Gtk.DropDown)
+    items = [backend.get_model().get_string(i) for i in range(backend.get_model().get_n_items())]
+    assert items == ["llama.cpp", "Ollama"]
+    assert backend.get_selected() == 0
+    assert selector.get_backend() == "llamacpp"
+
+
+def test_set_backend_does_not_fire_callback() -> None:
+    fired: list[str] = []
+    selector = ModelSelector(on_backend_selected=fired.append)
+    selector.set_backend("ollama")
+    assert selector.get_backend() == "ollama"
+    assert fired == []
+    selector.set_backend("llamacpp")
+    assert fired == []
+
+
+def test_user_backend_choice_fires_callback_with_backend_id() -> None:
+    fired: list[str] = []
+    selector = ModelSelector(on_backend_selected=fired.append)
+    selector._backend_dropdown.set_selected(1)
+    assert fired == ["ollama"]
+    selector._backend_dropdown.set_selected(0)
+    assert fired == ["ollama", "llamacpp"]
+
+
+def test_backend_dropdown_is_a_real_control_not_a_label() -> None:
+    selector = ModelSelector()
+    backend = selector._backend_dropdown
+    assert backend.get_sensitive()
+    assert not isinstance(backend, Gtk.Label)

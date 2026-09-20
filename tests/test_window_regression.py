@@ -146,6 +146,20 @@ def test_choosing_a_model_in_the_shell_is_saved_to_config(window) -> None:
     assert ConfigStore().load().ollama_model == "b"
 
 
+def test_choosing_a_backend_in_the_shell_is_saved_and_pushed_back(window) -> None:
+    window.shell.on_backend_selected("ollama")
+    assert window.settings.ai_backend == "ollama"
+    assert ConfigStore().load().ai_backend == "ollama"
+    assert window.shell.model_selector.get_backend() == "ollama"
+    window._apply_model_combo(["m1"])
+    assert window.shell.model_selector.get_backend() == "ollama"
+    # And the other way round: whatever Preferences saved (settings.ai_backend)
+    # is what the shell picker is shown, via _apply_model_combo.
+    window.settings.ai_backend = "llamacpp"
+    window._apply_model_combo(["m1"])
+    assert window.shell.model_selector.get_backend() == "llamacpp"
+
+
 @pytest.mark.parametrize(
     ("backend", "label"),
     [("llamacpp", "llama.cpp"), ("ollama", "Ollama")],
@@ -163,7 +177,9 @@ def test_model_picker_lists_models_with_the_backend_named(window, backend, label
     selector = window.shell.model_selector
     items = [selector._items.get_string(i) for i in range(selector._items.get_n_items())]
     assert items == ["m1", "m2"]
-    assert selector._backend_label.get_text() == window._backend_label() == label
+    assert selector.get_backend() == backend
+    assert selector._backend_dropdown.get_selected_item().get_string() == label
+    assert selector._backend_dropdown.get_selected() == (1 if backend == "ollama" else 0)
 
 
 def test_activation_is_refused_with_a_reason_when_no_microphone_or_model_is_ready(window) -> None:

@@ -135,6 +135,7 @@ def test_callbacks_fire() -> None:
     shell.on_offline = lambda: fired.append("offline")
     shell.on_attach = lambda: fired.append("attach")
     shell.on_model_selected = lambda name: fired.append(name)
+    shell.on_backend_selected = lambda backend: fired.append(backend)
     _present(shell, 1200, 760)
 
     shell.status_controls.active_button.emit("clicked")
@@ -142,9 +143,11 @@ def test_callbacks_fire() -> None:
     shell.attachment_button.emit("clicked")
     shell.set_models(["qwen3.8-flash-next", "llama3.1"], selected="qwen3.8-flash-next")
     shell.model_selector._dropdown.set_selected(1)
+    shell.model_selector._backend_dropdown.set_selected(1)
 
-    assert fired == ["active", "offline", "attach", "llama3.1"]
+    assert fired == ["active", "offline", "attach", "llama3.1", "ollama"]
     assert shell.model_selector.get_selected() == "llama3.1"
+    assert shell.model_selector.get_backend() == "ollama"
 
 
 def test_header_has_no_window_title() -> None:

@@ -42,6 +42,7 @@ class AssistantShell(Gtk.Overlay):
         self.on_offline: Callable[[], None] | None = None
         self.on_attach: Callable[[], None] | None = None
         self.on_model_selected: Callable[[str], None] | None = None
+        self.on_backend_selected: Callable[[str], None] | None = None
 
         self.set_hexpand(True)
         self.set_vexpand(True)
@@ -110,7 +111,10 @@ class AssistantShell(Gtk.Overlay):
         self.attachment_button.connect("clicked", lambda *_: self._fire(self.on_attach))
         self.add_overlay(self.attachment_button)
 
-        self.model_selector = ModelSelector(on_model_selected=self._model_selected)
+        self.model_selector = ModelSelector(
+            on_model_selected=self._model_selected,
+            on_backend_selected=self._backend_selected,
+        )
         self.model_selector.set_halign(Gtk.Align.CENTER)
         self.model_selector.set_valign(Gtk.Align.END)
         self.model_selector.set_margin_bottom(EDGE_MARGIN)
@@ -136,11 +140,15 @@ class AssistantShell(Gtk.Overlay):
     # ------------------------------------------------------------ public API
 
     def set_models(
-        self, models: list[str], selected: str = "", backend_label: str = ""
+        self, models: list[str], selected: str = "", backend: str = "llamacpp"
     ) -> None:
-        """Fill the model dropdown and its backend label."""
+        """Fill the model dropdown and select the active backend."""
         self.model_selector.set_models(models, selected)
-        self.model_selector.set_backend_label(backend_label)
+        self.model_selector.set_backend(backend)
+
+    def set_backend(self, backend: str) -> None:
+        """Select the backend in the main-shell picker without firing the callback."""
+        self.model_selector.set_backend(backend)
 
     def show_notice(self, text: str) -> None:
         self.notice_bar.show_text(text)
@@ -182,6 +190,9 @@ class AssistantShell(Gtk.Overlay):
 
     def _model_selected(self, name: str) -> None:
         self._fire(self.on_model_selected, name)
+
+    def _backend_selected(self, backend: str) -> None:
+        self._fire(self.on_backend_selected, backend)
 
     def _activate(self) -> None:
         self._fire(self.on_active)
