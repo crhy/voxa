@@ -1,6 +1,9 @@
 faster-whisper>=1.2,<2
 numpy>=2.0,<3
 edge-tts>=7.2,<8
+PyOpenGL>=3.1,<4
+# Pure-Python GLB reader for downloaded 3D avatar models (no native build step).
+pygltflib>=1.16,<2
 # Pin the pre-1.0 hub that still uses requests: newer hubs pull hf-xet and the
 # httpx stack, adding several MB to the flatpak with no benefit for model downloads.
 # NOTE: python3-requirements-flatpak.json is committed. When changing this file,

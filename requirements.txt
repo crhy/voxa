@@ -1,3 +1,6 @@
 faster-whisper>=1.2,<2
 numpy>=2.0,<3
 edge-tts>=7.2,<8
+PyOpenGL>=3.1,<4
+# Pure-Python GLB reader for downloaded 3D avatar models (no native build step).
+pygltflib>=1.16,<2
