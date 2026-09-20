@@ -39,3 +39,19 @@ def test_css_contains_expected_classes() -> None:
         ".dimmed",
     ):
         assert cls in VOXA_CSS
+
+
+def test_css_contains_avatar_animation_rules() -> None:
+    for fragment in (
+        ".voxa-avatar",
+        "@keyframes voxa-avatar-idle",
+        "@keyframes voxa-avatar-listening",
+        "@keyframes voxa-avatar-thinking",
+        "@keyframes voxa-avatar-speaking",
+        "@keyframes voxa-avatar-error",
+        ".voxa-assistant-view.ready .voxa-avatar",
+        ".voxa-assistant-view.listening .voxa-avatar",
+        ".voxa-assistant-view.thinking .voxa-avatar",
+        ".voxa-assistant-view.speaking .voxa-avatar.audio-high",
+    ):
+        assert fragment in VOXA_CSS

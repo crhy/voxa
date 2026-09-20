@@ -108,6 +108,104 @@ VOXA_CSS = """
 .voxa-assistant-view.speaking .voxa-state {
     opacity: 1;
 }
+
+.voxa-avatar {
+    opacity: 0.78;
+    transition: opacity 0.18s ease;
+    animation: none;
+}
+
+@keyframes voxa-avatar-idle {
+    0%, 100% {
+        opacity: 0.72;
+        transform: scale(1.000);
+    }
+    50% {
+        opacity: 0.82;
+        transform: scale(1.020);
+    }
+}
+
+@keyframes voxa-avatar-listening {
+    0%, 100% {
+        opacity: 0.78;
+        transform: scale(1.010);
+    }
+    50% {
+        opacity: 0.94;
+        transform: scale(1.035);
+    }
+}
+
+@keyframes voxa-avatar-thinking {
+    0%, 100% {
+        opacity: 0.70;
+        transform: scale(1.010) rotate(0.2deg);
+    }
+    50% {
+        opacity: 0.84;
+        transform: scale(1.025) rotate(-0.2deg);
+    }
+}
+
+@keyframes voxa-avatar-speaking {
+    0%, 100% {
+        opacity: 0.78;
+        transform: scale(1.020);
+    }
+    50% {
+        opacity: 0.92;
+        transform: scale(1.045);
+    }
+}
+
+@keyframes voxa-avatar-error {
+    0%, 100% {
+        opacity: 0.72;
+        transform: scale(1.000);
+    }
+    50% {
+        opacity: 0.96;
+        transform: scale(1.018);
+    }
+}
+
+.voxa-assistant-view.ready .voxa-avatar {
+    animation: voxa-avatar-idle 5.0s ease-in-out infinite;
+}
+
+.voxa-assistant-view.listening .voxa-avatar {
+    animation: voxa-avatar-listening 1.5s ease-in-out infinite;
+}
+
+.voxa-assistant-view.thinking .voxa-avatar {
+    animation: voxa-avatar-thinking 7.5s ease-in-out infinite;
+}
+
+.voxa-assistant-view.speaking .voxa-avatar {
+    animation: voxa-avatar-speaking 2.4s ease-in-out infinite;
+    opacity: 0.92;
+}
+
+.voxa-assistant-view.error .voxa-avatar {
+    animation: voxa-avatar-error 1.2s ease-in-out 3;
+    opacity: 0.96;
+}
+
+.voxa-assistant-view.speaking .voxa-avatar.audio-low {
+    animation-duration: 3.0s;
+    opacity: 0.82;
+}
+
+.voxa-assistant-view.speaking .voxa-avatar.audio-medium {
+    animation-duration: 1.7s;
+    opacity: 0.88;
+}
+
+.voxa-assistant-view.speaking .voxa-avatar.audio-high {
+    animation-duration: 1.2s;
+    opacity: 0.96;
+}
 """
 
 _provider: Gtk.CssProvider | None = None
