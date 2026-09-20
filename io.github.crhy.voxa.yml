@@ -18,6 +18,11 @@ finish-args:
   # text to the privileged host process; it does not grant filesystem or
   # process access beyond this one D-Bus name.
   - --talk-name=org.freedesktop.Flatpak
+  # "Draft a report about X" writes a brand-new .odt into ~/Documents/Voxa
+  # Drafts and opens it in LibreOffice for the user to review. Only the
+  # documents directory is touched, and only so Voxa can create files there;
+  # it cannot read or modify anything else on the host filesystem.
+  - --filesystem=xdg-documents:create
 
 modules:
   - name: espeak-ng
