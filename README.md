@@ -11,7 +11,7 @@ Voxa combines on-device speech recognition, selectable local AI backends, spoken
 
 **Website:** [voxaai.me](https://voxaai.me)
 
-![Voxa main window](docs/screenshots/main-window.png)
+![Voxa main window](docs/screenshots/new-layout-preview.png)
 
 ## Highlights
 
