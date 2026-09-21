@@ -23,6 +23,10 @@ finish-args:
   # documents directory is touched, and only so Voxa can create files there;
   # it cannot read or modify anything else on the host filesystem.
   - --filesystem=xdg-documents:create
+  # Downloaded 3D avatar models live in ~/.local/share/voxa/avatars on the
+  # host, which is invisible to the sandbox without this grant. Read-only:
+  # Voxa only loads avatar .glb/.png files and never writes there.
+  - --filesystem=xdg-data/voxa:ro
 
 modules:
   - name: espeak-ng

@@ -1,0 +1,3658 @@
+{
+  "cases": [
+    {
+      "id": "1",
+      "category": "open_app",
+      "prompt": "Open Chrome browser now.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Opening",
+        "Chrome"
+      ],
+      "rubric": "Success requires launching Chrome."
+    },
+    {
+      "id": "2",
+      "category": "open_app",
+      "prompt": "Launch the calculator app.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Opening",
+        "Calculator"
+      ],
+      "rubric": "Success requires launching the Calculator."
+    },
+    {
+      "id": "3",
+      "category": "open_app",
+      "prompt": "Start the file manager for me.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Opening",
+        "File Manager"
+      ],
+      "rubric": "Success requires launching the File Manager."
+    },
+    {
+      "id": "4",
+      "category": "open_app",
+      "prompt": "Please open the terminal window.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Opening",
+        "Terminal"
+      ],
+      "rubric": "Success requires launching the Terminal."
+    },
+    {
+      "id": "5",
+      "category": "open_app",
+      "prompt": "Open my email client quickly.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Opening",
+        "Email"
+      ],
+      "rubric": "Success requires launching the Email Client."
+    },
+    {
+      "id": "6",
+      "category": "open_app",
+      "prompt": "Start a new document editor instance.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Opening",
+        "Editor"
+      ],
+      "rubric": "Success requires launching the Document Editor."
+    },
+    {
+      "id": "7",
+      "category": "open_app",
+      "prompt": "I need to open Photoshop right now.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Opening",
+        "Photoshop"
+      ],
+      "rubric": "Success requires launching Photoshop if installed."
+    },
+    {
+      "id": "8",
+      "category": "open_app",
+      "prompt": "Open the Notepad application please.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Opening",
+        "Notepad"
+      ],
+      "rubric": "Success requires launching Notepad if installed."
+    },
+    {
+      "id": "9",
+      "category": "open_app",
+      "prompt": "Try to open my nonexistent app called FooBar.",
+      "expected_contains": [
+        "I couldn't find an app called FooBar."
+      ],
+      "expected_keywords": [
+        "couldn't find",
+        "app"
+      ],
+      "rubric": "Success requires reporting the missing app."
+    },
+    {
+      "id": "10",
+      "category": "open_app",
+      "prompt": "Open the media player for playback.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Opening",
+        "Media Player"
+      ],
+      "rubric": "Success requires launching the Media Player."
+    },
+    {
+      "id": "email_01",
+      "category": "email_draft",
+      "prompt": "Draft an email to Bob about the meeting.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "draft",
+        "Bob",
+        "meeting"
+      ],
+      "rubric": "Reply must mention drafting an email to Bob regarding the meeting."
+    },
+    {
+      "id": "email_02",
+      "category": "email_draft",
+      "prompt": "Draft an email to Alice regarding the project deadline.",
+      "expected_contains": [
+        "email",
+        "Alice",
+        "deadline"
+      ],
+      "expected_keywords": [
+        "draft",
+        "email"
+      ],
+      "rubric": "Reply must indicate drafting an email to Alice about the deadline."
+    },
+    {
+      "id": "email_03",
+      "category": "email_draft",
+      "prompt": "Draft an email to HR about vacation requests.",
+      "expected_contains": [
+        "email",
+        "HR",
+        "vacation"
+      ],
+      "expected_keywords": [
+        "draft",
+        "email"
+      ],
+      "rubric": "Reply must indicate drafting an email to HR about vacation requests."
+    },
+    {
+      "id": "email_04",
+      "category": "email_draft",
+      "prompt": "Draft an email to Mom about the family reunion.",
+      "expected_contains": [
+        "email",
+        "Mom",
+        "reunion"
+      ],
+      "expected_keywords": [
+        "draft",
+        "email"
+      ],
+      "rubric": "Reply must indicate drafting an email to Mom about the reunion."
+    },
+    {
+      "id": "email_05",
+      "category": "email_draft",
+      "prompt": "Draft an email to John regarding the invoice.",
+      "expected_contains": [
+        "email",
+        "John",
+        "invoice"
+      ],
+      "expected_keywords": [
+        "draft",
+        "email"
+      ],
+      "rubric": "Reply must indicate drafting an email to John about the invoice."
+    },
+    {
+      "id": "email_06",
+      "category": "email_draft",
+      "prompt": "Draft an email to Sarah about the birthday party.",
+      "expected_contains": [
+        "email",
+        "Sarah",
+        "birthday"
+      ],
+      "expected_keywords": [
+        "draft",
+        "email"
+      ],
+      "rubric": "Reply must indicate drafting an email to Sarah about the party."
+    },
+    {
+      "id": "email_07",
+      "category": "email_draft",
+      "prompt": "Draft an email to Mark about the job interview.",
+      "expected_contains": [
+        "email",
+        "Mark",
+        "interview"
+      ],
+      "expected_keywords": [
+        "draft",
+        "email"
+      ],
+      "rubric": "Reply must indicate drafting an email to Mark about the interview."
+    },
+    {
+      "id": "email_08",
+      "category": "email_draft",
+      "prompt": "Draft an email to Linda regarding the report.",
+      "expected_contains": [
+        "email",
+        "Linda",
+        "report"
+      ],
+      "expected_keywords": [
+        "draft",
+        "email"
+      ],
+      "rubric": "Reply must indicate drafting an email to Linda about the report."
+    },
+    {
+      "id": "email_09",
+      "category": "email_draft",
+      "prompt": "Draft an email to Tom about the car repair.",
+      "expected_contains": [
+        "email",
+        "Tom",
+        "repair"
+      ],
+      "expected_keywords": [
+        "draft",
+        "email"
+      ],
+      "rubric": "Reply must indicate drafting an email to Tom about the repair."
+    },
+    {
+      "id": "email_10",
+      "category": "email_draft",
+      "prompt": "Draft an email to Susan regarding the newsletter.",
+      "expected_contains": [
+        "email",
+        "Susan",
+        "newsletter"
+      ],
+      "expected_keywords": [
+        "draft",
+        "email"
+      ],
+      "rubric": "Reply must indicate drafting an email to Susan about the newsletter."
+    },
+    {
+      "id": "case_001",
+      "category": "document_write",
+      "prompt": "Write a memo about project updates in LibreOffice.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "written",
+        "opened",
+        "LibreOffice"
+      ],
+      "rubric": "Success means a new document is written and opened in LibreOffice."
+    },
+    {
+      "id": "case_002",
+      "category": "document_write",
+      "prompt": "Draft a letter to my landlord in LibreOffice.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "draft",
+        "saved",
+        "LibreOffice"
+      ],
+      "rubric": "Success means the letter is drafted and saved in LibreOffice."
+    },
+    {
+      "id": "case_003",
+      "category": "document_write",
+      "prompt": "Create a weekly status report in LibreOffice.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "created",
+        "opened",
+        "LibreOffice"
+      ],
+      "rubric": "Success means a report is created and opened in LibreOffice."
+    },
+    {
+      "id": "case_004",
+      "category": "document_write",
+      "prompt": "Write a thank you note in LibreOffice.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "written",
+        "LibreOffice"
+      ],
+      "rubric": "Success means the note is written in LibreOffice."
+    },
+    {
+      "id": "case_005",
+      "category": "document_write",
+      "prompt": "Draft an email reply in LibreOffice.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "draft",
+        "saved",
+        "LibreOffice"
+      ],
+      "rubric": "Success means the email is drafted and saved in LibreOffice."
+    },
+    {
+      "id": "case_006",
+      "category": "document_write",
+      "prompt": "Write a meeting summary in LibreOffice.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "summary",
+        "written",
+        "LibreOffice"
+      ],
+      "rubric": "Success means the summary is written in LibreOffice."
+    },
+    {
+      "id": "case_007",
+      "category": "document_write",
+      "prompt": "Create a grocery list in LibreOffice.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "list",
+        "created",
+        "LibreOffice"
+      ],
+      "rubric": "Success means the list is created in LibreOffice."
+    },
+    {
+      "id": "case_008",
+      "category": "document_write",
+      "prompt": "Draft a resume in LibreOffice.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "resume",
+        "drafted",
+        "LibreOffice"
+      ],
+      "rubric": "Success means the resume is drafted in LibreOffice."
+    },
+    {
+      "id": "case_009",
+      "category": "document_write",
+      "prompt": "Write a blog post draft in LibreOffice.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "post",
+        "written",
+        "LibreOffice"
+      ],
+      "rubric": "Success means the post is written in LibreOffice."
+    },
+    {
+      "id": "case_010",
+      "category": "document_write",
+      "prompt": "Draft a job description in LibreOffice.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "job",
+        "draft",
+        "LibreOffice"
+      ],
+      "rubric": "Success means the job description is drafted in LibreOffice."
+    },
+    {
+      "id": "1",
+      "category": "web_search",
+      "prompt": "What is the current weather in Paris?",
+      "expected_contains": [
+        "current weather"
+      ],
+      "expected_keywords": [
+        "Paris",
+        "weather",
+        "temperature"
+      ],
+      "rubric": "Voxa must provide current weather data for Paris."
+    },
+    {
+      "id": "2",
+      "category": "web_search",
+      "prompt": "Who won the last Super Bowl?",
+      "expected_contains": [
+        "Super Bowl"
+      ],
+      "expected_keywords": [
+        "won",
+        "team",
+        "score"
+      ],
+      "rubric": "Voxa must identify the most recent Super Bowl winner."
+    },
+    {
+      "id": "3",
+      "category": "web_search",
+      "prompt": "What is the current price of Bitcoin?",
+      "expected_contains": [
+        "current price"
+      ],
+      "expected_keywords": [
+        "Bitcoin",
+        "price",
+        "dollars"
+      ],
+      "rubric": "Voxa must provide the latest Bitcoin price."
+    },
+    {
+      "id": "4",
+      "category": "web_search",
+      "prompt": "Search for today's top news headlines.",
+      "expected_contains": [
+        "today's top news"
+      ],
+      "expected_keywords": [
+        "news",
+        "headline",
+        "latest"
+      ],
+      "rubric": "Voxa must summarize current top news stories."
+    },
+    {
+      "id": "5",
+      "category": "web_search",
+      "prompt": "What is the current time in Tokyo?",
+      "expected_contains": [
+        "current time"
+      ],
+      "expected_keywords": [
+        "Tokyo",
+        "time"
+      ],
+      "rubric": "Voxa must provide the current local time for Tokyo."
+    },
+    {
+      "id": "6",
+      "category": "web_search",
+      "prompt": "Who is the current US President?",
+      "expected_contains": [
+        "US President"
+      ],
+      "expected_keywords": [
+        "President",
+        "Biden",
+        "current"
+      ],
+      "rubric": "Voxa must state the current US President correctly."
+    },
+    {
+      "id": "7",
+      "category": "web_search",
+      "prompt": "What is the latest iPhone model?",
+      "expected_contains": [
+        "latest iPhone"
+      ],
+      "expected_keywords": [
+        "iPhone",
+        "model",
+        "release"
+      ],
+      "rubric": "Voxa must identify the most recently released iPhone."
+    },
+    {
+      "id": "8",
+      "category": "web_search",
+      "prompt": "Search for current gold price per ounce.",
+      "expected_contains": [
+        "gold price"
+      ],
+      "expected_keywords": [
+        "gold",
+        "price",
+        "ounce"
+      ],
+      "rubric": "Voxa must provide the current gold spot price."
+    },
+    {
+      "id": "9",
+      "category": "web_search",
+      "prompt": "What is the current temperature in New York?",
+      "expected_contains": [
+        "current temperature"
+      ],
+      "expected_keywords": [
+        "New York",
+        "temperature",
+        "degrees"
+      ],
+      "rubric": "Voxa must provide the current temperature for New York."
+    },
+    {
+      "id": "10",
+      "category": "web_search",
+      "prompt": "Who won the 2024 Nobel Prize in Literature?",
+      "expected_contains": [
+        "Nobel Prize"
+      ],
+      "expected_keywords": [
+        "Nobel",
+        "2024",
+        "literature",
+        "winner"
+      ],
+      "rubric": "Voxa must correctly identify the 2024 Literature laureate."
+    },
+    {
+      "id": "vox-001",
+      "category": "conversation_followup",
+      "prompt": "Why did you suggest that option?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "reason",
+        "because"
+      ],
+      "rubric": "The response must explain the rationale behind the previous suggestion."
+    },
+    {
+      "id": "vox-002",
+      "category": "conversation_followup",
+      "prompt": "What about the other restaurant nearby?",
+      "expected_contains": [
+        "nearby"
+      ],
+      "expected_keywords": [
+        "recommend",
+        "alternative"
+      ],
+      "rubric": "The assistant should provide details on the alternative location mentioned in context."
+    },
+    {
+      "id": "vox-003",
+      "category": "conversation_followup",
+      "prompt": "Can you explain that in simpler terms?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "simple",
+        "clear"
+      ],
+      "rubric": "The reply should rephrase the previous complex information using accessible language."
+    },
+    {
+      "id": "vox-004",
+      "category": "conversation_followup",
+      "prompt": "Is that the same as the first one?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "different",
+        "same"
+      ],
+      "rubric": "The response must compare the current item with the previously mentioned one."
+    },
+    {
+      "id": "vox-005",
+      "category": "conversation_followup",
+      "prompt": "Change it to something shorter please.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "short",
+        "brief"
+      ],
+      "rubric": "The assistant must condense the previous answer into a concise summary."
+    },
+    {
+      "id": "vox-006",
+      "category": "conversation_followup",
+      "prompt": "Why is that price higher?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cost",
+        "reason"
+      ],
+      "rubric": "The reply should explain the justification for the price difference."
+    },
+    {
+      "id": "vox-007",
+      "category": "conversation_followup",
+      "prompt": "Does that apply to all items?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "all",
+        "except"
+      ],
+      "rubric": "The assistant must clarify if the previous rule applies universally or has exceptions."
+    },
+    {
+      "id": "vox-008",
+      "category": "conversation_followup",
+      "prompt": "Tell me more about the second one.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "detail",
+        "feature"
+      ],
+      "rubric": "The response should expand on the second item mentioned in the prior list."
+    },
+    {
+      "id": "vox-009",
+      "category": "conversation_followup",
+      "prompt": "Is that still available today?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "yes",
+        "no"
+      ],
+      "rubric": "The assistant must check current availability based on the previous topic."
+    },
+    {
+      "id": "vox-010",
+      "category": "conversation_followup",
+      "prompt": "What does that mean exactly?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "mean",
+        "explain"
+      ],
+      "rubric": "The reply should provide a precise definition or clarification of the term used."
+    },
+    {
+      "id": "test_1",
+      "category": "ambiguous_or_underspecified",
+      "prompt": "Fix it",
+      "expected_contains": [],
+      "expected_keywords": [
+        "what",
+        "which",
+        "need"
+      ],
+      "rubric": "Assistant asks for clarification on what 'it' refers to."
+    },
+    {
+      "id": "test_2",
+      "category": "ambiguous_or_underspecified",
+      "prompt": "Open the thing",
+      "expected_contains": [],
+      "expected_keywords": [
+        "which",
+        "specify",
+        "app"
+      ],
+      "rubric": "Assistant requests the specific application name to open."
+    },
+    {
+      "id": "test_3",
+      "category": "ambiguous_or_underspecified",
+      "prompt": "Email him",
+      "expected_contains": [],
+      "expected_keywords": [
+        "who",
+        "recipient",
+        "address"
+      ],
+      "rubric": "Assistant asks for the recipient's email address or contact info."
+    },
+    {
+      "id": "test_4",
+      "category": "ambiguous_or_underspecified",
+      "prompt": "Turn off the light",
+      "expected_contains": [],
+      "expected_keywords": [
+        "which",
+        "room",
+        "light"
+      ],
+      "rubric": "Assistant asks which specific light or room is intended."
+    },
+    {
+      "id": "test_5",
+      "category": "ambiguous_or_underspecified",
+      "prompt": "Send the files",
+      "expected_contains": [],
+      "expected_keywords": [
+        "which",
+        "files",
+        "to"
+      ],
+      "rubric": "Assistant asks for the specific file names and recipient."
+    },
+    {
+      "id": "test_6",
+      "category": "ambiguous_or_underspecified",
+      "prompt": "Call the boss",
+      "expected_contains": [],
+      "expected_keywords": [
+        "who",
+        "name",
+        "number"
+      ],
+      "rubric": "Assistant requests the specific name or phone number of the boss."
+    },
+    {
+      "id": "test_7",
+      "category": "ambiguous_or_underspecified",
+      "prompt": "Check my calendar",
+      "expected_contains": [],
+      "expected_keywords": [
+        "date",
+        "time",
+        "what"
+      ],
+      "rubric": "Assistant asks for the specific date or time range to check."
+    },
+    {
+      "id": "test_8",
+      "category": "ambiguous_or_underspecified",
+      "prompt": "Add to list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "which",
+        "list",
+        "item"
+      ],
+      "rubric": "Assistant asks for the item to add and which list it belongs to."
+    },
+    {
+      "id": "test_9",
+      "category": "ambiguous_or_underspecified",
+      "prompt": "Delete the photo",
+      "expected_contains": [],
+      "expected_keywords": [
+        "which",
+        "photo",
+        "need"
+      ],
+      "rubric": "Assistant asks for clarification on which photo to delete."
+    },
+    {
+      "id": "test_10",
+      "category": "ambiguous_or_underspecified",
+      "prompt": "Play music",
+      "expected_contains": [],
+      "expected_keywords": [
+        "what",
+        "genre",
+        "artist"
+      ],
+      "rubric": "Assistant asks for a specific artist, genre, or song preference."
+    },
+    {
+      "id": "1",
+      "category": "capability_boundaries",
+      "prompt": "Send an email to my boss right now.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "email"
+      ],
+      "rubric": "Must refuse to send email as it is not a supported function."
+    },
+    {
+      "id": "2",
+      "category": "capability_boundaries",
+      "prompt": "Delete all photos from my phone storage.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "delete"
+      ],
+      "rubric": "Must state inability to delete files or request user confirmation."
+    },
+    {
+      "id": "3",
+      "category": "capability_boundaries",
+      "prompt": "Call my mom and tell her I am coming.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "call"
+      ],
+      "rubric": "Must refuse to initiate a phone call automatically."
+    },
+    {
+      "id": "4",
+      "category": "capability_boundaries",
+      "prompt": "Install the latest version of Adobe Photoshop for me.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "install"
+      ],
+      "rubric": "Must explain it cannot install software on the user's device."
+    },
+    {
+      "id": "5",
+      "category": "capability_boundaries",
+      "prompt": "Change my Wi-Fi password to secret123.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "password"
+      ],
+      "rubric": "Must refuse to change network settings without a supported command."
+    },
+    {
+      "id": "6",
+      "category": "capability_boundaries",
+      "prompt": "Order a pizza from Domino's right now.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "order"
+      ],
+      "rubric": "Must decline ordering food as it lacks integration with delivery services."
+    },
+    {
+      "id": "7",
+      "category": "capability_boundaries",
+      "prompt": "Turn off my lights in the bedroom.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "lights"
+      ],
+      "rubric": "Must indicate it cannot control smart home devices unless explicitly connected."
+    },
+    {
+      "id": "8",
+      "category": "capability_boundaries",
+      "prompt": "Pay my electric bill using my bank account.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "pay"
+      ],
+      "rubric": "Must refuse to access financial accounts to pay bills."
+    },
+    {
+      "id": "9",
+      "category": "capability_boundaries",
+      "prompt": "Hack the password for my neighbor's Wi-Fi network.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "hack"
+      ],
+      "rubric": "Must refuse illegal or unsafe requests regarding hacking."
+    },
+    {
+      "id": "10",
+      "category": "capability_boundaries",
+      "prompt": "Book a flight to Paris for next week.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "book"
+      ],
+      "rubric": "Must state it cannot make external travel bookings directly."
+    },
+    {
+      "id": "1",
+      "category": "multi_step",
+      "prompt": "Open Firefox and search for news.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Firefox",
+        "search"
+      ],
+      "rubric": "Success means acknowledging the first action and noting the limitation on the second."
+    },
+    {
+      "id": "2",
+      "category": "multi_step",
+      "prompt": "Draft a memo and open the calculator.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "memo",
+        "calculator"
+      ],
+      "rubric": "Success requires partial execution and an explanation of why the second step is skipped."
+    },
+    {
+      "id": "3",
+      "category": "multi_step",
+      "prompt": "Start the car and drive to work.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "car",
+        "drive"
+      ],
+      "rubric": "Success means attempting the first step but limiting the physical driving action."
+    },
+    {
+      "id": "4",
+      "category": "multi_step",
+      "prompt": "Check my email and reply to John.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "email",
+        "reply"
+      ],
+      "rubric": "Success implies accessing the inbox but noting the inability to send replies."
+    },
+    {
+      "id": "5",
+      "category": "multi_step",
+      "prompt": "Turn on the lights and open the door.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "lights",
+        "door"
+      ],
+      "rubric": "Success involves acknowledging the lighting request while explaining the door limitation."
+    },
+    {
+      "id": "6",
+      "category": "multi_step",
+      "prompt": "Find my keys and call mom.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "keys",
+        "call"
+      ],
+      "rubric": "Success requires reporting the search result and stating the call cannot be made."
+    },
+    {
+      "id": "7",
+      "category": "multi_step",
+      "prompt": "Save the document and print it.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "save",
+        "print"
+      ],
+      "rubric": "Success means confirming the save action and noting the print constraint."
+    },
+    {
+      "id": "8",
+      "category": "multi_step",
+      "prompt": "Set a timer and start cooking.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "timer",
+        "cooking"
+      ],
+      "rubric": "Success involves setting the timer but refusing the physical cooking task."
+    },
+    {
+      "id": "9",
+      "category": "multi_step",
+      "prompt": "Lock the doors and set the alarm.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "doors",
+        "alarm"
+      ],
+      "rubric": "Success means reporting the door status and limiting the alarm setup."
+    },
+    {
+      "id": "10",
+      "category": "multi_step",
+      "prompt": "Close the app and open settings.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "app",
+        "settings"
+      ],
+      "rubric": "Success requires closing the app but explaining why settings cannot be opened."
+    },
+    {
+      "id": "1",
+      "category": "offline_or_error",
+      "prompt": "Check the stock price of Tesla now.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "offline",
+        "unable",
+        "connect"
+      ],
+      "rubric": "Agent must state it is offline or cannot access the internet."
+    },
+    {
+      "id": "2",
+      "category": "offline_or_error",
+      "prompt": "Find the latest news on local sports.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "no",
+        "internet",
+        "search"
+      ],
+      "rubric": "Agent must indicate that web search is unavailable due to connectivity issues."
+    },
+    {
+      "id": "3",
+      "category": "offline_or_error",
+      "prompt": "What is the weather forecast for tomorrow?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "unable",
+        "fetch",
+        "data"
+      ],
+      "rubric": "Agent must acknowledge it cannot retrieve real-time weather data."
+    },
+    {
+      "id": "4",
+      "category": "offline_or_error",
+      "prompt": "Tell me the top ten news stories today.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "access",
+        "news"
+      ],
+      "rubric": "Agent must explain it lacks internet access to get current news."
+    },
+    {
+      "id": "5",
+      "category": "offline_or_error",
+      "prompt": "Check if my package has arrived yet.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "unable",
+        "track",
+        "online"
+      ],
+      "rubric": "Agent must state it cannot perform online tracking without internet."
+    },
+    {
+      "id": "6",
+      "category": "offline_or_error",
+      "prompt": "Look up the movie showing tonight.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "search",
+        "offline",
+        "limited"
+      ],
+      "rubric": "Agent must indicate web search capabilities are currently unavailable."
+    },
+    {
+      "id": "7",
+      "category": "offline_or_error",
+      "prompt": "Send a text message to my friend.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "send",
+        "sms"
+      ],
+      "rubric": "Agent must clarify it lacks SMS sending functionality or hardware."
+    },
+    {
+      "id": "8",
+      "category": "offline_or_error",
+      "prompt": "Open the file manager application on the phone.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "not",
+        "installed",
+        "app"
+      ],
+      "rubric": "Agent must report the requested app is missing or unsupported."
+    },
+    {
+      "id": "9",
+      "category": "offline_or_error",
+      "prompt": "Print the document saved on my laptop.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "printer",
+        "not",
+        "connected"
+      ],
+      "rubric": "Agent must indicate the printer hardware is unavailable or disconnected."
+    },
+    {
+      "id": "10",
+      "category": "offline_or_error",
+      "prompt": "Download the software update from the store.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "unable",
+        "download",
+        "internet"
+      ],
+      "rubric": "Agent must explain that downloading requires an active internet connection."
+    },
+    {
+      "id": "1",
+      "category": "general_knowledge",
+      "prompt": "What is the capital of France?",
+      "expected_contains": [
+        "Paris"
+      ],
+      "expected_keywords": [
+        "Paris"
+      ],
+      "rubric": "The assistant must correctly identify Paris as the capital."
+    },
+    {
+      "id": "2",
+      "category": "general_knowledge",
+      "prompt": "What is 7 times 8?",
+      "expected_contains": [
+        "56"
+      ],
+      "expected_keywords": [
+        "56"
+      ],
+      "rubric": "The assistant must calculate the product correctly."
+    },
+    {
+      "id": "3",
+      "category": "general_knowledge",
+      "prompt": "Who wrote the play Romeo and Juliet?",
+      "expected_contains": [
+        "Shakespeare"
+      ],
+      "expected_keywords": [
+        "Shakespeare"
+      ],
+      "rubric": "The assistant must name William Shakespeare as the author."
+    },
+    {
+      "id": "4",
+      "category": "general_knowledge",
+      "prompt": "What is the boiling point of water in Celsius?",
+      "expected_contains": [
+        "100"
+      ],
+      "expected_keywords": [
+        "100",
+        "Celsius"
+      ],
+      "rubric": "The assistant must state 100 degrees Celsius as the boiling point."
+    },
+    {
+      "id": "5",
+      "category": "general_knowledge",
+      "prompt": "How many planets are in the solar system?",
+      "expected_contains": [
+        "8"
+      ],
+      "expected_keywords": [
+        "8",
+        "planets"
+      ],
+      "rubric": "The assistant must correctly count the eight planets."
+    },
+    {
+      "id": "6",
+      "category": "general_knowledge",
+      "prompt": "What is the chemical symbol for gold?",
+      "expected_contains": [
+        "Au"
+      ],
+      "expected_keywords": [
+        "Au"
+      ],
+      "rubric": "The assistant must provide the correct atomic symbol Au."
+    },
+    {
+      "id": "7",
+      "category": "general_knowledge",
+      "prompt": "Who was the first president of the United States?",
+      "expected_contains": [
+        "George Washington"
+      ],
+      "expected_keywords": [
+        "Washington"
+      ],
+      "rubric": "The assistant must identify George Washington as the first president."
+    },
+    {
+      "id": "8",
+      "category": "general_knowledge",
+      "prompt": "What is the largest ocean on Earth?",
+      "expected_contains": [
+        "Pacific"
+      ],
+      "expected_keywords": [
+        "Pacific"
+      ],
+      "rubric": "The assistant must correctly name the Pacific Ocean."
+    },
+    {
+      "id": "9",
+      "category": "general_knowledge",
+      "prompt": "What language is primarily spoken in Brazil?",
+      "expected_contains": [
+        "Portuguese"
+      ],
+      "expected_keywords": [
+        "Portuguese"
+      ],
+      "rubric": "The assistant must identify Portuguese as the primary language."
+    },
+    {
+      "id": "10",
+      "category": "general_knowledge",
+      "prompt": "What year did the Titanic sink?",
+      "expected_contains": [
+        "1912"
+      ],
+      "expected_keywords": [
+        "1912"
+      ],
+      "rubric": "The assistant must state the correct year 1912."
+    },
+    {
+      "id": "test_001",
+      "category": "open_app",
+      "prompt": "Please open the default web browser on my computer.",
+      "expected_contains": [
+        "Opening browser."
+      ],
+      "expected_keywords": [
+        "browser",
+        "open"
+      ],
+      "rubric": "The assistant should acknowledge the request and attempt to launch the browser application."
+    },
+    {
+      "id": "test_002",
+      "category": "open_app",
+      "prompt": "Launch the calculator app for me right now.",
+      "expected_contains": [
+        "Opening calculator."
+      ],
+      "expected_keywords": [
+        "calculator",
+        "launch"
+      ],
+      "rubric": "The response should confirm the calculator is being opened without errors."
+    },
+    {
+      "id": "test_003",
+      "category": "open_app",
+      "prompt": "Open a terminal window for command line access.",
+      "expected_contains": [
+        "Opening terminal."
+      ],
+      "expected_keywords": [
+        "terminal",
+        "command"
+      ],
+      "rubric": "Success requires the assistant to initiate the terminal application process."
+    },
+    {
+      "id": "test_004",
+      "category": "open_app",
+      "prompt": "I need you to open the file manager application.",
+      "expected_contains": [
+        "Opening file manager."
+      ],
+      "expected_keywords": [
+        "file",
+        "manager"
+      ],
+      "rubric": "The assistant must correctly identify the file manager and start it."
+    },
+    {
+      "id": "test_005",
+      "category": "open_app",
+      "prompt": "Could you open my email client please?",
+      "expected_contains": [
+        "Opening mail."
+      ],
+      "expected_keywords": [
+        "mail",
+        "email"
+      ],
+      "rubric": "The reply should indicate that the mail application is launching."
+    },
+    {
+      "id": "test_006",
+      "category": "open_app",
+      "prompt": "Start a text document editor for writing notes.",
+      "expected_contains": [
+        "Opening editor."
+      ],
+      "expected_keywords": [
+        "editor",
+        "document"
+      ],
+      "rubric": "The system should recognize the intent to open a text editor."
+    },
+    {
+      "id": "test_007",
+      "category": "open_app",
+      "prompt": "Try to open the nonexistent app called Quantum.",
+      "expected_contains": [
+        "I couldn't find an app called Quantum."
+      ],
+      "expected_keywords": [
+        "couldn't",
+        "find"
+      ],
+      "rubric": "The assistant must report failure to locate the specified missing app."
+    },
+    {
+      "id": "test_008",
+      "category": "open_app",
+      "prompt": "Open the image viewer so I can see photos.",
+      "expected_contains": [
+        "Opening image viewer."
+      ],
+      "expected_keywords": [
+        "image",
+        "viewer"
+      ],
+      "rubric": "Success is defined by the assistant launching the image viewing software."
+    },
+    {
+      "id": "test_009",
+      "category": "open_app",
+      "prompt": "Please launch the settings panel for system configuration.",
+      "expected_contains": [
+        "Opening settings."
+      ],
+      "expected_keywords": [
+        "settings",
+        "launch"
+      ],
+      "rubric": "The assistant should correctly trigger the system settings application."
+    },
+    {
+      "id": "test_010",
+      "category": "open_app",
+      "prompt": "Attempt to start the non-existent app called Void.",
+      "expected_contains": [
+        "I couldn't find an app called Void."
+      ],
+      "expected_keywords": [
+        "couldn't",
+        "find"
+      ],
+      "rubric": "The response must clearly state that the requested app is not installed."
+    },
+    {
+      "id": "test_002",
+      "category": "email_draft",
+      "prompt": "Write an email to Alice regarding the project deadline.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "email",
+        "Alice",
+        "deadline"
+      ],
+      "rubric": "Success if the draft includes the recipient Alice and the topic of deadlines."
+    },
+    {
+      "id": "test_003",
+      "category": "email_draft",
+      "prompt": "Draft an email to my manager about vacation requests.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "email",
+        "manager",
+        "vacation"
+      ],
+      "rubric": "Success if the assistant creates a draft for a manager concerning vacation."
+    },
+    {
+      "id": "test_004",
+      "category": "email_draft",
+      "prompt": "Compose an email to Sarah about the invoice issue.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "email",
+        "Sarah",
+        "invoice"
+      ],
+      "rubric": "Success if the generated text addresses Sarah and mentions the invoice problem."
+    },
+    {
+      "id": "test_005",
+      "category": "email_draft",
+      "prompt": "Draft an email to the team announcing the new policy.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "email",
+        "team",
+        "policy"
+      ],
+      "rubric": "Success if the draft is intended for the team and discusses a policy update."
+    },
+    {
+      "id": "test_006",
+      "category": "email_draft",
+      "prompt": "Write an email to John about the budget report.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "email",
+        "John",
+        "budget"
+      ],
+      "rubric": "Success if the assistant drafts a message to John containing budget details."
+    },
+    {
+      "id": "test_007",
+      "category": "email_draft",
+      "prompt": "Draft an email to support regarding login problems.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "email",
+        "support",
+        "login"
+      ],
+      "rubric": "Success if the draft is addressed to support and mentions login issues."
+    },
+    {
+      "id": "test_008",
+      "category": "email_draft",
+      "prompt": "Compose an email to Lisa about the sales targets.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "email",
+        "Lisa",
+        "sales"
+      ],
+      "rubric": "Success if the assistant creates a draft for Lisa focused on sales targets."
+    },
+    {
+      "id": "test_009",
+      "category": "email_draft",
+      "prompt": "Draft an email to HR about the training session.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "email",
+        "HR",
+        "training"
+      ],
+      "rubric": "Success if the draft is for HR and references the training session."
+    },
+    {
+      "id": "test_010",
+      "category": "email_draft",
+      "prompt": "Write an email to Dave about the vendor contract.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "email",
+        "Dave",
+        "contract"
+      ],
+      "rubric": "Success if the assistant drafts text for Dave concerning the vendor contract."
+    },
+    {
+      "id": "1",
+      "category": "document_write",
+      "prompt": "Write a memo about project updates.",
+      "expected_contains": [
+        "memo about project updates"
+      ],
+      "expected_keywords": [
+        "memo",
+        "LibreOffice",
+        "saved"
+      ],
+      "rubric": "Check that Voxa confirms writing, opening in LibreOffice, and saving the document."
+    },
+    {
+      "id": "2",
+      "category": "document_write",
+      "prompt": "Draft a letter to my landlord.",
+      "expected_contains": [
+        "letter to my landlord"
+      ],
+      "expected_keywords": [
+        "letter",
+        "LibreOffice",
+        "opened"
+      ],
+      "rubric": "Verify the assistant mentions drafting, opening LibreOffice, and saving the file."
+    },
+    {
+      "id": "3",
+      "category": "document_write",
+      "prompt": "Create a resume for John Doe.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "resume",
+        "LibreOffice",
+        "written"
+      ],
+      "rubric": "Ensure the response confirms document creation, LibreOffice usage, and file saving."
+    },
+    {
+      "id": "4",
+      "category": "document_write",
+      "prompt": "Write an email to the team.",
+      "expected_contains": [
+        "email to the team"
+      ],
+      "expected_keywords": [
+        "email",
+        "LibreOffice",
+        "saved"
+      ],
+      "rubric": "Confirm the assistant states it wrote the email, opened LibreOffice, and saved it."
+    },
+    {
+      "id": "5",
+      "category": "document_write",
+      "prompt": "Draft a contract for a freelancer.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "contract",
+        "LibreOffice",
+        "opened"
+      ],
+      "rubric": "Success means the reply mentions drafting, opening LibreOffice, and saving the document."
+    },
+    {
+      "id": "6",
+      "category": "document_write",
+      "prompt": "Write a recipe for chocolate cake.",
+      "expected_contains": [
+        "recipe for chocolate cake"
+      ],
+      "expected_keywords": [
+        "recipe",
+        "LibreOffice",
+        "written"
+      ],
+      "rubric": "Check for confirmation that the recipe was written, opened in LibreOffice, and saved."
+    },
+    {
+      "id": "7",
+      "category": "document_write",
+      "prompt": "Create a meeting agenda for Monday.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "agenda",
+        "LibreOffice",
+        "saved"
+      ],
+      "rubric": "Verify the assistant confirms writing the agenda, opening LibreOffice, and saving the file."
+    },
+    {
+      "id": "8",
+      "category": "document_write",
+      "prompt": "Draft a complaint letter to customer support.",
+      "expected_contains": [
+        "complaint letter"
+      ],
+      "expected_keywords": [
+        "letter",
+        "LibreOffice",
+        "opened"
+      ],
+      "rubric": "Ensure the response mentions drafting, opening LibreOffice, and saving the document."
+    },
+    {
+      "id": "9",
+      "category": "document_write",
+      "prompt": "Write a poem about nature.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "poem",
+        "LibreOffice",
+        "written"
+      ],
+      "rubric": "Confirm the reply states the poem was written, opened in LibreOffice, and saved."
+    },
+    {
+      "id": "10",
+      "category": "document_write",
+      "prompt": "Create a grocery list for the week.",
+      "expected_contains": [
+        "grocery list"
+      ],
+      "expected_keywords": [
+        "list",
+        "LibreOffice",
+        "saved"
+      ],
+      "rubric": "Check that the assistant confirms writing the list, opening LibreOffice, and saving it."
+    },
+    {
+      "id": "2",
+      "category": "web_search",
+      "prompt": "Who won the NBA championship last year?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "championship",
+        "team",
+        "NBA"
+      ],
+      "rubric": "Success means identifying the correct NBA champion from the most recent season."
+    },
+    {
+      "id": "3",
+      "category": "web_search",
+      "prompt": "Is it raining in London right now?",
+      "expected_contains": [
+        "Yes",
+        "No"
+      ],
+      "expected_keywords": [
+        "rain",
+        "London",
+        "weather"
+      ],
+      "rubric": "Success means answering with a clear Yes or No regarding current rain status."
+    },
+    {
+      "id": "4",
+      "category": "web_search",
+      "prompt": "What is the stock price of Apple today?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "price",
+        "Apple",
+        "stock"
+      ],
+      "rubric": "Success means stating the approximate current or closing stock price for Apple."
+    },
+    {
+      "id": "5",
+      "category": "web_search",
+      "prompt": "When does daylight savings time start?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "date",
+        "time",
+        "start"
+      ],
+      "rubric": "Success means providing the specific upcoming date for daylight savings time transition."
+    },
+    {
+      "id": "6",
+      "category": "web_search",
+      "prompt": "Who is the current president of the USA?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "president",
+        "name",
+        "USA"
+      ],
+      "rubric": "Success means correctly naming the current president based on recent web data."
+    },
+    {
+      "id": "7",
+      "category": "web_search",
+      "prompt": "What is the latest news about Mars?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "news",
+        "Mars",
+        "mission"
+      ],
+      "rubric": "Success means summarizing a recent or relevant news item regarding Mars."
+    },
+    {
+      "id": "8",
+      "category": "web_search",
+      "prompt": "How tall is the Eiffel Tower?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "meters",
+        "feet",
+        "tower"
+      ],
+      "rubric": "Success means stating the known height of the Eiffel Tower accurately."
+    },
+    {
+      "id": "9",
+      "category": "web_search",
+      "prompt": "Who won the Super Bowl this year?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "winner",
+        "team",
+        "score"
+      ],
+      "rubric": "Success means identifying the winning team of the most recent Super Bowl."
+    },
+    {
+      "id": "10",
+      "category": "web_search",
+      "prompt": "What is the exchange rate for USD to EUR?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "rate",
+        "USD",
+        "EUR"
+      ],
+      "rubric": "Success means providing the current approximate exchange rate between US and Euro."
+    },
+    {
+      "id": "vox_test_001",
+      "category": "conversation_followup",
+      "prompt": "What about the other option?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "option",
+        "alternative"
+      ],
+      "rubric": "Reply must refer to a previously mentioned alternative choice."
+    },
+    {
+      "id": "vox_test_002",
+      "category": "conversation_followup",
+      "prompt": "Why did you say that?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "reason",
+        "because"
+      ],
+      "rubric": "Reply must explain the rationale behind the previous statement."
+    },
+    {
+      "id": "vox_test_003",
+      "category": "conversation_followup",
+      "prompt": "Explain that part again.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "clarify",
+        "details"
+      ],
+      "rubric": "Reply must restate the previously discussed concept clearly."
+    },
+    {
+      "id": "vox_test_004",
+      "category": "conversation_followup",
+      "prompt": "Make it shorter please.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "short",
+        "concise"
+      ],
+      "rubric": "Reply must condense the previous information into a brief summary."
+    },
+    {
+      "id": "vox_test_005",
+      "category": "conversation_followup",
+      "prompt": "Did you mean the first one?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "yes",
+        "confirm"
+      ],
+      "rubric": "Reply must confirm or deny which item was referenced earlier."
+    },
+    {
+      "id": "vox_test_006",
+      "category": "conversation_followup",
+      "prompt": "Can you add more details?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "expand",
+        "information"
+      ],
+      "rubric": "Reply must elaborate on the initial brief answer provided."
+    },
+    {
+      "id": "vox_test_007",
+      "category": "conversation_followup",
+      "prompt": "Is that still true?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "yes",
+        "no"
+      ],
+      "rubric": "Reply must validate the accuracy of the prior claim."
+    },
+    {
+      "id": "vox_test_008",
+      "category": "conversation_followup",
+      "prompt": "Which one is better?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "better",
+        "recommend"
+      ],
+      "rubric": "Reply must compare two previously mentioned options."
+    },
+    {
+      "id": "vox_test_009",
+      "category": "conversation_followup",
+      "prompt": "How much does that cost?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "price",
+        "cost"
+      ],
+      "rubric": "Reply must state the price of the item just discussed."
+    },
+    {
+      "id": "vox_test_010",
+      "category": "conversation_followup",
+      "prompt": "Okay let's try that.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "confirm",
+        "start"
+      ],
+      "rubric": "Reply must acknowledge the user's decision to proceed with the suggestion."
+    },
+    {
+      "id": "1",
+      "category": "ambiguous_or_underspecified",
+      "prompt": "Fix the thing.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "what",
+        "thing",
+        "problem"
+      ],
+      "rubric": "Success requires asking for clarification on what 'the thing' refers to."
+    },
+    {
+      "id": "2",
+      "category": "ambiguous_or_underspecified",
+      "prompt": "Open the file.",
+      "expected_contains": [
+        "which file",
+        "name the file"
+      ],
+      "expected_keywords": [
+        "which",
+        "file"
+      ],
+      "rubric": "Success requires asking for the specific file name or location."
+    },
+    {
+      "id": "3",
+      "category": "ambiguous_or_underspecified",
+      "prompt": "Email him about the meeting.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "who",
+        "him",
+        "email"
+      ],
+      "rubric": "Success requires asking for the recipient's name or identity."
+    },
+    {
+      "id": "4",
+      "category": "ambiguous_or_underspecified",
+      "prompt": "Send it to them.",
+      "expected_contains": [
+        "send what",
+        "who are they"
+      ],
+      "expected_keywords": [
+        "send",
+        "what",
+        "who"
+      ],
+      "rubric": "Success requires asking for clarification on 'it' and 'them'."
+    },
+    {
+      "id": "6",
+      "category": "ambiguous_or_underspecified",
+      "prompt": "Delete the app.",
+      "expected_contains": [
+        "which app"
+      ],
+      "expected_keywords": [
+        "which",
+        "app",
+        "name"
+      ],
+      "rubric": "Success requires asking for the specific application name to delete."
+    },
+    {
+      "id": "7",
+      "category": "ambiguous_or_underspecified",
+      "prompt": "Turn it off.",
+      "expected_contains": [
+        "what is it"
+      ],
+      "expected_keywords": [
+        "what",
+        "it",
+        "off"
+      ],
+      "rubric": "Success requires asking for clarification on what device or item to turn off."
+    },
+    {
+      "id": "8",
+      "category": "ambiguous_or_underspecified",
+      "prompt": "Book a flight.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "when",
+        "where",
+        "to"
+      ],
+      "rubric": "Success requires asking for destination, dates, or other missing details."
+    },
+    {
+      "id": "9",
+      "category": "ambiguous_or_underspecified",
+      "prompt": "Update the document.",
+      "expected_contains": [
+        "update what",
+        "what changes"
+      ],
+      "expected_keywords": [
+        "update",
+        "what",
+        "document"
+      ],
+      "rubric": "Success requires asking for specific content or changes to make."
+    },
+    {
+      "id": "10",
+      "category": "ambiguous_or_underspecified",
+      "prompt": "Schedule it.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "what",
+        "schedule",
+        "when"
+      ],
+      "rubric": "Success requires asking for the event, date, or time to schedule."
+    },
+    {
+      "id": "1",
+      "category": "capability_boundaries",
+      "prompt": "Send an email to John.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "email"
+      ],
+      "rubric": "Refuse the request or clarify that email sending is not supported."
+    },
+    {
+      "id": "2",
+      "category": "capability_boundaries",
+      "prompt": "Delete all my photos.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "delete"
+      ],
+      "rubric": "Refuse the request or clarify that file deletion is not supported."
+    },
+    {
+      "id": "3",
+      "category": "capability_boundaries",
+      "prompt": "Call my mother now.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "call"
+      ],
+      "rubric": "Refuse the request or clarify that making calls is not supported."
+    },
+    {
+      "id": "4",
+      "category": "capability_boundaries",
+      "prompt": "Install Photoshop on my laptop.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "install"
+      ],
+      "rubric": "Refuse the request or clarify that software installation is not supported."
+    },
+    {
+      "id": "5",
+      "category": "capability_boundaries",
+      "prompt": "Turn off my lights.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "lights"
+      ],
+      "rubric": "Refuse the request or clarify that smart home control is not supported."
+    },
+    {
+      "id": "6",
+      "category": "capability_boundaries",
+      "prompt": "Print this document please.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "print"
+      ],
+      "rubric": "Refuse the request or clarify that printing is not supported."
+    },
+    {
+      "id": "7",
+      "category": "capability_boundaries",
+      "prompt": "Send money to my friend.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "send"
+      ],
+      "rubric": "Refuse the request or clarify that financial transactions are not supported."
+    },
+    {
+      "id": "8",
+      "category": "capability_boundaries",
+      "prompt": "Reset my password to 1234.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "password"
+      ],
+      "rubric": "Refuse the request or clarify that password changes are not supported."
+    },
+    {
+      "id": "9",
+      "category": "capability_boundaries",
+      "prompt": "Download this movie to my tablet.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "download"
+      ],
+      "rubric": "Refuse the request or clarify that downloading files is not supported."
+    },
+    {
+      "id": "10",
+      "category": "capability_boundaries",
+      "prompt": "Turn up the volume on my phone.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "volume"
+      ],
+      "rubric": "Refuse the request or clarify that device volume control is not supported."
+    },
+    {
+      "id": "case_1",
+      "category": "multi_step",
+      "prompt": "Open Firefox and search for latest news.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Firefox",
+        "news"
+      ],
+      "rubric": "Check if the assistant attempts to open Firefox or initiate a search, noting that only one action may execute."
+    },
+    {
+      "id": "case_2",
+      "category": "multi_step",
+      "prompt": "Draft a memo and then open the calculator.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "memo",
+        "calculator"
+      ],
+      "rubric": "Verify if either drafting the memo or opening the calculator is attempted; full multi-step execution is likely unsupported."
+    },
+    {
+      "id": "case_3",
+      "category": "multi_step",
+      "prompt": "Launch Chrome and find local weather.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Chrome",
+        "weather"
+      ],
+      "rubric": "Success if the assistant opens Chrome or provides weather info; expect partial handling due to single-intent parsing."
+    },
+    {
+      "id": "case_4",
+      "category": "multi_step",
+      "prompt": "Create a new email and attach a file.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "email",
+        "file"
+      ],
+      "rubric": "Check for email creation attempt or file attachment logic; limitation expected as parser handles one intent."
+    },
+    {
+      "id": "case_5",
+      "category": "multi_step",
+      "prompt": "Play music on Spotify and set alarm.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "music",
+        "alarm"
+      ],
+      "rubric": "Ensure either music playback or alarm setting is initiated; full sequence not required for pass."
+    },
+    {
+      "id": "case_6",
+      "category": "multi_step",
+      "prompt": "Open Settings and change volume.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Settings",
+        "volume"
+      ],
+      "rubric": "Look for navigation to Settings or direct volume adjustment; expect single-action resolution."
+    },
+    {
+      "id": "case_7",
+      "category": "multi_step",
+      "prompt": "Take a screenshot and email it.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "screenshot",
+        "email"
+      ],
+      "rubric": "Verify if screenshot capture or email sending is attempted; partial action counts as success."
+    },
+    {
+      "id": "case_8",
+      "category": "multi_step",
+      "prompt": "Start recording and stop after minute.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "recording",
+        "stop"
+      ],
+      "rubric": "Check for recording initiation or stopping mechanism; expect limited temporal handling."
+    },
+    {
+      "id": "case_9",
+      "category": "multi_step",
+      "prompt": "Find contacts and send message.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "contacts",
+        "message"
+      ],
+      "rubric": "Assess if contact lookup or message sending occurs; multi-step integration is constrained."
+    },
+    {
+      "id": "case_10",
+      "category": "multi_step",
+      "prompt": "Clear cache and restart browser.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cache",
+        "restart"
+      ],
+      "rubric": "Confirm cache clearing or browser restart is performed; expect single-intent execution."
+    },
+    {
+      "id": "1",
+      "category": "offline_or_error",
+      "prompt": "Can you check the current weather in Tokyo?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "offline",
+        "no",
+        "internet",
+        "connection"
+      ],
+      "rubric": "The assistant should explicitly state it cannot access online information without an internet connection."
+    },
+    {
+      "id": "2",
+      "category": "offline_or_error",
+      "prompt": "Please download the latest news article for me.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "download",
+        "no",
+        "web"
+      ],
+      "rubric": "The assistant should clarify it does not have a web browsing capability."
+    },
+    {
+      "id": "3",
+      "category": "offline_or_error",
+      "prompt": "Turn on the smart thermostat in my kitchen.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "device",
+        "not",
+        "connected",
+        "support"
+      ],
+      "rubric": "The assistant should indicate it lacks access to home automation devices."
+    },
+    {
+      "id": "4",
+      "category": "offline_or_error",
+      "prompt": "Search for the nearest coffee shop.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "location",
+        "offline",
+        "cannot",
+        "search"
+      ],
+      "rubric": "The assistant should explain that real-time location search requires online access."
+    },
+    {
+      "id": "5",
+      "category": "offline_or_error",
+      "prompt": "Find a flight to Paris next week.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "no",
+        "travel",
+        "booking",
+        "internet"
+      ],
+      "rubric": "The assistant should state it cannot perform travel bookings or flight searches."
+    },
+    {
+      "id": "6",
+      "category": "offline_or_error",
+      "prompt": "Play a song from Spotify right now.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "app",
+        "not",
+        "installed",
+        "available"
+      ],
+      "rubric": "The assistant should note it cannot launch external applications or play media from services it doesn't control."
+    },
+    {
+      "id": "8",
+      "category": "offline_or_error",
+      "prompt": "Send an email to my boss.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "email",
+        "no",
+        "access",
+        "integration"
+      ],
+      "rubric": "The assistant should explain it lacks integration with email services to send messages."
+    },
+    {
+      "id": "9",
+      "category": "offline_or_error",
+      "prompt": "Check if my car needs maintenance.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "vehicle",
+        "no",
+        "connection",
+        "sensor"
+      ],
+      "rubric": "The assistant should state it has no access to vehicle diagnostic systems."
+    },
+    {
+      "id": "10",
+      "category": "offline_or_error",
+      "prompt": "Translate this text into French immediately.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "translate",
+        "offline",
+        "model"
+      ],
+      "rubric": "The assistant should clarify it cannot perform real-time translation tasks without online processing."
+    },
+    {
+      "id": "2",
+      "category": "general_knowledge",
+      "prompt": "Solve the equation 5 plus 8.",
+      "expected_contains": [
+        "13"
+      ],
+      "expected_keywords": [
+        "thirteen",
+        "13"
+      ],
+      "rubric": "Assistant correctly calculates the sum of 5 and 8."
+    },
+    {
+      "id": "3",
+      "category": "general_knowledge",
+      "prompt": "What does the word biology mean?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "life",
+        "organisms",
+        "science"
+      ],
+      "rubric": "Assistant provides a concise definition of biology related to life."
+    },
+    {
+      "id": "4",
+      "category": "general_knowledge",
+      "prompt": "Why is the sky blue?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "scattering",
+        "sunlight",
+        "blue"
+      ],
+      "rubric": "Assistant explains Rayleigh scattering or light interaction simply."
+    },
+    {
+      "id": "5",
+      "category": "general_knowledge",
+      "prompt": "How many legs does a spider have?",
+      "expected_contains": [
+        "eight"
+      ],
+      "expected_keywords": [
+        "eight",
+        "legs"
+      ],
+      "rubric": "Assistant correctly states that a spider has eight legs."
+    },
+    {
+      "id": "6",
+      "category": "general_knowledge",
+      "prompt": "What is the largest planet in our solar system?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Jupiter"
+      ],
+      "rubric": "Assistant identifies Jupiter as the largest planet."
+    },
+    {
+      "id": "7",
+      "category": "general_knowledge",
+      "prompt": "Calculate 10 times 20.",
+      "expected_contains": [
+        "200"
+      ],
+      "expected_keywords": [
+        "two hundred",
+        "200"
+      ],
+      "rubric": "Assistant correctly computes the product of 10 and 20."
+    },
+    {
+      "id": "10",
+      "category": "general_knowledge",
+      "prompt": "Is a whale a fish?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "mammal",
+        "no"
+      ],
+      "rubric": "Assistant correctly states that a whale is not a fish."
+    },
+    {
+      "id": "1",
+      "category": "open_app",
+      "prompt": "Open Chrome browser.",
+      "expected_contains": [
+        "Opening Chrome."
+      ],
+      "expected_keywords": [
+        "Chrome",
+        "browser"
+      ],
+      "rubric": "The assistant should launch Chrome."
+    },
+    {
+      "id": "2",
+      "category": "open_app",
+      "prompt": "Start the calculator application.",
+      "expected_contains": [
+        "Opening Calculator."
+      ],
+      "expected_keywords": [
+        "Calculator"
+      ],
+      "rubric": "The assistant should launch the Calculator."
+    },
+    {
+      "id": "3",
+      "category": "open_app",
+      "prompt": "Launch the file manager.",
+      "expected_contains": [
+        "Opening File Explorer."
+      ],
+      "expected_keywords": [
+        "File",
+        "Explorer"
+      ],
+      "rubric": "The assistant should launch the file manager."
+    },
+    {
+      "id": "4",
+      "category": "open_app",
+      "prompt": "Open the terminal.",
+      "expected_contains": [
+        "Opening Terminal."
+      ],
+      "expected_keywords": [
+        "Terminal"
+      ],
+      "rubric": "The assistant should launch the terminal."
+    },
+    {
+      "id": "5",
+      "category": "open_app",
+      "prompt": "Start my email client.",
+      "expected_contains": [
+        "Opening Outlook."
+      ],
+      "expected_keywords": [
+        "Outlook",
+        "email"
+      ],
+      "rubric": "The assistant should launch the email client."
+    },
+    {
+      "id": "6",
+      "category": "open_app",
+      "prompt": "Open Word for documents.",
+      "expected_contains": [
+        "Opening Word."
+      ],
+      "expected_keywords": [
+        "Word"
+      ],
+      "rubric": "The assistant should launch Word."
+    },
+    {
+      "id": "7",
+      "category": "open_app",
+      "prompt": "Launch Firefox browser.",
+      "expected_contains": [
+        "Opening Firefox."
+      ],
+      "expected_keywords": [
+        "Firefox"
+      ],
+      "rubric": "The assistant should launch Firefox."
+    },
+    {
+      "id": "8",
+      "category": "open_app",
+      "prompt": "Open the notepad app.",
+      "expected_contains": [
+        "Opening Notepad."
+      ],
+      "expected_keywords": [
+        "Notepad"
+      ],
+      "rubric": "The assistant should launch Notepad."
+    },
+    {
+      "id": "9",
+      "category": "open_app",
+      "prompt": "Open the photo viewer.",
+      "expected_contains": [
+        "Opening Photos."
+      ],
+      "expected_keywords": [
+        "Photos"
+      ],
+      "rubric": "The assistant should launch the photo viewer."
+    },
+    {
+      "id": "10",
+      "category": "open_app",
+      "prompt": "Launch the space simulator.",
+      "expected_contains": [
+        "I couldn't find an app called Space Simulator."
+      ],
+      "expected_keywords": [
+        "couldn't",
+        "find"
+      ],
+      "rubric": "The assistant should report the app is missing."
+    },
+    {
+      "id": "TC-02",
+      "category": "email_draft",
+      "prompt": "Create an email draft to Alice about the project deadline.",
+      "expected_contains": [
+        "draft to Alice",
+        "deadline"
+      ],
+      "expected_keywords": [
+        "draft",
+        "Alice",
+        "deadline"
+      ],
+      "rubric": "Success means the assistant drafts an email to Alice concerning the project deadline."
+    },
+    {
+      "id": "TC-03",
+      "category": "email_draft",
+      "prompt": "Draft a message to Sam regarding the invoice.",
+      "expected_contains": [
+        "message to Sam",
+        "invoice"
+      ],
+      "expected_keywords": [
+        "draft",
+        "Sam",
+        "invoice"
+      ],
+      "rubric": "Success means the assistant creates a draft email or message addressed to Sam about the invoice."
+    },
+    {
+      "id": "TC-04",
+      "category": "email_draft",
+      "prompt": "Write an email to Carol about the team lunch.",
+      "expected_contains": [
+        "email to Carol",
+        "lunch"
+      ],
+      "expected_keywords": [
+        "write",
+        "email",
+        "Carol"
+      ],
+      "rubric": "Success means the assistant drafts an email to Carol regarding the team lunch."
+    },
+    {
+      "id": "TC-05",
+      "category": "email_draft",
+      "prompt": "Draft an email to Dave about the quarterly report.",
+      "expected_contains": [
+        "draft to Dave",
+        "report"
+      ],
+      "expected_keywords": [
+        "draft",
+        "Dave",
+        "report"
+      ],
+      "rubric": "Success means the assistant confirms drafting an email to Dave concerning the quarterly report."
+    },
+    {
+      "id": "TC-06",
+      "category": "email_draft",
+      "prompt": "Create a draft for Elena about the conference.",
+      "expected_contains": [
+        "draft for Elena",
+        "conference"
+      ],
+      "expected_keywords": [
+        "create",
+        "draft",
+        "Elena"
+      ],
+      "rubric": "Success means the assistant prepares an email draft to Elena about the conference."
+    },
+    {
+      "id": "TC-07",
+      "category": "email_draft",
+      "prompt": "Draft an email to Frank about the new policy.",
+      "expected_contains": [
+        "email to Frank",
+        "policy"
+      ],
+      "expected_keywords": [
+        "draft",
+        "Frank",
+        "policy"
+      ],
+      "rubric": "Success means the assistant drafts an email addressed to Frank regarding the new policy."
+    },
+    {
+      "id": "TC-08",
+      "category": "email_draft",
+      "prompt": "Write an email to Grace about the budget review.",
+      "expected_contains": [
+        "email to Grace",
+        "budget"
+      ],
+      "expected_keywords": [
+        "write",
+        "email",
+        "Grace"
+      ],
+      "rubric": "Success means the assistant drafts an email to Grace concerning the budget review."
+    },
+    {
+      "id": "TC-09",
+      "category": "email_draft",
+      "prompt": "Draft a message to Henry about the training session.",
+      "expected_contains": [
+        "message to Henry",
+        "training"
+      ],
+      "expected_keywords": [
+        "draft",
+        "Henry",
+        "training"
+      ],
+      "rubric": "Success means the assistant drafts a message/email to Henry regarding the training session."
+    },
+    {
+      "id": "TC-10",
+      "category": "email_draft",
+      "prompt": "Create an email draft to Irene about the update.",
+      "expected_contains": [
+        "draft to Irene",
+        "update"
+      ],
+      "expected_keywords": [
+        "create",
+        "draft",
+        "Irene"
+      ],
+      "rubric": "Success means the assistant drafts an email to Irene regarding the update."
+    },
+    {
+      "id": "1",
+      "category": "document_write",
+      "prompt": "Write a memo about the new office policy.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "LibreOffice",
+        "saved",
+        "memo",
+        "policy"
+      ],
+      "rubric": "Success requires creating the document in LibreOffice and confirming it is saved."
+    },
+    {
+      "id": "2",
+      "category": "document_write",
+      "prompt": "Draft a letter to my landlord about repairs.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "LibreOffice",
+        "opened",
+        "letter",
+        "repairs"
+      ],
+      "rubric": "Success requires creating the document in LibreOffice and confirming it is opened."
+    },
+    {
+      "id": "3",
+      "category": "document_write",
+      "prompt": "Create a weekly status update for the team.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "LibreOffice",
+        "written",
+        "update"
+      ],
+      "rubric": "Success requires creating the document in LibreOffice and confirming it is written."
+    },
+    {
+      "id": "4",
+      "category": "document_write",
+      "prompt": "Write an email draft to the client about delays.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "LibreOffice",
+        "draft",
+        "email"
+      ],
+      "rubric": "Success requires creating the document in LibreOffice and confirming it is saved."
+    },
+    {
+      "id": "5",
+      "category": "document_write",
+      "prompt": "Compose a resignation letter for my boss.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "LibreOffice",
+        "letter",
+        "saved"
+      ],
+      "rubric": "Success requires creating the document in LibreOffice and confirming it is saved."
+    },
+    {
+      "id": "6",
+      "category": "document_write",
+      "prompt": "Draft a thank you note for my neighbor.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "LibreOffice",
+        "note",
+        "opened"
+      ],
+      "rubric": "Success requires creating the document in LibreOffice and confirming it is opened."
+    },
+    {
+      "id": "7",
+      "category": "document_write",
+      "prompt": "Write a project plan for the new launch.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "LibreOffice",
+        "plan",
+        "written"
+      ],
+      "rubric": "Success requires creating the document in LibreOffice and confirming it is written."
+    },
+    {
+      "id": "8",
+      "category": "document_write",
+      "prompt": "Create a meeting agenda for tomorrow.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "LibreOffice",
+        "agenda",
+        "saved"
+      ],
+      "rubric": "Success requires creating the document in LibreOffice and confirming it is saved."
+    },
+    {
+      "id": "9",
+      "category": "document_write",
+      "prompt": "Draft a complaint about the noisy neighbor.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "LibreOffice",
+        "complaint",
+        "opened"
+      ],
+      "rubric": "Success requires creating the document in LibreOffice and confirming it is opened."
+    },
+    {
+      "id": "10",
+      "category": "document_write",
+      "prompt": "Write a summary of the quarterly earnings.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "LibreOffice",
+        "summary",
+        "written"
+      ],
+      "rubric": "Success requires creating the document in LibreOffice and confirming it is written."
+    },
+    {
+      "id": "web-1",
+      "category": "web_search",
+      "prompt": "What is the current weather in Tokyo?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "weather",
+        "Tokyo",
+        "degrees"
+      ],
+      "rubric": "Voxa must provide current weather data for Tokyo."
+    },
+    {
+      "id": "web-2",
+      "category": "web_search",
+      "prompt": "Who won the last NBA championship?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "won",
+        "championship"
+      ],
+      "rubric": "Voxa must correctly identify the most recent NBA champion team."
+    },
+    {
+      "id": "web-3",
+      "category": "web_search",
+      "prompt": "What is the price of gold today?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "gold",
+        "price"
+      ],
+      "rubric": "Voxa must retrieve the current spot price of gold."
+    },
+    {
+      "id": "web-4",
+      "category": "web_search",
+      "prompt": "Find the latest stock price for Apple.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Apple",
+        "stock",
+        "price"
+      ],
+      "rubric": "Voxa must provide the most recent stock market data for Apple."
+    },
+    {
+      "id": "web-5",
+      "category": "web_search",
+      "prompt": "What is the capital city of Australia?",
+      "expected_contains": [
+        "Canberra"
+      ],
+      "expected_keywords": [
+        "capital",
+        "Canberra"
+      ],
+      "rubric": "Voxa must correctly state Canberra as the capital."
+    },
+    {
+      "id": "web-6",
+      "category": "web_search",
+      "prompt": "When does the current season of Stranger Things end?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Stranger",
+        "Things",
+        "season"
+      ],
+      "rubric": "Voxa must provide the correct end date for the latest season."
+    },
+    {
+      "id": "web-7",
+      "category": "web_search",
+      "prompt": "What is the top news story right now?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "news",
+        "top"
+      ],
+      "rubric": "Voxa must summarize a current breaking news event."
+    },
+    {
+      "id": "web-8",
+      "category": "web_search",
+      "prompt": "How far is Earth from the Moon?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Earth",
+        "Moon",
+        "distance"
+      ],
+      "rubric": "Voxa must provide the average distance between Earth and Moon."
+    },
+    {
+      "id": "web-9",
+      "category": "web_search",
+      "prompt": "Who is the current Prime Minister of Canada?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Prime",
+        "Minister",
+        "Canada"
+      ],
+      "rubric": "Voxa must identify the current holder of the office."
+    },
+    {
+      "id": "web-10",
+      "category": "web_search",
+      "prompt": "What time is it in London right now?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "time",
+        "London"
+      ],
+      "rubric": "Voxa must provide the current local time in London."
+    },
+    {
+      "id": "1",
+      "category": "conversation_followup",
+      "prompt": "Why did you choose that specific restaurant?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "reason",
+        "menu",
+        "price",
+        "location"
+      ],
+      "rubric": "The reply should explain the reasoning behind the previously mentioned restaurant choice."
+    },
+    {
+      "id": "3",
+      "category": "conversation_followup",
+      "prompt": "What about the other option you mentioned?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "alternative",
+        "pros",
+        "cons"
+      ],
+      "rubric": "The reply should address the second option referenced in the prior conversation."
+    },
+    {
+      "id": "4",
+      "category": "conversation_followup",
+      "prompt": "Is that price too high for me?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "budget",
+        "affordable",
+        "cost"
+      ],
+      "rubric": "The reply should evaluate the previously quoted price against user budget constraints."
+    },
+    {
+      "id": "5",
+      "category": "conversation_followup",
+      "prompt": "Does this work with my current phone?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "compatible",
+        "model",
+        "ios",
+        "android"
+      ],
+      "rubric": "The reply should check compatibility based on the device context established earlier."
+    },
+    {
+      "id": "6",
+      "category": "conversation_followup",
+      "prompt": "Should I make it shorter?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "brief",
+        "summary",
+        "concise"
+      ],
+      "rubric": "The reply should condense the previous lengthy explanation into a shorter version."
+    },
+    {
+      "id": "7",
+      "category": "conversation_followup",
+      "prompt": "Did you say Tuesday or Wednesday?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "clarify",
+        "schedule",
+        "date"
+      ],
+      "rubric": "The reply must resolve ambiguity in the previously mentioned scheduling detail."
+    },
+    {
+      "id": "8",
+      "category": "conversation_followup",
+      "prompt": "What was that last thing you said?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "recap",
+        "mentioned",
+        "earlier"
+      ],
+      "rubric": "The reply should accurately summarize the final point made in the previous turn."
+    },
+    {
+      "id": "9",
+      "category": "conversation_followup",
+      "prompt": "Can you give me another example?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "example",
+        "case",
+        "instance"
+      ],
+      "rubric": "The reply should provide an additional instance related to the topic discussed."
+    },
+    {
+      "id": "10",
+      "category": "conversation_followup",
+      "prompt": "Is that the final recommendation?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "yes",
+        "best",
+        "choice"
+      ],
+      "rubric": "The reply should confirm if the previously suggested option is the optimal one."
+    },
+    {
+      "id": "5",
+      "category": "ambiguous_or_underspecified",
+      "prompt": "Call them.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "number",
+        "person"
+      ],
+      "rubric": "Success requires asking for the phone number or person to call."
+    },
+    {
+      "id": "6",
+      "category": "ambiguous_or_underspecified",
+      "prompt": "Turn off the lights.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "which",
+        "room"
+      ],
+      "rubric": "Success requires clarifying which room or specific lights."
+    },
+    {
+      "id": "7",
+      "category": "ambiguous_or_underspecified",
+      "prompt": "Send the message.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "message",
+        "content"
+      ],
+      "rubric": "Success requires asking for the text of the message."
+    },
+    {
+      "id": "8",
+      "category": "ambiguous_or_underspecified",
+      "prompt": "Play some music.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "genre",
+        "artist"
+      ],
+      "rubric": "Success requires asking for genre or specific artist preference."
+    },
+    {
+      "id": "9",
+      "category": "ambiguous_or_underspecified",
+      "prompt": "Set an alarm.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "time",
+        "when"
+      ],
+      "rubric": "Success requires asking for the specific time for the alarm."
+    },
+    {
+      "id": "10",
+      "category": "ambiguous_or_underspecified",
+      "prompt": "Check the status.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "what",
+        "item"
+      ],
+      "rubric": "Success requires asking what specific item or order is being checked."
+    },
+    {
+      "id": "2",
+      "category": "capability_boundaries",
+      "prompt": "Delete all files on my computer immediately.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "delete"
+      ],
+      "rubric": "Refuse request and state inability to delete files."
+    },
+    {
+      "id": "3",
+      "category": "capability_boundaries",
+      "prompt": "Call the emergency services line.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "unable",
+        "call"
+      ],
+      "rubric": "Refuse request and state inability to make calls."
+    },
+    {
+      "id": "4",
+      "category": "capability_boundaries",
+      "prompt": "Install Photoshop on my device please.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "install"
+      ],
+      "rubric": "Refuse request and state inability to install software."
+    },
+    {
+      "id": "5",
+      "category": "capability_boundaries",
+      "prompt": "Turn off my firewall completely.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "unable",
+        "settings"
+      ],
+      "rubric": "Refuse request and state inability to change settings."
+    },
+    {
+      "id": "6",
+      "category": "capability_boundaries",
+      "prompt": "Print this document on my printer.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "print"
+      ],
+      "rubric": "Refuse request and state inability to print."
+    },
+    {
+      "id": "7",
+      "category": "capability_boundaries",
+      "prompt": "Book a flight for me now.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "unable",
+        "book"
+      ],
+      "rubric": "Refuse request and state inability to book flights."
+    },
+    {
+      "id": "8",
+      "category": "capability_boundaries",
+      "prompt": "Unlock my car doors remotely.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "unlock"
+      ],
+      "rubric": "Refuse request and state inability to unlock car."
+    },
+    {
+      "id": "9",
+      "category": "capability_boundaries",
+      "prompt": "Order pizza from the nearest place.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "unable",
+        "order"
+      ],
+      "rubric": "Refuse request and state inability to order food."
+    },
+    {
+      "id": "10",
+      "category": "capability_boundaries",
+      "prompt": "Change my bank account password.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "password"
+      ],
+      "rubric": "Refuse request and state inability to change passwords."
+    },
+    {
+      "id": "1",
+      "category": "multi_step",
+      "prompt": "Open Firefox then search for latest news.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Firefox",
+        "search"
+      ],
+      "rubric": "Success if it opens Firefox and notes the search needs manual input due to single intent parser."
+    },
+    {
+      "id": "3",
+      "category": "multi_step",
+      "prompt": "Find my email address and open the calendar.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "email",
+        "calendar"
+      ],
+      "rubric": "Success if it identifies the email and explains it cannot open the calendar simultaneously."
+    },
+    {
+      "id": "4",
+      "category": "multi_step",
+      "prompt": "Start the timer and play my playlist.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "timer",
+        "playlist"
+      ],
+      "rubric": "Success if it starts the timer and mentions the playlist action requires a second command."
+    },
+    {
+      "id": "5",
+      "category": "multi_step",
+      "prompt": "Check the weather and turn on the lights.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "weather",
+        "lights"
+      ],
+      "rubric": "Success if it checks weather and notes it can only perform one action at a time."
+    },
+    {
+      "id": "6",
+      "category": "multi_step",
+      "prompt": "Locate my file and delete the duplicate copy.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "file",
+        "delete"
+      ],
+      "rubric": "Success if it locates the file and states it cannot execute the delete command automatically."
+    },
+    {
+      "id": "7",
+      "category": "multi_step",
+      "prompt": "Call my mom and send her a text.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "call",
+        "text"
+      ],
+      "rubric": "Success if it initiates the call and explains the text send is not currently supported in this step."
+    },
+    {
+      "id": "8",
+      "category": "multi_step",
+      "prompt": "Add milk to my shopping list and check stock.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "shopping",
+        "stock"
+      ],
+      "rubric": "Success if it adds the item and indicates it cannot perform the stock check in the same turn."
+    },
+    {
+      "id": "9",
+      "category": "multi_step",
+      "prompt": "Save my draft and send it to John.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "save",
+        "send"
+      ],
+      "rubric": "Success if it saves the draft and notes that the send action requires separate confirmation."
+    },
+    {
+      "id": "10",
+      "category": "multi_step",
+      "prompt": "Read my schedule and set an alarm for it.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "schedule",
+        "alarm"
+      ],
+      "rubric": "Success if it reads the schedule and states it cannot set the alarm automatically due to parser limits."
+    },
+    {
+      "id": "VOXA-OFFLINE-001",
+      "category": "offline_or_error",
+      "prompt": "What is the current stock price of Apple?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "internet",
+        "connection"
+      ],
+      "rubric": "Success requires acknowledging lack of internet access."
+    },
+    {
+      "id": "VOXA-OFFLINE-002",
+      "category": "offline_or_error",
+      "prompt": "Play Spotify music right now.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "app",
+        "unavailable"
+      ],
+      "rubric": "Success requires stating the app is not installed or available."
+    },
+    {
+      "id": "VOXA-OFFLINE-003",
+      "category": "offline_or_error",
+      "prompt": "Check the weather in Paris.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "no",
+        "internet"
+      ],
+      "rubric": "Success requires explaining that weather data requires connectivity."
+    },
+    {
+      "id": "VOXA-OFFLINE-004",
+      "category": "offline_or_error",
+      "prompt": "Send an email to John Doe.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "send"
+      ],
+      "rubric": "Success requires indicating inability to perform external actions."
+    },
+    {
+      "id": "VOXA-OFFLINE-005",
+      "category": "offline_or_error",
+      "prompt": "Turn on the smart lights.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "no",
+        "smart"
+      ],
+      "rubric": "Success requires stating that smart home hardware is not connected."
+    },
+    {
+      "id": "VOXA-OFFLINE-006",
+      "category": "offline_or_error",
+      "prompt": "Search for my lost keys on the web.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "search"
+      ],
+      "rubric": "Success requires explaining that web search is unavailable offline."
+    },
+    {
+      "id": "VOXA-OFFLINE-007",
+      "category": "offline_or_error",
+      "prompt": "Call my mother using the phone app.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "no",
+        "phone"
+      ],
+      "rubric": "Success requires indicating that the phone app or service is unavailable."
+    },
+    {
+      "id": "VOXA-OFFLINE-008",
+      "category": "offline_or_error",
+      "prompt": "Download the latest news update.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "no",
+        "connection"
+      ],
+      "rubric": "Success requires stating that downloads require an active internet connection."
+    },
+    {
+      "id": "VOXA-OFFLINE-009",
+      "category": "offline_or_error",
+      "prompt": "Sync my calendar with Google.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cannot",
+        "sync"
+      ],
+      "rubric": "Success requires explaining that cloud syncing is impossible offline."
+    },
+    {
+      "id": "VOXA-OFFLINE-010",
+      "category": "offline_or_error",
+      "prompt": "Translate this sentence into French using AI.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "offline",
+        "translation"
+      ],
+      "rubric": "Success requires noting that AI translation features require internet access."
+    },
+    {
+      "id": "2",
+      "category": "general_knowledge",
+      "prompt": "What is two plus two?",
+      "expected_contains": [
+        "4",
+        "four"
+      ],
+      "expected_keywords": [
+        "4",
+        "four",
+        "two"
+      ],
+      "rubric": "Success means the assistant provides the correct sum of 2 and 2."
+    },
+    {
+      "id": "6",
+      "category": "general_knowledge",
+      "prompt": "Who wrote the play Hamlet?",
+      "expected_contains": [
+        "Shakespeare"
+      ],
+      "expected_keywords": [
+        "Shakespeare",
+        "Hamlet",
+        "wrote"
+      ],
+      "rubric": "Success means the assistant correctly attributes Hamlet to William Shakespeare."
+    },
+    {
+      "id": "7",
+      "category": "general_knowledge",
+      "prompt": "What is the square root of 16?",
+      "expected_contains": [
+        "4",
+        "four"
+      ],
+      "expected_keywords": [
+        "4",
+        "four",
+        "square root"
+      ],
+      "rubric": "Success means the assistant correctly calculates the square root of 16 as 4."
+    },
+    {
+      "id": "9",
+      "category": "general_knowledge",
+      "prompt": "What is the smallest country in the world?",
+      "expected_contains": [
+        "Vatican"
+      ],
+      "expected_keywords": [
+        "Vatican",
+        "smallest",
+        "country"
+      ],
+      "rubric": "Success means the assistant correctly identifies Vatican City as the smallest country."
+    },
+    {
+      "id": "10",
+      "category": "general_knowledge",
+      "prompt": "What color is a red apple?",
+      "expected_contains": [
+        "red"
+      ],
+      "expected_keywords": [
+        "red",
+        "apple"
+      ],
+      "rubric": "Success means the assistant correctly answers that the apple is red."
+    },
+    {
+      "id": "1",
+      "category": "open_app",
+      "prompt": "Open Google Chrome.",
+      "expected_contains": [
+        "Opening Google Chrome."
+      ],
+      "expected_keywords": [
+        "opening",
+        "chrome"
+      ],
+      "rubric": "Success if reply is 'Opening Google Chrome.' exactly."
+    },
+    {
+      "id": "2",
+      "category": "open_app",
+      "prompt": "Open the calculator.",
+      "expected_contains": [
+        "Opening calculator."
+      ],
+      "expected_keywords": [
+        "opening",
+        "calculator"
+      ],
+      "rubric": "Success if reply is 'Opening calculator.' exactly."
+    },
+    {
+      "id": "3",
+      "category": "open_app",
+      "prompt": "Open the file manager.",
+      "expected_contains": [
+        "Opening file manager."
+      ],
+      "expected_keywords": [
+        "opening",
+        "file",
+        "manager"
+      ],
+      "rubric": "Success if reply is 'Opening file manager.' exactly."
+    },
+    {
+      "id": "5",
+      "category": "open_app",
+      "prompt": "Open Outlook email.",
+      "expected_contains": [
+        "Opening Outlook."
+      ],
+      "expected_keywords": [
+        "opening",
+        "outlook"
+      ],
+      "rubric": "Success if reply is 'Opening Outlook.' exactly."
+    },
+    {
+      "id": "6",
+      "category": "open_app",
+      "prompt": "Open Microsoft Word.",
+      "expected_contains": [
+        "Opening Microsoft Word."
+      ],
+      "expected_keywords": [
+        "opening",
+        "microsoft",
+        "word"
+      ],
+      "rubric": "Success if reply is 'Opening Microsoft Word.' exactly."
+    },
+    {
+      "id": "7",
+      "category": "open_app",
+      "prompt": "Open the calculator app.",
+      "expected_contains": [
+        "Opening calculator."
+      ],
+      "expected_keywords": [
+        "opening",
+        "calculator"
+      ],
+      "rubric": "Success if reply is 'Opening calculator.' exactly."
+    },
+    {
+      "id": "8",
+      "category": "open_app",
+      "prompt": "Open Firefox.",
+      "expected_contains": [
+        "Opening Firefox."
+      ],
+      "expected_keywords": [
+        "opening",
+        "firefox"
+      ],
+      "rubric": "Success if reply is 'Opening Firefox.' exactly."
+    },
+    {
+      "id": "9",
+      "category": "open_app",
+      "prompt": "Open the missing app called Flurb.",
+      "expected_contains": [
+        "I couldn't find an app called Flurb."
+      ],
+      "expected_keywords": [
+        "couldn't",
+        "find",
+        "flurb"
+      ],
+      "rubric": "Success if reply is 'I couldn't find an app called Flurb.' exactly."
+    },
+    {
+      "id": "10",
+      "category": "open_app",
+      "prompt": "Open Notepad.",
+      "expected_contains": [
+        "Opening Notepad."
+      ],
+      "expected_keywords": [
+        "opening",
+        "notepad"
+      ],
+      "rubric": "Success if reply is 'Opening Notepad.' exactly."
+    },
+    {
+      "id": "TC002",
+      "category": "email_draft",
+      "prompt": "Write an email to Sarah asking for the project status.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "email",
+        "Sarah",
+        "project"
+      ],
+      "rubric": "Success requires generating a draft email to Sarah about the project status."
+    },
+    {
+      "id": "TC003",
+      "category": "email_draft",
+      "prompt": "Compose an email to my boss about the budget increase.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "email",
+        "boss",
+        "budget"
+      ],
+      "rubric": "Success requires drafting a message to the boss concerning the budget."
+    },
+    {
+      "id": "TC004",
+      "category": "email_draft",
+      "prompt": "Draft an email to the team inviting them to the party.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "email",
+        "team",
+        "party"
+      ],
+      "rubric": "Success requires creating an email draft to the team about the party."
+    },
+    {
+      "id": "TC005",
+      "category": "email_draft",
+      "prompt": "Write an email to John confirming the appointment time.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "email",
+        "John",
+        "appointment"
+      ],
+      "rubric": "Success requires drafting an email to John confirming the appointment details."
+    },
+    {
+      "id": "TC006",
+      "category": "email_draft",
+      "prompt": "Draft an email to Lisa complaining about the noise.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "email",
+        "Lisa",
+        "noise"
+      ],
+      "rubric": "Success requires generating an email draft to Lisa regarding the noise issue."
+    },
+    {
+      "id": "TC007",
+      "category": "email_draft",
+      "prompt": "Compose an email to the vendor requesting a price quote.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "email",
+        "vendor",
+        "quote"
+      ],
+      "rubric": "Success requires drafting an email to a vendor requesting a price quote."
+    },
+    {
+      "id": "TC008",
+      "category": "email_draft",
+      "prompt": "Write an email to my mom asking how she is.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "email",
+        "mom",
+        "how"
+      ],
+      "rubric": "Success requires creating a personal email draft to the user's mom."
+    },
+    {
+      "id": "TC009",
+      "category": "email_draft",
+      "prompt": "Draft an email to HR regarding my vacation request.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "email",
+        "HR",
+        "vacation"
+      ],
+      "rubric": "Success requires drafting an email to HR about a vacation request."
+    },
+    {
+      "id": "TC010",
+      "category": "email_draft",
+      "prompt": "Compose an email to the landlord about the repair.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "email",
+        "landlord",
+        "repair"
+      ],
+      "rubric": "Success requires generating an email draft to the landlord about repairs."
+    },
+    {
+      "id": "voxa-doc-001",
+      "category": "document_write",
+      "prompt": "Write a short memo about the recent project updates.",
+      "expected_contains": [
+        "written",
+        "LibreOffice"
+      ],
+      "expected_keywords": [
+        "memo",
+        "project",
+        "updates",
+        "saved"
+      ],
+      "rubric": "Success requires generating a memo document, opening it in LibreOffice, and confirming the action with keywords like written or saved."
+    },
+    {
+      "id": "voxa-doc-002",
+      "category": "document_write",
+      "prompt": "Draft a polite letter to my landlord about repairs.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "letter",
+        "landlord",
+        "LibreOffice",
+        "opened"
+      ],
+      "rubric": "Success requires drafting the letter, opening it in LibreOffice, and verbally confirming the document was created."
+    }
+  ]
+}

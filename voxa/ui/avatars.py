@@ -14,9 +14,18 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+
 # Where downloaded avatar models live.  Kept in one place so the future picker
-# and the renderer agree on it.
-AVATAR_DIRECTORY = os.path.expanduser("~/.local/share/voxa/avatars")
+# and the renderer agree on it.  XDG_DATA_HOME wins over ~/.local/share: inside
+# the Flatpak sandbox ~/.local/share is not mounted and XDG_DATA_HOME points at
+# ~/.var/app/io.github.crhy.voxa/data instead.
+def avatar_directory() -> str:
+    """The directory avatar models are read from, honouring XDG_DATA_HOME."""
+    data_home = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
+    return os.path.join(data_home, "voxa", "avatars")
+
+
+AVATAR_DIRECTORY = avatar_directory()
 
 RENDERER_GL3D = "gl3d"
 

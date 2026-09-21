@@ -1,0 +1,53 @@
+{
+  "cases": [
+    {
+      "id": "voice-1",
+      "category": "general",
+      "prompt": "Give me one quick fact about honey.",
+      "expected_contains": [
+        "Honey"
+      ],
+      "expected_keywords": [
+        "honey"
+      ],
+      "rubric": "Response should mention honey and provide a concise fact."
+    },
+    {
+      "id": "voice-2",
+      "category": "math",
+      "prompt": "What is 12 times 3?",
+      "expected_contains": [
+        "36"
+      ],
+      "expected_keywords": [
+        "36"
+      ],
+      "rubric": "Response should state 36 as the answer."
+    },
+    {
+      "id": "test_1",
+      "category": "math",
+      "prompt": "What is seven times eight?",
+      "expected_contains": [
+        "56"
+      ],
+      "expected_keywords": [
+        "56"
+      ],
+      "rubric": "Check that the assistant gives the correct product."
+    },
+    {
+      "id": "test_2",
+      "category": "instructions",
+      "prompt": "Repeat the phrase blue moon once.",
+      "expected_contains": [
+        "blue moon"
+      ],
+      "expected_keywords": [
+        "blue",
+        "moon"
+      ],
+      "rubric": "Check that the assistant repeats the exact phrase."
+    }
+  ]
+}

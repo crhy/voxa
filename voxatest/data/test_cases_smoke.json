@@ -1,0 +1,263 @@
+{
+  "cases": [
+    {
+      "id": "1",
+      "category": "general",
+      "prompt": "What is the capital of France?",
+      "expected_contains": [
+        "Paris"
+      ],
+      "expected_keywords": [
+        "Paris",
+        "capital",
+        "France"
+      ],
+      "rubric": "Correctly identifies Paris as the capital."
+    },
+    {
+      "id": "2",
+      "category": "general",
+      "prompt": "Who is the president of the United States?",
+      "expected_contains": [
+        "Joe Biden"
+      ],
+      "expected_keywords": [
+        "Biden",
+        "president"
+      ],
+      "rubric": "Name matches current or recent administration context."
+    },
+    {
+      "id": "3",
+      "category": "general",
+      "prompt": "How do you make lemonade?",
+      "expected_contains": [
+        "lemons",
+        "water",
+        "sugar"
+      ],
+      "expected_keywords": [
+        "lemons",
+        "water",
+        "sugar"
+      ],
+      "rubric": "Mentions key ingredients for lemonade."
+    },
+    {
+      "id": "4",
+      "category": "general",
+      "prompt": "What is the tallest mountain in the world?",
+      "expected_contains": [
+        "Mount Everest"
+      ],
+      "expected_keywords": [
+        "Everest",
+        "tallest",
+        "mountain"
+      ],
+      "rubric": "Identifies Mount Everest correctly."
+    },
+    {
+      "id": "5",
+      "category": "general",
+      "prompt": "Who wrote the play Hamlet?",
+      "expected_contains": [
+        "William Shakespeare"
+      ],
+      "expected_keywords": [
+        "Shakespeare",
+        "Hamlet"
+      ],
+      "rubric": "Correctly attributes Hamlet to Shakespeare."
+    },
+    {
+      "id": "6",
+      "category": "math",
+      "prompt": "What is 5 times 4?",
+      "expected_contains": [
+        "20"
+      ],
+      "expected_keywords": [
+        "20",
+        "times",
+        "five"
+      ],
+      "rubric": "Provides the correct arithmetic result."
+    },
+    {
+      "id": "7",
+      "category": "memory",
+      "prompt": "Remember that my cat is named Mittens.",
+      "expected_contains": [
+        "Mittens"
+      ],
+      "expected_keywords": [
+        "Mittens",
+        "cat",
+        "remember"
+      ],
+      "rubric": "Confirms retention of the name Mittens."
+    },
+    {
+      "id": "8",
+      "category": "instructions",
+      "prompt": "Set a timer for 10 minutes.",
+      "expected_contains": [
+        "10 minutes"
+      ],
+      "expected_keywords": [
+        "timer",
+        "10",
+        "minutes"
+      ],
+      "rubric": "Acknowledges setting a 10-minute timer."
+    },
+    {
+      "id": "9",
+      "category": "reasoning",
+      "prompt": "If all dogs are mammals, are poodles mammals?",
+      "expected_contains": [
+        "Yes"
+      ],
+      "expected_keywords": [
+        "Yes",
+        "poodle",
+        "mammal"
+      ],
+      "rubric": "Logical deduction that poodles are mammals."
+    },
+    {
+      "id": "10",
+      "category": "science",
+      "prompt": "What is the chemical symbol for water?",
+      "expected_contains": [
+        "H2O"
+      ],
+      "expected_keywords": [
+        "H2O",
+        "water",
+        "symbol"
+      ],
+      "rubric": "Identifies H2O as the water symbol."
+    },
+    {
+      "id": "1",
+      "category": "math",
+      "prompt": "What is the square root of 144?",
+      "expected_contains": [
+        "12"
+      ],
+      "expected_keywords": [
+        "12"
+      ],
+      "rubric": "Correct calculation"
+    },
+    {
+      "id": "2",
+      "category": "math",
+      "prompt": "Multiply 7 by 8.",
+      "expected_contains": [
+        "56"
+      ],
+      "expected_keywords": [
+        "56"
+      ],
+      "rubric": "Correct product"
+    },
+    {
+      "id": "3",
+      "category": "math",
+      "prompt": "Divide 100 by 4.",
+      "expected_contains": [
+        "25"
+      ],
+      "expected_keywords": [
+        "25"
+      ],
+      "rubric": "Correct quotient"
+    },
+    {
+      "id": "4",
+      "category": "math",
+      "prompt": "Add 15 and 20.",
+      "expected_contains": [
+        "35"
+      ],
+      "expected_keywords": [
+        "35"
+      ],
+      "rubric": "Correct sum"
+    },
+    {
+      "id": "5",
+      "category": "math",
+      "prompt": "Subtract 10 from 50.",
+      "expected_contains": [
+        "40"
+      ],
+      "expected_keywords": [
+        "40"
+      ],
+      "rubric": "Correct difference"
+    },
+    {
+      "id": "7",
+      "category": "time",
+      "prompt": "What is the current date?",
+      "expected_contains": [],
+      "expected_keywords": [
+        "date",
+        "today"
+      ],
+      "rubric": "Provides current date"
+    },
+    {
+      "id": "9",
+      "category": "reasoning",
+      "prompt": "If it rains, should I take an umbrella?",
+      "expected_contains": [
+        "yes"
+      ],
+      "expected_keywords": [
+        "yes",
+        "umbrella"
+      ],
+      "rubric": "Logical recommendation"
+    },
+    {
+      "id": "10",
+      "category": "science",
+      "prompt": "What gas do plants absorb?",
+      "expected_contains": [
+        "carbon dioxide"
+      ],
+      "expected_keywords": [
+        "carbon",
+        "dioxide"
+      ],
+      "rubric": "Correct scientific fact"
+    },
+    {
+      "id": "1",
+      "category": "memory",
+      "prompt": "Remember that my favorite color is blue.",
+      "expected_contains": [],
+      "expected_keywords": [
+        "blue"
+      ],
+      "rubric": "Confirm the color was saved."
+    },
+    {
+      "id": "2",
+      "category": "math",
+      "prompt": "What is the sum of five and seven?",
+      "expected_contains": [
+        "12"
+      ],
+      "expected_keywords": [
+        "12"
+      ],
+      "rubric": "Result must be 12."
+    }
+  ]
+}

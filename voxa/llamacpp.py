@@ -23,9 +23,15 @@ GENERATE_TIMEOUT_SECONDS = 600
 class LlamaCppClient:
     """Talks to a llama.cpp server exposing the OpenAI-compatible API."""
 
-    def __init__(self, base_url: str = "http://127.0.0.1:8080", timeout: float = 5.0) -> None:
+    def __init__(
+        self,
+        base_url: str = "http://127.0.0.1:8080",
+        timeout: float = 5.0,
+        reasoning_effort: str | None = None,
+    ) -> None:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
+        self.reasoning_effort = reasoning_effort
 
     def list_models(self) -> list[str]:
         request = urllib.request.Request(f"{self.base_url}/v1/models", method="GET")
@@ -71,6 +77,8 @@ class LlamaCppClient:
             "stream": True,
             "max_tokens": num_predict,
         }
+        if self.reasoning_effort:
+            body["reasoning_effort"] = self.reasoning_effort
         payload = json.dumps(body).encode("utf-8")
         request = urllib.request.Request(
             f"{self.base_url}/v1/chat/completions",

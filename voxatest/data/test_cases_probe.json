@@ -1,0 +1,273 @@
+{
+  "cases": [
+    {
+      "id": "1",
+      "category": "open_app",
+      "prompt": "Open Chrome browser",
+      "expected_contains": [
+        "Opening Chrome"
+      ],
+      "expected_keywords": [
+        "Opening",
+        "Chrome"
+      ],
+      "rubric": "Must acknowledge the command and launch Chrome."
+    },
+    {
+      "id": "2",
+      "category": "open_app",
+      "prompt": "Start calculator app",
+      "expected_contains": [
+        "Opening Calculator"
+      ],
+      "expected_keywords": [
+        "Opening",
+        "Calculator"
+      ],
+      "rubric": "Must confirm the launch of the calculator application."
+    },
+    {
+      "id": "3",
+      "category": "open_app",
+      "prompt": "Launch terminal window",
+      "expected_contains": [
+        "Opening Terminal"
+      ],
+      "expected_keywords": [
+        "Opening",
+        "Terminal"
+      ],
+      "rubric": "Must initiate the terminal application successfully."
+    },
+    {
+      "id": "4",
+      "category": "open_app",
+      "prompt": "Open my email client",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Opening",
+        "Email"
+      ],
+      "rubric": "Must open the default email application without error."
+    },
+    {
+      "id": "5",
+      "category": "open_app",
+      "prompt": "Start file manager",
+      "expected_contains": [
+        "Opening File Manager"
+      ],
+      "expected_keywords": [
+        "Opening",
+        "File"
+      ],
+      "rubric": "Must launch the file management utility."
+    },
+    {
+      "id": "6",
+      "category": "open_app",
+      "prompt": "Open a document editor",
+      "expected_contains": [
+        "Opening Word"
+      ],
+      "expected_keywords": [
+        "Opening",
+        "Word"
+      ],
+      "rubric": "Must open Microsoft Word or a default editor."
+    },
+    {
+      "id": "7",
+      "category": "open_app",
+      "prompt": "Launch the photo viewer",
+      "expected_contains": [
+        "Opening Photos"
+      ],
+      "expected_keywords": [
+        "Opening",
+        "Photos"
+      ],
+      "rubric": "Must start the default image viewing application."
+    },
+    {
+      "id": "8",
+      "category": "open_app",
+      "prompt": "Open the calendar app",
+      "expected_contains": [
+        "Opening Calendar"
+      ],
+      "expected_keywords": [
+        "Opening",
+        "Calendar"
+      ],
+      "rubric": "Must launch the system calendar application."
+    },
+    {
+      "id": "9",
+      "category": "open_app",
+      "prompt": "Start the task manager",
+      "expected_contains": [
+        "Opening Task Manager"
+      ],
+      "expected_keywords": [
+        "Opening",
+        "Task"
+      ],
+      "rubric": "Must open the system task monitoring tool."
+    },
+    {
+      "id": "10",
+      "category": "open_app",
+      "prompt": "Open Photoshop",
+      "expected_contains": [
+        "I couldn't find an app called Photoshop"
+      ],
+      "expected_keywords": [
+        "couldn't",
+        "find"
+      ],
+      "rubric": "Must report failure due to the missing application."
+    },
+    {
+      "id": "1",
+      "category": "email_draft",
+      "prompt": "Draft an email to Bob about the meeting.",
+      "expected_contains": [
+        "Drafting an email to Bob",
+        "Subject: Meeting"
+      ],
+      "expected_keywords": [
+        "drafting",
+        "Bob",
+        "meeting"
+      ],
+      "rubric": "Voxa must generate a draft email content targeted at Bob regarding a meeting."
+    },
+    {
+      "id": "2",
+      "category": "email_draft",
+      "prompt": "Write an email to Sarah requesting the project report.",
+      "expected_contains": [
+        "Drafting an email to Sarah"
+      ],
+      "expected_keywords": [
+        "drafting",
+        "Sarah",
+        "report"
+      ],
+      "rubric": "Voxa must generate a draft email content targeted at Sarah requesting a report."
+    },
+    {
+      "id": "3",
+      "category": "email_draft",
+      "prompt": "Create an email to the team about the new policy.",
+      "expected_contains": [
+        "Drafting an email to the team"
+      ],
+      "expected_keywords": [
+        "drafting",
+        "team",
+        "policy"
+      ],
+      "rubric": "Voxa must generate a draft email content targeted at the team regarding a policy."
+    },
+    {
+      "id": "4",
+      "category": "email_draft",
+      "prompt": "Draft an email to Alex confirming the lunch reservation.",
+      "expected_contains": [
+        "Drafting an email to Alex"
+      ],
+      "expected_keywords": [
+        "drafting",
+        "Alex",
+        "lunch"
+      ],
+      "rubric": "Voxa must generate a draft email content targeted at Alex confirming a reservation."
+    },
+    {
+      "id": "5",
+      "category": "email_draft",
+      "prompt": "Send an email to Linda regarding the invoice payment.",
+      "expected_contains": [
+        "Drafting an email to Linda"
+      ],
+      "expected_keywords": [
+        "drafting",
+        "Linda",
+        "invoice"
+      ],
+      "rubric": "Voxa must interpret 'send' as 'draft' and generate email content for Linda."
+    },
+    {
+      "id": "6",
+      "category": "email_draft",
+      "prompt": "Compose an email to John asking for feedback on the design.",
+      "expected_contains": [
+        "Drafting an email to John"
+      ],
+      "expected_keywords": [
+        "drafting",
+        "John",
+        "feedback"
+      ],
+      "rubric": "Voxa must generate a draft email content targeted at John asking for feedback."
+    },
+    {
+      "id": "7",
+      "category": "email_draft",
+      "prompt": "Draft an email to the support team about the bug.",
+      "expected_contains": [
+        "Drafting an email to the support team"
+      ],
+      "expected_keywords": [
+        "drafting",
+        "support",
+        "bug"
+      ],
+      "rubric": "Voxa must generate a draft email content targeted at support regarding a bug."
+    },
+    {
+      "id": "8",
+      "category": "email_draft",
+      "prompt": "Write an email to Mike scheduling the next call.",
+      "expected_contains": [
+        "Drafting an email to Mike"
+      ],
+      "expected_keywords": [
+        "drafting",
+        "Mike",
+        "schedule"
+      ],
+      "rubric": "Voxa must generate a draft email content targeted at Mike for scheduling."
+    },
+    {
+      "id": "9",
+      "category": "email_draft",
+      "prompt": "Create an email to HR about the vacation request.",
+      "expected_contains": [
+        "Drafting an email to HR"
+      ],
+      "expected_keywords": [
+        "drafting",
+        "HR",
+        "vacation"
+      ],
+      "rubric": "Voxa must generate a draft email content targeted at HR regarding vacation."
+    },
+    {
+      "id": "10",
+      "category": "email_draft",
+      "prompt": "Draft an email to the client summarizing the project.",
+      "expected_contains": [
+        "Drafting an email to the client"
+      ],
+      "expected_keywords": [
+        "drafting",
+        "client",
+        "summary"
+      ],
+      "rubric": "Voxa must generate a draft email content targeted at a client summarizing a project."
+    }
+  ]
+}

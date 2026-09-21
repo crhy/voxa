@@ -1,0 +1,139 @@
+{
+  "cases": [
+    {
+      "id": "case1",
+      "category": "general",
+      "prompt": "Give a brief explanation of why sleep matters.",
+      "expected_contains": [
+        "sleep",
+        "health"
+      ],
+      "expected_keywords": [
+        "sleep",
+        "health",
+        "rest"
+      ],
+      "rubric": "Clear, short explanation."
+    },
+    {
+      "id": "case2",
+      "category": "general",
+      "prompt": "Summarize a good morning routine in one line.",
+      "expected_contains": [
+        "morning routine"
+      ],
+      "expected_keywords": [
+        "morning",
+        "routine",
+        "simple"
+      ],
+      "rubric": "Concise actionable summary."
+    },
+    {
+      "id": "case3",
+      "category": "math",
+      "prompt": "What is 7 times 8?",
+      "expected_contains": [
+        "56"
+      ],
+      "expected_keywords": [
+        "56"
+      ],
+      "rubric": "Correct arithmetic answer."
+    },
+    {
+      "id": "case4",
+      "category": "instructions",
+      "prompt": "Set a timer for ten minutes.",
+      "expected_contains": [
+        "timer",
+        "ten minutes"
+      ],
+      "expected_keywords": [
+        "timer",
+        "ten",
+        "minutes"
+      ],
+      "rubric": "Confirms the requested timer action."
+    },
+    {
+      "id": "case5",
+      "category": "reasoning",
+      "prompt": "Why can a river flood during heavy rain?",
+      "expected_contains": [
+        "heavy rain",
+        "flood"
+      ],
+      "expected_keywords": [
+        "rain",
+        "flood",
+        "water"
+      ],
+      "rubric": "Explains cause and effect."
+    },
+    {
+      "id": "1",
+      "category": "math",
+      "prompt": "What is twelve plus eight?",
+      "expected_contains": [
+        "20"
+      ],
+      "expected_keywords": [
+        "twenty",
+        "20"
+      ],
+      "rubric": "Check numeric correctness."
+    },
+    {
+      "id": "2",
+      "category": "math",
+      "prompt": "Multiply seven by six.",
+      "expected_contains": [
+        "42"
+      ],
+      "expected_keywords": [
+        "42"
+      ],
+      "rubric": "Check numeric correctness."
+    },
+    {
+      "id": "3",
+      "category": "instructions",
+      "prompt": "Turn on the lights.",
+      "expected_contains": [
+        "lights"
+      ],
+      "expected_keywords": [
+        "turn",
+        "lights"
+      ],
+      "rubric": "Confirm an action-oriented reply."
+    },
+    {
+      "id": "4",
+      "category": "general",
+      "prompt": "Who wrote Hamlet?",
+      "expected_contains": [
+        "Shakespeare"
+      ],
+      "expected_keywords": [
+        "Shakespeare"
+      ],
+      "rubric": "Check factual accuracy."
+    },
+    {
+      "id": "5",
+      "category": "science",
+      "prompt": "Explain why the sky looks blue.",
+      "expected_contains": [
+        "scattering"
+      ],
+      "expected_keywords": [
+        "scattering",
+        "sky",
+        "blue"
+      ],
+      "rubric": "Check a simple science explanation."
+    }
+  ]
+}
