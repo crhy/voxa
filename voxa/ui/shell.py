@@ -18,6 +18,8 @@ gi.require_version("Gdk", "4.0")
 gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk  # noqa: E402
 
+from voxa.config import Settings  # noqa: E402
+
 from .assistant_view import BADGE_PATH, AssistantView  # noqa: E402
 from .choice_overlay import ChoiceOverlay  # noqa: E402
 from .exchange_panel import ExchangePanel  # noqa: E402
@@ -34,9 +36,10 @@ EDGE_MARGIN = 24
 class AssistantShell(Gtk.Overlay):
     """The whole application body: centered assistant plus floating overlays."""
 
-    def __init__(self, model: AssistantModel) -> None:
+    def __init__(self, model: AssistantModel, settings: Settings | None = None) -> None:
         super().__init__()
         self.model = model
+        self.settings = settings
 
         self.on_active: Callable[[], None] | None = None
         self.on_offline: Callable[[], None] | None = None
@@ -60,7 +63,8 @@ class AssistantShell(Gtk.Overlay):
         bottom_spacer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         bottom_spacer.set_vexpand(True)
 
-        self.assistant_view = AssistantView()
+        character_id = "" if settings is None else settings.character_id
+        self.assistant_view = AssistantView(character_id)
         self.assistant_view.set_halign(Gtk.Align.CENTER)
         self.assistant_view.set_valign(Gtk.Align.CENTER)
 

@@ -40,6 +40,18 @@ def test_appearance_and_voice_are_normalized(tmp_path: Path) -> None:
     assert loaded.tts_voice == "en-US-AriaNeural"
 
 
+def test_character_id_is_normalized_and_unknown_ids_become_classic(tmp_path: Path) -> None:
+    store = ConfigStore(tmp_path / "config.json")
+    store.save(Settings(character_id="Grace"))
+    assert store.load().character_id == "grace"
+
+    store.save(Settings(character_id="PORCELAIN-GRACE"))
+    assert store.load().character_id == ""
+
+    store.save(Settings(character_id=""))
+    assert store.load().character_id == ""
+
+
 def test_wake_word_falls_back_to_default_when_blank(tmp_path: Path) -> None:
     store = ConfigStore(tmp_path / "config.json")
     store.save(Settings(wake_word="   "))

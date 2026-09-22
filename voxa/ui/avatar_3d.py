@@ -27,12 +27,26 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import GLib, Gtk  # noqa: E402
 
 from .assistant_view import AVATAR_SIZE  # noqa: E402
+from .avatars import AvatarDescriptor, default_avatar, get_avatar, model_is_downloaded  # noqa: E402
 from .gltf import GltfLoadError, load_mesh  # noqa: E402
 from .state import AssistantState  # noqa: E402
 
 FACE_COLOR = (0.52, 0.70, 0.84)
 MOUTH_COLOR = (0.22, 0.40, 0.58)
 EYE_COLOR = (0.88, 0.95, 1.00)
+
+def _blend(source: tuple[float, float, float], target: tuple[float, float, float], amount: float) -> tuple[float, float, float]:
+    amount = max(0.0, min(1.0, float(amount)))
+    return tuple(source[channel] * (1.0 - amount) + target[channel] * amount for channel in range(3))
+
+
+def _face_colors(avatar: AvatarDescriptor | None) -> tuple[tuple[float, float, float], tuple[float, float, float], tuple[float, float, float], tuple[float, float, float] | None]:
+    skin = avatar.skin_tone if avatar is not None and avatar.skin_tone is not None else FACE_COLOR
+    mouth = _blend(skin, (0.0, 0.0, 0.0), 0.55)
+    eyes = _blend(skin, (1.0, 1.0, 1.0), 0.55)
+    hair = avatar.hair_color if avatar is not None else None
+    return skin, mouth, eyes, hair
+
 
 VERTEX_SHADER = """
 #version 300 es
@@ -125,14 +139,21 @@ def _add_sphere(verts, radius, center, color, kind):
             verts.append((x, y, z, color[0], color[1], color[2], float(kind)))
 
 
-def _build_mesh(audio_level: float, speaking: bool = False) -> list[tuple[float, float, float, float, float, float, float]]:
+def _build_mesh(
+    audio_level: float,
+    speaking: bool = False,
+    avatar: AvatarDescriptor | None = None,
+) -> list[tuple[float, float, float, float, float, float, float]]:
     level = max(0.0, min(1.0, float(audio_level)))
     mouth_open = 0.018 + (level * 0.18 if speaking else level * 0.04)
+    face_color, mouth_color, eye_color, hair_color = _face_colors(avatar)
     verts = []
 
-    _add_sphere(verts, 0.82, (0.0, 0.0, 0.0), FACE_COLOR, 0.0)
-    _add_sphere(verts, 0.12, (-0.33, 0.20, 0.72), EYE_COLOR, 2.0)
-    _add_sphere(verts, 0.12, (0.33, 0.20, 0.72), EYE_COLOR, 2.0)
+    _add_sphere(verts, 0.82, (0.0, 0.0, 0.0), face_color, 0.0)
+    if hair_color is not None:
+        _add_sphere(verts, 0.84, (0.0, 0.12, -0.18), hair_color, 3.0)
+    _add_sphere(verts, 0.12, (-0.33, 0.20, 0.72), eye_color, 2.0)
+    _add_sphere(verts, 0.12, (0.33, 0.20, 0.72), eye_color, 2.0)
 
     y_top = -0.12 + mouth_open
     y_bottom = -0.12 - mouth_open
@@ -146,17 +167,18 @@ def _build_mesh(audio_level: float, speaking: bool = False) -> list[tuple[float,
         (x_right, y_bottom, z),
         (x_left, y_bottom, z),
     ]
+    mouth_rgb = (mouth_color[0], mouth_color[1], mouth_color[2])
     for x, y, mouth_z in quad:
-        verts.append((x, y, mouth_z, MOUTH_COLOR[0], MOUTH_COLOR[1], MOUTH_COLOR[2], 1.0))
+        verts.append((x, y, mouth_z, mouth_rgb[0], mouth_rgb[1], mouth_rgb[2], 1.0))
 
     verts.extend(
         [
-            quad[0] + (MOUTH_COLOR[0], MOUTH_COLOR[1], MOUTH_COLOR[2], 1.0),
-            quad[1] + (MOUTH_COLOR[0], MOUTH_COLOR[1], MOUTH_COLOR[2], 1.0),
-            quad[2] + (MOUTH_COLOR[0], MOUTH_COLOR[1], MOUTH_COLOR[2], 1.0),
-            quad[0] + (MOUTH_COLOR[0], MOUTH_COLOR[1], MOUTH_COLOR[2], 1.0),
-            quad[2] + (MOUTH_COLOR[0], MOUTH_COLOR[1], MOUTH_COLOR[2], 1.0),
-            quad[3] + (MOUTH_COLOR[0], MOUTH_COLOR[1], MOUTH_COLOR[2], 1.0),
+            quad[0] + (mouth_rgb[0], mouth_rgb[1], mouth_rgb[2], 1.0),
+            quad[1] + (mouth_rgb[0], mouth_rgb[1], mouth_rgb[2], 1.0),
+            quad[2] + (mouth_rgb[0], mouth_rgb[1], mouth_rgb[2], 1.0),
+            quad[0] + (mouth_rgb[0], mouth_rgb[1], mouth_rgb[2], 1.0),
+            quad[2] + (mouth_rgb[0], mouth_rgb[1], mouth_rgb[2], 1.0),
+            quad[3] + (mouth_rgb[0], mouth_rgb[1], mouth_rgb[2], 1.0),
         ]
     )
 
@@ -182,9 +204,9 @@ def avatar_model_path() -> str | None:
     return path
 
 
-def _load_avatar_model(path: str) -> list[tuple[float, float, float, float, float, float, float]]:
+def _load_avatar_model(path: str, color: tuple[float, float, float] = FACE_COLOR) -> list[tuple[float, float, float, float, float, float, float]]:
     """Load a downloaded .glb mesh, raising GltfLoadError with a clear reason."""
-    return load_mesh(path, color=FACE_COLOR)
+    return load_mesh(path, color=color)
 
 
 def _ensure_pyopengl_context() -> None:
@@ -213,8 +235,9 @@ class Gl3DFaceRenderer:
         self._audio_level = 0.0
         self._state = AssistantState.OFFLINE
         self._speaking = False
+        self._avatar = default_avatar()
 
-        self._model_vertices = self._load_model()
+        self._model_vertices = self._load_model(self._avatar)
 
         self._area = Gtk.GLArea()
         self._area.set_size_request(AVATAR_SIZE, AVATAR_SIZE)
@@ -230,13 +253,26 @@ class Gl3DFaceRenderer:
         self.widget.append(self._area)
         self.widget.append(self.caption)
 
-    def _load_model(self):
-        """Load the VOXA_AVATAR_MODEL mesh, or return None for the procedural face."""
-        path = avatar_model_path()
+    def _effective_model_path(self, avatar: AvatarDescriptor | None) -> str | None:
+        """Return the explicit override first, then a downloaded character model."""
+        explicit_path = avatar_model_path()
+        if explicit_path:
+            return explicit_path
+
+        if avatar is not None and model_is_downloaded(avatar):
+            return str(avatar.model_path)
+
+        return None
+
+    def _load_model(self, avatar: AvatarDescriptor | None = None):
+        """Load a model when available, or return None for the procedural face."""
+        path = self._effective_model_path(avatar)
         if path is None:
             return None
+
+        face_color, _mouth, _eyes, _hair = _face_colors(avatar)
         try:
-            vertices = _load_avatar_model(path)
+            vertices = _load_avatar_model(path, color=face_color)
         except (GltfLoadError, OSError) as exc:
             logging.warning(
                 "avatar model %s could not be loaded (%s); falling back to the procedural face",
@@ -244,8 +280,26 @@ class Gl3DFaceRenderer:
                 exc,
             )
             return None
+
         logging.info("3D avatar model %s loaded (%d triangles)", path, len(vertices) // 3)
         return vertices
+
+    def set_character(self, character_id: str | None) -> None:
+        """Switch to a character without replacing the GLArea widget."""
+        avatar = default_avatar() if not character_id else get_avatar(character_id)
+        if avatar is None:
+            avatar = default_avatar()
+
+        self._avatar = avatar
+        self._model_vertices = self._load_model(avatar)
+
+        if self._gl is not None and self._gl_ok:
+            vertices = self._model_vertices or _build_mesh(
+                self._audio_level,
+                speaking=self._speaking,
+                avatar=avatar,
+            )
+            self._upload_mesh(self._gl, vertices)
 
     def _initialize_gl(self) -> None:
         try:
@@ -297,7 +351,7 @@ class Gl3DFaceRenderer:
         self._vao = _single(gl.glGenVertexArrays(1))
 
         stride = 7 * 4
-        self._upload_mesh(gl, self._model_vertices or _build_mesh(0.0))
+        self._upload_mesh(gl, self._model_vertices or _build_mesh(0.0, avatar=self._avatar))
         gl.glEnableVertexAttribArray(0)
         gl.glEnableVertexAttribArray(1)
         gl.glEnableVertexAttribArray(2)
@@ -359,7 +413,7 @@ class Gl3DFaceRenderer:
             # _setup_gl, so each frame only needs the audio/time uniforms.
             triangles = self._model_vertices
         else:
-            triangles = _build_mesh(self._audio_level, speaking=self._speaking)
+            triangles = _build_mesh(self._audio_level, speaking=self._speaking, avatar=self._avatar)
             self._upload_mesh(gl, triangles)
 
         gl.glUseProgram(self._program)

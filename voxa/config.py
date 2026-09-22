@@ -7,6 +7,8 @@ from dataclasses import asdict, dataclass, fields
 from pathlib import Path
 from typing import Any
 
+from voxa.ui.avatars import get_avatar
+
 
 @dataclass(slots=True)
 class Settings:
@@ -17,7 +19,9 @@ class Settings:
     ollama_url: str = "http://127.0.0.1:11434"
     ai_backend: str = "llamacpp"
     llamacpp_url: str = "http://127.0.0.1:8080"
+    llamacpp_model: str = ""
     language: str = "en"
+    character_id: str = ""
     tts_rate: int = 180
     tts_voice: str = "en-US-AriaNeural"
     appearance: str = "system"
@@ -42,6 +46,9 @@ class Settings:
             self.ai_backend = "llamacpp"
         self.language = (self.language or "en").strip()[:16]
         self.wake_word = (self.wake_word or "voxa").strip()[:32] or "voxa"
+        self.character_id = (self.character_id or "").strip().lower()
+        if self.character_id and get_avatar(self.character_id) is None:
+            self.character_id = ""
         return self
 
 
@@ -71,6 +78,8 @@ class ConfigStore:
         # Compatibility with the pre-0.4 configuration keys.
         if "selected_model" in payload and "ollama_model" not in clean:
             clean["ollama_model"] = payload["selected_model"]
+        if "avatar" in payload and "character_id" not in clean:
+            clean["character_id"] = payload["avatar"]
         if "microphone_name" in payload:
             clean["microphone_name"] = payload["microphone_name"]
         # Configs written before the llama.cpp backend existed have no

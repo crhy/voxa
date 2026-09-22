@@ -47,6 +47,8 @@ class AvatarRenderer(Protocol):
     widget: Gtk.Box
     caption: Gtk.Label
 
+    def set_character(self, character_id: str | None) -> None: ...
+
     def set_state(self, state: AssistantState, detail: str = "") -> None: ...
 
     def set_listening(self, active: bool) -> None: ...
@@ -71,6 +73,9 @@ class AvatarRendererBase:
 
     def __init__(self) -> None:
         self._audio_level = 0.0
+
+    def set_character(self, character_id: str | None) -> None:
+        pass
 
     def set_state(self, state: AssistantState, detail: str = "") -> None:
         raise NotImplementedError
@@ -176,10 +181,11 @@ class StaticAssistantRenderer(AvatarRendererBase):
 class AssistantView(Gtk.Box):
     """The Voxa presence at the center of the window."""
 
-    def __init__(self) -> None:
+    def __init__(self, character_id: str | None = None) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         self.add_css_class("voxa-assistant-view")
 
+        self._character_id = "grace" if character_id is None else character_id
         self._static_renderer = StaticAssistantRenderer(self)
         self._renderer: AvatarRenderer = self._static_renderer
         self._3d_renderer = None
@@ -187,11 +193,12 @@ class AssistantView(Gtk.Box):
         self._3d_pending = False
         self.append(self._static_renderer.widget)
 
-        if os.environ.get("VOXA_3D_AVATAR") == "1":
+        if self._character_id and os.environ.get("VOXA_3D_AVATAR") == "1":
             try:
                 from .avatar_3d import Gl3DFaceRenderer
 
                 renderer = Gl3DFaceRenderer(self)
+                renderer.set_character(self._character_id)
                 if renderer.widget is None:
                     raise RuntimeError("3D avatar renderer produced no widget")
                 self._3d_renderer = renderer
@@ -280,6 +287,33 @@ class AssistantView(Gtk.Box):
     @property
     def audio_level(self) -> float:
         return self._renderer.audio_level
+
+    def set_character(self, character_id: str | None) -> None:
+        """Switch the assistant avatar without rebuilding the whole view."""
+        self._character_id = character_id if character_id is not None else ""
+
+        if not self._character_id:
+            if self._3d_renderer is not None:
+                self._fallback_3d_renderer()
+            return
+
+        if self._3d_renderer is not None:
+            self._3d_renderer.set_character(self._character_id)
+            if not self._3d_enabled:
+                self._activate_3d_renderer(self._3d_renderer)
+        elif os.environ.get("VOXA_3D_AVATAR") == "1":
+            try:
+                from .avatar_3d import Gl3DFaceRenderer
+
+                renderer = Gl3DFaceRenderer(self)
+                renderer.set_character(self._character_id)
+                if renderer.widget is None:
+                    raise RuntimeError("3D avatar renderer produced no widget")
+                self._3d_renderer = renderer
+                self._activate_3d_renderer(renderer)
+            except Exception as exc:
+                logging.warning("3D avatar renderer unavailable; falling back: %s", exc)
+                self._fallback_3d_renderer()
 
     def set_state(self, state: AssistantState, detail: str = "") -> None:
         """Update the caption; a non-empty detail replaces the default text."""

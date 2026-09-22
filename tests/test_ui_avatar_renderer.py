@@ -53,6 +53,14 @@ def test_3d_opt_in_falls_back_when_renderer_unavailable(monkeypatch) -> None:
     assert isinstance(view.renderer, StaticAssistantRenderer)
 
 
+def test_set_character_empty_keeps_static_renderer(monkeypatch) -> None:
+    monkeypatch.setenv("VOXA_3D_AVATAR", "1")
+    view = AssistantView()
+    view.set_character("")
+    assert isinstance(view.renderer, StaticAssistantRenderer)
+    assert view._character_id == ""
+
+
 def test_avatar_widget_is_inside_assistant_view() -> None:
     view = AssistantView()
     child = view.get_first_child()

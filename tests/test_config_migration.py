@@ -98,7 +98,13 @@ def test_a_config_from_a_newer_version_loads_and_ignores_unknown_keys(tmp_path: 
     payload = {**RELEASED_SCHEMAS["voxa-0.1.1"], "some_future_setting": {"nested": True}, "avatar": "porcelain-grace"}
     loaded = _store(tmp_path, payload).load()
     assert loaded.wake_word == "computer" and loaded.ollama_model == "qwen3:14b"
+    assert loaded.character_id == ""
     assert not hasattr(loaded, "some_future_setting")
+
+
+def test_legacy_avatar_key_maps_to_character_id(tmp_path: Path) -> None:
+    loaded = _store(tmp_path, {"avatar": "Grace"}).load()
+    assert loaded.character_id == "grace"
 
 
 def test_a_new_install_defaults_to_llamacpp(tmp_path: Path) -> None:

@@ -23,6 +23,7 @@ from .llamacpp import LlamaCppClient  # noqa: E402
 from .ollama import OllamaClient, OllamaError, strip_reasoning  # noqa: E402
 from .speech import SpeechService  # noqa: E402
 from .transcription import WhisperService  # noqa: E402
+from .ui.avatars import character_choices, get_avatar  # noqa: E402
 from .ui.legacy_view import LegacyCallbacks, LegacyView  # noqa: E402
 from .ui.shell import AssistantShell, build_header  # noqa: E402
 from .ui.state import AssistantModel, AssistantState  # noqa: E402
@@ -41,8 +42,18 @@ TTS_VOICES = [
     ("Aria — US female", "en-US-AriaNeural"),
     ("Jenny — US female", "en-US-JennyNeural"),
     ("Guy — US male", "en-US-GuyNeural"),
-    ("Sonia — UK female", "en-GB-SoniaNeural"),
+    ("Connor — Ireland male", "en-IE-ConnorNeural"),
+    ("Emily — Ireland female", "en-IE-EmilyNeural"),
     ("Ryan — UK male", "en-GB-RyanNeural"),
+    ("Sonia — UK female", "en-GB-SoniaNeural"),
+    ("Jorge — Mexico male", "es-MX-JorgeNeural"),
+    ("Dalia — Mexico female", "es-MX-DaliaNeural"),
+    ("Henri — France male", "fr-FR-HenriNeural"),
+    ("Denise — France female", "fr-FR-DeniseNeural"),
+    ("Conrad — Germany male", "de-DE-ConradNeural"),
+    ("Katja — Germany female", "de-DE-KatjaNeural"),
+    ("Keita — Japan male", "ja-JP-KeitaNeural"),
+    ("Nanami — Japan female", "ja-JP-NanamiNeural"),
 ]
 # A few turns of history keeps the model aware of what was just said without
 # letting a long hands-free session grow the prompt unboundedly.
@@ -190,7 +201,7 @@ class MainWindow(Adw.ApplicationWindow):
 
         # The assistant shell is the production interface. Everything it shows is
         # rendered from self.assistant_model; the window only wires callbacks.
-        self.shell = AssistantShell(self.assistant_model)
+        self.shell = AssistantShell(self.assistant_model, self.settings)
         self.shell.on_active = self._on_shell_active
         self.shell.on_offline = self._on_shell_offline
         self.shell.on_model_selected = self._on_shell_model_selected
@@ -1864,6 +1875,19 @@ class MainWindow(Adw.ApplicationWindow):
         voice_page.set_description("The voice that reads AI responses aloud.")
         voice_group = Adw.PreferencesGroup()
         voice_page.add(voice_group)
+        choices = character_choices()
+        character_ids = [character_id for character_id, _label in choices]
+        self._character_ids = character_ids
+        character_row = Adw.ComboRow(
+            title="Assistant character",
+            subtitle="Select an avatar and its matching voice, or the Classic badge",
+        )
+        character_row.set_model(Gtk.StringList.new([label for _character_id, label in choices]))
+        character_row.set_selected(
+            character_ids.index(self.settings.character_id) if self.settings.character_id in character_ids else 0
+        )
+        voice_group.add(character_row)
+
         voice_row = Adw.ComboRow(
             title="Voice",
             subtitle="Natural online voice with automatic offline fallback",
@@ -1874,6 +1898,15 @@ class MainWindow(Adw.ApplicationWindow):
             voice_ids.index(self.settings.tts_voice) if self.settings.tts_voice in voice_ids else 0
         )
         voice_group.add(voice_row)
+
+        def _sync_voice_from_character(row, _property) -> None:
+            selected_index = row.get_selected()
+            character_id = character_ids[min(selected_index, len(character_ids) - 1)]
+            avatar = get_avatar(character_id)
+            if avatar is not None and avatar.voice in voice_ids:
+                voice_row.set_selected(voice_ids.index(avatar.voice))
+
+        character_row.connect("notify::selected", _sync_voice_from_character)
         rate_row = Adw.SpinRow.new_with_range(80, 350, 5)
         rate_row.set_title("Speaking rate")
         rate_row.set_value(self.settings.tts_rate)
@@ -1893,6 +1926,7 @@ class MainWindow(Adw.ApplicationWindow):
             auto_speak_row,
             web_search_row,
             wake_word_row,
+            character_row,
             voice_row,
             rate_row,
         )
@@ -1911,6 +1945,7 @@ class MainWindow(Adw.ApplicationWindow):
         auto_speak_row,
         web_search_row,
         wake_word_row,
+        character_row,
         voice_row,
         rate_row,
     ) -> None:
@@ -1928,10 +1963,16 @@ class MainWindow(Adw.ApplicationWindow):
         self.settings.web_search = web_search_row.get_active()
         self.settings.wake_word = wake_word_row.get_text().strip()
         self.settings.appearance = APPEARANCE_VALUES[appearance_row.get_selected()]
+        self.settings.character_id = self._character_ids[
+            min(character_row.get_selected(), len(self._character_ids) - 1)
+        ]
         self.settings.tts_voice = TTS_VOICES[voice_row.get_selected()][1]
         self.settings.tts_rate = int(rate_row.get_value())
         self.config_store.save(self.settings)
         self._apply_appearance()
+        assistant_view = getattr(self.shell, "assistant_view", None)
+        if assistant_view is not None:
+            assistant_view.set_character(self.settings.character_id)
         if new_whisper != self.settings.whisper_model:
             self._load_whisper(new_whisper)
         self._refresh_ollama_models()

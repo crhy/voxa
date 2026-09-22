@@ -7,3 +7,6 @@ build-dir/
 .flatpak-builder/
 repo/
 *.flatpak
+.local-flatpak-build-*/
+.local-flatpak-repo-*/
+.flatpak-validation-*/
