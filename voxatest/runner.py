@@ -52,13 +52,17 @@ def run_case(
     speak_done = threading.Event()
     speak_errors: list[str] = []
 
+    def speech_error(message: str) -> None:
+        speak_errors.append(message)
+        speak_done.set()
+
     speech.speak(
         prompt,
         settings.tts_rate,
         settings.tts_voice,
         on_started=lambda: None,
         on_done=speak_done.set,
-        on_error=lambda message: speak_errors.append(message),
+        on_error=speech_error,
     )
 
     if not speak_done.wait(settings.speak_timeout_seconds):

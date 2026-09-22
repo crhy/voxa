@@ -7,7 +7,7 @@ Everything else follows it:
 
 | Where | How it follows `APP_VERSION` |
 | --- | --- |
-| Python package (`pyproject.toml`) | declared `dynamic`, read from `voxa.APP_VERSION` |
+| Python package (`pyproject.toml`) | declared `dynamic`, read from `voxa.__init__.APP_VERSION` |
 | About dialog | imports `APP_VERSION` |
 | AppStream (`io.github.crhy.voxa.metainfo.xml`) | the newest `<release>` must equal it (checked) |
 | Release tag | must be `v<APP_VERSION>` (checked when a tag is pushed) |
@@ -18,8 +18,8 @@ run by the test suite and by CI. It fails the build if anything disagrees:
 
 ```text
 python tools/release_check.py                 # validate
-python tools/release_check.py --tag v0.1.1    # also validate a tag
-python tools/release_check.py --print artifact  # Voxa-0.1.1-x86_64.flatpak
+python tools/release_check.py --tag v0.1.2    # also validate a tag
+python tools/release_check.py --print artifact  # Voxa-0.1.2-x86_64.flatpak
 ```
 
 ## Cutting a release

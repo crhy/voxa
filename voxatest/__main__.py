@@ -79,6 +79,16 @@ def _load_whisper(settings, log):
     return whisper, ""
 
 
+def _start_glib_main_loop():
+    """Run GLib callbacks while the command-line harness blocks on test cases."""
+    from gi.repository import GLib
+
+    loop = GLib.MainLoop()
+    thread = threading.Thread(target=loop.run, name="voxatest-glib", daemon=True)
+    thread.start()
+    return loop, thread
+
+
 def _run(settings, cases: list, json_report: str | None, text_report: str | None, reports_dir: str) -> int:
     if settings.output_device:
         os.environ.setdefault("GST_AUDIOSINK", settings.output_device)
@@ -92,39 +102,47 @@ def _run(settings, cases: list, json_report: str | None, text_report: str | None
         print(f"Cannot import Voxa audio/speech modules: {exc}", file=sys.stderr)
         return 1
 
-    whisper, whisper_error = _load_whisper(settings, print)
-    if whisper_error:
-        print(f"Whisper is unavailable: {whisper_error}", file=sys.stderr)
-        return 1
+    main_loop, main_loop_thread = _start_glib_main_loop()
+    speech = None
+    try:
+        whisper, whisper_error = _load_whisper(settings, print)
+        if whisper_error:
+            print(f"Whisper is unavailable: {whisper_error}", file=sys.stderr)
+            return 1
 
-    capture = AudioCapture()
-    if settings.input_device:
-        try:
-            capture.list_devices()
-        except Exception as exc:  # noqa: BLE001 - device discovery is a hardware boundary
-            print(f"Microphone device discovery failed: {exc}", file=sys.stderr)
+        capture = AudioCapture()
+        if settings.input_device:
+            try:
+                capture.list_devices()
+            except Exception as exc:  # noqa: BLE001 - device discovery is a hardware boundary
+                print(f"Microphone device discovery failed: {exc}", file=sys.stderr)
 
-    speech = SpeechService()
-    results = []
-    started = time.monotonic()
+        speech = SpeechService()
+        results = []
+        started = time.monotonic()
 
-    for case in cases:
-        if settings.run_deadline_seconds and time.monotonic() - started > settings.run_deadline_seconds:
-            print("Run deadline reached before all cases completed.")
-            break
-        results.append(run_case(case, settings, client, whisper, capture, speech, log=print))
+        for case in cases:
+            if settings.run_deadline_seconds and time.monotonic() - started > settings.run_deadline_seconds:
+                print("Run deadline reached before all cases completed.")
+                break
+            results.append(run_case(case, settings, client, whisper, capture, speech, log=print))
 
-    paths = write_reports(
-        results,
-        Path(reports_dir),
-        json_path=Path(json_report) if json_report else None,
-        text_path=Path(text_report) if text_report else None,
-    )
-    print(format_results(results))
-    print(f"JSON report: {paths['json_path']}")
-    print(f"Text report: {paths['text_path']}")
+        paths = write_reports(
+            results,
+            Path(reports_dir),
+            json_path=Path(json_report) if json_report else None,
+            text_path=Path(text_report) if text_report else None,
+        )
+        print(format_results(results))
+        print(f"JSON report: {paths['json_path']}")
+        print(f"Text report: {paths['text_path']}")
 
-    return 0 if paths["summary"]["failed"] == 0 else 1
+        return 0 if paths["summary"]["failed"] == 0 else 1
+    finally:
+        if speech is not None:
+            speech.stop()
+        main_loop.quit()
+        main_loop_thread.join(timeout=2.0)
 
 
 def main(argv: list[str] | None = None) -> int:

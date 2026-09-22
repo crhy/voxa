@@ -23,6 +23,13 @@
   </screenshots>
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="0.1.2" date="2026-09-22">
+      <description>
+        <p>Voxa now has an assistant-focused interface with reliable ACTIVE and OFFLINE state handling, selectable local Ollama or llama.cpp backends, and selectable animated characters.</p>
+        <p>Voice and text requests can open applications, draft email and LibreOffice documents, and use optional web search for current information. Follow-up listening and clearer model, microphone, and server status make conversations more dependable.</p>
+        <p>The new VoxaTest command provides an end-to-end voice harness with installed test cases, backend-aware configuration, grading, and reports. Packaging and release validation now cover both Voxa and VoxaTest.</p>
+      </description>
+    </release>
     <release version="0.1.1" date="2026-09-17">
       <description>
         <p>Microphone selection now excludes monitor (loopback) sources, so a picked or previously saved microphone can no longer resolve to a PipeWire or PulseAudio monitor that would record the machine's own playback instead of your voice. If a saved profile still references a monitor, capturing starts with a clear error instead of silent audio.</p>

@@ -4,7 +4,7 @@
 ``voxa.APP_VERSION`` (voxa/__init__.py) is the one place the version is written.
 Everything else is derived from it or must agree with it:
 
-* pyproject.toml declares the version as dynamic, read from ``voxa.APP_VERSION``
+* pyproject.toml declares the version as dynamic, read from ``voxa.__init__.APP_VERSION``
 * the About dialog imports ``APP_VERSION``
 * the newest ``<release>`` in the AppStream metainfo must equal it
 * a release tag must be ``v<APP_VERSION>``
@@ -13,7 +13,7 @@ Everything else is derived from it or must agree with it:
 Standard library only, so it runs anywhere CI does before anything is installed:
 
     python tools/release_check.py                    # validate everything
-    python tools/release_check.py --tag v0.1.1       # also validate a release tag
+    python tools/release_check.py --tag v0.1.2       # also validate a release tag
     python tools/release_check.py --print artifact   # print the bundle file name
 """
 
@@ -73,8 +73,11 @@ def check(root: Path = ROOT, tag: str | None = None) -> list[str]:
         if "version" not in project.get("dynamic", []):
             problems.append('pyproject.toml must list "version" in [project] dynamic')
         attr = pyproject.get("tool", {}).get("setuptools", {}).get("dynamic", {}).get("version", {})
-        if attr.get("attr") != "voxa.APP_VERSION":
-            problems.append('[tool.setuptools.dynamic] version must be {attr = "voxa.APP_VERSION"}')
+        if attr.get("attr") != "voxa.__init__.APP_VERSION":
+            problems.append(
+                '[tool.setuptools.dynamic] version must be '
+                '{attr = "voxa.__init__.APP_VERSION"}'
+            )
 
     latest = metainfo_latest_release(root)
     if latest != version:
@@ -87,7 +90,7 @@ def check(root: Path = ROOT, tag: str | None = None) -> list[str]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--tag", help="a git tag (such as v0.1.1) that must match the version")
+    parser.add_argument("--tag", help="a git tag (such as v0.1.2) that must match the version")
     parser.add_argument("--arch", default=DEFAULT_ARCH)
     parser.add_argument("--print", dest="show", choices=("version", "artifact"), help="print a value and exit")
     args = parser.parse_args(argv)

@@ -86,7 +86,25 @@ python3 -m venv .venv
 .venv/bin/python voxa.py
 ```
 
-Installed entry points are `voxa` and `voxa-backup`.
+Installed entry points are `voxa`, `voxa-backup`, and `voxatest`.
+
+## VoxaTest
+
+VoxaTest is the end-to-end voice harness shipped with the source package. It can
+generate cases with the configured local model, speak them to a running Voxa
+instance, capture and transcribe Voxa's reply, grade it, and write JSON/text
+reports. It follows Voxa's selected llama.cpp or Ollama backend unless the
+`VOXATEST_BACKEND`, `VOXATEST_MODEL`, or `VOXATEST_URL` environment variables
+override it.
+
+```bash
+voxatest generate --count 25
+voxatest run --limit 5
+```
+
+The default cases are installed with the package. Running the full harness
+requires working speaker/microphone routing and a separately running Voxa
+instance; unit tests use a simulated audio pipeline.
 
 ## Keyboard shortcuts
 

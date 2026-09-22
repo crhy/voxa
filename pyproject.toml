@@ -29,9 +29,16 @@ ignore = ["E501"]
 [project.scripts]
 voxa = "voxa.__main__:main"
 voxa-backup = "voxa.backup:main"
+voxatest = "voxatest.__main__:main"
 
 [tool.setuptools.packages.find]
 include = ["voxa*"]
 
+[tool.setuptools.package-data]
+voxatest = ["data/*.json"]
+
 [tool.setuptools.dynamic]
-version = {attr = "voxa.APP_VERSION"}
+# Name the package initializer explicitly.  The repository also has a legacy
+# top-level voxa.py launcher; asking setuptools for ``voxa.APP_VERSION`` can
+# resolve that launcher instead of the package in isolated wheel builds.
+version = {attr = "voxa.__init__.APP_VERSION"}

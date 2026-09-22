@@ -1,7 +1,7 @@
 # Voxa: Next Development Series
 
 Updated 2026-09-22 after the character-picker, local-server manager, and
-0.1.1 Flatpak validation work. This is the short execution queue for the next
+0.1.2 release work. This is the short execution queue for the next
 development cycle; the broader product direction remains in GitHub issues
 [#7](https://github.com/crhy/voxa/issues/7),
 [#8](https://github.com/crhy/voxa/issues/8),

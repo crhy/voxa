@@ -1,9 +1,11 @@
 import json
 import sys
+import threading
 import types
 
 import pytest
 
+from voxatest import __main__ as voxatest_main
 from voxatest import runner as runner_module
 from voxatest.cases import TestCase, load_cases, save_cases
 from voxatest.config import HarnessSettings, load_settings
@@ -41,6 +43,23 @@ class FakeGradingClient:
 class FakeSpeech:
     def speak(self, text, rate, voice, *, on_started, on_done, on_error):
         on_done()
+
+
+class FailingSpeech:
+    def speak(self, text, rate, voice, *, on_started, on_done, on_error):
+        on_error("speaker unavailable")
+
+
+class FakeMainLoop:
+    def __init__(self):
+        self.ran = threading.Event()
+        self.quit_called = False
+
+    def run(self):
+        self.ran.set()
+
+    def quit(self):
+        self.quit_called = True
 
 
 class FakeCapture:
@@ -345,6 +364,65 @@ def test_config_invalid_backend_falls_back(monkeypatch):
     assert settings.backend == "llamacpp"
 
 
+@pytest.mark.parametrize(
+    ("backend", "expected_model", "expected_url"),
+    [
+        ("ollama", "ollama-test", "http://ollama.test:11434"),
+        ("llamacpp", "llamacpp-test", "http://llamacpp.test:8080"),
+    ],
+)
+def test_config_follows_voxa_backend(monkeypatch, backend, expected_model, expected_url):
+    for name in ("VOXATEST_BACKEND", "VOXATEST_MODEL", "VOXATEST_URL"):
+        monkeypatch.delenv(name, raising=False)
+
+    fake_module = types.ModuleType("voxa.config")
+
+    class FakeConfigStore:
+        def load(self):
+            return types.SimpleNamespace(
+                ai_backend=backend,
+                ollama_model="ollama-test",
+                ollama_url="http://ollama.test:11434",
+                llamacpp_model="llamacpp-test",
+                llamacpp_url="http://llamacpp.test:8080",
+                microphone_id="",
+                wake_word="voxa",
+                whisper_model="base",
+                language="en",
+                tts_rate=180,
+                tts_voice="voice",
+                voice_threshold=450,
+                silence_ms=900,
+            )
+
+    fake_module.ConfigStore = FakeConfigStore
+    monkeypatch.setitem(sys.modules, "voxa.config", fake_module)
+
+    settings = load_settings()
+
+    assert settings.backend == backend
+    assert settings.model == expected_model
+    assert settings.url == expected_url
+
+
+def test_start_glib_main_loop_runs_callbacks(monkeypatch):
+    loop = FakeMainLoop()
+    repository = types.ModuleType("gi.repository")
+    repository.GLib = types.SimpleNamespace(MainLoop=lambda: loop)
+    gi = types.ModuleType("gi")
+    gi.repository = repository
+    monkeypatch.setitem(sys.modules, "gi", gi)
+    monkeypatch.setitem(sys.modules, "gi.repository", repository)
+
+    started_loop, thread = voxatest_main._start_glib_main_loop()
+    thread.join(timeout=1.0)
+    started_loop.quit()
+
+    assert started_loop is loop
+    assert loop.ran.is_set()
+    assert loop.quit_called is True
+
+
 def test_run_case_with_stubbed_audio_pipeline(monkeypatch):
     monkeypatch.setattr(runner_module, "segment_stream", lambda *_args, **_kwargs: iter([b"hello"]))
 
@@ -369,3 +447,23 @@ def test_run_case_with_stubbed_audio_pipeline(monkeypatch):
     assert result.grade.passed is True
     assert capture.started == 1
     assert capture.stopped == 1
+
+
+def test_run_case_returns_immediately_when_speech_fails():
+    case = TestCase(id="one", category="general", prompt="Say hello")
+    settings = HarnessSettings(speak_timeout_seconds=30.0)
+    capture = FakeCapture()
+
+    result = run_case(
+        case,
+        settings,
+        FakeGradingClient("{}"),
+        FakeWhisper(),
+        capture,
+        FailingSpeech(),
+        log=lambda _message: None,
+    )
+
+    assert result.error == "speaker unavailable"
+    assert result.grade.notes == "TTS failed."
+    assert capture.started == 0

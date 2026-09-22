@@ -75,10 +75,12 @@ def load_settings() -> HarnessSettings:
     except Exception:  # noqa: BLE001 - reading Voxa's config is best-effort
         voxa_settings = None
 
-    settings.backend = os.environ.get("VOXATEST_BACKEND", DEFAULT_BACKEND)
+    backend_override = os.environ.get("VOXATEST_BACKEND")
+    settings.backend = backend_override or (
+        voxa_settings.ai_backend if voxa_settings is not None else DEFAULT_BACKEND
+    )
 
     if voxa_settings is not None:
-        settings.model = os.environ.get("VOXATEST_MODEL", voxa_settings.ollama_model or DEFAULT_MODEL)
         settings.input_device = voxa_settings.microphone_id
         settings.wake_word = voxa_settings.wake_word or "voxa"
         settings.whisper_model = voxa_settings.whisper_model or "base"
@@ -89,8 +91,10 @@ def load_settings() -> HarnessSettings:
         settings.silence_ms = voxa_settings.silence_ms
 
         if settings.backend == "ollama":
+            settings.model = voxa_settings.ollama_model or DEFAULT_MODEL
             settings.url = voxa_settings.ollama_url or DEFAULT_URL
         elif settings.backend == "llamacpp":
+            settings.model = voxa_settings.llamacpp_model or DEFAULT_MODEL
             settings.url = voxa_settings.llamacpp_url or DEFAULT_URL
 
     settings.model = os.environ.get("VOXATEST_MODEL", settings.model)
