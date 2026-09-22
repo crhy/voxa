@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#07090c">
+  <meta name="description" content="Voxa is a local-first voice assistant for Linux that can listen, converse, and carry out desktop tasks using local AI.">
+  <meta property="og:title" content="Voxa — Local-first AI assistant for Linux">
+  <meta property="og:description" content="Private, voice-first, local AI for your Linux desktop.">
+  <meta property="og:image" content="/logo.png">
+  <title>Voxa — Local-first AI assistant for Linux</title>
+  <link rel="icon" href="/logo.png">
+  <link rel="stylesheet" href="/site.css">
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+  <header class="nav wrap">
+    <a class="brand" href="#top" aria-label="Voxa home"><img src="/logo.png" alt=""><span>voxa</span></a>
+    <nav>
+      <a href="#features">Features</a><a href="#local">Local AI</a><a href="#roadmap">Roadmap</a>
+      <a class="nav-github" href="https://github.com/crhy/voxa">GitHub</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero wrap">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="dot"></span> LOCAL-FIRST • VOICE-FIRST • OPEN SOURCE</p>
+        <h1>Your Linux desktop.<br><em>Now it listens.</em></h1>
+        <p class="lede">Voxa is an AI assistant built for Linux: talk naturally, use local models, manage tasks, and grow into real desktop automation without handing your computer to the cloud.</p>
+        <div class="actions"><a class="button primary" href="https://github.com/crhy/voxa">View on GitHub</a><a class="button" href="#install">Try Voxa</a></div>
+        <div class="micro"><span>Linux native</span><span>Ollama + llama.cpp</span><span>Flatpak-ready</span></div>
+      </div>
+      <div class="hero-art" aria-label="Voxa logo">
+        <div class="halo"></div><img src="/logo.png" alt="Voxa medallion logo">
+        <div class="status-pill"><i></i> ACTIVE <small>local AI connected</small></div>
+      </div>
+    </section>
+
+    <section class="proof wrap">
+      <p>Designed around a simple idea</p><h2>The assistant should live on <em>your</em> machine.</h2>
+    </section>
+
+    <section id="features" class="features wrap">
+      <article><b>01</b><h3>Speak naturally</h3><p>Voice is the primary interface. Voxa listens, transcribes, responds, and keeps the interaction focused on the assistant—not a chat box.</p></article>
+      <article><b>02</b><h3>Run local models</h3><p>Choose local AI through Ollama or llama.cpp. Keep everyday assistant work close to the machine and under your control.</p></article>
+      <article><b>03</b><h3>See what it's doing</h3><p>A task-oriented interface surfaces active work, state, model selection, choices, attachments, and explicit ACTIVE/OFFLINE control.</p></article>
+      <article><b>04</b><h3>Grow into actions</h3><p>Voxa is evolving from conversation into a structured desktop agent with bounded skills, permissions, confirmations, and auditable tasks.</p></article>
+    </section>
+
+    <section class="showcase wrap" id="local">
+      <div class="shot-frame">
+        <div class="shot-top"><span></span><span></span><span></span><small>Voxa</small></div>
+        <img src="/docs/screenshots/new-layout-preview.png" alt="Voxa assistant shell preview">
+      </div>
+      <div class="showcase-copy"><p class="eyebrow">BUILT FOR THE DESKTOP</p><h2>Not another browser tab.</h2><p>Voxa is a native Linux application with a dedicated assistant shell, task state, model controls, voice input, and a renderer-independent avatar system.</p><p class="muted">New screenshots and media are coming soon. This section is deliberately structured so the latest product photography can be dropped in without redesigning the page.</p></div>
+    </section>
+
+    <section class="local-band">
+      <div class="wrap local-grid"><div><p class="eyebrow">LOCAL AI</p><h2>Your hardware is part of the product.</h2></div><div><p>Use the models that make sense for your machine. Voxa supports local backends today and is being structured so backend choice stays separate from the assistant experience.</p><div class="chips"><span>Ollama</span><span>llama.cpp</span><span>Local models</span><span>Linux</span></div></div></div>
+    </section>
+
+    <section id="roadmap" class="roadmap wrap">
+      <p class="eyebrow">WHERE VOXA IS GOING</p><h2>From voice assistant to trusted desktop agent.</h2>
+      <div class="steps"><article class="done"><span>01</span><h3>Assistant shell</h3><p>State, tasks, model selection, ACTIVE/OFFLINE control and the new centered assistant experience.</p></article><article class="now"><span>02</span><h3>Agent foundation</h3><p>Structured capabilities, backend abstraction, permission policy, confirmations and safe tools.</p></article><article><span>03</span><h3>Desktop skills</h3><p>Files, applications, communications and Spaced Linux integration through explicit capabilities.</p></article></div>
+    </section>
+
+    <section id="install" class="cta wrap"><div><p class="eyebrow">EARLY DEVELOPMENT</p><h2>Help build the Linux assistant we want to use.</h2><p>Voxa is open source and moving quickly. Follow development, test the current build, report rough edges, or contribute code and ideas.</p></div><a class="button primary large" href="https://github.com/crhy/voxa">Explore crhy/voxa →</a></section>
+  </main>
+
+  <footer class="wrap"><a class="brand" href="#top"><img src="/logo.png" alt=""><span>voxa</span></a><p>Local-first AI for Linux.</p><div><a href="https://github.com/crhy/voxa">GitHub</a><a href="https://github.com/crhy/voxa/issues">Issues</a></div><small>voxaai.me</small></footer>
+  <script src="/site.js"></script>
+</body>
+</html>
