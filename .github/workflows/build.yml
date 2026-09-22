@@ -59,7 +59,7 @@ jobs:
       - name: Install GTK 4, libadwaita, Xvfb and test tools
         run: |
           dnf -y install git python3-gobject gtk4 libadwaita gstreamer1 python3-numpy python3-pytest \
-            xorg-x11-server-Xvfb xorg-x11-xauth mesa-dri-drivers adwaita-icon-theme
+            xorg-x11-server-Xvfb xorg-x11-xauth mesa-dri-drivers libglvnd-gles adwaita-icon-theme
       - uses: actions/checkout@v4
       - name: UI and window tests
         # No GPU on the runner: use GTK's software renderer and Mesa's software GL.
