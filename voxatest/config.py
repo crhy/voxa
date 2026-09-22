@@ -17,7 +17,7 @@ Device notes:
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -27,7 +27,26 @@ DEFAULT_URL = "http://127.0.0.1:8080"
 
 PACKAGE_DIR = Path(__file__).resolve().parent
 DEFAULT_DATA_PATH = PACKAGE_DIR / "data" / "test_cases.json"
-DEFAULT_REPORTS_DIR = PACKAGE_DIR / "reports"
+
+
+def default_reports_dir() -> Path:
+    """Return a writable, VoxaTest-specific state directory."""
+    override = os.environ.get("VOXATEST_REPORTS_DIR")
+    if override:
+        return Path(override).expanduser()
+    state_home = os.environ.get("XDG_STATE_HOME")
+    base = Path(state_home).expanduser() if state_home else Path.home() / ".local" / "state"
+    return base / "voxatest" / "reports"
+
+
+def default_failure_report_path() -> Path:
+    """Return the stable Markdown report intended for source control."""
+    override = os.environ.get("VOXATEST_FAILURE_REPORT")
+    return Path(override).expanduser() if override else Path("VOXATEST_FAILURES.md")
+
+
+DEFAULT_REPORTS_DIR = default_reports_dir()
+DEFAULT_FAILURE_REPORT_PATH = default_failure_report_path()
 
 
 @dataclass(slots=True)
@@ -52,7 +71,8 @@ class HarnessSettings:
     speak_timeout_seconds: float = 60.0
     run_deadline_seconds: float = 180.0
     data_path: Path = DEFAULT_DATA_PATH
-    reports_dir: Path = DEFAULT_REPORTS_DIR
+    reports_dir: Path = field(default_factory=default_reports_dir)
+    failure_report_path: Path = field(default_factory=default_failure_report_path)
 
     def make_client(self) -> Any:
         """Return the configured local-model client (llama.cpp or Ollama)."""
@@ -97,6 +117,8 @@ def load_settings() -> HarnessSettings:
     settings.url = os.environ.get("VOXATEST_URL", settings.url)
     settings.wake_word = os.environ.get("VOXATEST_WAKE_WORD", settings.wake_word)
     settings.reasoning_effort = os.environ.get("VOXATEST_REASONING_EFFORT", settings.reasoning_effort)
+    settings.reports_dir = default_reports_dir()
+    settings.failure_report_path = default_failure_report_path()
     if not settings.reasoning_effort:
         settings.reasoning_effort = None
     if settings.backend not in {"llamacpp", "ollama"}:

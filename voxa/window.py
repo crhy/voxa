@@ -3,6 +3,7 @@ from __future__ import annotations
 import threading
 import time
 from collections.abc import Callable
+from pathlib import Path
 
 import gi
 
@@ -21,6 +22,7 @@ from .hardware import GpuUsage, detect_available_model_memory_gb, sample_gpu_usa
 from .installer import InstallerError, install_ollama  # noqa: E402
 from .llamacpp import LlamaCppClient  # noqa: E402
 from .ollama import OllamaClient, OllamaError, strip_reasoning  # noqa: E402
+from .server import SERVER_FAILED, SERVER_STARTING, SERVER_UNAVAILABLE, AiServerManager  # noqa: E402
 from .speech import SpeechService  # noqa: E402
 from .transcription import WhisperService  # noqa: E402
 from .ui.avatars import character_choices, get_avatar  # noqa: E402
@@ -111,6 +113,10 @@ class MainWindow(Adw.ApplicationWindow):
 
         self.config_store = ConfigStore()
         self.settings = self.config_store.load()
+        server_logs = Path(GLib.get_user_cache_dir()) / "voxa" / "server"
+        self.ai_server = AiServerManager(self.settings, log_dir=server_logs)
+        self._server_action_lock = threading.Lock()
+        self._server_generation = 0
         self.style_manager = Adw.StyleManager.get_default()
         self._apply_appearance()
         self.whisper = WhisperService()
@@ -176,6 +182,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._detect_hardware_async()
         self._load_whisper(self.settings.whisper_model)
         self._load_wake_whisper()
+        self._start_ai_server_async()
 
     def _load_wake_whisper(self) -> None:
         # Runs quietly in the background: conversation mode falls back to the
@@ -271,10 +278,59 @@ class MainWindow(Adw.ApplicationWindow):
     # ---------------------------------------------- the assistant shell's controls
 
     def _on_shell_active(self) -> None:
+        self._start_ai_server_async()
         self.assistant.activate()
 
     def _on_shell_offline(self) -> None:
         self.stop_current_work()
+
+    def _queue_ai_server_action(self, action: str) -> None:
+        """Serialize managed-server changes without ever blocking GTK's main loop."""
+        self._server_generation += 1
+        generation = self._server_generation
+
+        def work() -> None:
+            with self._server_action_lock:
+                if generation != self._server_generation:
+                    return
+                if action == "stop":
+                    self.ai_server.stop()
+                    return
+                if action == "restart":
+                    self.ai_server.restart()
+                else:
+                    self.ai_server.start()
+
+            if self.ai_server.health().status == SERVER_STARTING:
+                self.ai_server.wait_until_ready(cancelled=lambda: generation != self._server_generation)
+            if generation == self._server_generation and not self._closing:
+                idle(self._report_ai_server_health, generation)
+
+        # A stop worker must keep the process alive long enough to reap a managed
+        # child when the window is closing.  Start/restart workers remain daemon
+        # threads so a slow readiness probe cannot delay application shutdown.
+        threading.Thread(
+            target=work,
+            name=f"voxa-ai-server-{action}",
+            daemon=action != "stop",
+        ).start()
+
+    def _report_ai_server_health(self, generation: int) -> bool:
+        if generation != self._server_generation or self._closing:
+            return False
+        health = self.ai_server.health()
+        if health.status in {SERVER_FAILED, SERVER_UNAVAILABLE} and health.last_error:
+            self._toast(health.last_error.splitlines()[0])
+        return False
+
+    def _start_ai_server_async(self) -> None:
+        self._queue_ai_server_action("start")
+
+    def _restart_ai_server_async(self) -> None:
+        self._queue_ai_server_action("restart")
+
+    def _stop_ai_server_async(self) -> None:
+        self._queue_ai_server_action("stop")
 
     # The controller's ports: the real services behind ACTIVE and OFFLINE. Each is
     # idempotent, and the controller calls all of them even if one raises.
@@ -361,6 +417,7 @@ class MainWindow(Adw.ApplicationWindow):
             self.config_store.save(self.settings)
             self.shell.set_backend(backend)
             self._refresh_ollama_models()
+            self._restart_ai_server_async()
 
     def show_transcript_window(self) -> None:
         """The original dictation and transcript view, in a secondary window."""
@@ -1695,6 +1752,7 @@ class MainWindow(Adw.ApplicationWindow):
         # The OFFLINE kill switch: stops the microphone, wake-word monitoring, dictation,
         # speech and the running request, cancels tasks, and makes late callbacks stale.
         self.assistant.go_offline()
+        self._stop_ai_server_async()
         if self._installing:
             self._install_cancel.set()
         self.ask_button.set_sensitive(True)

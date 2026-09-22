@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 
 from .cases import load_cases, save_cases
-from .config import DEFAULT_DATA_PATH, DEFAULT_REPORTS_DIR, load_settings
+from .config import DEFAULT_DATA_PATH, DEFAULT_FAILURE_REPORT_PATH, DEFAULT_REPORTS_DIR, load_settings
 from .generate_cases import generate_cases
 from .report import format_results, write_reports
 from .runner import run_case
@@ -26,9 +26,13 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     run = subparsers.add_parser("run", help="Run cases through real TTS, microphone capture, Whisper, and grading.")
     run.add_argument("--cases", default=str(DEFAULT_DATA_PATH))
     run.add_argument("--limit", type=int)
-    run.add_argument("--reports", default=str(DEFAULT_REPORTS_DIR))
+    run.add_argument("--reports", help=f"Report directory (default: {DEFAULT_REPORTS_DIR})")
     run.add_argument("--json-report")
     run.add_argument("--text-report")
+    run.add_argument(
+        "--failure-report",
+        help=f"Git-friendly latest-failures Markdown file (default: {DEFAULT_FAILURE_REPORT_PATH})",
+    )
     run.add_argument("--input-device", default=None)
     run.add_argument("--output-device", default=None)
     run.add_argument("--wake-word", default=None)
@@ -79,7 +83,14 @@ def _load_whisper(settings, log):
     return whisper, ""
 
 
-def _run(settings, cases: list, json_report: str | None, text_report: str | None, reports_dir: str) -> int:
+def _run(
+    settings,
+    cases: list,
+    json_report: str | None,
+    text_report: str | None,
+    reports_dir: str,
+    failure_report: str,
+) -> int:
     if settings.output_device:
         os.environ.setdefault("GST_AUDIOSINK", settings.output_device)
 
@@ -119,10 +130,12 @@ def _run(settings, cases: list, json_report: str | None, text_report: str | None
         Path(reports_dir),
         json_path=Path(json_report) if json_report else None,
         text_path=Path(text_report) if text_report else None,
+        failure_path=Path(failure_report),
     )
     print(format_results(results))
     print(f"JSON report: {paths['json_path']}")
     print(f"Text report: {paths['text_path']}")
+    print(f"Failure report: {paths['failure_path']}")
 
     return 0 if paths["summary"]["failed"] == 0 else 1
 
@@ -146,7 +159,14 @@ def main(argv: list[str] | None = None) -> int:
         if not cases:
             print(f"No test cases found in {args.cases}. Generate cases first.", file=sys.stderr)
             return 1
-        return _run(settings, cases, args.json_report, args.text_report, args.reports)
+        return _run(
+            settings,
+            cases,
+            args.json_report,
+            args.text_report,
+            args.reports or str(settings.reports_dir),
+            args.failure_report or str(settings.failure_report_path),
+        )
 
     return 1
 

@@ -88,6 +88,29 @@ python3 -m venv .venv
 
 Installed entry points are `voxa` and `voxa-backup`.
 
+### VoxaTest desktop app
+
+VoxaTest is packaged as a separate desktop application, so it can run beside
+Voxa while speaking prompts, listening to replies, and streaming its progress:
+
+```bash
+flatpak run io.github.crhy.voxatest
+```
+
+Its reports are written to `~/Documents/VoxaTest`, including the stable
+`VOXATEST_FAILURES.md` file that can later be copied into a branch and pushed.
+
+### Recording VoxaTest failures
+
+VoxaTest writes its complete timestamped run artifacts outside the repository and also maintains a concise, Git-friendly snapshot containing only the latest failures:
+
+```bash
+.venv/bin/python -m voxatest run --cases voxatest/data/test_cases_smoke.json
+git add VOXATEST_FAILURES.md
+```
+
+The snapshot defaults to `VOXATEST_FAILURES.md` in the working directory. Use `--failure-report path/to/file.md` or the `VOXATEST_FAILURE_REPORT` environment variable to choose another location. A successful run replaces the snapshot with a clear zero-failures result, while the full JSON and text reports remain available for diagnostics.
+
 ## Keyboard shortcuts
 
 | Shortcut | Action |

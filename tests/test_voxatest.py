@@ -1,12 +1,13 @@
 import json
 import sys
 import types
+from pathlib import Path
 
 import pytest
 
 from voxatest import runner as runner_module
 from voxatest.cases import TestCase, load_cases, save_cases
-from voxatest.config import HarnessSettings, load_settings
+from voxatest.config import HarnessSettings, default_failure_report_path, default_reports_dir, load_settings
 from voxatest.generate_cases import (
     CATEGORIES,
     CATEGORY_GUIDANCE,
@@ -15,7 +16,7 @@ from voxatest.generate_cases import (
     parse_model_json,
 )
 from voxatest.grader import GradeResult, build_grade_prompt, grade_reply, parse_grade_response
-from voxatest.report import format_results, summarize, write_reports
+from voxatest.report import format_failure_report, format_results, summarize, write_reports
 from voxatest.runner import RunResult, run_case
 
 
@@ -293,6 +294,68 @@ def test_write_reports_creates_json_and_text(tmp_path):
     assert paths["text_path"].exists()
     assert payload["summary"]["passed"] == 1
     assert payload["results"][0]["case_id"] == "one"
+
+
+def test_write_reports_creates_git_friendly_failure_snapshot(tmp_path):
+    results = [
+        RunResult("pass", "general", "Say hello", "Hello.", GradeResult(90, True, "Good", "model")),
+        RunResult(
+            "fail",
+            "math",
+            "Two plus two",
+            "Five",
+            GradeResult(10, False, "Wrong answer", "model"),
+            "capture warning",
+        ),
+    ]
+    failure_path = tmp_path / "VOXATEST_FAILURES.md"
+
+    paths = write_reports(results, tmp_path / "reports", failure_path=failure_path)
+    report = failure_path.read_text(encoding="utf-8")
+
+    assert paths["failure_path"] == failure_path
+    assert "## fail" in report
+    assert "Two plus two" in report
+    assert "Wrong answer" in report
+    assert "capture warning" in report
+    assert "## pass" not in report
+    assert "timestamp" not in report.casefold()
+
+
+def test_failure_report_records_clean_latest_run():
+    result = RunResult("pass", "general", "Say hello", "Hello.", GradeResult(90, True, "Good", "model"))
+
+    report = format_failure_report([result])
+
+    assert "Failed: 0" in report
+    assert "No failures were reported in the latest run." in report
+
+
+def test_write_reports_uses_unique_names_for_concurrent_runs(tmp_path):
+    first = write_reports([], tmp_path)
+    second = write_reports([], tmp_path)
+
+    assert first["json_path"] != second["json_path"]
+    assert first["text_path"] != second["text_path"]
+    assert len(list(tmp_path.glob("run_*.json"))) == 2
+
+
+def test_default_reports_dir_is_separate_and_honors_overrides(tmp_path, monkeypatch):
+    monkeypatch.delenv("VOXATEST_REPORTS_DIR", raising=False)
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
+    assert default_reports_dir() == tmp_path / "state" / "voxatest" / "reports"
+
+    monkeypatch.setenv("VOXATEST_REPORTS_DIR", str(tmp_path / "custom"))
+    assert default_reports_dir() == tmp_path / "custom"
+
+
+def test_default_failure_report_path_honors_override(tmp_path, monkeypatch):
+    monkeypatch.delenv("VOXATEST_FAILURE_REPORT", raising=False)
+    assert default_failure_report_path() == Path("VOXATEST_FAILURES.md")
+
+    target = tmp_path / "failures.md"
+    monkeypatch.setenv("VOXATEST_FAILURE_REPORT", str(target))
+    assert default_failure_report_path() == target
 
 
 def test_config_defaults():
