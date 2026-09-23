@@ -897,6 +897,10 @@ def _stub_harness(monkeypatch, capture, speech):
     monkeypatch.setitem(sys.modules, "gi.repository", repository)
 
     monkeypatch.setattr(voxatest_main, "_load_whisper", lambda _settings, _log: (FakeWhisper(), ""))
+    # Never reach a real model server: CI has none, so the preflight would fail.
+    monkeypatch.setattr(
+        HarnessSettings, "make_client", lambda _self: FakeGradingClient('{"score": 90, "passed": true, "notes": "ok"}')
+    )
     return loop
 
 
@@ -979,8 +983,8 @@ def test_run_warns_when_model_is_not_listed(tmp_path, monkeypatch, capsys):
             return ["tiny-model"]
 
     settings = HarnessSettings(retries=0, settle_seconds=0.0)
-    monkeypatch.setattr(HarnessSettings, "make_client", lambda _self: OtherModelsClient("{}"))
     _stub_harness(monkeypatch, FakeCapture(), FakeSpeech())
+    monkeypatch.setattr(HarnessSettings, "make_client", lambda _self: OtherModelsClient("{}"))
     monkeypatch.setattr(
         voxatest_main,
         "run_case",
