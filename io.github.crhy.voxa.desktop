@@ -9,3 +9,4 @@ Categories=Utility;AudioVideo;Accessibility;
 Keywords=voice;dictation;transcription;whisper;ollama;speech;assistant;
 StartupNotify=true
 StartupWMClass=Voxa
+X-Flatpak-RenamedFrom=io.github.crhy.voice2textai.desktop;

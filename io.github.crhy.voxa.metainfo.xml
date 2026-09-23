@@ -13,6 +13,9 @@
     <p>The interface follows the system GTK and libadwaita theme, supports Wayland and X11, and uses PipeWire or PulseAudio through GStreamer.</p>
   </description>
   <launchable type="desktop-id">io.github.crhy.voxa.desktop</launchable>
+  <replaces>
+    <id>io.github.crhy.voice2textai</id>
+  </replaces>
   <url type="homepage">https://github.com/crhy/voxa</url>
   <url type="bugtracker">https://github.com/crhy/voxa/issues</url>
   <screenshots>
@@ -23,6 +26,11 @@
   </screenshots>
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="0.1.4" date="2026-09-23">
+      <description>
+        <p>Voxa is the successor of Voice2Text AI: this release declares the rename from io.github.crhy.voice2textai so the Spaced Linux Flatpak update repository can end-of-life the older app and rebase its installed users onto Voxa. Existing Voice2Text AI settings, transcriptions and backups are carried over to Voxa during the migration; nothing else changes.</p>
+      </description>
+    </release>
     <release version="0.1.3" date="2026-09-23">
       <description>
         <p>Voxa now manages a local AI server only when it needs one: it reuses a server that is already running, starts one on a loopback address when needed, reports its health (starting, ready, unavailable, failed), keeps a server log for troubleshooting, and only ever stops a server it started itself. Server changes never block the interface.</p>

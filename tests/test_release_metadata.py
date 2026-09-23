@@ -99,6 +99,18 @@ def test_license_metadata_matches_license_file() -> None:
     assert (ROOT / "LICENSE").read_text(encoding="utf-8").startswith("MIT License")
 
 
+def test_voxa_declares_itself_the_successor_of_voice2textai() -> None:
+    """Flatpak only migrates the old app's data when both files declare the rename."""
+    desktop = (ROOT / "io.github.crhy.voxa.desktop").read_text(encoding="utf-8")
+    assert "X-Flatpak-RenamedFrom=io.github.crhy.voice2textai.desktop;" in desktop
+
+    metainfo = ET.parse(ROOT / "io.github.crhy.voxa.metainfo.xml").getroot()
+    replaced = [element.text for element in metainfo.findall("./replaces/id")]
+    assert replaced == ["io.github.crhy.voice2textai"]
+    assert metainfo.find("./launchable") is not None
+    assert metainfo.find("./replaces") is not None
+
+
 def test_flatpak_manifest_copies_the_package_recursively() -> None:
     manifest = (ROOT / "io.github.crhy.voxa.yml").read_text(encoding="utf-8")
 

@@ -18,8 +18,8 @@ run by the test suite and by CI. It fails the build if anything disagrees:
 
 ```text
 python tools/release_check.py                 # validate
-python tools/release_check.py --tag v0.1.3    # also validate a tag
-python tools/release_check.py --print artifact  # Voxa-0.1.3-x86_64.flatpak
+python tools/release_check.py --tag v0.1.4    # also validate a tag
+python tools/release_check.py --print artifact  # Voxa-0.1.4-x86_64.flatpak
 ```
 
 ## Cutting a release
