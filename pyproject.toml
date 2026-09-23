@@ -30,6 +30,7 @@ ignore = ["E501"]
 voxa = "voxa.__main__:main"
 voxa-backup = "voxa.backup:main"
 voxatest = "voxatest.__main__:main"
+voxatest-gui = "voxatest.application:main"
 
 [tool.setuptools.packages.find]
 include = ["voxa*"]

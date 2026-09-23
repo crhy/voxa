@@ -110,3 +110,16 @@ def test_legacy_avatar_key_maps_to_character_id(tmp_path: Path) -> None:
 def test_a_new_install_defaults_to_llamacpp(tmp_path: Path) -> None:
     path = tmp_path / "voxa" / "config.json"
     assert ConfigStore(path).load().ai_backend == "llamacpp"
+
+
+def test_read_only_load_leaves_legacy_files_alone(tmp_path: Path, monkeypatch) -> None:
+    """VoxaTest reads Voxa's settings without ever touching the user's files."""
+    monkeypatch.setenv("HOME", str(tmp_path))
+    legacy = tmp_path / ".voice_config.json"
+    legacy.write_text(json.dumps({"ollama_model": "llama3.1:8b"}), encoding="utf-8")
+
+    loaded = ConfigStore().load(migrate=False)
+
+    assert legacy.read_text(encoding="utf-8") == json.dumps({"ollama_model": "llama3.1:8b"})
+    assert not (tmp_path / ".config" / "voxa" / "config.json").exists()
+    assert loaded.ollama_model != "llama3.1:8b"  # defaults, not the legacy contents

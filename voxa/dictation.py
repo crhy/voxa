@@ -17,6 +17,7 @@ def segment_stream(
     max_segment_seconds: float,
     idle_timeout_seconds: float | None = None,
     on_idle_timeout: Callable[[], None] | None = None,
+    trailing_silence_seconds: float | None = None,
 ) -> Iterator[bytes]:
     """Yield PCM segments split at speech pauses from a live audio queue.
 
@@ -25,9 +26,15 @@ def segment_stream(
     If ``idle_timeout_seconds`` elapses with no speech at all, ``on_idle_timeout``
     fires and the generator ends (without touching ``stop_event``, so callers
     decide what ending idle means for them).
+
+    If ``trailing_silence_seconds`` elapses after the first voice in the stream,
+    the pending segment (if it contains voice) is yielded and the generator ends
+    on its own; ``on_idle_timeout`` is not called for this case. ``None`` (the
+    default) keeps the behaviour unchanged.
     """
     segment = bytearray()
     heard_voice = False
+    heard_any_voice = False
     last_voice = time.monotonic()
     last_any_voice = last_voice
 
@@ -46,6 +53,7 @@ def segment_stream(
             segment.extend(pcm)
             if level >= threshold:
                 heard_voice = True
+                heard_any_voice = True
                 last_voice = now
                 last_any_voice = now
 
@@ -64,6 +72,15 @@ def segment_stream(
 
         if not heard_voice and duration > 2.0:
             segment = bytearray()
+
+        if (
+            trailing_silence_seconds is not None
+            and heard_any_voice
+            and now - last_any_voice > trailing_silence_seconds
+        ):
+            if heard_voice and segment:
+                yield bytes(segment)
+            return
 
         if idle_timeout_seconds is not None and now - last_any_voice > idle_timeout_seconds:
             if on_idle_timeout is not None:

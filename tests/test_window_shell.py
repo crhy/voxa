@@ -18,6 +18,7 @@ if not Gtk.init_check():
     pytest.skip("no GTK display available")
 Adw.init()
 
+from voxa import window as window_module  # noqa: E402
 from voxa.ollama import OllamaError  # noqa: E402
 from voxa.ui.shell import AssistantShell  # noqa: E402
 from voxa.ui.state import AssistantState  # noqa: E402
@@ -45,7 +46,16 @@ def window(application, tmp_path, monkeypatch):
     for var, sub in (("XDG_CONFIG_HOME", "config"), ("XDG_DATA_HOME", "data"), ("XDG_CACHE_HOME", "cache")):
         monkeypatch.setenv(var, str(tmp_path / sub))
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("_load_whisper", "_load_wake_whisper", "_detect_hardware_async", "_refresh_ollama_models", "_refresh_devices"):
+    for name in (
+        "_load_whisper",
+        "_load_wake_whisper",
+        "_detect_hardware_async",
+        "_refresh_ollama_models",
+        "_refresh_devices",
+        "_start_ai_server_async",
+        "_restart_ai_server_async",
+        "_stop_ai_server_async",
+    ):
         monkeypatch.setattr(MainWindow, name, lambda *args, **kwargs: None)
     win = MainWindow(application)
     win.present()
@@ -114,6 +124,56 @@ def test_late_hardware_callback_after_close_is_harmless(window) -> None:
 def test_shell_controls_drive_the_assistant_model(window) -> None:
     window.shell.on_offline()
     assert window.assistant_model.state is AssistantState.OFFLINE
+
+
+def test_shell_active_and_offline_manage_the_local_ai_server(window, monkeypatch) -> None:
+    actions: list[str] = []
+    monkeypatch.setattr(window, "_start_ai_server_async", lambda: actions.append("start"))
+    monkeypatch.setattr(window, "_stop_ai_server_async", lambda: actions.append("stop"))
+
+    window._on_shell_active()
+    window._on_shell_offline()
+
+    assert actions == ["start", "stop"]
+
+
+def test_switching_backend_restarts_the_managed_server(window, monkeypatch) -> None:
+    actions: list[str] = []
+    monkeypatch.setattr(window, "_restart_ai_server_async", lambda: actions.append("restart"))
+
+    replacement = "llamacpp" if window.settings.ai_backend != "llamacpp" else "ollama"
+    window._on_shell_backend_selected(replacement)
+
+    assert actions == ["restart"]
+
+
+def test_stale_server_health_callback_cannot_surface_an_error(window, monkeypatch) -> None:
+    toasts: list[str] = []
+    monkeypatch.setattr(window, "_toast", toasts.append)
+    window._server_generation = 4
+
+    assert window._report_ai_server_health(3) is False
+
+    assert toasts == []
+
+
+def test_server_stop_worker_is_not_daemonized(window, monkeypatch) -> None:
+    workers: list[object] = []
+
+    class FakeThread:
+        def __init__(self, **kwargs):
+            self.daemon = kwargs["daemon"]
+            workers.append(self)
+
+        def start(self) -> None:
+            pass
+
+    monkeypatch.setattr(window_module.threading, "Thread", FakeThread)
+
+    window._queue_ai_server_action("stop")
+
+    assert len(workers) == 1
+    assert workers[0].daemon is False
 
 
 def test_paperclip_is_honest_until_attachments_exist(window) -> None:

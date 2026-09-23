@@ -106,6 +106,79 @@ The default cases are installed with the package. Running the full harness
 requires working speaker/microphone routing and a separately running Voxa
 instance; unit tests use a simulated audio pipeline.
 
+### VoxaTest desktop app
+
+VoxaTest is packaged as a separate desktop application, so it can run beside
+Voxa while speaking prompts, listening to replies, and streaming its progress:
+
+```bash
+flatpak run io.github.crhy.voxatest
+```
+
+Its reports are written to `~/Documents/VoxaTest/reports/`, including the
+stable `~/Documents/VoxaTest/VOXATEST_FAILURES.md` file that can later be
+copied into a branch and pushed.
+
+### Running a full unattended test pass
+
+A complete pass exercises all 300 shipped cases with no one at the microphone:
+
+1. Start the llama.cpp (or Ollama) server that both apps use.
+2. Start Voxa with simulated actions and switch on Conversation mode
+   (`Ctrl+Shift+R`):
+
+   ```bash
+   VOXA_SIMULATE_ACTIONS=1 python3 voxa.py
+   # or: flatpak run --env=VOXA_SIMULATE_ACTIONS=1 io.github.crhy.voxa
+   ```
+
+3. Start VoxaTest — the desktop app (`flatpak run io.github.crhy.voxatest`),
+   or the CLI, which runs all 300 installed cases:
+
+   ```bash
+   .venv/bin/python -m voxatest run
+   ```
+
+For each case VoxaTest speaks the prompt with the wake word, waits for the
+whole reply, grades it, and writes its JSON/text reports after every case, so
+a run that stops early still has usable output.
+
+| Knob | Effect |
+| --- | --- |
+| `--limit` | Number of cases to run |
+| `--start-at` | 1-based index of the first case (resume point) |
+| `--retries` | Retry a case when the microphone heard no reply |
+| `--end-silence` | Seconds of silence that end a spoken reply |
+| `--deadline-seconds` | Stop the run after this many seconds (0 means no limit) |
+| `--max-silent` | Stop the run after this many consecutive cases with no reply (0 disables) |
+
+Environment variables: `VOXATEST_BACKEND`, `VOXATEST_MODEL`, `VOXATEST_URL`,
+`VOXATEST_WAKE_WORD`, `VOXATEST_END_SILENCE`, `VOXATEST_REPLY_WAIT`,
+`VOXATEST_RETRIES`, `VOXATEST_RUN_DEADLINE`, `VOXATEST_MAX_SILENT`, `VOXATEST_REPORTS_DIR`,
+`VOXATEST_FAILURE_REPORT`, and `VOXATEST_VOXA_CONFIG` (path to Voxa's `config.json` to inherit its backend, model and wake word; without it
+VoxaTest uses the most recently modified of `~/.config/voxa/config.json` and the Voxa Flatpak's config).
+
+Press `Ctrl+C` in the terminal, or the Stop button in the desktop app, to end
+a run early; a partial report is written and the run can be resumed later with
+`--start-at N`.
+
+Reports land in `~/.local/state/voxatest/reports/` plus `./VOXATEST_FAILURES.md`
+for a source install, and in `~/Documents/VoxaTest/reports/` plus
+`~/Documents/VoxaTest/VOXATEST_FAILURES.md` for the Flatpak. Exit codes: `0`
+all cases passed, `1` some failed, `2` the grading backend was unreachable,
+`3` Voxa stopped answering, `130` interrupted.
+
+### Recording VoxaTest failures
+
+VoxaTest writes its complete timestamped run artifacts outside the repository and also maintains a concise, Git-friendly snapshot containing only the latest failures:
+
+```bash
+.venv/bin/python -m voxatest run --cases voxatest/data/test_cases_smoke.json
+git add VOXATEST_FAILURES.md
+```
+
+The snapshot defaults to `VOXATEST_FAILURES.md` in the working directory. Use `--failure-report path/to/file.md` or the `VOXATEST_FAILURE_REPORT` environment variable to choose another location. A successful run replaces the snapshot with a clear zero-failures result, while the full JSON and text reports remain available for diagnostics.
+
 ## Keyboard shortcuts
 
 | Shortcut | Action |

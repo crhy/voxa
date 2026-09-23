@@ -8,6 +8,7 @@ edit, keep or delete. The ODF is built with the standard library only.
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 import subprocess
@@ -15,6 +16,10 @@ import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from xml.sax.saxutils import escape
+
+from .simulation import actions_simulated
+
+log = logging.getLogger(__name__)
 
 IN_FLATPAK = os.path.exists("/.flatpak-info")
 
@@ -145,6 +150,9 @@ def _host(command: list[str]) -> list[str]:
 
 
 def open_in_libreoffice(path: Path) -> None:
+    if actions_simulated():
+        log.info("simulated action: would open %s in LibreOffice", path)
+        return
     subprocess.Popen(  # noqa: S603 - fixed argv, the path is one Voxa just created
         _host(["soffice", str(path)]),
         stdin=subprocess.DEVNULL,

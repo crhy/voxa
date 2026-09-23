@@ -86,6 +86,30 @@ def test_segment_stream_calls_on_idle_timeout() -> None:
     assert called.is_set()
 
 
+def test_segment_stream_ends_after_trailing_silence_without_stop_event() -> None:
+    q: queue.Queue = queue.Queue()
+    for _ in range(5):
+        q.put(LOUD_CHUNK)
+    for _ in range(5):
+        q.put(QUIET_CHUNK)
+
+    stop_event = threading.Event()
+    segments = list(
+        segment_stream(
+            q,
+            stop_event,
+            threshold=500,
+            silence_seconds=5.0,
+            max_segment_seconds=10.0,
+            trailing_silence_seconds=0.3,
+        )
+    )
+
+    assert len(segments) == 1
+    assert len(segments[0]) == 10 * len(LOUD_CHUNK[0])
+    assert not stop_event.is_set()
+
+
 class StoppingTranscriber:
     """Sets the controller's stop event mid-"transcription"."""
 

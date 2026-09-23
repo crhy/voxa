@@ -23,6 +23,13 @@
   </screenshots>
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="0.1.3" date="2026-09-23">
+      <description>
+        <p>Voxa now manages a local AI server only when it needs one: it reuses a server that is already running, starts one on a loopback address when needed, reports its health (starting, ready, unavailable, failed), keeps a server log for troubleshooting, and only ever stops a server it started itself. Server changes never block the interface.</p>
+        <p>VoxaTest is now a separate desktop application that can run beside Voxa, streams progress live, can be stopped at any time without losing results, and writes JSON, text and a Git-friendly failure report. Long runs of hundreds of spoken tests work unattended: whole replies are captured before the next prompt, failures of a single case never stop the run, and reports are updated after every case.</p>
+        <p>Setting VOXA_SIMULATE_ACTIONS=1 makes Voxa describe app, email and document actions without actually opening them, for automated testing.</p>
+      </description>
+    </release>
     <release version="0.1.2" date="2026-09-22">
       <description>
         <p>Voxa now has an assistant-focused interface with reliable ACTIVE and OFFLINE state handling, selectable local Ollama or llama.cpp backends, and selectable animated characters.</p>

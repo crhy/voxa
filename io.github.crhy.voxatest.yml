@@ -1,0 +1,82 @@
+id: io.github.crhy.voxatest
+runtime: org.gnome.Platform
+runtime-version: '50'
+sdk: org.gnome.Sdk
+command: voxatest-gui
+
+finish-args:
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --share=network
+  - --device=dri
+  - --filesystem=xdg-documents:create
+  # VoxaTest reads Voxa's wake word/microphone/backend settings read-only,
+  # for both a host install of Voxa and the Voxa Flatpak.
+  - --filesystem=xdg-config/voxa:ro
+  - --filesystem=~/.var/app/io.github.crhy.voxa/config/voxa:ro
+
+modules:
+  - name: espeak-ng
+    buildsystem: simple
+    sources:
+      - type: git
+        url: https://github.com/espeak-ng/espeak-ng.git
+        tag: 1.52.0
+        commit: 4870adfa25b1a32b4361592f1be8a40337c58d6c
+    build-commands:
+      - ./autogen.sh
+      - ./configure --prefix=/app --with-sonic=no --with-mbrola=no --with-pcaudiolib=no
+      - make -j${FLATPAK_BUILDER_N_JOBS}
+      - make install
+
+  - python3-requirements-flatpak.json
+
+  - name: nvidia-cuda-runtime
+    buildsystem: simple
+    only-arches: [x86_64]
+    sources:
+      - type: file
+        url: https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-x86_64/libcublas-linux-x86_64-12.6.4.1-archive.tar.xz
+        sha256: ec682bac6387f9cdfd0c20b25a16cd6ed0b8b3b7ff42be9eaeb41828e3a72572
+      - type: file
+        url: https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-x86_64/cuda_cudart-linux-x86_64-12.6.77-archive.tar.xz
+        sha256: f74689258a60fd9c5bdfa7679458527a55e22442691ba678dcfaeffbf4391ef9
+    build-commands:
+      - mkdir -p /app/lib/cuda
+      - tar -xJf libcublas-*.tar.xz --no-same-owner
+      - tar -xJf cuda_cudart-*.tar.xz --no-same-owner
+      - install -Dm755 libcublas-*-archive/lib/libcublas.so.12.6.4.1 /app/lib/cuda/
+      - install -Dm755 libcublas-*-archive/lib/libcublasLt.so.12.6.4.1 /app/lib/cuda/
+      - install -Dm755 cuda_cudart-*-archive/lib/libcudart.so.12.6.77 /app/lib/cuda/
+      - ln -sf libcublas.so.12.6.4.1 /app/lib/cuda/libcublas.so.12
+      - ln -sf libcublasLt.so.12.6.4.1 /app/lib/cuda/libcublasLt.so.12
+      - ln -sf libcudart.so.12.6.77 /app/lib/cuda/libcudart.so.12
+
+  - name: nvidia-smi-libs
+    buildsystem: simple
+    only-arches: [x86_64]
+    sources:
+      - type: file
+        path: packaging/flatpak/nvml/nvidia-smi
+      - type: file
+        path: packaging/flatpak/nvml/libnvidia-ml.so.1
+    build-commands:
+      - install -d /app/lib/nvml
+      - install -Dm755 nvidia-smi /app/lib/nvml/nvidia-smi
+      - install -Dm755 libnvidia-ml.so.1 /app/lib/nvml/libnvidia-ml.so.1
+
+  - name: voxatest
+    buildsystem: simple
+    sources:
+      - type: dir
+        path: .
+    build-commands:
+      - install -d /app/lib/voxa
+      - cp -r voxa voxatest /app/lib/voxa/
+      - find /app/lib/voxa -name __pycache__ -prune -exec rm -rf {} +
+      - install -Dm755 packaging/flatpak/voxatest /app/bin/voxatest-gui
+      - install -Dm644 io.github.crhy.voxatest.desktop /app/share/applications/io.github.crhy.voxatest.desktop
+      - install -Dm644 io.github.crhy.voxatest.metainfo.xml /app/share/metainfo/io.github.crhy.voxatest.metainfo.xml
+      - install -Dm644 icons/io.github.crhy.voxa.png /app/share/icons/hicolor/256x256/apps/io.github.crhy.voxatest.png

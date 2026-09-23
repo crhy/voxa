@@ -1,0 +1,7 @@
+#!/bin/sh
+export PYTHONPATH=/app/lib/voxa
+export PATH="/app/lib/nvml:$PATH"
+export LD_LIBRARY_PATH="/app/lib/cuda:/app/lib/nvml${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export VOXATEST_REPORTS_DIR="${XDG_DOCUMENTS_DIR:-$HOME/Documents}/VoxaTest/reports"
+export VOXATEST_FAILURE_REPORT="${XDG_DOCUMENTS_DIR:-$HOME/Documents}/VoxaTest/VOXATEST_FAILURES.md"
+exec python3 -m voxatest.application "$@"

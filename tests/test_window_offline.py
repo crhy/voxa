@@ -76,7 +76,16 @@ def window(application, tmp_path, monkeypatch):
     for var, sub in (("XDG_CONFIG_HOME", "config"), ("XDG_DATA_HOME", "data"), ("XDG_CACHE_HOME", "cache")):
         monkeypatch.setenv(var, str(tmp_path / sub))
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("_load_whisper", "_load_wake_whisper", "_detect_hardware_async", "_refresh_ollama_models", "_refresh_devices"):
+    for name in (
+        "_load_whisper",
+        "_load_wake_whisper",
+        "_detect_hardware_async",
+        "_refresh_ollama_models",
+        "_refresh_devices",
+        "_start_ai_server_async",
+        "_restart_ai_server_async",
+        "_stop_ai_server_async",
+    ):
         monkeypatch.setattr(MainWindow, name, lambda *args, **kwargs: None)
     win = MainWindow(application)
     win.audio = FakeAudio()

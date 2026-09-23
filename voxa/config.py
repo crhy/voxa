@@ -62,9 +62,10 @@ class ConfigStore:
         self.path = path
         self.legacy_path = Path.home() / ".voice_config.json"
 
-    def load(self) -> Settings:
-        self._migrate_legacy_file()
-        self._migrate_legacy_config_dir()
+    def load(self, *, migrate: bool = True) -> Settings:
+        if migrate:
+            self._migrate_legacy_file()
+            self._migrate_legacy_config_dir()
         try:
             payload = json.loads(self.path.read_text(encoding="utf-8"))
         except (FileNotFoundError, json.JSONDecodeError, OSError):

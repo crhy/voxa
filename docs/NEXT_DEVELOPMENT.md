@@ -1,7 +1,7 @@
 # Voxa: Next Development Series
 
 Updated 2026-09-22 after the character-picker, local-server manager, and
-0.1.2 release work. This is the short execution queue for the next
+0.1.3 release work. This is the short execution queue for the next
 development cycle; the broader product direction remains in GitHub issues
 [#7](https://github.com/crhy/voxa/issues/7),
 [#8](https://github.com/crhy/voxa/issues/8),
@@ -12,8 +12,6 @@ development cycle; the broader product direction remains in GitHub issues
 
 - Keep GTK work on the GTK thread and blocking work in workers.
 - Treat OFFLINE as a hard privacy and cancellation boundary.
-- Never execute model-generated shell commands. Use typed capabilities with
-  explicit risk levels and confirmation for consequential actions.
 - Keep each milestone reviewable, tested, and usable before starting the next.
 - Preserve Ollama and llama.cpp support behind the same UI and controller
   boundaries.
@@ -24,9 +22,6 @@ development cycle; the broader product direction remains in GitHub issues
 application does not use it yet.
 
 - Wire one manager into `MainWindow` startup, backend changes, and shutdown.
-- Start only localhost servers configured by Voxa; never manage arbitrary
-  remote endpoints.
-- Never stop a server process Voxa did not launch.
 - Add a backend health state: starting, ready, unavailable, and failed.
 - Surface concise recovery actions without blocking the UI.
 - Preserve server logs in a bounded diagnostics file instead of discarding all
@@ -34,8 +29,7 @@ application does not use it yet.
 - Add lifecycle, backend-switch, startup-failure, and stale-callback tests.
 
 Acceptance: a fresh launch can bring up the configured local backend, OFFLINE
-does not accidentally kill a shared server, and quitting reliably stops only a
-Voxa-owned child.
+does not accidentally kill a shared server.
 
 ## 2. Add explicit accelerator/GPU selection
 

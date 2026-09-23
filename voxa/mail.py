@@ -8,10 +8,15 @@ the draft already filled in, unsent, so the user reads it and sends it themselve
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 import subprocess
 from dataclasses import dataclass
+
+from .simulation import actions_simulated
+
+log = logging.getLogger(__name__)
 
 IN_FLATPAK = os.path.exists("/.flatpak-info")
 
@@ -83,6 +88,9 @@ def _host(command: list[str]) -> list[str]:
 
 def compose(to: str, subject: str, body: str) -> None:
     """Open the user's default mail client with an unsent draft prefilled."""
+    if actions_simulated():
+        log.info("simulated action: would compose mail to %s", to or "the mail client")
+        return
     command = ["xdg-email"]
     if subject:
         command += ["--subject", subject]

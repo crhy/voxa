@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 import subprocess
 from dataclasses import dataclass
 from difflib import SequenceMatcher
+
+from .simulation import actions_simulated
+
+log = logging.getLogger(__name__)
 
 IN_FLATPAK = os.path.exists("/.flatpak-info")
 _OPEN_VERB = re.compile(r"^\s*(?:please\s+)?(?:open|launch|start|run)\s+(?:up\s+)?(?:the\s+)?(?P<name>.+?)\s*[.!?]*\s*$", re.I)
@@ -90,6 +95,9 @@ def list_apps() -> list[DesktopApp]:
 
 
 def launch(app: DesktopApp) -> None:
+    if actions_simulated():
+        log.info("simulated action: would launch %s", app.name)
+        return
     subprocess.Popen(  # noqa: S603 - fixed argv, path comes from the host's own menu
         _host(["gio", "launch", app.path]),
         stdin=subprocess.DEVNULL,

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=VoxaTest
+Comment=End-to-end voice testing for Voxa
+Exec=voxatest-gui
+Icon=io.github.crhy.voxatest
+Terminal=false
+Type=Application
+Categories=Development;
+Keywords=voxa;test;voice;speech;assistant;
+StartupNotify=true
+StartupWMClass=VoxaTest
