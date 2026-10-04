@@ -186,6 +186,9 @@ class ConversationController:
         # wake word first (set by the caller after a barge-in, so the user can
         # just keep talking after interrupting a spoken reply).
         self.waiting_for_prompt = False
+        # Dictation mode: every utterance is a prompt, no wake word needed, until
+        # the user says "stop dictating".
+        self.keep_prompt = False
 
     @property
     def muted(self) -> bool:
@@ -229,6 +232,16 @@ class ConversationController:
         """
         self.waiting_for_prompt = True
 
+    def hold_prompt(self) -> None:
+        """Keep listening for prompts: every utterance is one, wake word or not."""
+        self.keep_prompt = True
+        self.waiting_for_prompt = True
+
+    def release_prompt(self) -> None:
+        """Go back to wake-word-gated listening."""
+        self.keep_prompt = False
+        self.waiting_for_prompt = False
+
     def stop(self) -> None:
         self.stop_event.set()
         self.waiting_for_prompt = False
@@ -265,12 +278,15 @@ class ConversationController:
 
     def _run(self) -> None:
         while not self.stop_event.is_set():
-            idle_timeout = self.PROMPT_TIMEOUT_SECONDS if self.waiting_for_prompt else None
+            keep = self.keep_prompt
+            # Dictation mode never times out: the user keeps talking until they
+            # say "stop dictating".
+            idle_timeout = None if keep else (self.PROMPT_TIMEOUT_SECONDS if self.waiting_for_prompt else None)
             segment = self._next_segment(idle_timeout)
             # Re-read after the segment: a barge-in can arm the prompt state
             # while the user is mid-utterance, and that utterance must be the
             # prompt, not a wake-word candidate.
-            waiting_for_prompt = self.waiting_for_prompt
+            waiting_for_prompt = self.waiting_for_prompt or self.keep_prompt
             if segment is None:
                 if waiting_for_prompt and not self.stop_event.is_set():
                     self.on_status(f"Didn't catch that — say “{self.wake_word}” again.")
@@ -284,18 +300,19 @@ class ConversationController:
             if self.stop_event.is_set():
                 break
 
-            exit_kind = detect_exit_phrase(text)
-            if exit_kind is not None:
-                # The user is ending things: abandon any in-flight prompt and
-                # either go back to waiting for the wake word (cancel) or
-                # leave conversation mode entirely (goodbye — the caller stops
-                # us when it hears that).
-                self.waiting_for_prompt = False
-                if not self.stop_event.is_set():
-                    self.on_exit(exit_kind)
-                if exit_kind == "goodbye":
-                    break
-                continue
+            if not self.keep_prompt:
+                exit_kind = detect_exit_phrase(text)
+                if exit_kind is not None:
+                    # The user is ending things: abandon any in-flight prompt and
+                    # either go back to waiting for the wake word (cancel) or
+                    # leave conversation mode entirely (goodbye — the caller stops
+                    # us when it hears that).
+                    self.waiting_for_prompt = False
+                    if not self.stop_event.is_set():
+                        self.on_exit(exit_kind)
+                    if exit_kind == "goodbye":
+                        break
+                    continue
 
             if not waiting_for_prompt:
                 remainder = strip_wake_word(text, self.wake_word)
@@ -313,4 +330,6 @@ class ConversationController:
                 if self.stop_event.is_set():
                     break
                 self.on_prompt(text)
-                self.waiting_for_prompt = False
+                # While dictating the next utterance is a prompt too; otherwise
+                # we go back to waiting for the wake word.
+                self.waiting_for_prompt = self.keep_prompt

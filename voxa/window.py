@@ -3,6 +3,7 @@ from __future__ import annotations
 import threading
 import time
 from collections.abc import Callable
+from datetime import datetime
 from pathlib import Path
 
 import gi
@@ -12,6 +13,12 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
 from . import apps, documents, mail, websearch  # noqa: E402
+from .agent import hearing, intents, planner  # noqa: E402
+from .agent.actionlog import ActionLog, ActionRecord  # noqa: E402
+from .agent.registry import ToolError  # noqa: E402
+from .agent.result import ToolResult  # noqa: E402
+from .agent.spoken_text import format_dictation, parse_dictation_control  # noqa: E402
+from .agent.tools import default_registry, typing  # noqa: E402
 from .audio import AudioCapture, AudioDevice  # noqa: E402
 from .catalog import CatalogUnavailable, load_catalog, refresh_and_cache, refresh_due  # noqa: E402
 from .config import ConfigStore  # noqa: E402
@@ -24,6 +31,7 @@ from .llamacpp import LlamaCppClient  # noqa: E402
 from .ollama import OllamaClient, OllamaError, strip_reasoning  # noqa: E402
 from .server import SERVER_FAILED, SERVER_STARTING, SERVER_UNAVAILABLE, AiServerManager  # noqa: E402
 from .speech import SpeechService  # noqa: E402
+from .theme import host_theme_is_dark  # noqa: E402
 from .transcription import WhisperService  # noqa: E402
 from .ui.avatars import character_choices, get_avatar  # noqa: E402
 from .ui.legacy_view import LegacyCallbacks, LegacyView  # noqa: E402
@@ -157,6 +165,14 @@ class MainWindow(Adw.ApplicationWindow):
         self._closing = False
         self._follow_up_token: int | None = None
         self._app_cache: list[apps.DesktopApp] | None = None
+        # Tools the router can call directly, without ever asking the model.
+        self.tools = default_registry()
+        # Every command Voxa hears is logged here, so we can see what works.
+        self.action_log = ActionLog()
+        # Dictation mode: utterances go straight into the focused window instead
+        # of the model, until the user says "stop dictating".
+        self._external_dictation = False
+        self._last_dictated = ""
         # The single source of truth for what the assistant is doing; the shell renders it.
         self.assistant_model = AssistantModel()
         # ACTIVE / OFFLINE and every stale-callback decision go through this controller.
@@ -1184,6 +1200,118 @@ class MainWindow(Adw.ApplicationWindow):
         self._toast(f"Could not open the app: {error}")
         return False
 
+    def _log_action(
+        self,
+        heard: str,
+        route: str,
+        tool: str = "",
+        args: dict[str, str] | None = None,
+        ok: bool | None = None,
+        speech: str = "",
+        detail: str = "",
+        ms: int = 0,
+    ) -> None:
+        """Record one command in the action log; logging never breaks a command."""
+        self.action_log.append(
+            ActionRecord(
+                time=datetime.now().isoformat(timespec="seconds"),
+                heard=heard,
+                route=route,
+                tool=tool,
+                args=args or {},
+                ok=ok,
+                speech=speech,
+                detail=detail,
+                ms=ms,
+            )
+        )
+
+    def _run_tool(self, call: intents.ToolCall, prompt: str) -> None:
+        """A recognised command goes straight to its tool, never to the model."""
+        self.query_cancel.set()
+        self._query_generation += 1
+        self._end_query_task("cancelled")
+        self.shell.exchange_panel.show_question(prompt)
+        title = call.tool.replace("_", " ").capitalize()
+        task = self.assistant.begin_task(title)
+        self._query_task_id = task.id if task is not None else None
+        token = self.assistant.token()
+        self.assistant.prompt_accepted(token)
+        self._set_status(f"{title}…", busy=True)
+
+        # While OFFLINE there is no session to guard: the tool still runs, with a toast.
+        active = self.assistant.is_active
+
+        def guard(callback):
+            return self._for_session(token, callback) if active else callback
+
+        def worker() -> None:
+            started = time.monotonic()
+            try:
+                result = self.tools.call(call.tool, call.args)
+                self._log_action(
+                    prompt,
+                    "tool",
+                    tool=call.tool,
+                    args=dict(call.args),
+                    ok=result.ok,
+                    speech=result.speech,
+                    detail=result.detail,
+                    ms=int((time.monotonic() - started) * 1000),
+                )
+                idle(guard(self._on_tool_finished), result)
+            except ToolError as exc:
+                self._log_action(
+                    prompt,
+                    "tool",
+                    tool=call.tool,
+                    args=dict(call.args),
+                    ok=False,
+                    detail=str(exc),
+                    ms=int((time.monotonic() - started) * 1000),
+                )
+                idle(guard(self._on_tool_failed), str(exc))
+            except Exception as exc:  # noqa: BLE001 - tool handlers touch the host
+                self._log_action(
+                    prompt,
+                    "tool",
+                    tool=call.tool,
+                    args=dict(call.args),
+                    ok=False,
+                    detail=str(exc),
+                    ms=int((time.monotonic() - started) * 1000),
+                )
+                idle(guard(self._on_tool_failed), str(exc))
+
+        threading.Thread(target=worker, name="run-tool", daemon=True).start()
+
+    def _on_tool_finished(self, result) -> bool:
+        speech = result.speech
+        self._end_query_task("done" if result.ok else "cancelled")
+        if speech:
+            self.shell.exchange_panel.show_answer(speech)
+            if not self.assistant.is_active:
+                self._toast(speech)
+            elif self.conversation_active:
+                self._conversation_speak(speech)
+            else:
+                self.assistant.reply_finished(self.assistant.token())
+                self._toast(speech)
+            self._set_status(speech)
+        else:
+            # A silent tool (typing into a window, for instance): no speech, no toast,
+            # but the turn is over and the assistant is listening again.
+            if self.assistant.is_active:
+                self.assistant.reply_finished(self.assistant.token())
+            self._set_status(self._conversation_idle_status())
+        return False
+
+    def _on_tool_failed(self, error: str) -> bool:
+        self._end_query_task("cancelled")
+        self._fail_assistant("That didn't work")
+        self._toast(f"That didn't work: {error}")
+        return False
+
     def _clear_display(self) -> None:
         """A blank interface: no transcript, answer, exchange card or remembered turns."""
         self._conversation_history.clear()
@@ -1398,6 +1526,54 @@ class MainWindow(Adw.ApplicationWindow):
         self.shell.exchange_panel.clear()
         self._set_status("Ready")
 
+    def _start_external_dictation(self, prompt: str) -> None:
+        self._external_dictation = True
+        self._last_dictated = ""
+        if self.conversation is not None:
+            self.conversation.hold_prompt()
+        self._on_tool_finished(ToolResult.success("Dictating. Say stop dictating when you're done."))
+
+    def _stop_external_dictation(self) -> None:
+        self._external_dictation = False
+        if self.conversation is not None:
+            self.conversation.release_prompt()
+
+    def _dictate_external(self, text: str) -> None:
+        """Handle one utterance while dictating: type it, undo it, send it, or stop."""
+        action = parse_dictation_control(text)
+        if action == "stop":
+            self._stop_external_dictation()
+            self._on_tool_finished(ToolResult.success("Done dictating."))
+            return
+        if action == "undo":
+            erased = len(self._last_dictated)
+            self._last_dictated = ""
+
+            def worker() -> None:
+                try:
+                    typing.erase(erased)
+                except Exception as exc:  # noqa: BLE001 - worker boundary
+                    idle(self._toast, f"I can't type here. {exc}")
+
+            threading.Thread(target=worker, name="external-dictation", daemon=True).start()
+            return
+        if action == "send":
+            self._stop_external_dictation()
+            self._run_tool(intents.ToolCall("send_gmail", {}), text)
+            return
+
+        typed = format_dictation(text)
+        self._last_dictated = typed
+        self._log_action(text, "dictation", ok=True)
+
+        def worker() -> None:
+            try:
+                typing.type_text(typed)
+            except Exception:  # noqa: BLE001 - worker boundary
+                idle(self._toast, "I can't type here.")
+
+        threading.Thread(target=worker, name="external-dictation", daemon=True).start()
+
     def ask_ai(self, prompt: str | None = None) -> None:
         self._follow_up_token = None
         self._stop_dictation_for_action()
@@ -1414,8 +1590,21 @@ class MainWindow(Adw.ApplicationWindow):
         if not prompt:
             self._toast("Speak or type something first.")
             return
+        original = prompt
+        prompt = hearing.normalize(prompt) or prompt
+        if self._external_dictation:
+            self._dictate_external(original)
+            return
+        if intents.is_start_dictation(prompt):
+            self._start_external_dictation(prompt)
+            return
+        call = intents.route(prompt)
+        if call is not None:
+            self._run_tool(call, prompt)
+            return
         app_name = apps.parse_open_command(prompt)
         if app_name and len(app_name.split()) <= 5:
+            self._log_action(prompt, "legacy")
             self._open_app(app_name, prompt)
             return
         if not self.settings.ollama_model:
@@ -1432,6 +1621,7 @@ class MainWindow(Adw.ApplicationWindow):
                 "Drafting an email",
                 lambda answer: self._finish_email_draft(email, answer),
             )
+            self._log_action(prompt, "legacy")
             return
         document = documents.parse_document_command(prompt)
         if document is not None:
@@ -1442,8 +1632,14 @@ class MainWindow(Adw.ApplicationWindow):
                 "Writing a document",
                 lambda answer: self._finish_document_draft(document, answer),
             )
+            self._log_action(prompt, "legacy")
             return
 
+        if planner.looks_like_command(prompt):
+            self._plan_and_run(prompt)
+            return
+
+        self._log_action(prompt, "model")
         self.query_cancel.set()
         cancel_event = threading.Event()
         self.query_cancel = cancel_event
@@ -1621,6 +1817,36 @@ class MainWindow(Adw.ApplicationWindow):
         documents.open_in_libreoffice(path)
         return f"I've written “{title}” and opened it in LibreOffice — it's saved in Voxa Drafts."
 
+    def _plan_and_run(self, prompt: str) -> None:
+        self._draft_and_act(
+            prompt,
+            planner.system_prompt(self.tools),
+            prompt,
+            "Working on it",
+            lambda answer: self._finish_plan(prompt, answer),
+        )
+
+    def _finish_plan(self, prompt: str, answer: str) -> str:
+        try:
+            plan = planner.parse_plan(answer, self.tools)
+        except planner.PlanError as exc:
+            self._log_action(prompt, "plan", ok=False, detail=str(exc))
+            return "I couldn't work out how to do that."
+
+        def on_step(call, result, ms: int) -> None:
+            self._log_action(
+                prompt,
+                "plan",
+                tool=call.tool,
+                args=call.args,
+                ok=result.ok,
+                speech=result.speech,
+                detail=result.detail,
+                ms=ms,
+            )
+
+        return planner.run_plan(plan, self.tools, on_step=on_step)
+
     def _web_context(self, prompt: str, generation: int, cancel_event: threading.Event) -> str:
         query = websearch.search_query_for(prompt)
         if not query:
@@ -1752,6 +1978,7 @@ class MainWindow(Adw.ApplicationWindow):
         # The OFFLINE kill switch: stops the microphone, wake-word monitoring, dictation,
         # speech and the running request, cancels tasks, and makes late callbacks stale.
         self.assistant.go_offline()
+        self._stop_external_dictation()
         self._stop_ai_server_async()
         if self._installing:
             self._install_cancel.set()
@@ -1760,6 +1987,8 @@ class MainWindow(Adw.ApplicationWindow):
 
     @staticmethod
     def _gtk_theme_prefers_dark() -> bool:
+        if host_theme_is_dark():
+            return True
         gtk_settings = Gtk.Settings.get_default()
         if gtk_settings is None:
             return False
@@ -1788,167 +2017,96 @@ class MainWindow(Adw.ApplicationWindow):
     def show_preferences(self) -> None:
         dialog = Adw.PreferencesDialog()
         dialog.set_title("Preferences")
-        if hasattr(dialog, "set_content_width"):
-            dialog.set_content_width(820)
-        else:
-            dialog.set_size_request(820, -1)
+        dialog.add_css_class("voxa-preferences")
+        # Tall and moderately wide: every page fits without scrolling, and the
+        # rows are not stretched into long, hard-to-scan lines.
+        dialog.set_content_width(680)
+        dialog.set_content_height(640)
 
-        # One page per topic so settings don't share one long crammed column:
-        # the dialog renders a sidebar with a row per page.
-        appearance_page = Adw.PreferencesPage(title="Appearance", icon_name="color-select-symbolic")
-        appearance_page.set_description("How the window looks on your desktop.")
-        appearance_group = Adw.PreferencesGroup()
-        appearance_page.add(appearance_group)
+        # Three pages with short names (long names are cut off in the page
+        # switcher), each split into titled groups.
+        general_page = Adw.PreferencesPage(title="General", icon_name="preferences-system-symbolic")
+
+        appearance_group = Adw.PreferencesGroup(title="Appearance")
+        general_page.add(appearance_group)
         appearance_row = Adw.ComboRow(
             title="Color scheme",
-            subtitle="Follow the desktop or choose an explicit light or dark appearance",
+            subtitle="Follow the desktop, or always use light or dark",
         )
         appearance_row.set_model(Gtk.StringList.new(APPEARANCE_LABELS))
         appearance_row.set_selected(APPEARANCE_VALUES.index(self.settings.appearance))
         appearance_group.add(appearance_row)
-        dialog.add(appearance_page)
 
-        speech_page = Adw.PreferencesPage(title="Speech recognition", icon_name="microphone-sensitivity-high-symbolic")
-        speech_page.set_description("How spoken input is transcribed.")
-        speech_group = Adw.PreferencesGroup()
-        speech_page.add(speech_group)
+        choices = character_choices()
+        character_ids = [character_id for character_id, _label in choices]
+        self._character_ids = character_ids
+        character_row = Adw.ComboRow(
+            title="Assistant character",
+            subtitle="An avatar with its matching voice, or the Classic badge",
+        )
+        character_row.set_model(Gtk.StringList.new([label for _character_id, label in choices]))
+        character_row.set_selected(
+            character_ids.index(self.settings.character_id) if self.settings.character_id in character_ids else 0
+        )
+        appearance_group.add(character_row)
 
-        whisper_row = Adw.ComboRow(title="Whisper model", subtitle="Smaller models use less memory and start faster")
+        conversation_group = Adw.PreferencesGroup(
+            title="Conversation",
+            description="Say the wake word, then your request. Voxa acts on it or answers aloud.",
+        )
+        general_page.add(conversation_group)
+        wake_word_row = Adw.EntryRow(title="Wake word")
+        wake_word_row.set_text(self.settings.wake_word)
+        conversation_group.add(wake_word_row)
+        auto_speak_row = Adw.SwitchRow(
+            title="Speak answers aloud",
+            subtitle="Read each reply out as soon as it is ready",
+        )
+        auto_speak_row.set_active(self.settings.auto_speak)
+        conversation_group.add(auto_speak_row)
+        dialog.add(general_page)
+
+        speech_page = Adw.PreferencesPage(title="Speech", icon_name="audio-input-microphone-symbolic")
+
+        listening_group = Adw.PreferencesGroup(title="Listening")
+        speech_page.add(listening_group)
+        mic_names = [device.name for device in self.devices] or ["Default microphone"]
+        selected_mic = next(
+            (index for index, device in enumerate(self.devices) if device.identifier == self.settings.microphone_id),
+            0,
+        )
+        # The selected name is already shown in the row; the subtitle says what the
+        # setting is for, and the tooltip carries the full name when it is cut off.
+        mic_row = Adw.ComboRow(title="Microphone", subtitle="Used for dictation and conversation")
+        mic_row.set_model(Gtk.StringList.new(mic_names))
+        mic_row.set_factory(string_item_factory(wrap=False, width_chars=30))
+        mic_row.set_list_factory(string_item_factory(wrap=True, width_chars=56))
+        mic_row.set_selected(selected_mic)
+        mic_row.set_tooltip_text(mic_names[selected_mic])
+
+        def update_mic_tooltip(row, _property) -> None:
+            row.set_tooltip_text(mic_names[min(row.get_selected(), len(mic_names) - 1)])
+
+        mic_row.connect("notify::selected", update_mic_tooltip)
+        listening_group.add(mic_row)
+
+        whisper_row = Adw.ComboRow(
+            title="Recognition model",
+            subtitle="Whisper size: smaller starts faster, larger hears more accurately",
+        )
         whisper_model = Gtk.StringList.new(WHISPER_MODELS)
         whisper_row.set_model(whisper_model)
         try:
             whisper_row.set_selected(WHISPER_MODELS.index(self.settings.whisper_model))
         except ValueError:
             whisper_row.set_selected(1)
-        speech_group.add(whisper_row)
+        listening_group.add(whisper_row)
 
-        mic_names = [device.name for device in self.devices] or ["Default microphone"]
-        selected_mic = next(
-            (index for index, device in enumerate(self.devices) if device.identifier == self.settings.microphone_id),
-            0,
-        )
-        mic_row = Adw.ComboRow(
-            title="Microphone source",
-            subtitle=mic_names[selected_mic],
-        )
-        mic_row.set_model(Gtk.StringList.new(mic_names))
-        mic_row.set_factory(string_item_factory(wrap=False, width_chars=42))
-        mic_row.set_list_factory(string_item_factory(wrap=True, width_chars=68))
-        mic_row.set_selected(selected_mic)
-        mic_row.set_tooltip_text(mic_names[selected_mic])
-
-        def update_mic_description(row, _property) -> None:
-            index = min(row.get_selected(), len(mic_names) - 1)
-            full_name = mic_names[index]
-            row.set_subtitle(full_name)
-            row.set_tooltip_text(full_name)
-
-        mic_row.connect("notify::selected", update_mic_description)
-        speech_group.add(mic_row)
-        dialog.add(speech_page)
-
-        ai_page = Adw.PreferencesPage(title="Local AI", icon_name="system-run-symbolic")
-        ai_page.set_description("The local server that answers questions: llama.cpp or Ollama.")
-        ai_group = Adw.PreferencesGroup()
-        ai_page.add(ai_group)
-
-        backend_row = Adw.ComboRow(
-            title="AI backend",
-            subtitle="llama.cpp runs a GGUF model through a llama.cpp server; Ollama manages models itself",
-        )
-        backend_row.set_model(Gtk.StringList.new(["llama.cpp", "Ollama"]))
-        backend_row.set_selected(0 if self.settings.ai_backend == "llamacpp" else 1)
-        ai_group.add(backend_row)
-
-        model_names = self.ollama_models or ["No models found"]
-        ai_row = Adw.ComboRow(title="Model", subtitle=self._hardware_summary)
-        ai_row.set_model(Gtk.StringList.new(model_names))
-        if self.settings.ollama_model in model_names:
-            ai_row.set_selected(model_names.index(self.settings.ollama_model))
-        ai_group.add(ai_row)
-
-        llamacpp_row = Adw.EntryRow(title="llama.cpp server address")
-        llamacpp_row.set_text(self.settings.llamacpp_url)
-        llamacpp_row.set_visible(self.settings.ai_backend == "llamacpp")
-        ai_group.add(llamacpp_row)
-
-        endpoint_row = Adw.EntryRow(title="Ollama address")
-        endpoint_row.set_text(self.settings.ollama_url)
-        endpoint_row.set_visible(self.settings.ai_backend == "ollama")
-        ai_group.add(endpoint_row)
-
-        auto_speak_row = Adw.SwitchRow(title="Speak AI responses automatically")
-        auto_speak_row.set_active(self.settings.auto_speak)
-        ai_group.add(auto_speak_row)
-        web_search_row = Adw.SwitchRow(
-            title="Search the web for current questions",
-            subtitle="Sends the question text to DuckDuckGo when it needs fresh information.",
-        )
-        web_search_row.set_active(self.settings.web_search)
-        ai_group.add(web_search_row)
-
-        # Installing and pulling models is an Ollama-only convenience; a
-        # llama.cpp server serves whichever GGUF the user started it with.
-        # The rows always exist so switching the backend combo shows or hides
-        # them immediately instead of only on the next dialog open.
-        install_row = Adw.ActionRow(
-            title="Install or update Ollama",
-            subtitle="Downloads the latest installer from ollama.com and runs it with a password prompt",
-        )
-        install_button = Gtk.Button(label="Install", valign=Gtk.Align.CENTER)
-        install_button.connect("clicked", lambda *_: self._start_ollama_install())
-        install_row.add_suffix(install_button)
-        install_row.set_visible(self.settings.ai_backend == "ollama")
-        ai_group.add(install_row)
-
-        manage_row = Adw.ActionRow(title="Pull or remove models")
-        manage_button = Gtk.Button(label="Manage models…", valign=Gtk.Align.CENTER)
-        manage_button.connect("clicked", lambda *_: self._show_model_manager())
-        manage_row.add_suffix(manage_button)
-        manage_row.set_visible(self.settings.ai_backend == "ollama")
-        ai_group.add(manage_row)
-
-        def update_backend_rows(*_):
-            using_ollama = backend_row.get_selected() == 1
-            llamacpp_row.set_visible(not using_ollama)
-            endpoint_row.set_visible(using_ollama)
-            install_row.set_visible(using_ollama)
-            manage_row.set_visible(using_ollama)
-
-        backend_row.connect("notify::selected", update_backend_rows)
-        dialog.add(ai_page)
-
-        conversation_page = Adw.PreferencesPage(title="Conversation mode", icon_name="microphone-sensitivity-muted-symbolic")
-        conversation_page.set_description("Hands-free exchanges: say the wake word, then your question.")
-        conversation_group = Adw.PreferencesGroup(
-            description="Say the wake word to start talking, then ask something — it's transcribed and sent to the AI model automatically.",
-        )
-        conversation_page.add(conversation_group)
-        wake_word_row = Adw.EntryRow(title="Wake word")
-        wake_word_row.set_text(self.settings.wake_word)
-        conversation_group.add(wake_word_row)
-        dialog.add(conversation_page)
-
-        voice_page = Adw.PreferencesPage(title="Speech output", icon_name="audio-volume-high-symbolic")
-        voice_page.set_description("The voice that reads AI responses aloud.")
-        voice_group = Adw.PreferencesGroup()
-        voice_page.add(voice_group)
-        choices = character_choices()
-        character_ids = [character_id for character_id, _label in choices]
-        self._character_ids = character_ids
-        character_row = Adw.ComboRow(
-            title="Assistant character",
-            subtitle="Select an avatar and its matching voice, or the Classic badge",
-        )
-        character_row.set_model(Gtk.StringList.new([label for _character_id, label in choices]))
-        character_row.set_selected(
-            character_ids.index(self.settings.character_id) if self.settings.character_id in character_ids else 0
-        )
-        voice_group.add(character_row)
-
+        voice_group = Adw.PreferencesGroup(title="Voice")
+        speech_page.add(voice_group)
         voice_row = Adw.ComboRow(
             title="Voice",
-            subtitle="Natural online voice with automatic offline fallback",
+            subtitle="Natural online voice, with an offline fallback",
         )
         voice_row.set_model(Gtk.StringList.new([label for label, _voice in TTS_VOICES]))
         voice_ids = [voice_id for _label, voice_id in TTS_VOICES]
@@ -1967,9 +2125,84 @@ class MainWindow(Adw.ApplicationWindow):
         character_row.connect("notify::selected", _sync_voice_from_character)
         rate_row = Adw.SpinRow.new_with_range(80, 350, 5)
         rate_row.set_title("Speaking rate")
+        rate_row.set_subtitle("Words per minute")
         rate_row.set_value(self.settings.tts_rate)
         voice_group.add(rate_row)
-        dialog.add(voice_page)
+        dialog.add(speech_page)
+
+        ai_page = Adw.PreferencesPage(title="Local AI", icon_name="system-run-symbolic")
+
+        ai_group = Adw.PreferencesGroup(
+            title="Model server",
+            description="The local server that answers questions and plans tasks.",
+        )
+        ai_page.add(ai_group)
+        backend_row = Adw.ComboRow(
+            title="Backend",
+            subtitle="llama.cpp-compatible server, or Ollama",
+        )
+        backend_row.set_model(Gtk.StringList.new(["llama.cpp", "Ollama"]))
+        backend_row.set_selected(0 if self.settings.ai_backend == "llamacpp" else 1)
+        ai_group.add(backend_row)
+
+        model_names = self.ollama_models or ["No models found"]
+        ai_row = Adw.ComboRow(title="Model", subtitle=self._hardware_summary)
+        ai_row.set_model(Gtk.StringList.new(model_names))
+        ai_row.set_factory(string_item_factory(wrap=False, width_chars=30))
+        ai_row.set_list_factory(string_item_factory(wrap=True, width_chars=56))
+        if self.settings.ollama_model in model_names:
+            ai_row.set_selected(model_names.index(self.settings.ollama_model))
+        ai_group.add(ai_row)
+
+        llamacpp_row = Adw.EntryRow(title="Server address")
+        llamacpp_row.set_text(self.settings.llamacpp_url)
+        llamacpp_row.set_visible(self.settings.ai_backend == "llamacpp")
+        ai_group.add(llamacpp_row)
+
+        endpoint_row = Adw.EntryRow(title="Ollama address")
+        endpoint_row.set_text(self.settings.ollama_url)
+        endpoint_row.set_visible(self.settings.ai_backend == "ollama")
+        ai_group.add(endpoint_row)
+
+        answers_group = Adw.PreferencesGroup(title="Answers")
+        ai_page.add(answers_group)
+        web_search_row = Adw.SwitchRow(
+            title="Search the web for current questions",
+            subtitle="Sends the question text to DuckDuckGo when it needs fresh information",
+        )
+        web_search_row.set_active(self.settings.web_search)
+        answers_group.add(web_search_row)
+
+        # Installing and pulling models is an Ollama-only convenience; a
+        # llama.cpp server serves whichever GGUF the user started it with.
+        # The group always exists so switching the backend combo shows or hides
+        # it immediately instead of only on the next dialog open.
+        ollama_group = Adw.PreferencesGroup(title="Ollama")
+        ollama_group.set_visible(self.settings.ai_backend == "ollama")
+        ai_page.add(ollama_group)
+        install_row = Adw.ActionRow(
+            title="Install or update Ollama",
+            subtitle="Downloads the installer from ollama.com and runs it with a password prompt",
+        )
+        install_button = Gtk.Button(label="Install", valign=Gtk.Align.CENTER)
+        install_button.connect("clicked", lambda *_: self._start_ollama_install())
+        install_row.add_suffix(install_button)
+        ollama_group.add(install_row)
+
+        manage_row = Adw.ActionRow(title="Pull or remove models")
+        manage_button = Gtk.Button(label="Manage models…", valign=Gtk.Align.CENTER)
+        manage_button.connect("clicked", lambda *_: self._show_model_manager())
+        manage_row.add_suffix(manage_button)
+        ollama_group.add(manage_row)
+
+        def update_backend_rows(*_):
+            using_ollama = backend_row.get_selected() == 1
+            llamacpp_row.set_visible(not using_ollama)
+            endpoint_row.set_visible(using_ollama)
+            ollama_group.set_visible(using_ollama)
+
+        backend_row.connect("notify::selected", update_backend_rows)
+        dialog.add(ai_page)
 
         dialog.connect(
             "closed",

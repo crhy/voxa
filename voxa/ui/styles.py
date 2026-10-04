@@ -15,6 +15,53 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, Gtk  # noqa: E402
 
 VOXA_CSS = """
+/* Preferences: libadwaita's defaults leave the cards almost the same shade as
+   the dialog and the subtitles small and faint, which reads as low contrast on
+   the dark theme. Lift the cards, give the rows room, and firm up the text. */
+.voxa-preferences preferencesgroup > box > box > box > label.title,
+.voxa-preferences preferencesgroup .heading {
+    font-size: 15px;
+    font-weight: 700;
+    opacity: 1;
+}
+
+.voxa-preferences preferencesgroup .description,
+.voxa-preferences preferencesgroup label.dim-label {
+    opacity: 0.82;
+}
+
+.voxa-preferences list.boxed-list {
+    background: alpha(currentColor, 0.075);
+    border: 1px solid alpha(currentColor, 0.14);
+    box-shadow: none;
+}
+
+.voxa-preferences list.boxed-list > row {
+    min-height: 58px;
+    border-color: alpha(currentColor, 0.12);
+}
+
+.voxa-preferences row .title {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.voxa-preferences row .subtitle {
+    font-size: 12.5px;
+    font-weight: 400;
+    opacity: 0.85;
+    margin-top: 2px;
+}
+
+.voxa-preferences preferencespage > scrolledwindow > viewport > clamp > box {
+    margin-top: 12px;
+    margin-bottom: 24px;
+}
+
+.voxa-preferences preferencesgroup {
+    margin-bottom: 10px;
+}
+
 .voxa-brand {
     font-weight: 700;
     font-size: 15px;
