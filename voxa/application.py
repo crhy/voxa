@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-import gi
+from .theme import release_forced_theme
+
+release_forced_theme()  # a forced GTK_THEME strips libadwaita's stylesheet; see voxa/theme.py
+
+import gi  # noqa: E402
 
 gi.require_version("Adw", "1")
 gi.require_version("Gtk", "4.0")
@@ -34,7 +38,7 @@ class VoxaApplication(Adw.Application):
             application_icon=APP_ID,
             developer_name="crhy",
             version=APP_VERSION,
-            website="https://github.com/crhy/voxa",
+            website="https://voxaai.me",
             issue_url="https://github.com/crhy/voxa/issues",
             license_type=Gtk.License.MIT_X11,
             comments="Your personal voice assistant: hands-free dictation, local AI answers, and natural speech.",
