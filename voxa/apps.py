@@ -27,11 +27,16 @@ done
 '''
 
 
+_SKIP_EXEC = {"flatpak", "env", "sh", "bash", "python", "python3", "gio", "/usr/bin/flatpak"}
+_LEADING_WORDS = re.compile(r"^(?:the|my|a)\s+")
+
+
 @dataclass(frozen=True, slots=True)
 class DesktopApp:
     name: str
     path: str
     keywords: str = ""
+    aliases: tuple[str, ...] = ()
 
 
 def parse_open_command(prompt: str) -> str | None:
@@ -60,7 +65,10 @@ def parse_desktop_dump(dump: str) -> list[DesktopApp]:
         if entry.get("NoDisplay", "").lower() == "true" or entry.get("Hidden", "").lower() == "true":
             continue
         # earlier directories (the user's own) win over system ones with the same file name
-        apps.setdefault(os.path.basename(path), DesktopApp(entry["Name"], path, entry.get("Keywords", "")))
+        apps.setdefault(
+            os.path.basename(path),
+            DesktopApp(entry["Name"], path, entry.get("Keywords", ""), build_aliases(entry["Name"], path, entry)),
+        )
     return sorted(apps.values(), key=lambda app: app.name.casefold())
 
 
@@ -68,21 +76,91 @@ def _normalize(text: str) -> str:
     return " ".join(re.sub(r"[^a-z0-9\s]", " ", text.casefold()).split())
 
 
+def build_aliases(name: str, path: str, entry: dict[str, str]) -> tuple[str, ...]:
+    """Sound- and spelling-friendly names for an app, derived from its desktop entry."""
+    norm = _normalize(name)
+    raw: list[str] = []
+    if entry.get("GenericName"):
+        raw.append(entry["GenericName"])
+    stem = os.path.basename(path)
+    if stem.endswith(".desktop"):
+        stem = stem[: -len(".desktop")]
+    parts = [p for p in stem.split(".") if p]
+    if parts:
+        raw.append(parts[-1])
+        if len(parts) >= 2:
+            raw.append(parts[-2])
+    exec_line = entry.get("Exec", "")
+    if exec_line:
+        token = exec_line.split()[0]
+        base = os.path.basename(token)
+        if token not in _SKIP_EXEC and base not in _SKIP_EXEC:
+            raw.append(re.sub(r"-\d+(?:\.\d+)*$", "", base))
+    if entry.get("StartupWMClass"):
+        raw.append(entry["StartupWMClass"])
+    words = name.split()
+    if len(words) >= 3:
+        raw.append("".join(w[0] for w in words))
+    if len(words) == 2:
+        raw.append(words[1])
+    seen: set[str] = set()
+    out: list[str] = []
+    for alias in raw:
+        key = _normalize(alias)
+        if len(key) >= 2 and key != norm and key not in seen:
+            seen.add(key)
+            out.append(key)
+    return tuple(out)
+
+
+def phonetic_key(text: str) -> str:
+    """A small pure-Python sound key: how the text sounds, not how it is spelled."""
+    s = re.sub(r"[^a-z]", "", text.casefold())
+    s = s.replace("ph", "f").replace("ck", "k").replace("wr", "r").replace("gh", "")
+    s = re.sub(r"c(?=[eiy])", "s", s).replace("c", "k")
+    s = s.replace("q", "k").replace("x", "ks").replace("z", "s").replace("v", "f").replace("y", "i")
+    collapsed: list[str] = []
+    for ch in s:
+        if not collapsed or collapsed[-1] != ch:
+            collapsed.append(ch)
+    if not collapsed:
+        return ""
+    return collapsed[0] + "".join(ch for ch in collapsed[1:] if ch not in "aeiou")
+
+
 def match_app(query: str, apps: list[DesktopApp]) -> DesktopApp | None:
-    wanted = _normalize(query)
+    wanted = _LEADING_WORDS.sub("", _normalize(query), count=1)
     if not wanted:
         return None
-    best: tuple[float, DesktopApp | None] = (0.0, None)
+    qkey = phonetic_key(wanted)
+    if len(qkey) < 2:
+        return None
+    for app in apps:
+        if _normalize(app.name) == wanted or wanted in app.aliases:
+            return app
+    best: tuple[float, DesktopApp] | None = None
     for app in apps:
         name = _normalize(app.name)
-        if name == wanted:
-            return app
         score = SequenceMatcher(None, wanted, name).ratio()
-        if wanted in name.split() or name in wanted.split():
+        wwords, nwords = set(wanted.split()), set(name.split())
+        if wwords <= nwords or nwords <= wwords:
             score = max(score, 0.8)
-        if score > best[0]:
+        if score >= 0.75 and (best is None or score > best[0] or (score == best[0] and len(app.name) < len(best[1].name))):
             best = (score, app)
-    return best[1] if best[0] >= 0.75 else None
+    if best is not None:
+        return best[1]
+    exact = [app for app in apps if qkey == phonetic_key(app.name) or any(qkey == phonetic_key(a) for a in app.aliases)]
+    if exact:
+        return min(exact, key=lambda app: len(app.name))
+    if len(qkey) >= 3:
+        best = None
+        for app in apps:
+            for candidate in (app.name, *app.aliases):
+                score = SequenceMatcher(None, qkey, phonetic_key(candidate)).ratio()
+                if score >= 0.82 and (best is None or score > best[0] or (score == best[0] and len(app.name) < len(best[1].name))):
+                    best = (score, app)
+        return best[1] if best else None
+    return None
 
 
 def _host(command: list[str]) -> list[str]:
