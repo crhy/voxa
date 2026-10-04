@@ -29,6 +29,20 @@ Voxa combines on-device speech recognition, selectable local AI backends, spoken
 - **Hardware-aware model suggestions** based on available VRAM/RAM.
 - **Flatpak-first distribution** with CI validation and an update repository.
 
+## Voice commands
+
+Voxa carries out everyday desktop tasks from speech. Single commands run
+instantly without a model; chained requests are planned by the local model.
+
+- "open gmail" — opens Gmail in your browser
+- "play lo-fi beats on YouTube" — searches and plays on YouTube
+- "open spotify" — launches an application
+- "close this window" — closes the focused window
+- "type hello there" — types into the focused field
+- "press enter" — presses any key you name
+
+See [docs/VOICE_COMMANDS.md](docs/VOICE_COMMANDS.md) for the full reference.
+
 ## Local-first, not local-only
 
 Core Voxa functionality can run locally: Faster Whisper handles speech recognition, llama.cpp or Ollama can provide inference, eSpeak NG provides offline speech, and configuration remains local.
