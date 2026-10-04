@@ -7,11 +7,13 @@ from collections.abc import Callable
 import gi
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk  # noqa: E402
+gi.require_version("Pango", "1.0")
+from gi.repository import Gtk, Pango  # noqa: E402
 
 EMPTY_LABEL = "No models available"
 BACKENDS = ["llama.cpp", "Ollama"]
 BACKEND_VALUES = ["llamacpp", "ollama"]
+MAX_BUTTON_CHARS = 24
 
 
 class ModelSelector(Gtk.Box):
@@ -35,6 +37,16 @@ class ModelSelector(Gtk.Box):
         self._dropdown = Gtk.DropDown(model=self._items)
         self._dropdown.set_sensitive(False)
 
+        button_factory = Gtk.SignalListItemFactory()
+        button_factory.connect("setup", self._setup_button_label)
+        button_factory.connect("bind", self._bind_button_label)
+        self._dropdown.set_factory(button_factory)
+
+        list_factory = Gtk.SignalListItemFactory()
+        list_factory.connect("setup", self._setup_list_label)
+        list_factory.connect("bind", self._bind_list_label)
+        self._dropdown.set_list_factory(list_factory)
+
         self._backend_items = Gtk.StringList.new(BACKENDS)
         self._backend_dropdown = Gtk.DropDown(model=self._backend_items)
 
@@ -50,6 +62,33 @@ class ModelSelector(Gtk.Box):
         self.append(self._dropdown)
         self.append(self._backend_dropdown)
 
+    def _setup_button_label(self, list_item: Gtk.ListItem) -> None:
+        lbl = Gtk.Label(xalign=0)
+        lbl.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
+        lbl.set_width_chars(12)
+        lbl.set_max_width_chars(MAX_BUTTON_CHARS)
+        list_item.set_child(lbl)
+
+    def _bind_button_label(self, list_item: Gtk.ListItem) -> None:
+        item = list_item.get_item()
+        if item is None:
+            return
+        text = item.get_string()
+        lbl = list_item.get_child()
+        lbl.set_text(text)
+        lbl.set_tooltip_text(text)
+
+    def _setup_list_label(self, list_item: Gtk.ListItem) -> None:
+        lbl = Gtk.Label(xalign=0)
+        list_item.set_child(lbl)
+
+    def _bind_list_label(self, list_item: Gtk.ListItem) -> None:
+        item = list_item.get_item()
+        if item is None:
+            return
+        lbl = list_item.get_child()
+        lbl.set_text(item.get_string())
+
     def set_models(self, models: list[str], selected: str = "") -> None:
         """Fill the dropdown from a model list without triggering the callback."""
         self._updating = True
@@ -62,6 +101,7 @@ class ModelSelector(Gtk.Box):
                 if selected in self._models:
                     self._dropdown.set_selected(self._models.index(selected))
             self._dropdown.set_sensitive(bool(self._models))
+            self._dropdown.set_tooltip_text(self.get_selected() or None)
         finally:
             self._updating = False
 
@@ -86,6 +126,7 @@ class ModelSelector(Gtk.Box):
         return "ollama" if text == "Ollama" else "llamacpp"
 
     def _on_selected(self, *_args) -> None:
+        self._dropdown.set_tooltip_text(self.get_selected() or None)
         if self._updating or not self._models or self.on_model_selected is None:
             return
         self.on_model_selected(self.get_selected())

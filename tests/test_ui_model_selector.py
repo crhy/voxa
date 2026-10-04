@@ -9,7 +9,7 @@ from gi.repository import Gtk  # noqa: E402
 if not Gtk.init_check():
     pytest.skip("no GTK display available")
 
-from voxa.ui.model_selector import ModelSelector  # noqa: E402
+from voxa.ui.model_selector import MAX_BUTTON_CHARS, ModelSelector  # noqa: E402
 
 
 def test_programmatic_update_does_not_fire_callback() -> None:
@@ -78,3 +78,30 @@ def test_backend_dropdown_is_a_real_control_not_a_label() -> None:
     backend = selector._backend_dropdown
     assert backend.get_sensitive()
     assert not isinstance(backend, Gtk.Label)
+
+
+def test_long_model_name_get_selected_returns_full_name() -> None:
+    long_name = "hf.co/ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-GGUF:IQ3_S" * 2
+    selector = ModelSelector()
+    selector.set_models([long_name])
+    assert selector.get_selected() == long_name
+
+
+def test_dropdown_tooltip_is_full_name_after_set_models() -> None:
+    long_name = "hf.co/ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-GGUF:IQ3_S" * 2
+    selector = ModelSelector()
+    selector.set_models([long_name])
+    assert selector._dropdown.get_tooltip_text() == long_name
+
+
+def test_button_and_list_factories_are_set_and_different() -> None:
+    selector = ModelSelector()
+    button_factory = selector._dropdown.get_factory()
+    list_factory = selector._dropdown.get_list_factory()
+    assert button_factory is not None
+    assert list_factory is not None
+    assert button_factory is not list_factory
+
+
+def test_max_button_chars_constant() -> None:
+    assert MAX_BUTTON_CHARS == 24
