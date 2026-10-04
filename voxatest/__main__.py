@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import signal
 import sys
@@ -9,6 +10,13 @@ import time
 from pathlib import Path
 
 from .cases import load_cases, save_cases
+from .commands import (
+    DEFAULT_COMMAND_CASES_PATH,
+    format_markdown,
+    load_command_cases,
+    run_commands,
+    summarize,
+)
 from .config import DEFAULT_DATA_PATH, DEFAULT_FAILURE_REPORT_PATH, DEFAULT_REPORTS_DIR, load_settings
 from .generate_cases import generate_cases
 from .grader import GradeResult
@@ -47,6 +55,11 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         type=int,
         help="Stop the run after this many consecutive cases with no reply (0 disables).",
     )
+
+    commands = subparsers.add_parser("commands", help="Bench the voice-command router in milliseconds, without audio.")
+    commands.add_argument("--cases", default=str(DEFAULT_COMMAND_CASES_PATH))
+    commands.add_argument("--report-dir", default=str(DEFAULT_REPORTS_DIR))
+    commands.add_argument("--action-log", help="Optional Voxa action log to report real-world misses from.")
 
     return parser.parse_args(argv)
 
@@ -276,6 +289,77 @@ def _run(
     return 0 if paths["summary"]["failed"] == 0 else 1
 
 
+def _command_result_dict(result) -> dict:
+    return {
+        "id": result.case.id,
+        "category": result.case.category,
+        "say": result.case.say,
+        "expected_tool": result.case.tool,
+        "expected_args": result.case.args,
+        "got_tool": result.got_tool,
+        "got_args": result.got_args,
+        "passed": result.passed,
+        "problem": result.problem,
+        "micros": result.micros,
+    }
+
+
+def _run_command_bench(cases_path: Path, reports_dir: Path, action_log: str | None) -> int:
+    cases, wishlist = load_command_cases(cases_path)
+    if not cases:
+        print(f"No command cases found in {cases_path}.", file=sys.stderr, flush=True)
+        return 1
+
+    from voxa.agent.tools import default_registry
+
+    registry = default_registry()
+    results = run_commands(cases, registry)
+    wishlist_results = run_commands(wishlist, registry)
+    summary = summarize(results)
+    markdown = format_markdown(summary, wishlist_results)
+
+    if action_log:
+        from voxa.agent.actionlog import ActionLog
+        from voxa.agent.actionlog import summarize as summarize_actions
+
+        stats = summarize_actions(ActionLog(Path(action_log)).read())
+        lines = [markdown.rstrip(), "", "## Heard in real use but not routed"]
+        if stats["unrouted"]:
+            lines.append("| heard | count |")
+            lines.append("| --- | ---: |")
+            for entry in stats["unrouted"]:
+                lines.append(f"| {entry['heard']} | {entry['count']} |")
+        else:
+            lines.append("None.")
+        lines.append("")
+        lines.append("## Tool failures in real use")
+        if stats["failures"]:
+            lines.append("| tool | heard | detail |")
+            lines.append("| --- | --- | --- |")
+            for failure in stats["failures"]:
+                lines.append(
+                    f"| {failure.get('tool', '')} | {failure.get('heard', '')} | {failure.get('detail', '')} |"
+                )
+        else:
+            lines.append("None.")
+        markdown = "\n".join(lines) + "\n"
+
+    print(markdown, flush=True)
+
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    (reports_dir / "command-bench.md").write_text(markdown, encoding="utf-8")
+    payload = {
+        "summary": summary,
+        "results": [_command_result_dict(result) for result in results],
+        "wishlist": [_command_result_dict(result) for result in wishlist_results],
+    }
+    (reports_dir / "command-bench.json").write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+
+    return 0 if summary["failed"] == 0 else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     settings = load_settings()
@@ -307,6 +391,9 @@ def main(argv: list[str] | None = None) -> int:
             args.failure_report or str(settings.failure_report_path),
             first_index=start_at,
         )
+
+    if args.command == "commands":
+        return _run_command_bench(Path(args.cases), Path(args.report_dir), args.action_log)
 
     return 1
 

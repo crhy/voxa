@@ -1,0 +1,1548 @@
+{
+  "cases": [
+    {
+      "id": "gmail-1",
+      "category": "web",
+      "say": "open gmail",
+      "tool": "open_site",
+      "args": {
+        "name": "gmail"
+      }
+    },
+    {
+      "id": "gmail-2",
+      "category": "web",
+      "say": "Open Gmail.",
+      "tool": "open_site",
+      "args": {
+        "name": "gmail"
+      }
+    },
+    {
+      "id": "gmail-3",
+      "category": "web",
+      "say": "please check my inbox",
+      "tool": "open_site",
+      "args": {
+        "name": "gmail"
+      }
+    },
+    {
+      "id": "gmail-4",
+      "category": "web",
+      "say": "can you go to google mail",
+      "tool": "open_site",
+      "args": {
+        "name": "gmail"
+      }
+    },
+    {
+      "id": "gmail-5",
+      "category": "web",
+      "say": "show my email",
+      "tool": "open_site",
+      "args": {
+        "name": "gmail"
+      }
+    },
+    {
+      "id": "gmail-6",
+      "category": "web",
+      "say": "look at my e-mail",
+      "tool": "open_site",
+      "args": {
+        "name": "gmail"
+      }
+    },
+    {
+      "id": "gmail-7",
+      "category": "web",
+      "say": "open my mail",
+      "tool": "open_site",
+      "args": {
+        "name": "gmail"
+      }
+    },
+    {
+      "id": "gmail-8",
+      "category": "web",
+      "say": "Check Gmail!",
+      "tool": "open_site",
+      "args": {
+        "name": "gmail"
+      }
+    },
+    {
+      "id": "compose-1",
+      "category": "web",
+      "say": "compose an email",
+      "tool": "compose_gmail"
+    },
+    {
+      "id": "compose-2",
+      "category": "web",
+      "say": "Compose a new email.",
+      "tool": "compose_gmail"
+    },
+    {
+      "id": "compose-3",
+      "category": "web",
+      "say": "write a message",
+      "tool": "compose_gmail"
+    },
+    {
+      "id": "compose-4",
+      "category": "web",
+      "say": "can you draft an email",
+      "tool": "compose_gmail"
+    },
+    {
+      "id": "compose-5",
+      "category": "web",
+      "say": "start a new message in gmail",
+      "tool": "compose_gmail"
+    },
+    {
+      "id": "compose-6",
+      "category": "web",
+      "say": "send it",
+      "tool": "send_gmail"
+    },
+    {
+      "id": "compose-7",
+      "category": "web",
+      "say": "Send the email.",
+      "tool": "send_gmail"
+    },
+    {
+      "id": "compose-8",
+      "category": "web",
+      "say": "please send the message",
+      "tool": "send_gmail"
+    },
+    {
+      "id": "url-1",
+      "category": "web",
+      "say": "open https://example.com",
+      "tool": "open_url",
+      "args": {
+        "url": "https://example.com"
+      }
+    },
+    {
+      "id": "url-2",
+      "category": "web",
+      "say": "go to example.com",
+      "tool": "open_url",
+      "args": {
+        "url": "example.com"
+      }
+    },
+    {
+      "id": "url-3",
+      "category": "web",
+      "say": "visit docs.google.com",
+      "tool": "open_url",
+      "args": {
+        "url": "docs.google.com"
+      }
+    },
+    {
+      "id": "url-4",
+      "category": "web",
+      "say": "navigate to github.com",
+      "tool": "open_url",
+      "args": {
+        "url": "github.com"
+      }
+    },
+    {
+      "id": "url-5",
+      "category": "web",
+      "say": "Open wikipedia.org.",
+      "tool": "open_url",
+      "args": {
+        "url": "wikipedia.org"
+      }
+    },
+    {
+      "id": "site-1",
+      "category": "web",
+      "say": "open youtube",
+      "tool": "open_site",
+      "args": {
+        "name": "youtube"
+      }
+    },
+    {
+      "id": "site-2",
+      "category": "web",
+      "say": "go to wikipedia",
+      "tool": "open_site",
+      "args": {
+        "name": "wikipedia"
+      }
+    },
+    {
+      "id": "site-3",
+      "category": "web",
+      "say": "open google calendar",
+      "tool": "open_site",
+      "args": {
+        "name": "google calendar"
+      }
+    },
+    {
+      "id": "site-4",
+      "category": "web",
+      "say": "visit google drive",
+      "tool": "open_site",
+      "args": {
+        "name": "google drive"
+      }
+    },
+    {
+      "id": "site-5",
+      "category": "web",
+      "say": "open github",
+      "tool": "open_site",
+      "args": {
+        "name": "github"
+      }
+    },
+    {
+      "id": "site-6",
+      "category": "web",
+      "say": "go to the youtube website",
+      "tool": "open_site",
+      "args": {
+        "name": "the youtube website"
+      }
+    },
+    {
+      "id": "site-7",
+      "category": "web",
+      "say": "open google maps",
+      "tool": "open_site",
+      "args": {
+        "name": "google maps"
+      }
+    },
+    {
+      "id": "site-8",
+      "category": "web",
+      "say": "Open Google Docs.",
+      "tool": "open_site",
+      "args": {
+        "name": "Google Docs"
+      }
+    },
+    {
+      "id": "search-1",
+      "category": "web",
+      "say": "search the web for the weather today",
+      "tool": "web_search",
+      "args": {
+        "query": "the weather today"
+      }
+    },
+    {
+      "id": "search-2",
+      "category": "web",
+      "say": "search google for python tutorials",
+      "tool": "web_search",
+      "args": {
+        "query": "python tutorials"
+      }
+    },
+    {
+      "id": "search-3",
+      "category": "web",
+      "say": "google the weather",
+      "tool": "web_search",
+      "args": {
+        "query": "the weather"
+      }
+    },
+    {
+      "id": "search-4",
+      "category": "web",
+      "say": "Google the score of the game.",
+      "tool": "web_search",
+      "args": {
+        "query": "the score of the game"
+      }
+    },
+    {
+      "id": "search-5",
+      "category": "web",
+      "say": "look up the weather",
+      "tool": "web_search",
+      "args": {
+        "query": "the weather"
+      }
+    },
+    {
+      "id": "search-6",
+      "category": "web",
+      "say": "search online for python tutorials",
+      "tool": "web_search",
+      "args": {
+        "query": "python tutorials"
+      }
+    },
+    {
+      "id": "search-7",
+      "category": "web",
+      "say": "search the internet for the weather",
+      "tool": "web_search",
+      "args": {
+        "query": "the weather"
+      }
+    },
+    {
+      "id": "search-8",
+      "category": "web",
+      "say": "please google the weather",
+      "tool": "web_search",
+      "args": {
+        "query": "the weather"
+      }
+    },
+    {
+      "id": "yt-1",
+      "category": "youtube",
+      "say": "play lo-fi beats on YouTube",
+      "tool": "play_youtube",
+      "args": {
+        "query": "lo-fi beats"
+      }
+    },
+    {
+      "id": "yt-2",
+      "category": "youtube",
+      "say": "Play some music",
+      "tool": "play_youtube",
+      "args": {
+        "query": "music"
+      }
+    },
+    {
+      "id": "yt-3",
+      "category": "youtube",
+      "say": "play music",
+      "tool": "play_youtube",
+      "args": {
+        "query": "music"
+      }
+    },
+    {
+      "id": "yt-4",
+      "category": "youtube",
+      "say": "play the Beatles",
+      "tool": "play_youtube",
+      "args": {
+        "query": "the Beatles"
+      }
+    },
+    {
+      "id": "yt-5",
+      "category": "youtube",
+      "say": "put on some jazz",
+      "tool": "play_youtube",
+      "args": {
+        "query": "some jazz"
+      }
+    },
+    {
+      "id": "yt-6",
+      "category": "youtube",
+      "say": "watch cat videos on youtube",
+      "tool": "play_youtube",
+      "args": {
+        "query": "cat videos"
+      }
+    },
+    {
+      "id": "yt-7",
+      "category": "youtube",
+      "say": "Play lo-fi beats on YouTube.",
+      "tool": "play_youtube",
+      "args": {
+        "query": "lo-fi beats"
+      }
+    },
+    {
+      "id": "yt-8",
+      "category": "youtube",
+      "say": "can you play some music",
+      "tool": "play_youtube",
+      "args": {
+        "query": "music"
+      }
+    },
+    {
+      "id": "yt-9",
+      "category": "youtube",
+      "say": "search youtube for cat videos",
+      "tool": "search_youtube",
+      "args": {
+        "query": "cat videos"
+      }
+    },
+    {
+      "id": "yt-10",
+      "category": "youtube",
+      "say": "Search YouTube for lo-fi beats.",
+      "tool": "search_youtube",
+      "args": {
+        "query": "lo-fi beats"
+      }
+    },
+    {
+      "id": "yt-11",
+      "category": "youtube",
+      "say": "find cooking videos on youtube",
+      "tool": "search_youtube",
+      "args": {
+        "query": "cooking videos"
+      }
+    },
+    {
+      "id": "yt-12",
+      "category": "youtube",
+      "say": "search youtube for relaxing music",
+      "tool": "search_youtube",
+      "args": {
+        "query": "relaxing music"
+      }
+    },
+    {
+      "id": "yt-13",
+      "category": "youtube",
+      "say": "play lo-fi beats on youtube music",
+      "tool": "play_youtube",
+      "args": {
+        "query": "lo-fi beats"
+      }
+    },
+    {
+      "id": "yt-14",
+      "category": "youtube",
+      "say": "watch the news",
+      "tool": "play_youtube",
+      "args": {
+        "query": "the news"
+      }
+    },
+    {
+      "id": "media-1",
+      "category": "media",
+      "say": "pause the music",
+      "tool": "press_key",
+      "args": {
+        "key": "play pause"
+      }
+    },
+    {
+      "id": "media-2",
+      "category": "media",
+      "say": "resume playback",
+      "tool": "press_key",
+      "args": {
+        "key": "play pause"
+      }
+    },
+    {
+      "id": "media-3",
+      "category": "media",
+      "say": "pause",
+      "tool": "press_key",
+      "args": {
+        "key": "play pause"
+      }
+    },
+    {
+      "id": "media-4",
+      "category": "media",
+      "say": "Pause the video.",
+      "tool": "press_key",
+      "args": {
+        "key": "play pause"
+      }
+    },
+    {
+      "id": "media-5",
+      "category": "media",
+      "say": "next song",
+      "tool": "press_key",
+      "args": {
+        "key": "next track"
+      }
+    },
+    {
+      "id": "media-6",
+      "category": "media",
+      "say": "skip track",
+      "tool": "press_key",
+      "args": {
+        "key": "next track"
+      }
+    },
+    {
+      "id": "media-7",
+      "category": "media",
+      "say": "previous song",
+      "tool": "press_key",
+      "args": {
+        "key": "previous track"
+      }
+    },
+    {
+      "id": "media-8",
+      "category": "media",
+      "say": "go back a song",
+      "tool": "press_key",
+      "args": {
+        "key": "previous track"
+      }
+    },
+    {
+      "id": "media-9",
+      "category": "media",
+      "say": "volume up",
+      "tool": "press_key",
+      "args": {
+        "key": "volume up"
+      }
+    },
+    {
+      "id": "media-10",
+      "category": "media",
+      "say": "louder",
+      "tool": "press_key",
+      "args": {
+        "key": "volume up"
+      }
+    },
+    {
+      "id": "media-11",
+      "category": "media",
+      "say": "turn the volume up",
+      "tool": "press_key",
+      "args": {
+        "key": "volume up"
+      }
+    },
+    {
+      "id": "media-12",
+      "category": "media",
+      "say": "Volume down.",
+      "tool": "press_key",
+      "args": {
+        "key": "volume down"
+      }
+    },
+    {
+      "id": "media-13",
+      "category": "media",
+      "say": "quieter",
+      "tool": "press_key",
+      "args": {
+        "key": "volume down"
+      }
+    },
+    {
+      "id": "media-14",
+      "category": "media",
+      "say": "turn it down",
+      "tool": "press_key",
+      "args": {
+        "key": "volume down"
+      }
+    },
+    {
+      "id": "media-15",
+      "category": "media",
+      "say": "mute",
+      "tool": "press_key",
+      "args": {
+        "key": "mute"
+      }
+    },
+    {
+      "id": "media-16",
+      "category": "media",
+      "say": "unmute the music",
+      "tool": "press_key",
+      "args": {
+        "key": "mute"
+      }
+    },
+    {
+      "id": "media-17",
+      "category": "media",
+      "say": "play",
+      "tool": "press_key",
+      "args": {
+        "key": "play pause"
+      }
+    },
+    {
+      "id": "media-18",
+      "category": "media",
+      "say": "can you pause the music",
+      "tool": "press_key",
+      "args": {
+        "key": "play pause"
+      }
+    },
+    {
+      "id": "key-1",
+      "category": "keys",
+      "say": "press enter",
+      "tool": "press_key",
+      "args": {
+        "key": "enter"
+      }
+    },
+    {
+      "id": "key-2",
+      "category": "keys",
+      "say": "Press Escape.",
+      "tool": "press_key",
+      "args": {
+        "key": "Escape"
+      }
+    },
+    {
+      "id": "key-3",
+      "category": "keys",
+      "say": "can you press tab",
+      "tool": "press_key",
+      "args": {
+        "key": "tab"
+      }
+    },
+    {
+      "id": "key-4",
+      "category": "keys",
+      "say": "press backspace",
+      "tool": "press_key",
+      "args": {
+        "key": "backspace"
+      }
+    },
+    {
+      "id": "key-5",
+      "category": "keys",
+      "say": "press space",
+      "tool": "press_key",
+      "args": {
+        "key": "space"
+      }
+    },
+    {
+      "id": "key-6",
+      "category": "keys",
+      "say": "press delete",
+      "tool": "press_key",
+      "args": {
+        "key": "delete"
+      }
+    },
+    {
+      "id": "key-7",
+      "category": "keys",
+      "say": "press home",
+      "tool": "press_key",
+      "args": {
+        "key": "home"
+      }
+    },
+    {
+      "id": "key-8",
+      "category": "keys",
+      "say": "press end",
+      "tool": "press_key",
+      "args": {
+        "key": "end"
+      }
+    },
+    {
+      "id": "key-9",
+      "category": "keys",
+      "say": "copy",
+      "tool": "press_key",
+      "args": {
+        "key": "copy"
+      }
+    },
+    {
+      "id": "key-10",
+      "category": "keys",
+      "say": "paste",
+      "tool": "press_key",
+      "args": {
+        "key": "paste"
+      }
+    },
+    {
+      "id": "key-11",
+      "category": "keys",
+      "say": "undo",
+      "tool": "press_key",
+      "args": {
+        "key": "undo"
+      }
+    },
+    {
+      "id": "key-12",
+      "category": "keys",
+      "say": "Redo.",
+      "tool": "press_key",
+      "args": {
+        "key": "redo"
+      }
+    },
+    {
+      "id": "key-13",
+      "category": "keys",
+      "say": "save",
+      "tool": "press_key",
+      "args": {
+        "key": "save"
+      }
+    },
+    {
+      "id": "key-14",
+      "category": "keys",
+      "say": "new tab",
+      "tool": "press_key",
+      "args": {
+        "key": "new tab"
+      }
+    },
+    {
+      "id": "key-15",
+      "category": "keys",
+      "say": "close tab",
+      "tool": "press_key",
+      "args": {
+        "key": "close tab"
+      }
+    },
+    {
+      "id": "key-16",
+      "category": "keys",
+      "say": "fullscreen",
+      "tool": "press_key",
+      "args": {
+        "key": "fullscreen"
+      }
+    },
+    {
+      "id": "key-17",
+      "category": "keys",
+      "say": "full screen",
+      "tool": "press_key",
+      "args": {
+        "key": "full screen"
+      }
+    },
+    {
+      "id": "key-18",
+      "category": "keys",
+      "say": "select all",
+      "tool": "press_key",
+      "args": {
+        "key": "select all"
+      }
+    },
+    {
+      "id": "key-19",
+      "category": "keys",
+      "say": "please press enter",
+      "tool": "press_key",
+      "args": {
+        "key": "enter"
+      }
+    },
+    {
+      "id": "type-1",
+      "category": "typing",
+      "say": "type hello there",
+      "tool": "type_text",
+      "args": {
+        "text": "hello there"
+      }
+    },
+    {
+      "id": "type-2",
+      "category": "typing",
+      "say": "Type the word cat.",
+      "tool": "type_text",
+      "args": {
+        "text": "the word cat"
+      }
+    },
+    {
+      "id": "type-3",
+      "category": "typing",
+      "say": "say hello world",
+      "tool": "type_text",
+      "args": {
+        "text": "hello world"
+      }
+    },
+    {
+      "id": "type-4",
+      "category": "typing",
+      "say": "can you type the address",
+      "tool": "type_text",
+      "args": {
+        "text": "the address"
+      }
+    },
+    {
+      "id": "type-5",
+      "category": "typing",
+      "say": "write my name",
+      "tool": "type_text",
+      "args": {
+        "text": "my name"
+      }
+    },
+    {
+      "id": "type-6",
+      "category": "typing",
+      "say": "type the first line of the paragraph",
+      "tool": "type_text",
+      "args": {
+        "text": "the first line of the paragraph"
+      }
+    },
+    {
+      "id": "type-7",
+      "category": "typing",
+      "say": "say the word hello",
+      "tool": "type_text",
+      "args": {
+        "text": "the word hello"
+      }
+    },
+    {
+      "id": "type-8",
+      "category": "typing",
+      "say": "type the phone number",
+      "tool": "type_text",
+      "args": {
+        "text": "the phone number"
+      }
+    },
+    {
+      "id": "app-1",
+      "category": "apps",
+      "say": "open spotify",
+      "tool": "open_app",
+      "args": {
+        "name": "spotify"
+      }
+    },
+    {
+      "id": "app-2",
+      "category": "apps",
+      "say": "open calculator",
+      "tool": "open_app",
+      "args": {
+        "name": "calculator"
+      }
+    },
+    {
+      "id": "app-3",
+      "category": "apps",
+      "say": "launch firefox",
+      "tool": "open_app",
+      "args": {
+        "name": "firefox"
+      }
+    },
+    {
+      "id": "app-4",
+      "category": "apps",
+      "say": "start notepad",
+      "tool": "open_app",
+      "args": {
+        "name": "notepad"
+      }
+    },
+    {
+      "id": "app-5",
+      "category": "apps",
+      "say": "run python",
+      "tool": "open_app",
+      "args": {
+        "name": "python"
+      }
+    },
+    {
+      "id": "app-6",
+      "category": "apps",
+      "say": "Open Visual Studio Code.",
+      "tool": "open_app",
+      "args": {
+        "name": "Visual Studio Code"
+      }
+    },
+    {
+      "id": "app-7",
+      "category": "apps",
+      "say": "can you open spotify",
+      "tool": "open_app",
+      "args": {
+        "name": "spotify"
+      }
+    },
+    {
+      "id": "app-8",
+      "category": "apps",
+      "say": "open the terminal",
+      "tool": "open_app",
+      "args": {
+        "name": "the terminal"
+      }
+    },
+    {
+      "id": "win-1",
+      "category": "windows",
+      "say": "close this window",
+      "tool": "close_window"
+    },
+    {
+      "id": "win-2",
+      "category": "windows",
+      "say": "close the app",
+      "tool": "close_window"
+    },
+    {
+      "id": "win-3",
+      "category": "windows",
+      "say": "close it",
+      "tool": "close_window"
+    },
+    {
+      "id": "win-4",
+      "category": "windows",
+      "say": "Close this.",
+      "tool": "close_window"
+    },
+    {
+      "id": "win-5",
+      "category": "windows",
+      "say": "close the window",
+      "tool": "close_window"
+    },
+    {
+      "id": "win-6",
+      "category": "windows",
+      "say": "please close this window",
+      "tool": "close_window"
+    },
+    {
+      "id": "win-7",
+      "category": "windows",
+      "say": "close spotify",
+      "tool": "close_app",
+      "args": {
+        "name": "spotify"
+      }
+    },
+    {
+      "id": "win-8",
+      "category": "windows",
+      "say": "Quit Firefox.",
+      "tool": "close_app",
+      "args": {
+        "name": "Firefox"
+      }
+    },
+    {
+      "id": "win-9",
+      "category": "windows",
+      "say": "exit notepad",
+      "tool": "close_app",
+      "args": {
+        "name": "notepad"
+      }
+    },
+    {
+      "id": "win-10",
+      "category": "windows",
+      "say": "kill the terminal",
+      "tool": "close_app",
+      "args": {
+        "name": "terminal"
+      }
+    },
+    {
+      "id": "win-11",
+      "category": "windows",
+      "say": "shut down spotify",
+      "tool": "close_app",
+      "args": {
+        "name": "spotify"
+      }
+    },
+    {
+      "id": "win-12",
+      "category": "windows",
+      "say": "can you close spotify",
+      "tool": "close_app",
+      "args": {
+        "name": "spotify"
+      }
+    },
+    {
+      "id": "win-13",
+      "category": "windows",
+      "say": "switch to spotify",
+      "tool": "switch_to",
+      "args": {
+        "name": "spotify"
+      }
+    },
+    {
+      "id": "win-14",
+      "category": "windows",
+      "say": "go to the terminal",
+      "tool": "switch_to",
+      "args": {
+        "name": "the terminal"
+      }
+    },
+    {
+      "id": "win-15",
+      "category": "windows",
+      "say": "focus the browser",
+      "tool": "switch_to",
+      "args": {
+        "name": "the browser"
+      }
+    },
+    {
+      "id": "win-16",
+      "category": "windows",
+      "say": "bring up the file manager",
+      "tool": "switch_to",
+      "args": {
+        "name": "the file manager"
+      }
+    },
+    {
+      "id": "win-17",
+      "category": "windows",
+      "say": "show me the terminal",
+      "tool": "switch_to",
+      "args": {
+        "name": "the terminal"
+      }
+    },
+    {
+      "id": "win-18",
+      "category": "windows",
+      "say": "Switch to Spotify.",
+      "tool": "switch_to",
+      "args": {
+        "name": "Spotify"
+      }
+    },
+    {
+      "id": "dic-1",
+      "category": "dictation",
+      "say": "dictate",
+      "tool": null
+    },
+    {
+      "id": "dic-2",
+      "category": "dictation",
+      "say": "dictate this",
+      "tool": null
+    },
+    {
+      "id": "dic-3",
+      "category": "dictation",
+      "say": "dictation mode",
+      "tool": null
+    },
+    {
+      "id": "dic-4",
+      "category": "dictation",
+      "say": "take dictation",
+      "tool": null
+    },
+    {
+      "id": "dic-5",
+      "category": "dictation",
+      "say": "take a dictation",
+      "tool": null
+    },
+    {
+      "id": "dic-6",
+      "category": "dictation",
+      "say": "Dictate.",
+      "tool": null
+    },
+    {
+      "id": "q-1",
+      "category": "question",
+      "say": "what is the capital of France",
+      "tool": null
+    },
+    {
+      "id": "q-2",
+      "category": "question",
+      "say": "how do I close a tab?",
+      "tool": null
+    },
+    {
+      "id": "q-3",
+      "category": "question",
+      "say": "what is YouTube?",
+      "tool": null
+    },
+    {
+      "id": "q-4",
+      "category": "question",
+      "say": "who invented email?",
+      "tool": null
+    },
+    {
+      "id": "q-5",
+      "category": "question",
+      "say": "why is my volume so low",
+      "tool": null
+    },
+    {
+      "id": "q-6",
+      "category": "question",
+      "say": "where do I find my inbox",
+      "tool": null
+    },
+    {
+      "id": "q-7",
+      "category": "question",
+      "say": "when was YouTube invented",
+      "tool": null
+    },
+    {
+      "id": "q-8",
+      "category": "question",
+      "say": "how do I search the web",
+      "tool": null
+    },
+    {
+      "id": "q-9",
+      "category": "question",
+      "say": "what does the mute button do",
+      "tool": null
+    },
+    {
+      "id": "q-10",
+      "category": "question",
+      "say": "can you explain what a browser is",
+      "tool": null
+    },
+    {
+      "id": "q-11",
+      "category": "question",
+      "say": "what is the difference between copy and paste",
+      "tool": null
+    },
+    {
+      "id": "q-12",
+      "category": "question",
+      "say": "how do I open a new tab",
+      "tool": null
+    },
+    {
+      "id": "q-13",
+      "category": "question",
+      "say": "what apps can you open",
+      "tool": null
+    },
+    {
+      "id": "q-14",
+      "category": "question",
+      "say": "why does the play button not work",
+      "tool": null
+    },
+    {
+      "id": "q-15",
+      "category": "question",
+      "say": "where is the volume control",
+      "tool": null
+    },
+    {
+      "id": "q-16",
+      "category": "question",
+      "say": "how do I send an email",
+      "tool": null
+    },
+    {
+      "id": "q-17",
+      "category": "question",
+      "say": "what is a wake word",
+      "tool": null
+    },
+    {
+      "id": "q-18",
+      "category": "question",
+      "say": "when should I use dictation",
+      "tool": null
+    },
+    {
+      "id": "q-19",
+      "category": "question",
+      "say": "who created the internet",
+      "tool": null
+    },
+    {
+      "id": "q-20",
+      "category": "question",
+      "say": "how do I pause a video",
+      "tool": null
+    },
+    {
+      "id": "q-21",
+      "category": "question",
+      "say": "what is lo-fi music",
+      "tool": null
+    },
+    {
+      "id": "q-22",
+      "category": "question",
+      "say": "What is the capital of France?",
+      "tool": null
+    },
+    {
+      "id": "wish-1",
+      "category": "dictation",
+      "say": "start dictating",
+      "tool": null
+    },
+    {
+      "id": "wish-2",
+      "category": "dictation",
+      "say": "start dictation",
+      "tool": null
+    },
+    {
+      "id": "wish-3",
+      "category": "dictation",
+      "say": "begin dictation",
+      "tool": null
+    },
+    {
+      "id": "wish-4",
+      "category": "web",
+      "say": "switch to Gmail",
+      "tool": "open_site",
+      "args": {
+        "name": "gmail"
+      }
+    },
+    {
+      "id": "wish-5",
+      "category": "apps",
+      "say": "open the file manager",
+      "tool": "open_app",
+      "args": {
+        "name": "file manager"
+      }
+    },
+    {
+      "id": "wish-6",
+      "category": "windows",
+      "say": "close that window",
+      "tool": "close_window"
+    },
+    {
+      "id": "wish-7",
+      "category": "keys",
+      "say": "copy that",
+      "tool": "press_key",
+      "args": {
+        "key": "copy"
+      }
+    },
+    {
+      "id": "wish-8",
+      "category": "youtube",
+      "say": "play some music please",
+      "tool": "play_youtube",
+      "args": {
+        "query": "music"
+      }
+    },
+    {
+      "id": "wish-9",
+      "category": "web",
+      "say": "check gmail for me",
+      "tool": "open_site",
+      "args": {
+        "name": "gmail"
+      }
+    },
+    {
+      "id": "wish-10",
+      "category": "web",
+      "say": "open my mail please",
+      "tool": "open_site",
+      "args": {
+        "name": "gmail"
+      }
+    },
+    {
+      "id": "wish-11",
+      "category": "media",
+      "say": "skip the track",
+      "tool": "press_key",
+      "args": {
+        "key": "next track"
+      }
+    },
+    {
+      "id": "wish-12",
+      "category": "media",
+      "say": "turn up the volume",
+      "tool": "press_key",
+      "args": {
+        "key": "volume up"
+      }
+    },
+    {
+      "id": "wish-13",
+      "category": "typing",
+      "say": "type my notes",
+      "tool": "type_text",
+      "args": {
+        "text": "my notes"
+      }
+    },
+    {
+      "id": "wish-14",
+      "category": "keys",
+      "say": "open a new tab",
+      "tool": "press_key",
+      "args": {
+        "key": "new tab"
+      }
+    },
+    {
+      "id": "wish-15",
+      "category": "web",
+      "say": "google",
+      "tool": "web_search",
+      "args": {
+        "query": "google"
+      }
+    },
+    {
+      "id": "compound-1",
+      "category": "media",
+      "say": "put on some jazz and then turn it down a bit",
+      "tool": null,
+      "args": {}
+    },
+    {
+      "id": "compound-2",
+      "category": "apps",
+      "say": "close brave and open libreoffice writer",
+      "tool": null,
+      "args": {}
+    },
+    {
+      "id": "compound-3",
+      "category": "web",
+      "say": "open gmail and then compose a message",
+      "tool": null,
+      "args": {}
+    },
+    {
+      "id": "compound-4",
+      "category": "media",
+      "say": "play some music then turn it up",
+      "tool": null,
+      "args": {}
+    },
+    {
+      "id": "compound-5",
+      "category": "apps",
+      "say": "open brave and also close gmail",
+      "tool": null,
+      "args": {}
+    },
+    {
+      "id": "compound-6",
+      "category": "keys",
+      "say": "copy that, paste it",
+      "tool": null,
+      "args": {}
+    },
+    {
+      "id": "compound-7",
+      "category": "youtube",
+      "say": "find cat videos on youtube and then press escape",
+      "tool": null,
+      "args": {}
+    },
+    {
+      "id": "compound-8",
+      "category": "windows",
+      "say": "switch to brave after that close the window",
+      "tool": null,
+      "args": {}
+    },
+    {
+      "id": "compound-9",
+      "category": "media",
+      "say": "turn up the volume and then mute",
+      "tool": null,
+      "args": {}
+    },
+    {
+      "id": "compound-10",
+      "category": "apps",
+      "say": "open spotify and play some jazz",
+      "tool": null,
+      "args": {}
+    },
+    {
+      "id": "exception-1",
+      "category": "media",
+      "say": "play simon and garfunkel",
+      "tool": "play_youtube",
+      "args": {
+        "query": "simon and garfunkel"
+      }
+    },
+    {
+      "id": "exception-2",
+      "category": "media",
+      "say": "play rock and roll",
+      "tool": "play_youtube",
+      "args": {
+        "query": "rock and roll"
+      }
+    },
+    {
+      "id": "exception-3",
+      "category": "typing",
+      "say": "type hello and then copy it",
+      "tool": "type_text",
+      "args": {
+        "text": "hello and then copy it"
+      }
+    },
+    {
+      "id": "exception-4",
+      "category": "typing",
+      "say": "write thanks for coming and see you soon",
+      "tool": "type_text",
+      "args": {
+        "text": "thanks for coming and see you soon"
+      }
+    },
+    {
+      "id": "exception-5",
+      "category": "apps",
+      "say": "open brave and firefox",
+      "tool": "open_app",
+      "args": {
+        "name": "brave and firefox"
+      }
+    },
+    {
+      "id": "heard-1",
+      "category": "heard",
+      "say": "Vox Closed Brutal Chess.",
+      "tool": "close_app",
+      "args": {
+        "name": "Brutal Chess"
+      }
+    },
+    {
+      "id": "heard-2",
+      "category": "heard",
+      "say": "Clothes Brutal Chess.",
+      "tool": "close_app",
+      "args": {
+        "name": "Brutal Chess"
+      }
+    },
+    {
+      "id": "heard-3",
+      "category": "heard",
+      "say": "those cards with cats.",
+      "tool": "close_app",
+      "args": {
+        "name": "cards with cats"
+      }
+    },
+    {
+      "id": "heard-4",
+      "category": "heard",
+      "say": "Lupin Brutal Chess.",
+      "tool": "open_app",
+      "args": {
+        "name": "Brutal Chess"
+      }
+    },
+    {
+      "id": "heard-5",
+      "category": "heard",
+      "say": "opened my email",
+      "tool": "open_site",
+      "args": {
+        "name": "gmail"
+      }
+    },
+    {
+      "id": "heard-6",
+      "category": "heard",
+      "say": "Open Libra Office, right?",
+      "tool": "open_app",
+      "args": {
+        "name": "LibreOffice Writer"
+      }
+    },
+    {
+      "id": "heard-7",
+      "category": "heard",
+      "say": "Open the GAMP.",
+      "tool": "open_app",
+      "args": {
+        "name": "GIMP"
+      }
+    },
+    {
+      "id": "heard-8",
+      "category": "heard",
+      "say": "Please some John Barry",
+      "tool": "play_youtube",
+      "args": {
+        "query": "some John Barry"
+      }
+    },
+    {
+      "id": "heard-9",
+      "category": "heard",
+      "say": "Vox, save the file.",
+      "tool": "press_key",
+      "args": {
+        "key": "save"
+      }
+    }
+  ],
+  "wishlist": []
+}
