@@ -24,6 +24,8 @@ from voxa.agent.result import ToolResult  # noqa: E402
 from voxa.agent.tools import typing as typing_mod  # noqa: E402
 from voxa.apps import DesktopApp  # noqa: E402
 from voxa.audio import AudioDevice  # noqa: E402
+from voxa.hardware import MODEL_CATALOG  # noqa: E402
+from voxa.ollama import OllamaError  # noqa: E402
 from voxa.window import MainWindow, short_model_name  # noqa: E402
 
 
@@ -590,3 +592,141 @@ def test_a_two_step_routine_runs_both_steps_in_order(window) -> None:
     assert registry.calls == [("open_site", {"name": "gmail"}), ("play_music", {"query": "music"})]
     records = window.action_log.read()
     assert any(r["route"] == "routine" for r in records)
+
+
+def _children(widget):
+    if hasattr(widget, "get_child"):
+        child = widget.get_child()
+        if child is not None:
+            return child
+    if hasattr(widget, "get_first_child"):
+        return widget.get_first_child()
+    return None
+
+
+def _walk(widget):
+    child = _children(widget)
+    while child is not None:
+        nxt = child.get_next_sibling()
+        yield child
+        yield from _walk(child)
+        child = nxt
+
+
+def _row_titles(widget):
+    return [w.get_title() for w in _walk(widget) if isinstance(w, Adw.ActionRow)]
+
+
+def _has_label(widget, text):
+    return any(isinstance(w, Gtk.Label) and w.get_label() == text for w in _walk(widget))
+
+
+def _find_entry(widget):
+    return next(w for w in _walk(widget) if isinstance(w, Adw.EntryRow))
+
+
+def _find_pull_button(widget):
+    return next(w for w in _walk(widget) if isinstance(w, Gtk.Button) and w.get_label() == "Pull")
+
+
+def _capture_dialogs(monkeypatch):
+    dialogs: list[Adw.Dialog] = []
+    real_present = Adw.Dialog.present
+    monkeypatch.setattr(
+        Adw.Dialog,
+        "present",
+        lambda dialog, opener: (dialogs.append(dialog), real_present(dialog, opener))[1],
+    )
+    return dialogs
+
+
+class FlakyClient:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def list_models(self):
+        self.calls += 1
+        if self.calls == 1:
+            raise OllamaError("server not up")
+        return ["alpha", "beta"]
+
+    def list_models_detailed(self):
+        return []
+
+    def pull_model(self, model, *, cancel_event, on_progress):
+        on_progress("downloading", 0, 0)
+
+    def delete_model(self, model):
+        pass
+
+
+class PullClient:
+    def __init__(self) -> None:
+        self.pulled = False
+
+    def list_models(self):
+        return ["newmodel"] if self.pulled else []
+
+    def list_models_detailed(self):
+        return []
+
+    def pull_model(self, model, *, cancel_event, on_progress):
+        self.pulled = True
+        on_progress("downloading", 0, 0)
+        on_progress("downloading", 50, 100)
+
+    def delete_model(self, model):
+        pass
+
+
+def _fast_model_wait(monkeypatch):
+    monkeypatch.setattr("voxa.window.MODEL_WAIT_ATTEMPTS", 2)
+    monkeypatch.setattr("voxa.window.MODEL_WAIT_DELAY", 0.01)
+
+
+def test_dialog_shows_starting_then_the_installed_models(window, monkeypatch) -> None:
+    _fast_model_wait(monkeypatch)
+    shared = FlakyClient()
+    monkeypatch.setattr("voxa.window.OllamaClient", lambda *a, **k: shared)
+    dialogs = _capture_dialogs(monkeypatch)
+    window._show_model_manager()
+    dialog = dialogs[0]
+    assert _settle(window, lambda: "Starting Ollama…" in _row_titles(dialog))
+    assert "alpha" not in _row_titles(dialog)
+    assert _settle(window, lambda: "alpha" in _row_titles(dialog))
+    assert "Starting Ollama…" not in _row_titles(dialog)
+
+
+def test_pull_keeps_the_dialog_open_and_lists_the_model(window, monkeypatch) -> None:
+    _fast_model_wait(monkeypatch)
+    shared = PullClient()
+    monkeypatch.setattr("voxa.window.OllamaClient", lambda *a, **k: shared)
+    window.settings.ollama_model = ""
+    window.ollama_models = []
+    dialogs = _capture_dialogs(monkeypatch)
+    window._show_model_manager()
+    dialog = dialogs[0]
+    _find_entry(dialog).set_text("newmodel")
+    _find_pull_button(dialog).emit("clicked")
+    assert _settle(window, lambda: "newmodel" in _row_titles(dialog))
+    assert window.settings.ollama_model == "newmodel"
+    assert _find_entry(dialog).get_text() == ""
+
+
+def test_smallest_chip_present_when_not_installed(window, monkeypatch) -> None:
+    smallest = MODEL_CATALOG[0].name
+    window._suggested_models = ["gemma3:1b"]
+    window.ollama_models = []
+    dialogs = _capture_dialogs(monkeypatch)
+    window._show_model_manager()
+    assert _has_label(dialogs[0], "Smallest — runs anywhere")
+    assert any(isinstance(w, Gtk.Button) and w.get_label() == smallest for w in _walk(dialogs[0]))
+
+
+def test_smallest_chip_absent_when_already_installed(window, monkeypatch) -> None:
+    smallest = MODEL_CATALOG[0].name
+    window._suggested_models = ["gemma3:1b"]
+    window.ollama_models = [smallest]
+    dialogs = _capture_dialogs(monkeypatch)
+    window._show_model_manager()
+    assert not _has_label(dialogs[0], "Smallest — runs anywhere")

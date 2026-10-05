@@ -21,6 +21,7 @@ def _fake_pack() -> FacePack:
         eye_box=(120, 90, 280, 70),
         mouth=mouth,
         blink=("b0.jpg", "b1.jpg", "b2.jpg"),
+        rest=(0.0, 0.5),
     )
 
 

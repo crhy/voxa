@@ -31,9 +31,16 @@ from .config import ConfigStore  # noqa: E402
 from .controller import AssistantController, ControllerPorts  # noqa: E402
 from .conversation import ConversationController, ConversationHistory  # noqa: E402
 from .dictation import DictationController  # noqa: E402
-from .hardware import GpuUsage, detect_available_model_memory_gb, sample_gpu_usage, suggest_models  # noqa: E402
+from .hardware import (  # noqa: E402
+    MODEL_CATALOG,
+    GpuUsage,
+    detect_available_model_memory_gb,
+    sample_gpu_usage,
+    suggest_models,
+)
 from .installer import InstallerError, install_ollama  # noqa: E402
 from .llamacpp import LlamaCppClient, StrataClient  # noqa: E402
+from .modelwait import wait_for_models  # noqa: E402
 from .ollama import OllamaClient, OllamaError, strip_reasoning  # noqa: E402
 from .server import SERVER_FAILED, SERVER_STARTING, SERVER_UNAVAILABLE, AiServerManager  # noqa: E402
 from .speech import SpeechService  # noqa: E402
@@ -91,8 +98,20 @@ BARGE_IN_GRACE_SECONDS = 0.6
 BARGE_IN_STREAK = 3
 
 
+# How long the model list waits for an AI server that Voxa has only just started.
+MODEL_WAIT_ATTEMPTS = 30
+MODEL_WAIT_DELAY = 1.0
+
+
 def idle(callback: Callable, *args) -> None:
-    GLib.idle_add(callback, *args)
+    # Default priority, not idle priority: an animating widget can keep the frame clock busy enough that
+    # idle-priority callbacks never run, which left the model list and pull progress stuck.
+    # Always one-shot, whatever the callback returns: a repeating default-priority source would starve drawing.
+    def run_once() -> bool:
+        callback(*args)
+        return False
+
+    GLib.idle_add(run_once, priority=GLib.PRIORITY_DEFAULT)
 
 
 def short_model_name(model: str) -> str:
@@ -230,6 +249,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._start_failure = ""
         self._query_task_id: str | None = None
         self._announced_ready = False
+        self._activate_when_ready = False
         install_styles()
 
         self._build_ui()
@@ -271,7 +291,9 @@ class MainWindow(Adw.ApplicationWindow):
         self.shell.on_character_selected = self._on_shell_character_selected
         self.shell.on_face_mode_selected = self._on_shell_face_mode_selected
         self.shell.set_characters(self.settings.character_id)
-        self.shell.character_picker.set_face_mode(self.settings.face_mode)
+        self.shell.face_quality.set_mode(self.settings.face_mode)
+        self.shell.face_quality.set_live_available(False)
+        self.shell.face_quality.set_sensitive(bool(self.settings.character_id))
         toolbar.add_top_bar(build_header(menu, self.shell.character_picker))
         # Attachments are a later milestone (issue #7 section 16); until then the paperclip
         # says so instead of silently doing nothing.
@@ -339,9 +361,23 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _on_shell_active(self) -> None:
         self._start_ai_server_async()
-        self.assistant.activate()
+        self._activate_when_ready = False
+        if self.assistant.activate():
+            return
+        if self._activate_when_ready:
+            # Whisper is still loading: keep waiting and say so under the face (no toast).
+            self.assistant_model.set_state(
+                AssistantState.OFFLINE,
+                "Getting ready… — Loading the speech model — I'll start listening as soon as it's ready",
+            )
+        elif self._start_failure:
+            self.assistant_model.set_state(
+                AssistantState.OFFLINE,
+                f"Can't start listening — {self._start_failure}",
+            )
 
     def _on_shell_offline(self) -> None:
+        self._activate_when_ready = False
         self.stop_current_work()
 
     def _queue_ai_server_action(self, action: str) -> None:
@@ -492,6 +528,7 @@ class MainWindow(Adw.ApplicationWindow):
         if assistant_view is not None:
             assistant_view.set_character(self.settings.character_id)
         self.shell.set_characters(self.settings.character_id)
+        self.shell.face_quality.set_sensitive(bool(self.settings.character_id))
 
     def _on_shell_face_mode_selected(self, face_mode: str) -> None:
         if face_mode == self.settings.face_mode:
@@ -598,26 +635,50 @@ class MainWindow(Adw.ApplicationWindow):
         return "llama.cpp"
 
     def _refresh_ollama_models(self) -> None:
-        def worker() -> None:
+        """Fetch the model list, waiting for a server that Voxa has only just started."""
+        self._models_generation = getattr(self, "_models_generation", 0) + 1
+        generation = self._models_generation
+        label = self._backend_label()
+
+        def list_models() -> list[str]:
+            client = self._ai_client()
+            if self.settings.ai_backend == "strata":
+                info = client.server_info()
+                return [info["model"]] if info and info.get("model") else []
             try:
-                client = self._ai_client()
-                if self.settings.ai_backend == "strata":
-                    info = client.server_info()
-                    models = [info["model"]] if info and info.get("model") else []
-                else:
-                    models = client.list_models()
-                idle(self._apply_ollama_models, models)
-            except OllamaError as exc:
+                return client.list_models()
+            except OllamaError:
+                raise
+            except Exception as exc:  # connection refused and friends are not wrapped by every client
+                raise OllamaError(str(exc)) from exc
+
+        def worker() -> None:
+            models = wait_for_models(
+                list_models,
+                attempts=MODEL_WAIT_ATTEMPTS,
+                delay=MODEL_WAIT_DELAY,
+                should_stop=lambda: generation != self._models_generation,
+                on_waiting=lambda attempt: idle(self._show_models_starting, label) if attempt == 1 else None,
+            )
+            if generation != self._models_generation:
+                return
+            if models is None:
                 # Say so in the model picker too ("No models available - Ollama") instead of
                 # leaving it blank, and keep the saved model selection untouched.
                 idle(self._show_no_models)
                 idle(
                     self._set_status,
-                    f"The AI server ({self._backend_label()}) is offline. Dictation is still available.",
+                    f"The AI server ({label}) is offline. Dictation is still available.",
                 )
-                idle(self._toast, str(exc))
+                return
+            idle(self._apply_ollama_models, models)
 
         threading.Thread(target=worker, name="ollama-models", daemon=True).start()
+
+    def _show_models_starting(self, label: str) -> bool:
+        """The server is still coming up: say so instead of "No models available"."""
+        self._set_status(f"Starting {label}…")
+        return False
 
     def _show_no_models(self) -> bool:
         self.ollama_models = []
@@ -828,49 +889,76 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _show_model_manager(self) -> None:
         dialog = Adw.Dialog(title="Manage Ollama Models", content_width=560, content_height=520)
-        toolbar = Adw.ToolbarView()
-        dialog.set_child(toolbar)
-        toolbar.add_top_bar(Adw.HeaderBar())
+        root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        dialog.set_child(root)
+        root.append(Adw.HeaderBar())
 
         page = Adw.PreferencesPage()
         scroller = Gtk.ScrolledWindow(vexpand=True)
         scroller.set_child(page)
-        toolbar.set_content(scroller)
+        root.append(scroller)
 
         installed_group = Adw.PreferencesGroup(title="Installed")
         page.add(installed_group)
         installed_rows: dict[str, Adw.ActionRow] = {}
-        if self.ollama_models:
-            for name in self.ollama_models:
-                row = Adw.ActionRow(title=name, subtitle="Calculating size…")
-                delete_button = Gtk.Button(icon_name="user-trash-symbolic", valign=Gtk.Align.CENTER)
-                delete_button.add_css_class("flat")
-                delete_button.set_tooltip_text(f"Remove {name}")
-                delete_button.connect(
-                    "clicked", lambda _btn, model=name: self._confirm_delete_model(dialog, model)
-                )
-                row.add_suffix(delete_button)
-                installed_rows[name] = row
-                installed_group.add(row)
-        else:
-            installed_group.add(Adw.ActionRow(title="No models installed yet"))
+        placeholder_rows: list[Adw.ActionRow] = []
 
-        def apply_sizes(infos: list) -> bool:
-            for info in infos:
-                row = installed_rows.get(info.name)
-                if row is not None:
-                    row.set_subtitle(f"{info.size_bytes / (1024**3):.1f} GB")
-            return False
+        def add_installed_row(name: str) -> None:
+            row = Adw.ActionRow(title=name, subtitle="Calculating size…")
+            delete_button = Gtk.Button(icon_name="user-trash-symbolic", valign=Gtk.Align.CENTER)
+            delete_button.add_css_class("flat")
+            delete_button.set_tooltip_text(f"Remove {name}")
+            delete_button.connect(
+                "clicked", lambda _btn, model=name: self._confirm_delete_model(dialog, model)
+            )
+            row.add_suffix(delete_button)
+            installed_rows[name] = row
+            installed_group.add(row)
 
-        def fetch_sizes() -> None:
-            try:
-                infos = OllamaClient(self.settings.ollama_url).list_models_detailed()
-            except OllamaError:
+        def show_placeholder(title: str) -> None:
+            row = Adw.ActionRow(title=title)
+            placeholder_rows.append(row)
+            installed_group.add(row)
+
+        def build_installed(models: list[str]) -> None:
+            for row in list(installed_rows.values()) + placeholder_rows:
+                installed_group.remove(row)
+            installed_rows.clear()
+            placeholder_rows.clear()
+            if not models:
+                show_placeholder("No models installed yet")
                 return
-            idle(apply_sizes, infos)
+            for name in models:
+                add_installed_row(name)
 
-        if installed_rows:
-            threading.Thread(target=fetch_sizes, name="ollama-sizes", daemon=True).start()
+        # The dialog fetches its own list so it can say "Starting Ollama…" while the
+        # server Voxa has only just started is still coming up, then rebuild in place.
+        dialog_alive = [True]
+        dialog.connect("closed", lambda *_: dialog_alive.__setitem__(0, False))
+
+        def list_installed() -> list[str]:
+            client = OllamaClient(self.settings.ollama_url)
+            try:
+                return client.list_models()
+            except OllamaError:
+                raise
+            except Exception as exc:  # connection refused and friends are not wrapped by every client
+                raise OllamaError(str(exc)) from exc
+
+        def load_installed() -> None:
+            models = wait_for_models(
+                list_installed,
+                attempts=MODEL_WAIT_ATTEMPTS,
+                delay=MODEL_WAIT_DELAY,
+                should_stop=lambda: not dialog_alive[0],
+                on_waiting=lambda attempt: idle(show_placeholder, "Starting Ollama…") if attempt == 1 else None,
+            )
+            if not dialog_alive[0]:
+                return
+            if models is not None:
+                idle(build_installed, models)
+
+        threading.Thread(target=load_installed, name="ollama-installed", daemon=True).start()
 
         pull_group = Adw.PreferencesGroup(
             title="Pull a model",
@@ -899,6 +987,19 @@ class MainWindow(Adw.ApplicationWindow):
                 suggestion_box.append(chip)
             pull_group.add(suggestion_box)
 
+        smallest = MODEL_CATALOG[0].name
+        if smallest not in self._suggested_models and smallest not in self.ollama_models:
+            smallest_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+            smallest_box.set_margin_top(4)
+            smallest_box.set_margin_bottom(8)
+            smallest_box.set_margin_start(12)
+            smallest_box.set_margin_end(12)
+            smallest_box.append(Gtk.Label(label="Smallest — runs anywhere"))
+            chip = Gtk.Button(label=smallest)
+            chip.connect("clicked", lambda _btn, model=smallest: pull_row.set_text(model))
+            smallest_box.append(chip)
+            pull_group.add(smallest_box)
+
         def set_pulling(active: bool) -> None:
             pull_button.set_sensitive(not active)
             pull_row.set_sensitive(not active)
@@ -907,8 +1008,13 @@ class MainWindow(Adw.ApplicationWindow):
                 progress_bar.set_fraction(0)
                 progress_bar.set_text("")
 
+        pulling = [False]
+        got_total = [False]
+        selected_before = [False]
+
         def on_progress(status: str, completed: int, total: int) -> bool:
             if total > 0:
+                got_total[0] = True
                 progress_bar.set_fraction(min(1.0, completed / total))
                 progress_bar.set_text(f"{status} — {completed / (1024**2):.0f} / {total / (1024**2):.0f} MB")
             else:
@@ -916,12 +1022,28 @@ class MainWindow(Adw.ApplicationWindow):
                 progress_bar.set_text(status)
             return False
 
-        def on_pull_finished(success: bool, message: str) -> bool:
+        def pulse_tick() -> bool:
+            if not pulling[0] or got_total[0]:
+                return False
+            progress_bar.pulse()
+            return True
+
+        def on_pull_finished(success: bool, message: str, name: str) -> bool:
             set_pulling(False)
             self._toast(message)
             if success:
-                dialog.close()
-                self._show_model_manager()
+                try:
+                    models = OllamaClient(self.settings.ollama_url).list_models()
+                except OllamaError:
+                    models = list(self.ollama_models)
+                    if name not in models:
+                        models.append(name)
+                build_installed(models)
+                if not selected_before[0]:
+                    self.settings.ollama_model = name
+                    self.config_store.save(self.settings)
+                self._apply_ollama_models(models)
+            pull_row.set_text("")
             return False
 
         def start_pull(*_args) -> None:
@@ -929,12 +1051,28 @@ class MainWindow(Adw.ApplicationWindow):
             if not name:
                 self._toast("Enter a model name first.")
                 return
+            selected_before[0] = bool(self.settings.ollama_model)
             set_pulling(True)
+            pulling[0] = True
+            got_total[0] = False
+            GLib.timeout_add(150, pulse_tick)
             cancel_event = threading.Event()
             client = OllamaClient(self.settings.ollama_url)
 
             def worker() -> None:
                 try:
+                    models = wait_for_models(
+                        client.list_models,
+                        attempts=MODEL_WAIT_ATTEMPTS,
+                        delay=MODEL_WAIT_DELAY,
+                        should_stop=cancel_event.is_set,
+                        on_waiting=lambda attempt: idle(
+                            on_progress, "Starting Ollama…", 0, 0
+                        ) if attempt == 1 else None,
+                    )
+                    if models is None:
+                        idle(on_pull_finished, False, "The AI server never came up.", name)
+                        return
                     client.pull_model(
                         name,
                         cancel_event=cancel_event,
@@ -946,10 +1084,9 @@ class MainWindow(Adw.ApplicationWindow):
                         models = client.list_models()
                     except OllamaError:
                         models = self.ollama_models
-                    idle(self._apply_ollama_models, models)
-                    idle(on_pull_finished, True, f"Pulled {name}.")
+                    idle(on_pull_finished, True, f"Pulled {name}.", name)
                 except OllamaError as exc:
-                    idle(on_pull_finished, False, str(exc))
+                    idle(on_pull_finished, False, str(exc), name)
 
             threading.Thread(target=worker, name="ollama-pull", daemon=True).start()
 
@@ -1010,7 +1147,11 @@ class MainWindow(Adw.ApplicationWindow):
         self.config_store.save(self.settings)
         self._stop_progress()
         self._set_status(f"Ready — Whisper {name} on {backend}")
-        if not self._announced_ready and not self.assistant.is_active:
+        if self._activate_when_ready:
+            # ACTIVE was pressed while the model loaded: start listening by itself now.
+            self._activate_when_ready = False
+            self._on_shell_active()
+        elif not self._announced_ready and not self.assistant.is_active:
             # ACTIVE cannot start listening until the speech model has loaded; say when it can.
             self._announced_ready = True
             self._toast("Voxa is ready. Press ACTIVE to start listening.")
@@ -1019,6 +1160,8 @@ class MainWindow(Adw.ApplicationWindow):
     def _on_whisper_error(self, error: str) -> bool:
         self._stop_progress()
         self._set_status("Whisper could not be loaded.")
+        self._activate_when_ready = False
+        self.assistant_model.set_state(AssistantState.OFFLINE, f"Speech model failed — {error}")
         self._toast(error)
         return False
 
@@ -1115,8 +1258,8 @@ class MainWindow(Adw.ApplicationWindow):
         """Start the hands-free conversation pipeline; returns False (and says why) if it cannot."""
         if not self.whisper.ready:
             self.conversation_button.set_active(False)
+            self._activate_when_ready = True
             self._start_failure = "Whisper is still loading."
-            self._toast(self._start_failure)
             return False
         if not self.devices:
             self.conversation_button.set_active(False)

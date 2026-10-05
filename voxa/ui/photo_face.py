@@ -35,6 +35,7 @@ MAX_OFFSET = 0.012
 MAX_ROTATION = 1.2
 CROSSFADE_MS = 60.0
 CLIP_RADIUS = 18
+MOTION_PERIOD = 300.0  # seconds after which the idle motion repeats; keeps FaceMotion cheap
 OVERSCAN = 1.05  # the frame is drawn slightly large so the sway never shows its edges
 
 
@@ -104,7 +105,7 @@ def compose(
             ),
             previous_index,
         )
-    target = mouth_target(visemes)
+    target = mouth_target(visemes, pack.rest)
     index = pick_frame(pack, target, previous_index)
     patch = blink_patch(pack, blink)
     yaw, pitch, roll = head
@@ -221,6 +222,7 @@ class PhotoFaceRenderer:
         self.widget.add_css_class("voxa-photo-face")
         self._base_path: str | None = None
         self._pending: deque = deque()
+        self._motion_t0 = _now()
         self._ensure_render_tick()
 
     def _load_texture(self, path):
@@ -322,6 +324,9 @@ class PhotoFaceRenderer:
         if self._tick_added:
             return
         self._tick_added = True
+        # A plain timer, not a frame-clock tick callback: a tick callback keeps the frame clock running flat
+        # out, which starves the rest of the window's idle work.
+        self._was_parented = False
         self.widget.add_tick_callback(self._on_tick)
 
     def _speech_visemes(self) -> dict[str, float]:
@@ -330,6 +335,11 @@ class PhotoFaceRenderer:
         return viseme_weights(_now() - self._speaking_since)
 
     def _on_tick(self, widget, *args):
+        if self.widget.get_parent() is not None:
+            self._was_parented = True
+        elif self._was_parented:
+            self._tick_added = False
+            return GLib.SOURCE_REMOVE  # removed from the window: this renderer is finished
         try:
             self._load_some()
             now = _now()
@@ -340,8 +350,14 @@ class PhotoFaceRenderer:
                 self._viseme = blend(self._viseme, {}, 0.45)
             if self._forced_viseme:
                 self._viseme = dict(self._forced_viseme)
+            # FaceMotion rebuilds its blink schedule from time zero on every call, so its cost grows with the
+            # time it is given. Feeding it the monotonic clock (seconds since boot) made every tick take longer
+            # than a frame and froze the rest of the window. Use the renderer's own age, wrapped.
             pose = self._face_motion.pose(
-                now, speaking=self._speaking, listening=self._listening, energy=self._intensity
+                (now - self._motion_t0) % MOTION_PERIOD,
+                speaking=self._speaking,
+                listening=self._listening,
+                energy=self._intensity,
             )
             blink = pose.morphs.get("eyeBlinkLeft", 0.0)
             if self._forced_blink is not None:

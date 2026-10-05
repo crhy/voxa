@@ -95,7 +95,7 @@ def test_portrait_picker_is_a_menu_button() -> None:
 
 def test_portrait_refresh_does_not_fire_callbacks() -> None:
     fired: list[str] = []
-    picker = PortraitPicker(on_character_selected=fired.append, on_face_mode_selected=fired.append)
+    picker = PortraitPicker(on_character_selected=fired.append)
     picker.refresh([_avatar("grace", "Grace"), _avatar("jack", "Jack")])
     assert fired == []
 
@@ -123,22 +123,6 @@ def test_portrait_empty_avatars() -> None:
     assert picker._flow.get_first_child() is None
 
 
-def test_portrait_set_face_mode_does_not_fire_callback() -> None:
-    fired: list[str] = []
-    picker = PortraitPicker(on_face_mode_selected=fired.append)
-    picker.refresh([_avatar("grace", "Grace")])
-    picker.set_face_mode("live")
-    assert picker.get_face_mode() == "live"
-    assert fired == []
-
-
-def test_portrait_invalid_face_mode_ignored() -> None:
-    picker = PortraitPicker()
-    picker.refresh([_avatar("grace", "Grace")])
-    picker.set_face_mode("bogus")
-    assert picker.get_face_mode() == "prerendered"
-
-
 def test_picker_entries_sorted_by_display_name() -> None:
     avatars = [_avatar("jack", "Jack"), _avatar("grace", "Grace")]
     entries = picker_entries(avatars)
@@ -154,12 +138,3 @@ def test_portrait_character_click_fires_callback_once() -> None:
     handler(picker._cell_buttons["jack"])
     assert fired == ["jack"]
     assert picker.get_selected() == "jack"
-
-
-def test_portrait_face_dropdown_selection_fires_callback() -> None:
-    fired: list[str] = []
-    picker = PortraitPicker(on_face_mode_selected=fired.append)
-    picker.refresh([_avatar("grace", "Grace")])
-    picker._face_dropdown.set_selected(2)
-    assert fired == ["still"]
-    assert picker.get_face_mode() == "still"

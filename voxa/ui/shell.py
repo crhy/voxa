@@ -24,6 +24,7 @@ from .assistant_view import BADGE_PATH, AssistantView  # noqa: E402
 from .character_picker import PortraitPicker  # noqa: E402
 from .choice_overlay import ChoiceOverlay  # noqa: E402
 from .exchange_panel import ExchangePanel  # noqa: E402
+from .face_quality import FaceQualitySwitch  # noqa: E402
 from .model_selector import ModelSelector  # noqa: E402
 from .notice import NoticeBar  # noqa: E402
 from .state import AssistantModel, AssistantState  # noqa: E402
@@ -125,9 +126,13 @@ class AssistantShell(Gtk.Overlay):
         )
         self.character_picker = PortraitPicker(
             on_character_selected=self._character_selected,
-            on_face_mode_selected=self._face_mode_selected,
         )
-        self._bottom_controls = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        # Two short rows, centred: one long row ran underneath the ACTIVE / OFFLINE buttons.
+        self._bottom_controls = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        self.face_quality = FaceQualitySwitch(on_selected=self._face_mode_selected)
+        self.face_quality.set_halign(Gtk.Align.CENTER)
+        self.model_selector.set_halign(Gtk.Align.CENTER)
+        self._bottom_controls.append(self.face_quality)
         self._bottom_controls.append(self.model_selector)
         self._bottom_controls.set_halign(Gtk.Align.CENTER)
         self._bottom_controls.set_valign(Gtk.Align.END)
@@ -188,7 +193,7 @@ class AssistantShell(Gtk.Overlay):
     # -------------------------------------------------------------- internals
 
     def _on_state_changed(self, state: AssistantState, detail: str) -> None:
-        GLib.idle_add(self._apply_state, state, detail)
+        GLib.idle_add(self._apply_state, state, detail, priority=GLib.PRIORITY_DEFAULT)
 
     def _apply_state(self, state: AssistantState, detail: str) -> bool:
         self.assistant_view.set_state(state, detail)
@@ -199,7 +204,7 @@ class AssistantShell(Gtk.Overlay):
         return False
 
     def _on_tasks_changed(self, tasks) -> None:
-        GLib.idle_add(self._apply_tasks, tasks)
+        GLib.idle_add(self._apply_tasks, tasks, priority=GLib.PRIORITY_DEFAULT)
 
     def _apply_tasks(self, tasks) -> bool:
         self.task_panel.set_tasks(tasks)

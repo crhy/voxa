@@ -84,12 +84,11 @@ def _read_clip(landmarker: mp.tasks.vision.FaceLandmarker, path: Path, size: int
 
 
 def _farthest_point(candidates: list, max_keep: int) -> list:
-    """Greedy farthest-point sampling over (open, width); start at smallest open."""
+    """Greedy farthest-point sampling over (open, width); start at index 0 (the neutral frame)."""
     if not candidates:
         return []
-    start = min(range(len(candidates)), key=lambda i: candidates[i][0])
-    selected = [start]
-    remaining = set(range(len(candidates))) - {start}
+    selected = [0]
+    remaining = set(range(len(candidates))) - {0}
     while remaining and len(selected) < max_keep:
         best_i = None
         best_d = -1.0
@@ -135,8 +134,18 @@ def main() -> None:
     if not candidates:
         raise SystemExit("no eyes-open speech frames")
 
-    opens = [m[1] for _, m in candidates]
-    widths = [m[2] for _, m in candidates]
+    open_silence = [(rgb, m) for rgb, m in silence if m is not None and m[3] >= 0.8 * eye_open]
+    if not open_silence:
+        raise SystemExit("no eyes-open silence frames")
+    med_open = statistics.median(m[1] for _, m in open_silence)
+    med_width = statistics.median(m[2] for _, m in open_silence)
+    neutral_rgb, neutral_m = min(
+        open_silence,
+        key=lambda t: (t[1][1] - med_open) ** 2 + (t[1][2] - med_width) ** 2,
+    )
+
+    opens = [m[1] for _, m in candidates] + [neutral_m[1]]
+    widths = [m[2] for _, m in candidates] + [neutral_m[2]]
     o_min, o_max = min(opens), max(opens)
     w_min, w_max = min(widths), max(widths)
     o_span = (o_max - o_min) or 1.0
@@ -144,10 +153,10 @@ def main() -> None:
 
     norm = [
         (float((m[1] - o_min) / o_span), float((m[2] - w_min) / w_span), rgb, m)
-        for rgb, m in candidates
+        for rgb, m in [(neutral_rgb, neutral_m)] + candidates
     ]
     chosen = _farthest_point(norm, args.max_mouth)
-    # chosen[0] is the rest frame (smallest open -> normalised open 0.0)
+    # chosen[0] is the neutral frame (entry 0, m000.jpg)
 
     mouth_entries = []
     for order, idx in enumerate(chosen):
@@ -157,8 +166,8 @@ def main() -> None:
                     [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
         mouth_entries.append({"file": name, "open": round(on, 5), "width": round(ow, 5)})
 
-    # eye box from the rest frame
-    rest_rgb, _rest_m = candidates[chosen[0]]
+    # eye box and blink mask from the neutral frame
+    rest_rgb = neutral_rgb
     mp_img = mp.Image(image_format=mp.ImageFormat.SRGB, data=rest_rgb)
     res = landmarker.detect(mp_img)
     lm = res.face_landmarks[0]
@@ -210,6 +219,7 @@ def main() -> None:
         "fps": 25,
         "eye_box": eye_box,
         "eye_open": round(float(eye_open), 6),
+        "rest": {"open": round(norm[chosen[0]][0], 5), "width": round(norm[chosen[0]][1], 5)},
         "mouth": mouth_entries,
         "blink": blink_names,
         "open_range": [round(o_min, 6), round(o_max, 6)],

@@ -7,6 +7,8 @@ and stub the slow or networked start-up work (Whisper, hardware probe, model lis
 
 from __future__ import annotations
 
+import sys
+
 import pytest
 
 gi = pytest.importorskip("gi")
@@ -197,6 +199,7 @@ def test_an_offline_ai_server_is_explained_in_the_model_picker(window, monkeypat
             raise OllamaError("Could not connect")
 
     monkeypatch.setattr(window, "_ai_client", lambda: Offline())
+    monkeypatch.setattr(sys.modules[type(window).__module__], "MODEL_WAIT_ATTEMPTS", 1)
     window.settings.ollama_model = "keep-me"
     _REAL_REFRESH(window)
 
@@ -232,8 +235,3 @@ def test_portrait_picker_is_in_the_header_not_the_bottom_controls(window) -> Non
     assert isinstance(picker, PortraitPicker)
     assert _is_descendant(picker, window)
     assert not _is_descendant(picker, window.shell._bottom_controls)
-
-
-def test_face_mode_selection_through_the_window_saves_settings(window) -> None:
-    window.shell.character_picker._face_dropdown.set_selected(2)
-    assert window.settings.face_mode == "still"

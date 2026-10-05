@@ -104,7 +104,8 @@ VOXA_CSS = """
     background: alpha(@window_bg_color, 0.88);
 }
 
-.voxa-section {
+.voxa-section,
+.voxa-control-caption {
     font-size: 11px;
     font-weight: 600;
     opacity: 0.55;

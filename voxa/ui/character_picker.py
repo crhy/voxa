@@ -22,8 +22,6 @@ PORTRAIT_BUTTON_SIZE = 36
 PORTRAIT_SHARP_PX = 144
 PORTRAIT_CELL_SIZE = 64
 POPOVER_MAX_HEIGHT = 420
-FACE_MODE_LABELS = (("live", "Live"), ("prerendered", "Pre-rendered"), ("still", "Still portrait"))
-FACE_LABEL_TO_MODE = {label: mode for mode, label in FACE_MODE_LABELS}
 DEFAULT_PORTRAIT_ICON = "avatar-default-symbolic"
 
 
@@ -150,19 +148,17 @@ def _portrait_texture(path: Path) -> Gdk.Texture | None:
 class PortraitPicker(Gtk.MenuButton):
     """Top-right portrait button: a round photo of the selected character.
 
-    Clicking opens a popover with a 3-column grid of portraits (single selection)
-    and a Face drop-down. Programmatic ``set_selected`` / ``set_face_mode`` never
-    fire the callbacks; only a real user selection does.
+    Clicking opens a popover with a 3-column grid of portraits (single selection).
+    Programmatic ``set_selected`` never fires the callback; only a real user
+    selection does.
     """
 
-    def __init__(self, on_character_selected=None, on_face_mode_selected=None) -> None:
+    def __init__(self, on_character_selected=None) -> None:
         super().__init__()
         self.on_character_selected = on_character_selected
-        self.on_face_mode_selected = on_face_mode_selected
 
         self._avatars: list = []
         self._selected_id = ""
-        self._face_mode = "prerendered"
         self._updating = False
         self._cell_buttons: dict[str, Gtk.Button] = {}
         self._textures: dict[str, Gdk.Texture] = {}
@@ -183,22 +179,6 @@ class PortraitPicker(Gtk.MenuButton):
         self._flow.set_selection_mode(Gtk.SelectionMode.SINGLE)
         self._scrolled.set_child(self._flow)
         self._content.append(self._scrolled)
-        self._content.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
-
-        face_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        face_label = Gtk.Label(label="Face")
-        face_label.set_xalign(0)
-        self._face_items = Gtk.StringList.new([mode for mode, _label in FACE_MODE_LABELS])
-        self._face_dropdown = Gtk.DropDown(model=self._face_items)
-        self._face_dropdown.set_sensitive(True)
-        list_factory = Gtk.SignalListItemFactory()
-        list_factory.connect("setup", self._face_setup_label)
-        list_factory.connect("bind", self._face_bind_label)
-        self._face_dropdown.set_factory(list_factory)
-        self._face_dropdown.connect("notify::selected", self._on_face_selected)
-        face_row.append(face_label)
-        face_row.append(self._face_dropdown)
-        self._content.append(face_row)
 
         self._popover.set_child(self._content)
         self._refresh_button()
@@ -244,21 +224,6 @@ class PortraitPicker(Gtk.MenuButton):
     def get_selected(self) -> str:
         return self._selected_id
 
-    def set_face_mode(self, mode: str) -> None:
-        """Select a face mode by value without firing the callback."""
-        if mode not in FACE_LABEL_TO_MODE.values():
-            return
-        self._face_mode = mode
-        self._updating = True
-        try:
-            index = next(i for i, (value, _label) in enumerate(FACE_MODE_LABELS) if value == mode)
-            self._face_dropdown.set_selected(index)
-        finally:
-            self._updating = False
-
-    def get_face_mode(self) -> str:
-        return self._face_mode
-
     def _make_character_handler(self, character_id: str):
         def _handler(button: Gtk.Button, cid: str = character_id) -> None:
             if self._updating:
@@ -269,26 +234,6 @@ class PortraitPicker(Gtk.MenuButton):
             if self.on_character_selected is not None:
                 self.on_character_selected(cid)
         return _handler
-
-    def _on_face_selected(self, *_args) -> None:
-        if self._updating:
-            return
-        item = self._face_dropdown.get_selected_item()
-        if item is None:
-            return
-        self._face_mode = item.get_string()
-        if self.on_face_mode_selected is not None:
-            self.on_face_mode_selected(self._face_mode)
-
-    def _face_setup_label(self, _factory, list_item: Gtk.ListItem) -> None:
-        list_item.set_child(Gtk.Label(label=""))
-
-    def _face_bind_label(self, _factory, list_item: Gtk.ListItem) -> None:
-        item = list_item.get_item()
-        if item is None:
-            return
-        label = FACE_LABEL_TO_MODE.get(item.get_string(), item.get_string())
-        list_item.get_child().set_text(label)
 
     def _load_textures(self) -> None:
         """Decode portrait JPEGs only when the popover actually opens."""

@@ -39,6 +39,7 @@ class FacePack:
     eye_box: tuple[int, int, int, int]
     mouth: tuple[MouthFrame, ...]
     blink: tuple[str, ...]
+    rest: tuple[float, float]
 
 
 VISEME_SHAPES: dict[str, tuple[float, float]] = {
@@ -102,6 +103,11 @@ def load_pack(character_id: str, directory: Path | None = None) -> FacePack | No
         if not isinstance(blink_raw, list):
             return None
         blink = tuple(str(name) for name in blink_raw)
+        rest_raw = data.get("rest")
+        if rest_raw is None:
+            rest = (mouth[0].open, mouth[0].width)
+        else:
+            rest = (float(rest_raw["open"]), float(rest_raw["width"]))
     except (KeyError, TypeError, ValueError):
         return None
     return FacePack(
@@ -111,11 +117,20 @@ def load_pack(character_id: str, directory: Path | None = None) -> FacePack | No
         eye_box=eye_box,
         mouth=mouth,
         blink=blink,
+        rest=rest,
     )
 
 
-def mouth_target(weights: dict[str, float]) -> tuple[float, float]:
-    """Weighted average of the viseme shapes, or the rest shape when empty."""
+def mouth_target(
+    weights: dict[str, float],
+    rest: tuple[float, float] = REST_TARGET,
+) -> tuple[float, float]:
+    """Weighted average of the viseme shapes, eased in and out of ``rest``.
+
+    When the weights sum to ~0 the result is ``rest`` itself; when they sum to
+    less than 1 the average is blended with ``rest`` so the mouth eases in and
+    out of neutral instead of jumping.
+    """
     total = 0.0
     open_acc = 0.0
     width_acc = 0.0
@@ -127,8 +142,17 @@ def mouth_target(weights: dict[str, float]) -> tuple[float, float]:
         open_acc += weight * shape[0]
         width_acc += weight * shape[1]
     if total <= 1e-9:
-        return REST_TARGET
-    return (open_acc / total, width_acc / total)
+        return rest
+    avg = (open_acc / total, width_acc / total)
+    if total < 1.0:
+        return (rest[0] * (1.0 - total) + avg[0] * total,
+                rest[1] * (1.0 - total) + avg[1] * total)
+    return avg
+
+
+def rest_index(pack: FacePack) -> int:
+    """Index of the neutral rest mouth frame (always 0)."""
+    return 0
 
 
 def _frame_distance(frame: MouthFrame, target: tuple[float, float]) -> float:

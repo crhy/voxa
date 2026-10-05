@@ -1,17 +1,12 @@
 #!/bin/sh
 
 # GTK 4 can leave stale damage fragments on some NVIDIA + X11/Compiz
-# combinations. Keep the GL renderer, disable incremental presentation, and
-# force complete redraws on X11. The app is small enough that this has minimal
-# overhead while preserving animations and reliable rendering.
+# combinations. Keep the GL renderer and force complete redraws on X11. The app
+# is small enough that this has minimal overhead while preserving animations
+# and reliable rendering. (GDK_DISABLE=incremental-present used to be set here
+# too; current GTK no longer knows that value and only printed a warning.)
 : "${GSK_RENDERER:=gl}"
 export GSK_RENDERER
-
-case ",${GDK_DISABLE:-}," in
-  *,incremental-present,*) ;;
-  *) GDK_DISABLE="${GDK_DISABLE:+$GDK_DISABLE,}incremental-present" ;;
-esac
-export GDK_DISABLE
 
 if [ "${XDG_SESSION_TYPE:-}" = "x11" ] || { [ -n "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; }; then
   case ",${GSK_DEBUG:-}," in

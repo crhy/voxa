@@ -3,10 +3,14 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from voxa.ui.face_pack import VISEME_SHAPES, blink_patch, load_pack, mouth_target, pick_frame
+from voxa.ui.face_pack import VISEME_SHAPES, blink_patch, load_pack, mouth_target, pick_frame, rest_index
 
 
-def _write_pack(tmp_path: Path, character_id: str = "fake") -> Path:
+def _write_pack(
+    tmp_path: Path,
+    character_id: str = "fake",
+    rest: tuple[float, float] | None = None,
+) -> Path:
     pack_dir = tmp_path / character_id
     pack_dir.mkdir(parents=True)
     data = {
@@ -22,6 +26,8 @@ def _write_pack(tmp_path: Path, character_id: str = "fake") -> Path:
         ],
         "blink": ["b0.jpg", "b1.jpg", "b2.jpg"],
     }
+    if rest is not None:
+        data["rest"] = {"open": rest[0], "width": rest[1]}
     (pack_dir / "index.json").write_text(json.dumps(data))
     return tmp_path
 
@@ -54,8 +60,32 @@ def test_load_pack_missing_keys_returns_none(tmp_path: Path) -> None:
     assert load_pack("fake", root) is None
 
 
+def test_load_pack_rest_from_index(tmp_path: Path) -> None:
+    root = _write_pack(tmp_path, rest=(0.1, 0.4))
+    pack = load_pack("fake", root)
+    assert pack is not None
+    assert pack.rest == (0.1, 0.4)
+
+
+def test_load_pack_rest_falls_back_to_entry_zero(tmp_path: Path) -> None:
+    root = _write_pack(tmp_path)
+    pack = load_pack("fake", root)
+    assert pack is not None
+    assert pack.rest == (0.0, 0.5)
+
+
+def test_rest_index_is_zero(tmp_path: Path) -> None:
+    root = _write_pack(tmp_path)
+    pack = load_pack("fake", root)
+    assert rest_index(pack) == 0
+
+
 def test_mouth_target_rest_when_empty() -> None:
     assert mouth_target({}) == (0.0, 0.5)
+
+
+def test_mouth_target_empty_uses_given_rest() -> None:
+    assert mouth_target({}, rest=(0.2, 0.3)) == (0.2, 0.3)
 
 
 def test_mouth_target_single_viseme_matches_table() -> None:
@@ -68,6 +98,17 @@ def test_mouth_target_weighted_average() -> None:
     aa = VISEME_SHAPES["viseme_aa"]
     expected = ((sil[0] + aa[0]) / 2.0, (sil[1] + aa[1]) / 2.0)
     assert got == expected
+
+
+def test_mouth_target_partial_weights_blend_towards_rest() -> None:
+    aa = VISEME_SHAPES["viseme_aa"]
+    got = mouth_target({"viseme_aa": 0.5}, rest=(0.0, 0.5))
+    expected = (0.0 * 0.5 + aa[0] * 0.5, 0.5 * 0.5 + aa[1] * 0.5)
+    assert got == expected
+
+
+def test_mouth_target_full_weights_ignore_rest() -> None:
+    assert mouth_target({"viseme_aa": 1.0}, rest=(0.9, 0.9)) == VISEME_SHAPES["viseme_aa"]
 
 
 def test_pick_frame_nearest(tmp_path: Path) -> None:

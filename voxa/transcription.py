@@ -33,6 +33,25 @@ def _cuda_compute_usable() -> bool:
     return True
 
 
+# Free graphics memory Whisper needs before the GPU is worth trying. With less than this (another model already
+# fills the card) the CUDA load can stall for minutes or fail, leaving ACTIVE unusable; the CPU is the safe choice.
+MIN_FREE_VRAM_GB = 2.5
+
+
+def _gpu_has_room(sample=None) -> bool:
+    """False when the GPU is known to have less than MIN_FREE_VRAM_GB free; True when it has, or is unknown."""
+    try:
+        if sample is None:
+            from .hardware import sample_gpu_usage
+
+            sample = sample_gpu_usage()
+        if sample is None:
+            return True
+        return (sample.memory_total_gb - sample.memory_used_gb) >= MIN_FREE_VRAM_GB
+    except Exception:  # noqa: BLE001 - a broken probe must never block loading
+        return True
+
+
 class WhisperService:
     """Thread-safe, lazily loaded Faster Whisper service."""
 
@@ -87,7 +106,7 @@ class WhisperService:
             requested = os.environ.get("VOXA_DEVICE") or os.environ.get("VOICE2TEXT_DEVICE", "auto")
             attempts = []
             if requested == "auto":
-                if _cuda_compute_usable():
+                if _cuda_compute_usable() and _gpu_has_room():
                     attempts.append(("cuda", "default"))
                 attempts.append(("cpu", "int8"))
             else:

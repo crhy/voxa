@@ -91,3 +91,12 @@ def test_cuda_force_env_var_prefers_new_name_with_legacy_fallback(monkeypatch) -
     monkeypatch.delenv("VOXA_FORCE_CUDA")
     monkeypatch.setenv("VOICE2TEXT_FORCE_CUDA", "1")
     assert _cuda_compute_usable()
+
+
+def test_whisper_skips_the_gpu_when_it_is_nearly_full() -> None:
+    from voxa.hardware import GpuUsage
+    from voxa.transcription import MIN_FREE_VRAM_GB, _gpu_has_room
+
+    assert _gpu_has_room(GpuUsage(10.0, 15.3, 16.0)) is False
+    assert _gpu_has_room(GpuUsage(10.0, 16.0 - MIN_FREE_VRAM_GB, 16.0)) is True
+    assert _gpu_has_room(GpuUsage(0.0, 2.0, 16.0)) is True
