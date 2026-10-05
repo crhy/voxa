@@ -240,3 +240,27 @@ class OllamaClient:
             raise OllamaError(f"Ollama returned HTTP {exc.code}: {detail}") from exc
         except (urllib.error.URLError, TimeoutError) as exc:
             raise OllamaError(f"Could not delete {name}: {exc}") from exc
+
+    def is_model_loaded(self, model: str) -> bool | None:
+        """True when ``model`` is resident in memory, False when it is not, None when unknown."""
+        request = urllib.request.Request(f"{self.base_url}/api/ps", method="GET")
+        try:
+            with open_url(request, timeout=2.0) as response:
+                payload = json.load(response)
+        except (urllib.error.URLError, TimeoutError, ValueError, json.JSONDecodeError):
+            return None
+        if not isinstance(payload, dict):
+            return None
+        models = payload.get("models", [])
+        if not isinstance(models, list):
+            return None
+        wanted = model.strip()
+        wanted_base = wanted.removesuffix(":latest")
+        for item in models:
+            if not isinstance(item, dict):
+                continue
+            for key in ("name", "model"):
+                value = str(item.get(key, ""))
+                if value == wanted or value.removesuffix(":latest") == wanted_base:
+                    return True
+        return False

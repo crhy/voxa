@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import threading
+
 import pytest
 
 gi = pytest.importorskip("gi")
@@ -22,7 +24,7 @@ from voxa.agent.result import ToolResult  # noqa: E402
 from voxa.agent.tools import typing as typing_mod  # noqa: E402
 from voxa.apps import DesktopApp  # noqa: E402
 from voxa.audio import AudioDevice  # noqa: E402
-from voxa.window import MainWindow  # noqa: E402
+from voxa.window import MainWindow, short_model_name  # noqa: E402
 
 
 def _pump(iterations: int = 150) -> None:
@@ -76,9 +78,48 @@ class FakeClient:
     def is_busy(self) -> bool:
         return False
 
+    def is_model_loaded(self, model: str = "") -> bool:
+        return True
+
     def generate_stream(self, model, prompt, cancel_event, on_chunk, messages=None) -> str:
         self.queries.append(prompt)
         return "Paris."
+
+
+class LoadingClient:
+    def __init__(self, gate: threading.Event, answer: str = "Paris.") -> None:
+        self.gate = gate
+        self.answer = answer
+        self.queries: list[str] = []
+
+    def is_busy(self) -> bool:
+        return False
+
+    def is_model_loaded(self, model: str) -> bool:
+        return False
+
+    def generate_stream(self, model, prompt, cancel_event, on_chunk, messages=None) -> str:
+        self.queries.append(prompt)
+        self.gate.wait()
+        on_chunk(self.answer)
+        return self.answer
+
+
+class LoadedClient:
+    def __init__(self, answer: str = "Paris.") -> None:
+        self.answer = answer
+        self.queries: list[str] = []
+
+    def is_busy(self) -> bool:
+        return False
+
+    def is_model_loaded(self, model: str) -> bool:
+        return True
+
+    def generate_stream(self, model, prompt, cancel_event, on_chunk, messages=None) -> str:
+        self.queries.append(prompt)
+        on_chunk(self.answer)
+        return self.answer
 
 
 class FakeRegistry:
@@ -123,6 +164,9 @@ class FakePlanClient:
 
     def is_busy(self) -> bool:
         return False
+
+    def is_model_loaded(self, model: str = "") -> bool:
+        return True
 
     def generate_stream(self, model, prompt, cancel_event, on_chunk, messages=None) -> str:
         self.queries.append(prompt)
@@ -309,3 +353,240 @@ def test_a_non_json_plan_reply_fails_cleanly(window, monkeypatch) -> None:
     assert len(plan_records) == 1
     assert plan_records[0]["ok"] is False
     assert plan_records[0]["heard"] == request
+
+
+def test_short_model_name_strips_prefix_and_truncates() -> None:
+    assert short_model_name("tiny") == "tiny"
+    assert short_model_name("vendor/deep/llama-3-8b") == "llama-3-8b"
+    assert short_model_name("x" * 40) == "x" * 27 + "…"
+
+
+def test_a_cold_model_shows_a_loading_caption(window, monkeypatch) -> None:
+    gate = threading.Event()
+    client = LoadingClient(gate)
+    monkeypatch.setattr(MainWindow, "_ai_client", lambda self: client)
+    window.ask_ai("what is the capital of France")
+    assert _settle(window, lambda: window.status_label.get_text().startswith("Loading "))
+    assert "tiny" in window.status_label.get_text()
+    assert window._loading_model_since is not None
+
+
+def test_releasing_the_gate_and_a_chunk_clears_the_caption(window, monkeypatch) -> None:
+    gate = threading.Event()
+    client = LoadingClient(gate)
+    monkeypatch.setattr(MainWindow, "_ai_client", lambda self: client)
+    window.ask_ai("what is the capital of France")
+    assert _settle(window, lambda: window.status_label.get_text().startswith("Loading "))
+    gate.set()
+    assert _settle(window, lambda: window._loading_model_since is None)
+
+
+def test_a_loaded_model_never_shows_a_loading_caption(window, monkeypatch) -> None:
+    client = LoadedClient()
+    monkeypatch.setattr(MainWindow, "_ai_client", lambda self: client)
+    window.ask_ai("what is the capital of France")
+    assert _settle(window, lambda: client.queries)
+    assert window._loading_model_since is None
+    assert not window.status_label.get_text().startswith("Loading ")
+
+
+def test_a_long_way_round_offers_one_coaching_suggestion(window) -> None:
+    registry = FakeRegistry()
+    window.tools = registry
+    window.ask_ai("open brave")
+    assert _settle(window, lambda: len(registry.calls) == 1)
+    window.ask_ai("open gmail")
+    assert _settle(window, lambda: len(registry.calls) == 2)
+    assert _settle(window, lambda: any(r["route"] == "suggestion" for r in window.action_log.read()))
+    suggestions = [r for r in window.action_log.read() if r["route"] == "suggestion"]
+    assert len(suggestions) == 1
+    assert suggestions[0]["detail"] == "direct:open_app>open_site"
+    assert suggestions[0]["ok"] is None
+
+
+def test_coaching_is_off_when_suggestions_are_disabled(window) -> None:
+    registry = FakeRegistry()
+    window.tools = registry
+    window.settings.suggestions_enabled = False
+    window.ask_ai("open brave")
+    assert _settle(window, lambda: len(registry.calls) == 1)
+    window.ask_ai("open gmail")
+    assert _settle(window, lambda: len(registry.calls) == 2)
+    assert _settle(window, lambda: len(window.action_log.read()) >= 2)
+    assert not any(r["route"] == "suggestion" for r in window.action_log.read())
+
+
+def test_a_browser_request_runs_the_page_aware_planner(window, monkeypatch) -> None:
+    request = "find the opening hours on the luigis.com website"
+    calls: list[tuple[str, dict[str, str]]] = []
+
+    def handler(name: str):
+        def run(args: dict[str, str]) -> ToolResult:
+            calls.append((name, dict(args)))
+            return ToolResult.success("")
+        return run
+
+    registry = ToolRegistry()
+    registry.register(
+        Tool(name="click_on", description="Click an element", parameters={"text": "text"},
+             risk=RiskLevel.REVERSIBLE, handler=handler("click_on"), required=("text",))
+    )
+    window.tools = registry
+
+    class Session:
+        def outline(self):
+            return [{"n": 1, "kind": "link", "text": "Opening hours", "placeholder": "", "href": "/hours"}]
+
+        def title(self):
+            return "Luigi's"
+
+        def url(self):
+            return "https://luigis.com/"
+
+    monkeypatch.setattr("voxa.window.get_session", lambda: Session())
+
+    class BrowserClient:
+        def __init__(self) -> None:
+            self.answers = iter(
+                [
+                    '{"tool": "click_on", "args": {"text": "Opening hours"}}',
+                    '{"done": true, "say": "Opening hours are 9 to 5."}',
+                ]
+            )
+
+        def is_busy(self) -> bool:
+            return False
+
+        def is_model_loaded(self, model: str = "") -> bool:
+            return True
+
+        def generate_stream(self, model, prompt, cancel_event, on_chunk, messages=None) -> str:
+            return next(self.answers)
+
+    client = BrowserClient()
+    monkeypatch.setattr(MainWindow, "_ai_client", lambda self: client)
+    window.ask_ai(request)
+    assert _settle(window, lambda: calls)
+    assert calls == [("click_on", {"text": "Opening hours"})]
+    assert _settle(window, lambda: window.status_label.get_text() == "Opening hours are 9 to 5.")
+    records = window.action_log.read()
+    browser_records = [record for record in records if record["route"] == "browser"]
+    assert len(browser_records) == 1
+    assert browser_records[0]["tool"] == "click_on"
+    assert browser_records[0]["ok"] is True
+    assert browser_records[0]["heard"] == request
+
+
+def test_cancelling_stops_the_browser_task_after_the_current_step(window, monkeypatch) -> None:
+    request = "find the opening hours on the luigis.com website"
+    calls: list[tuple[str, dict[str, str]]] = []
+
+    def handler(name: str):
+        def run(args: dict[str, str]) -> ToolResult:
+            calls.append((name, dict(args)))
+            return ToolResult.success("")
+        return run
+
+    registry = ToolRegistry()
+    registry.register(
+        Tool(name="click_on", description="Click an element", parameters={"text": "text"},
+             risk=RiskLevel.REVERSIBLE, handler=handler("click_on"), required=("text",))
+    )
+    window.tools = registry
+
+    class Session:
+        def outline(self):
+            return [{"n": 1, "kind": "link", "text": "Opening hours", "placeholder": "", "href": "/hours"}]
+
+        def title(self):
+            return "Luigi's"
+
+        def url(self):
+            return "https://luigis.com/"
+
+    monkeypatch.setattr("voxa.window.get_session", lambda: Session())
+
+    class CancelClient:
+        def __init__(self) -> None:
+            self.n = 0
+
+        def is_busy(self) -> bool:
+            return False
+
+        def is_model_loaded(self, model: str = "") -> bool:
+            return True
+
+        def generate_stream(self, model, prompt, cancel_event, on_chunk, messages=None) -> str:
+            self.n += 1
+            if self.n == 1:
+                return '{"tool": "click_on", "args": {"text": "Opening hours"}}'
+            cancel_event.wait()
+            return '{"done": true, "say": "Never reported."}'
+
+    client = CancelClient()
+    monkeypatch.setattr(MainWindow, "_ai_client", lambda self: client)
+    window.ask_ai(request)
+    window.query_cancel.set()
+    assert _settle(window, lambda: calls)
+    assert calls == [("click_on", {"text": "Opening hours"})]
+    assert _settle(window, lambda: client.n == 1)
+    assert window.status_label.get_text() != "Never reported."
+    records = window.action_log.read()
+    assert len([record for record in records if record["route"] == "browser"]) == 1
+
+
+def test_a_model_claim_of_an_action_is_replaced(window, monkeypatch) -> None:
+    client = LoadedClient("Done. Brutal Chess is closed.")
+    monkeypatch.setattr(MainWindow, "_ai_client", lambda self: client)
+    window.ask_ai("what is the capital of France")
+    assert _settle(window, lambda: client.queries)
+    assert _settle(window, lambda: any(r["route"] == "false_claim" for r in window.action_log.read()))
+    assert window._get_text(window.response_view) == (
+        "I couldn't do that. Try saying it as a direct command, like “close Brutal Chess”."
+    )
+    records = window.action_log.read()
+    claims = [record for record in records if record["route"] == "false_claim"]
+    assert len(claims) == 1
+    assert claims[0]["heard"] == "what is the capital of France"
+    assert claims[0]["detail"] == "Done."
+
+
+def test_a_normal_model_answer_passes_through_unchanged(window, monkeypatch) -> None:
+    client = LoadedClient("The capital of France is Paris.")
+    monkeypatch.setattr(MainWindow, "_ai_client", lambda self: client)
+    window.ask_ai("what is the capital of France")
+    assert _settle(window, lambda: client.queries)
+    assert _settle(window, lambda: window._get_text(window.response_view) != "")
+    assert window._get_text(window.response_view) == "The capital of France is Paris."
+    records = window.action_log.read()
+    assert not [record for record in records if record["route"] == "false_claim"]
+
+
+def test_reminders_tick_delivers_due_items_as_toasts(window, monkeypatch) -> None:
+    from datetime import datetime, timedelta
+
+    from voxa.agent.reminders import Reminder
+
+    toasts: list[str] = []
+    monkeypatch.setattr(window.shell, "show_notice", lambda text: toasts.append(text))
+    window.reminder_store.add(
+        Reminder(id="t1", due=datetime.now() - timedelta(seconds=1), text="10 minutes", kind="timer")
+    )
+    window.reminder_store.add(
+        Reminder(id="r1", due=datetime.now() - timedelta(seconds=1), text="stretch", kind="reminder")
+    )
+    window._reminders_tick()
+    assert len(toasts) == 2
+    assert window.reminder_store.upcoming() == []
+
+
+def test_a_two_step_routine_runs_both_steps_in_order(window) -> None:
+    registry = FakeRegistry()
+    window.tools = registry
+    window.ask_ai("when I say coffee time, open gmail and play music")
+    assert _settle(window, lambda: window.routine_store.all())
+    window.ask_ai("coffee time")
+    assert _settle(window, lambda: len(registry.calls) == 2)
+    assert registry.calls == [("open_site", {"name": "gmail"}), ("play_music", {"query": "music"})]
+    records = window.action_log.read()
+    assert any(r["route"] == "routine" for r in records)

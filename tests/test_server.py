@@ -155,6 +155,7 @@ def test_ollama_start_prefixes_with_flatpak_spawn_in_flatpak() -> None:
     assert command == [
         "flatpak-spawn",
         "--host",
+        "--directory=/",
         "env",
         "OLLAMA_HOST=127.0.0.1:11434",
         "ollama",
@@ -211,6 +212,7 @@ def test_llamacpp_start_prefixes_with_flatpak_spawn_in_flatpak() -> None:
     assert command == [
         "flatpak-spawn",
         "--host",
+        "--directory=/",
         "llama-server",
         "--model",
         "model.gguf",

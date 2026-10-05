@@ -79,6 +79,45 @@ def test_delete_model_sends_request() -> None:
     assert request.full_url.endswith("/api/delete")
 
 
+def test_is_model_loaded_true_when_running() -> None:
+    response = FakeResponse(b'{"models":[{"name":"qwen2.5:7b","size":1}]}')
+    with patch("voxa.ollama.open_url", return_value=response):
+        assert OllamaClient().is_model_loaded("qwen2.5:7b") is True
+
+
+def test_is_model_loaded_matches_model_key_too() -> None:
+    response = FakeResponse(b'{"models":[{"model":"mistral:latest"}]}')
+    with patch("voxa.ollama.open_url", return_value=response):
+        assert OllamaClient().is_model_loaded("mistral:latest") is True
+
+
+def test_is_model_loaded_treats_latest_as_equal() -> None:
+    response = FakeResponse(b'{"models":[{"name":"llama3:latest"}]}')
+    with patch("voxa.ollama.open_url", return_value=response):
+        assert OllamaClient().is_model_loaded("llama3") is True
+    response = FakeResponse(b'{"models":[{"name":"llama3"}]}')
+    with patch("voxa.ollama.open_url", return_value=response):
+        assert OllamaClient().is_model_loaded("llama3:latest") is True
+
+
+def test_is_model_loaded_false_when_absent() -> None:
+    response = FakeResponse(b'{"models":[{"name":"llama3"},{"name":"mistral"}]}')
+    with patch("voxa.ollama.open_url", return_value=response):
+        assert OllamaClient().is_model_loaded("qwen2.5:7b") is False
+
+
+def test_is_model_loaded_none_when_unreachable() -> None:
+    error = urllib.error.URLError("connection refused")
+    with patch("voxa.ollama.open_url", side_effect=error):
+        assert OllamaClient().is_model_loaded("qwen2.5:7b") is None
+
+
+def test_is_model_loaded_none_when_reply_is_not_json() -> None:
+    response = FakeResponse(b"not json at all")
+    with patch("voxa.ollama.open_url", return_value=response):
+        assert OllamaClient().is_model_loaded("qwen2.5:7b") is None
+
+
 def test_streaming_response_calls_chunk_callback() -> None:
     response = FakeResponse(
         b'{"response":"Hello","done":false}\n'

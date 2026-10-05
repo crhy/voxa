@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from voxa.config import ConfigStore, Settings
+from voxa.config import FACE_MODES, ConfigStore, Settings
 
 
 def test_defaults_when_config_is_missing(tmp_path: Path) -> None:
@@ -107,3 +107,89 @@ def test_legacy_config_dir_is_migrated(tmp_path: Path) -> None:
 
     assert loaded.tts_rate == 200
     assert (tmp_path / "config" / "voxa" / "config.json").is_file()
+
+
+def test_early_silence_ms_defaults_and_clamps(tmp_path: Path) -> None:
+    store = ConfigStore(tmp_path / "config.json")
+    assert store.load().early_silence_ms == 300
+    assert Settings().early_silence_ms == 300
+
+    store.save(Settings(early_silence_ms=50))
+    assert store.load().early_silence_ms == 150
+    store.save(Settings(early_silence_ms=5000))
+    assert store.load().early_silence_ms == 800
+    store.save(Settings(early_silence_ms=400))
+    assert store.load().early_silence_ms == 400
+
+
+def test_early_final_pass_round_trips(tmp_path: Path) -> None:
+    store = ConfigStore(tmp_path / "config.json")
+    assert store.load().early_final_pass is False
+    assert Settings().early_final_pass is False
+
+    store.save(Settings(early_final_pass=True))
+    assert store.load().early_final_pass is True
+
+
+def test_suggestions_enabled_round_trips(tmp_path: Path) -> None:
+    store = ConfigStore(tmp_path / "config.json")
+    assert store.load().suggestions_enabled is True
+    assert Settings().suggestions_enabled is True
+
+    store.save(Settings(suggestions_enabled=False))
+    assert store.load().suggestions_enabled is False
+
+
+def test_strata_backend_is_accepted(tmp_path: Path) -> None:
+    store = ConfigStore(tmp_path / "config.json")
+    assert Settings().strata_url == "http://127.0.0.1:8080"
+
+    store.save(Settings(ai_backend="strata", strata_url="http://localhost:9000/"))
+    loaded = store.load()
+    assert loaded.ai_backend == "strata"
+    assert loaded.strata_url == "http://localhost:9000"
+
+
+def test_unknown_backend_falls_back_to_llamacpp(tmp_path: Path) -> None:
+    store = ConfigStore(tmp_path / "config.json")
+    store.save(Settings(ai_backend="not-real"))
+    assert store.load().ai_backend == "llamacpp"
+
+
+def test_followup_seconds_defaults_and_clamps(tmp_path: Path) -> None:
+    store = ConfigStore(tmp_path / "config.json")
+    assert store.load().followup_seconds == 6.0
+    assert Settings().followup_seconds == 6.0
+
+    store.save(Settings(followup_seconds=-5.0))
+    assert store.load().followup_seconds == 0.0
+    store.save(Settings(followup_seconds=99.0))
+    assert store.load().followup_seconds == 20.0
+    store.save(Settings(followup_seconds=3.5))
+    assert store.load().followup_seconds == 3.5
+
+
+def test_face_mode_defaults_to_prerendered(tmp_path: Path) -> None:
+    store = ConfigStore(tmp_path / "config.json")
+    assert store.load().face_mode == "prerendered"
+    assert Settings().face_mode == "prerendered"
+
+
+def test_face_mode_keeps_each_valid_value(tmp_path: Path) -> None:
+    store = ConfigStore(tmp_path / "config.json")
+    for mode in FACE_MODES:
+        store.save(Settings(face_mode=mode))
+        assert store.load().face_mode == mode
+
+
+def test_face_mode_normalises_invalid_value(tmp_path: Path) -> None:
+    store = ConfigStore(tmp_path / "config.json")
+    store.save(Settings(face_mode="hologram"))
+    assert store.load().face_mode == "prerendered"
+    assert Settings(face_mode="hologram").normalized().face_mode == "prerendered"
+
+
+def test_face_mode_round_trips(tmp_path: Path) -> None:
+    store = ConfigStore(tmp_path / "config.json")
+    store.save(Settings(face_mode="live"))
+    assert store.load().face_mode == "live"

@@ -83,7 +83,7 @@ def parse_draft(text: str) -> tuple[str, str]:
 
 
 def _host(command: list[str]) -> list[str]:
-    return ["flatpak-spawn", "--host", *command] if IN_FLATPAK else command
+    return ["flatpak-spawn", "--host", "--directory=/", *command] if IN_FLATPAK else command
 
 
 def compose(to: str, subject: str, body: str) -> None:

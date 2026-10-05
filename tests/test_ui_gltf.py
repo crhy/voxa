@@ -4,7 +4,7 @@ import struct
 
 import pytest
 
-from voxa.ui.gltf import GltfLoadError, load_mesh, model_vertex_count
+from voxa.ui.gltf import GltfLoadError, _mat_mul, _node_matrix, _transform_point, load_mesh, model_vertex_count
 
 pygltflib = pytest.importorskip("pygltflib")
 
@@ -32,6 +32,8 @@ def _write_synthetic_glb(
     texcoords: list[tuple[float, float]] | None = None,
     indices: list[int] | None = None,
     mesh_count: int = 1,
+    nodes: list | None = None,
+    scene: list[int] | None = None,
 ) -> None:
     if positions is None:
         positions = [(0.0, 0.0, 0.0), (2.0, 0.0, 0.0), (0.0, 2.0, 0.0)]
@@ -94,6 +96,11 @@ def _write_synthetic_glb(
     glb.accessors = accessors
     primitive = pygltflib.Primitive(attributes=attributes, indices=index_index)
     glb.meshes = [pygltflib.Mesh(primitives=[primitive]) for _ in range(mesh_count)]
+    if nodes is not None:
+        glb.nodes = nodes
+    if scene is not None:
+        glb.scenes = [pygltflib.Scene(nodes=scene)]
+        glb.scene = 0
     glb._glb_data = bytes(binary)
     assert glb.save(str(path))
 
@@ -168,12 +175,49 @@ def test_glb_with_no_meshes_raises_specific_error(tmp_path) -> None:
     assert "no meshes" in str(exc.value)
 
 
-def test_multi_mesh_glb_raises_specific_error(tmp_path) -> None:
-    path = tmp_path / "multi-mesh.glb"
+def test_two_mesh_nodes_are_merged_with_world_transforms(tmp_path) -> None:
+    path = tmp_path / "two-meshes.glb"
+    nodes = [
+        pygltflib.Node(mesh=0, children=[1]),
+        pygltflib.Node(mesh=1, translation=[2.0, 0.0, 0.0]),
+    ]
+    _write_synthetic_glb(path, mesh_count=2, nodes=nodes, scene=[0])
+
+    vertices = load_mesh(path)
+    assert len(vertices) == 6
+    assert model_vertex_count(vertices) == 2
+    # The second mesh sits at x in [2, 4] before normalisation, so the merged
+    # box spans x in [-0.85, 0.85] after normalisation.
+    assert max(vertex[0] for vertex in vertices) == pytest.approx(0.85)
+    assert min(vertex[0] for vertex in vertices) == pytest.approx(-0.85)
+
+
+def test_transform_point_applies_translation() -> None:
+    translation = [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 2.0, 0.0, 0.0, 1.0]
+    assert _transform_point(translation, 0.0, 0.0, 0.0) == (2.0, 0.0, 0.0)
+    assert _transform_point(translation, 1.0, 2.0, 3.0) == (3.0, 2.0, 3.0)
+
+
+def test_node_rotation_quaternion_rotates_x_to_y() -> None:
+    node = pygltflib.Node(rotation=[0.0, 0.0, 0.7071, 0.7071])
+    x, y, z = _transform_point(_node_matrix(node), 1.0, 0.0, 0.0)
+    assert x == pytest.approx(0.0, abs=1e-3)
+    assert y == pytest.approx(1.0, abs=1e-3)
+    assert z == pytest.approx(0.0, abs=1e-3)
+
+
+def test_child_world_matrix_inherits_parent_translation() -> None:
+    parent = pygltflib.Node(translation=[1.0, 0.0, 0.0])
+    child = pygltflib.Node(translation=[0.0, 1.0, 0.0])
+    world = _mat_mul(_node_matrix(parent), _node_matrix(child))
+    assert _transform_point(world, 0.0, 0.0, 0.0) == pytest.approx((1.0, 1.0, 0.0))
+
+
+def test_glb_without_scenes_loads_every_mesh(tmp_path) -> None:
+    path = tmp_path / "no-scene.glb"
     _write_synthetic_glb(path, mesh_count=2)
-    with pytest.raises(GltfLoadError) as exc:
-        load_mesh(str(path))
-    assert "multi-mesh" in str(exc.value)
+    vertices = load_mesh(path)
+    assert len(vertices) == 6
 
 
 def test_out_of_range_indices_raises_specific_error(tmp_path) -> None:

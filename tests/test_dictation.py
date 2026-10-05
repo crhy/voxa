@@ -145,3 +145,115 @@ def test_stop_during_transcription_drops_text_callback() -> None:
         controller.thread.join(timeout=3.0)
 
     assert texts == []
+
+
+def test_early_check_ends_segment_before_full_silence() -> None:
+    q: queue.Queue = queue.Queue()
+    for _ in range(10):
+        q.put(LOUD_CHUNK)
+    for _ in range(5):
+        q.put(QUIET_CHUNK)
+
+    calls: list[int] = []
+
+    def early_check(segment: bytes) -> bool:
+        calls.append(len(segment))
+        return True
+
+    segments = list(
+        segment_stream(
+            q,
+            threading.Event(),
+            threshold=500,
+            silence_seconds=5.0,
+            max_segment_seconds=10.0,
+            idle_timeout_seconds=0.3,
+            early_silence_seconds=0.3,
+            early_check=early_check,
+        )
+    )
+
+    assert len(segments) == 1
+    assert len(segments[0]) == 15 * len(LOUD_CHUNK[0])
+    assert len(calls) == 1
+
+
+def test_early_check_false_runs_to_full_silence() -> None:
+    q: queue.Queue = queue.Queue()
+    for _ in range(10):
+        q.put(LOUD_CHUNK)
+    for _ in range(5):
+        q.put(QUIET_CHUNK)
+
+    calls: list[int] = []
+
+    def early_check(segment: bytes) -> bool:
+        calls.append(len(segment))
+        return False
+
+    segments = list(
+        segment_stream(
+            q,
+            threading.Event(),
+            threshold=500,
+            silence_seconds=0.3,
+            max_segment_seconds=5.0,
+            idle_timeout_seconds=0.3,
+            early_silence_seconds=0.05,
+            early_check=early_check,
+        )
+    )
+
+    assert len(segments) == 1
+    assert len(segments[0]) == 15 * len(LOUD_CHUNK[0])
+    assert len(calls) == 1
+
+
+def test_early_check_called_once_per_pause() -> None:
+    q: queue.Queue = queue.Queue()
+    for _ in range(10):
+        q.put(LOUD_CHUNK)
+    for _ in range(5):
+        q.put(QUIET_CHUNK)
+
+    calls: list[int] = []
+
+    def early_check(segment: bytes) -> bool:
+        calls.append(len(segment))
+        return False
+
+    segments = list(
+        segment_stream(
+            q,
+            threading.Event(),
+            threshold=500,
+            silence_seconds=0.1,
+            max_segment_seconds=5.0,
+            idle_timeout_seconds=0.3,
+            early_silence_seconds=0.05,
+            early_check=early_check,
+        )
+    )
+
+    assert len(segments) == 1
+    assert len(calls) == 1
+
+
+def test_without_early_parameters_timing_is_unchanged() -> None:
+    q: queue.Queue = queue.Queue()
+    for _ in range(10):
+        q.put(LOUD_CHUNK)
+
+    segments = list(
+        segment_stream(
+            q,
+            threading.Event(),
+            threshold=500,
+            silence_seconds=0.1,
+            max_segment_seconds=5.0,
+            idle_timeout_seconds=0.3,
+        )
+    )
+
+    assert len(segments) == 1
+    assert len(segments[0]) == 10 * len(LOUD_CHUNK[0])

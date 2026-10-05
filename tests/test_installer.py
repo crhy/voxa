@@ -37,7 +37,7 @@ class FakeProcess:
 
 def test_privileged_shell_command_wraps_with_flatpak_spawn_when_sandboxed() -> None:
     with patch.object(installer, "is_flatpak", return_value=True):
-        assert installer._privileged_shell_command() == ["flatpak-spawn", "--host", "pkexec", "sh", "-s"]
+        assert installer._privileged_shell_command() == ["flatpak-spawn", "--host", "--directory=/", "pkexec", "sh", "-s"]
 
 
 def test_privileged_shell_command_runs_directly_outside_flatpak() -> None:

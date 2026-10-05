@@ -146,7 +146,7 @@ def write_odt(path: Path, title: str, body: str) -> None:
 
 
 def _host(command: list[str]) -> list[str]:
-    return ["flatpak-spawn", "--host", *command] if IN_FLATPAK else command
+    return ["flatpak-spawn", "--host", "--directory=/", *command] if IN_FLATPAK else command
 
 
 def open_in_libreoffice(path: Path) -> None:

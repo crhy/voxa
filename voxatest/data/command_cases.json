@@ -76,49 +76,57 @@
       "id": "compose-1",
       "category": "web",
       "say": "compose an email",
-      "tool": "compose_gmail"
+      "tool": "compose_gmail",
+      "args": {}
     },
     {
       "id": "compose-2",
       "category": "web",
       "say": "Compose a new email.",
-      "tool": "compose_gmail"
+      "tool": "compose_gmail",
+      "args": {}
     },
     {
       "id": "compose-3",
       "category": "web",
       "say": "write a message",
-      "tool": "compose_gmail"
+      "tool": "compose_gmail",
+      "args": {}
     },
     {
       "id": "compose-4",
       "category": "web",
       "say": "can you draft an email",
-      "tool": "compose_gmail"
+      "tool": "compose_gmail",
+      "args": {}
     },
     {
       "id": "compose-5",
       "category": "web",
       "say": "start a new message in gmail",
-      "tool": "compose_gmail"
+      "tool": "compose_gmail",
+      "args": {}
     },
     {
       "id": "compose-6",
       "category": "web",
       "say": "send it",
-      "tool": "send_gmail"
+      "tool": "send_gmail",
+      "args": {}
     },
     {
       "id": "compose-7",
       "category": "web",
       "say": "Send the email.",
-      "tool": "send_gmail"
+      "tool": "send_gmail",
+      "args": {}
     },
     {
       "id": "compose-8",
       "category": "web",
       "say": "please send the message",
-      "tool": "send_gmail"
+      "tool": "send_gmail",
+      "args": {}
     },
     {
       "id": "url-1",
@@ -322,7 +330,7 @@
       "id": "yt-2",
       "category": "youtube",
       "say": "Play some music",
-      "tool": "play_youtube",
+      "tool": "play_music",
       "args": {
         "query": "music"
       }
@@ -331,7 +339,7 @@
       "id": "yt-3",
       "category": "youtube",
       "say": "play music",
-      "tool": "play_youtube",
+      "tool": "play_music",
       "args": {
         "query": "music"
       }
@@ -340,7 +348,7 @@
       "id": "yt-4",
       "category": "youtube",
       "say": "play the Beatles",
-      "tool": "play_youtube",
+      "tool": "play_video",
       "args": {
         "query": "the Beatles"
       }
@@ -349,9 +357,9 @@
       "id": "yt-5",
       "category": "youtube",
       "say": "put on some jazz",
-      "tool": "play_youtube",
+      "tool": "play_music",
       "args": {
-        "query": "some jazz"
+        "query": "jazz music"
       }
     },
     {
@@ -376,7 +384,7 @@
       "id": "yt-8",
       "category": "youtube",
       "say": "can you play some music",
-      "tool": "play_youtube",
+      "tool": "play_music",
       "args": {
         "query": "music"
       }
@@ -430,7 +438,7 @@
       "id": "yt-14",
       "category": "youtube",
       "say": "watch the news",
-      "tool": "play_youtube",
+      "tool": "play_video",
       "args": {
         "query": "the news"
       }
@@ -439,126 +447,126 @@
       "id": "media-1",
       "category": "media",
       "say": "pause the music",
-      "tool": "press_key",
+      "tool": "media_control",
       "args": {
-        "key": "play pause"
+        "action": "pause"
       }
     },
     {
       "id": "media-2",
       "category": "media",
       "say": "resume playback",
-      "tool": "press_key",
+      "tool": "media_control",
       "args": {
-        "key": "play pause"
+        "action": "resume"
       }
     },
     {
       "id": "media-3",
       "category": "media",
       "say": "pause",
-      "tool": "press_key",
+      "tool": "media_control",
       "args": {
-        "key": "play pause"
+        "action": "pause"
       }
     },
     {
       "id": "media-4",
       "category": "media",
       "say": "Pause the video.",
-      "tool": "press_key",
+      "tool": "media_control",
       "args": {
-        "key": "play pause"
+        "action": "pause"
       }
     },
     {
       "id": "media-5",
       "category": "media",
       "say": "next song",
-      "tool": "press_key",
+      "tool": "media_control",
       "args": {
-        "key": "next track"
+        "action": "next"
       }
     },
     {
       "id": "media-6",
       "category": "media",
       "say": "skip track",
-      "tool": "press_key",
+      "tool": "media_control",
       "args": {
-        "key": "next track"
+        "action": "next"
       }
     },
     {
       "id": "media-7",
       "category": "media",
       "say": "previous song",
-      "tool": "press_key",
+      "tool": "media_control",
       "args": {
-        "key": "previous track"
+        "action": "previous"
       }
     },
     {
       "id": "media-8",
       "category": "media",
       "say": "go back a song",
-      "tool": "press_key",
+      "tool": "media_control",
       "args": {
-        "key": "previous track"
+        "action": "previous"
       }
     },
     {
       "id": "media-9",
       "category": "media",
       "say": "volume up",
-      "tool": "press_key",
+      "tool": "media_control",
       "args": {
-        "key": "volume up"
+        "action": "louder"
       }
     },
     {
       "id": "media-10",
       "category": "media",
       "say": "louder",
-      "tool": "press_key",
+      "tool": "media_control",
       "args": {
-        "key": "volume up"
+        "action": "louder"
       }
     },
     {
       "id": "media-11",
       "category": "media",
       "say": "turn the volume up",
-      "tool": "press_key",
+      "tool": "media_control",
       "args": {
-        "key": "volume up"
+        "action": "louder"
       }
     },
     {
       "id": "media-12",
       "category": "media",
       "say": "Volume down.",
-      "tool": "press_key",
+      "tool": "media_control",
       "args": {
-        "key": "volume down"
+        "action": "quieter"
       }
     },
     {
       "id": "media-13",
       "category": "media",
       "say": "quieter",
-      "tool": "press_key",
+      "tool": "media_control",
       "args": {
-        "key": "volume down"
+        "action": "quieter"
       }
     },
     {
       "id": "media-14",
       "category": "media",
       "say": "turn it down",
-      "tool": "press_key",
+      "tool": "media_control",
       "args": {
-        "key": "volume down"
+        "action": "quieter"
       }
     },
     {
@@ -592,9 +600,9 @@
       "id": "media-18",
       "category": "media",
       "say": "can you pause the music",
-      "tool": "press_key",
+      "tool": "media_control",
       "args": {
-        "key": "play pause"
+        "action": "pause"
       }
     },
     {
@@ -916,37 +924,43 @@
       "id": "win-1",
       "category": "windows",
       "say": "close this window",
-      "tool": "close_window"
+      "tool": "close_window",
+      "args": {}
     },
     {
       "id": "win-2",
       "category": "windows",
       "say": "close the app",
-      "tool": "close_window"
+      "tool": "close_window",
+      "args": {}
     },
     {
       "id": "win-3",
       "category": "windows",
       "say": "close it",
-      "tool": "close_window"
+      "tool": "close_window",
+      "args": {}
     },
     {
       "id": "win-4",
       "category": "windows",
       "say": "Close this.",
-      "tool": "close_window"
+      "tool": "close_window",
+      "args": {}
     },
     {
       "id": "win-5",
       "category": "windows",
       "say": "close the window",
-      "tool": "close_window"
+      "tool": "close_window",
+      "args": {}
     },
     {
       "id": "win-6",
       "category": "windows",
       "say": "please close this window",
-      "tool": "close_window"
+      "tool": "close_window",
+      "args": {}
     },
     {
       "id": "win-7",
@@ -1041,7 +1055,7 @@
     {
       "id": "win-17",
       "category": "windows",
-      "say": "show me the terminal",
+      "say": "switch to the terminal",
       "tool": "switch_to",
       "args": {
         "name": "the terminal"
@@ -1264,7 +1278,8 @@
       "id": "wish-6",
       "category": "windows",
       "say": "close that window",
-      "tool": "close_window"
+      "tool": "close_window",
+      "args": {}
     },
     {
       "id": "wish-7",
@@ -1279,7 +1294,7 @@
       "id": "wish-8",
       "category": "youtube",
       "say": "play some music please",
-      "tool": "play_youtube",
+      "tool": "play_music",
       "args": {
         "query": "music"
       }
@@ -1306,18 +1321,18 @@
       "id": "wish-11",
       "category": "media",
       "say": "skip the track",
-      "tool": "press_key",
+      "tool": "media_control",
       "args": {
-        "key": "next track"
+        "action": "next"
       }
     },
     {
       "id": "wish-12",
       "category": "media",
       "say": "turn up the volume",
-      "tool": "press_key",
+      "tool": "media_control",
       "args": {
-        "key": "volume up"
+        "action": "louder"
       }
     },
     {
@@ -1421,7 +1436,7 @@
       "id": "exception-1",
       "category": "media",
       "say": "play simon and garfunkel",
-      "tool": "play_youtube",
+      "tool": "play_video",
       "args": {
         "query": "simon and garfunkel"
       }
@@ -1430,7 +1445,7 @@
       "id": "exception-2",
       "category": "media",
       "say": "play rock and roll",
-      "tool": "play_youtube",
+      "tool": "play_video",
       "args": {
         "query": "rock and roll"
       }
@@ -1529,7 +1544,7 @@
       "id": "heard-8",
       "category": "heard",
       "say": "Please some John Barry",
-      "tool": "play_youtube",
+      "tool": "play_video",
       "args": {
         "query": "some John Barry"
       }
@@ -1542,6 +1557,958 @@
       "args": {
         "key": "save"
       }
+    },
+    {
+      "id": "browse-wiki",
+      "category": "browser",
+      "say": "browse to en.wikipedia.org",
+      "tool": "browse",
+      "args": {
+        "url": "en.wikipedia.org"
+      }
+    },
+    {
+      "id": "browse-example",
+      "category": "browser",
+      "say": "go to the website example.com",
+      "tool": "browse",
+      "args": {
+        "url": "example.com"
+      }
+    },
+    {
+      "id": "browse-devuan",
+      "category": "browser",
+      "say": "open the page devuan.org",
+      "tool": "browse",
+      "args": {
+        "url": "devuan.org"
+      }
+    },
+    {
+      "id": "browse-https",
+      "category": "browser",
+      "say": "browse to https://example.com",
+      "tool": "browse",
+      "args": {
+        "url": "https://example.com"
+      }
+    },
+    {
+      "id": "read-this",
+      "category": "browser",
+      "say": "read this page",
+      "tool": "read_page",
+      "args": {}
+    },
+    {
+      "id": "read-the",
+      "category": "browser",
+      "say": "read the page",
+      "tool": "read_page",
+      "args": {}
+    },
+    {
+      "id": "read-tome",
+      "category": "browser",
+      "say": "read this to me",
+      "tool": "read_page",
+      "args": {}
+    },
+    {
+      "id": "read-say",
+      "category": "browser",
+      "say": "what does this page say",
+      "tool": "read_page",
+      "args": {}
+    },
+    {
+      "id": "click-history",
+      "category": "browser",
+      "say": "click History",
+      "tool": "click_on",
+      "args": {
+        "text": "History"
+      }
+    },
+    {
+      "id": "click-search",
+      "category": "browser",
+      "say": "click on Search",
+      "tool": "click_on",
+      "args": {
+        "text": "Search"
+      }
+    },
+    {
+      "id": "click-save",
+      "category": "browser",
+      "say": "press the Save button",
+      "tool": "click_on",
+      "args": {
+        "text": "Save"
+      }
+    },
+    {
+      "id": "click-next",
+      "category": "browser",
+      "say": "follow the Next link",
+      "tool": "click_on",
+      "args": {
+        "text": "Next"
+      }
+    },
+    {
+      "id": "search-site",
+      "category": "browser",
+      "say": "search this site for Devuan",
+      "tool": "search_site",
+      "args": {
+        "query": "Devuan"
+      }
+    },
+    {
+      "id": "search-here",
+      "category": "browser",
+      "say": "search here for systemd",
+      "tool": "search_site",
+      "args": {
+        "query": "systemd"
+      }
+    },
+    {
+      "id": "search-page",
+      "category": "browser",
+      "say": "search this page for Devuan",
+      "tool": "search_site",
+      "args": {
+        "query": "Devuan"
+      }
+    },
+    {
+      "id": "scroll-down",
+      "category": "browser",
+      "say": "scroll down",
+      "tool": "scroll",
+      "args": {
+        "direction": "down"
+      }
+    },
+    {
+      "id": "scroll-up",
+      "category": "browser",
+      "say": "scroll up",
+      "tool": "scroll",
+      "args": {
+        "direction": "up"
+      }
+    },
+    {
+      "id": "scroll-top",
+      "category": "browser",
+      "say": "go to the top",
+      "tool": "scroll",
+      "args": {
+        "direction": "top"
+      }
+    },
+    {
+      "id": "scroll-bottom",
+      "category": "browser",
+      "say": "go to the bottom of the page",
+      "tool": "scroll",
+      "args": {
+        "direction": "bottom"
+      }
+    },
+    {
+      "id": "back-plain",
+      "category": "browser",
+      "say": "go back",
+      "tool": "go_back",
+      "args": {}
+    },
+    {
+      "id": "back-prev",
+      "category": "browser",
+      "say": "previous page",
+      "tool": "go_back",
+      "args": {}
+    },
+    {
+      "id": "back-please",
+      "category": "browser",
+      "say": "please go back",
+      "tool": "go_back",
+      "args": {}
+    },
+    {
+      "id": "media-26",
+      "category": "media",
+      "say": "play some jazz music",
+      "tool": "play_music",
+      "args": {
+        "query": "jazz music"
+      }
+    },
+    {
+      "id": "media-27",
+      "category": "media",
+      "say": "play jazz music",
+      "tool": "play_music",
+      "args": {
+        "query": "jazz music"
+      }
+    },
+    {
+      "id": "media-28",
+      "category": "media",
+      "say": "play a little rock music",
+      "tool": "play_music",
+      "args": {
+        "query": "rock music"
+      }
+    },
+    {
+      "id": "media-29",
+      "category": "media",
+      "say": "play a bit of classical music",
+      "tool": "play_music",
+      "args": {
+        "query": "classical music"
+      }
+    },
+    {
+      "id": "media-30",
+      "category": "media",
+      "say": "play music by jazz",
+      "tool": "play_music",
+      "args": {
+        "query": "jazz music"
+      }
+    },
+    {
+      "id": "media-31",
+      "category": "media",
+      "say": "play some blues",
+      "tool": "play_music",
+      "args": {
+        "query": "blues music"
+      }
+    },
+    {
+      "id": "media-32",
+      "category": "media",
+      "say": "play some lofi",
+      "tool": "play_music",
+      "args": {
+        "query": "lofi music"
+      }
+    },
+    {
+      "id": "media-33",
+      "category": "media",
+      "say": "play some lo-fi",
+      "tool": "play_music",
+      "args": {
+        "query": "lo-fi music"
+      }
+    },
+    {
+      "id": "media-34",
+      "category": "media",
+      "say": "play some hip hop",
+      "tool": "play_music",
+      "args": {
+        "query": "hip hop music"
+      }
+    },
+    {
+      "id": "media-35",
+      "category": "media",
+      "say": "play some country",
+      "tool": "play_music",
+      "args": {
+        "query": "country music"
+      }
+    },
+    {
+      "id": "media-36",
+      "category": "media",
+      "say": "play some metal",
+      "tool": "play_music",
+      "args": {
+        "query": "metal music"
+      }
+    },
+    {
+      "id": "media-37",
+      "category": "media",
+      "say": "play some ambient",
+      "tool": "play_music",
+      "args": {
+        "query": "ambient music"
+      }
+    },
+    {
+      "id": "media-38",
+      "category": "media",
+      "say": "play some reggae",
+      "tool": "play_music",
+      "args": {
+        "query": "reggae music"
+      }
+    },
+    {
+      "id": "media-39",
+      "category": "media",
+      "say": "play some soul",
+      "tool": "play_music",
+      "args": {
+        "query": "soul music"
+      }
+    },
+    {
+      "id": "media-40",
+      "category": "media",
+      "say": "play some funk",
+      "tool": "play_music",
+      "args": {
+        "query": "funk music"
+      }
+    },
+    {
+      "id": "media-41",
+      "category": "media",
+      "say": "play some pop",
+      "tool": "play_music",
+      "args": {
+        "query": "pop music"
+      }
+    },
+    {
+      "id": "media-42",
+      "category": "media",
+      "say": "play some techno",
+      "tool": "play_music",
+      "args": {
+        "query": "techno music"
+      }
+    },
+    {
+      "id": "media-43",
+      "category": "media",
+      "say": "play some house",
+      "tool": "play_music",
+      "args": {
+        "query": "house music"
+      }
+    },
+    {
+      "id": "media-44",
+      "category": "media",
+      "say": "play some folk",
+      "tool": "play_music",
+      "args": {
+        "query": "folk music"
+      }
+    },
+    {
+      "id": "media-45",
+      "category": "media",
+      "say": "play some piano",
+      "tool": "play_music",
+      "args": {
+        "query": "piano music"
+      }
+    },
+    {
+      "id": "media-46",
+      "category": "media",
+      "say": "play something relaxing",
+      "tool": "play_music",
+      "args": {
+        "query": "relaxing music"
+      }
+    },
+    {
+      "id": "media-47",
+      "category": "media",
+      "say": "play something upbeat",
+      "tool": "play_music",
+      "args": {
+        "query": "upbeat music"
+      }
+    },
+    {
+      "id": "media-48",
+      "category": "media",
+      "say": "play the song bohemian rhapsody",
+      "tool": "play_music",
+      "args": {
+        "query": "bohemian rhapsody"
+      }
+    },
+    {
+      "id": "media-49",
+      "category": "media",
+      "say": "play bohemian rhapsody by queen",
+      "tool": "play_music",
+      "args": {
+        "query": "bohemian rhapsody queen"
+      }
+    },
+    {
+      "id": "media-50",
+      "category": "media",
+      "say": "play the video cats",
+      "tool": "play_video",
+      "args": {
+        "query": "cats"
+      }
+    },
+    {
+      "id": "media-51",
+      "category": "media",
+      "say": "watch cat videos",
+      "tool": "play_video",
+      "args": {
+        "query": "cat videos"
+      }
+    },
+    {
+      "id": "media-52",
+      "category": "media",
+      "say": "play cat video",
+      "tool": "play_video",
+      "args": {
+        "query": "cat"
+      }
+    },
+    {
+      "id": "media-53",
+      "category": "media",
+      "say": "play the movie inception",
+      "tool": "play_video",
+      "args": {
+        "query": "inception"
+      }
+    },
+    {
+      "id": "media-54",
+      "category": "media",
+      "say": "play the trailer inception",
+      "tool": "play_video",
+      "args": {
+        "query": "inception"
+      }
+    },
+    {
+      "id": "media-55",
+      "category": "media",
+      "say": "play the episode one",
+      "tool": "play_video",
+      "args": {
+        "query": "one"
+      }
+    },
+    {
+      "id": "img-1",
+      "category": "images",
+      "say": "show me images of a pony",
+      "tool": "image_search",
+      "args": {
+        "query": "a pony"
+      }
+    },
+    {
+      "id": "img-2",
+      "category": "images",
+      "say": "show me pictures of cats",
+      "tool": "image_search",
+      "args": {
+        "query": "cats"
+      }
+    },
+    {
+      "id": "img-3",
+      "category": "images",
+      "say": "find images of the moon",
+      "tool": "image_search",
+      "args": {
+        "query": "the moon"
+      }
+    },
+    {
+      "id": "img-4",
+      "category": "images",
+      "say": "look for photos of sunsets",
+      "tool": "image_search",
+      "args": {
+        "query": "sunsets"
+      }
+    },
+    {
+      "id": "img-5",
+      "category": "images",
+      "say": "search for pictures of mountains",
+      "tool": "image_search",
+      "args": {
+        "query": "mountains"
+      }
+    },
+    {
+      "id": "img-6",
+      "category": "images",
+      "say": "get images of a red fox",
+      "tool": "image_search",
+      "args": {
+        "query": "a red fox"
+      }
+    },
+    {
+      "id": "img-7",
+      "category": "images",
+      "say": "image search for golden retriever",
+      "tool": "image_search",
+      "args": {
+        "query": "golden retriever"
+      }
+    },
+    {
+      "id": "img-8",
+      "category": "images",
+      "say": "picture search for the Eiffel Tower",
+      "tool": "image_search",
+      "args": {
+        "query": "the Eiffel Tower"
+      }
+    },
+    {
+      "id": "img-9",
+      "category": "images",
+      "say": "photo search Niagara Falls",
+      "tool": "image_search",
+      "args": {
+        "query": "Niagara Falls"
+      }
+    },
+    {
+      "id": "img-10",
+      "category": "images",
+      "say": "do an image search for a unicorn",
+      "tool": "image_search",
+      "args": {
+        "query": "a unicorn"
+      }
+    },
+    {
+      "id": "img-11",
+      "category": "images",
+      "say": "do a brave image search of the great pyramids",
+      "tool": "image_search",
+      "args": {
+        "query": "the great pyramids"
+      }
+    },
+    {
+      "id": "img-12",
+      "category": "images",
+      "say": "what does a pony look like",
+      "tool": "image_search",
+      "args": {
+        "query": "a pony"
+      }
+    },
+    {
+      "id": "img-13",
+      "category": "images",
+      "say": "what does the Eiffel Tower look like",
+      "tool": "image_search",
+      "args": {
+        "query": "the Eiffel Tower"
+      }
+    },
+    {
+      "id": "img-14",
+      "category": "images",
+      "say": "show me cute images of puppies",
+      "tool": "image_search",
+      "args": {
+        "query": "puppies"
+      }
+    },
+    {
+      "id": "img-15",
+      "category": "images",
+      "say": "find funny pictures of llamas",
+      "tool": "image_search",
+      "args": {
+        "query": "llamas"
+      }
+    },
+    {
+      "id": "img-16",
+      "category": "images",
+      "say": "look for vintage photos of cars",
+      "tool": "image_search",
+      "args": {
+        "query": "cars"
+      }
+    },
+    {
+      "id": "img-17",
+      "category": "images",
+      "say": "show me some pictures of the ocean",
+      "tool": "image_search",
+      "args": {
+        "query": "the ocean"
+      }
+    },
+    {
+      "id": "img-18",
+      "category": "images",
+      "say": "search for images of a lighthouse",
+      "tool": "image_search",
+      "args": {
+        "query": "a lighthouse"
+      }
+    },
+    {
+      "id": "img-19",
+      "category": "images",
+      "say": "image search for lofi album art",
+      "tool": "image_search",
+      "args": {
+        "query": "lofi album art"
+      }
+    },
+    {
+      "id": "img-20",
+      "category": "images",
+      "say": "what does a capybara look like",
+      "tool": "image_search",
+      "args": {
+        "query": "a capybara"
+      }
+    },
+    {
+      "id": "reminders-1",
+      "category": "reminders",
+      "say": "set a timer for 10 minutes",
+      "tool": "set_timer",
+      "args": {
+        "duration": "10 minutes"
+      }
+    },
+    {
+      "id": "reminders-2",
+      "category": "reminders",
+      "say": "set a timer for 2 hours",
+      "tool": "set_timer",
+      "args": {
+        "duration": "2 hours"
+      }
+    },
+    {
+      "id": "reminders-3",
+      "category": "reminders",
+      "say": "timer for 5 minutes",
+      "tool": "set_timer",
+      "args": {
+        "duration": "5 minutes"
+      }
+    },
+    {
+      "id": "reminders-4",
+      "category": "reminders",
+      "say": "remind me to call the dentist at 3pm",
+      "tool": "set_reminder",
+      "args": {
+        "when": "3pm",
+        "text": "call the dentist"
+      }
+    },
+    {
+      "id": "reminders-5",
+      "category": "reminders",
+      "say": "remind me to stretch in 30 minutes",
+      "tool": "set_reminder",
+      "args": {
+        "when": "30 minutes",
+        "text": "stretch"
+      }
+    },
+    {
+      "id": "reminders-6",
+      "category": "reminders",
+      "say": "remind me in 10 minutes to stretch",
+      "tool": "set_reminder",
+      "args": {
+        "when": "in 10 minutes",
+        "text": "stretch"
+      }
+    },
+    {
+      "id": "reminders-7",
+      "category": "reminders",
+      "say": "remind me at 9am to water plants",
+      "tool": "set_reminder",
+      "args": {
+        "when": "at 9am",
+        "text": "water plants"
+      }
+    },
+    {
+      "id": "reminders-8",
+      "category": "reminders",
+      "say": "what reminders do I have",
+      "tool": "list_reminders",
+      "args": {}
+    },
+    {
+      "id": "reminders-9",
+      "category": "reminders",
+      "say": "list my reminders",
+      "tool": "list_reminders",
+      "args": {}
+    },
+    {
+      "id": "reminders-10",
+      "category": "reminders",
+      "say": "show me my reminders",
+      "tool": "list_reminders",
+      "args": {}
+    },
+    {
+      "id": "reminders-11",
+      "category": "reminders",
+      "say": "cancel my reminders",
+      "tool": "cancel_reminders",
+      "args": {}
+    },
+    {
+      "id": "reminders-12",
+      "category": "reminders",
+      "say": "cancel all timers",
+      "tool": "cancel_reminders",
+      "args": {}
+    },
+    {
+      "id": "reminders-13",
+      "category": "reminders",
+      "say": "cancel reminders",
+      "tool": "cancel_reminders",
+      "args": {}
+    },
+    {
+      "id": "reminders-14",
+      "category": "reminders",
+      "say": "set a timer for an hour",
+      "tool": "set_timer",
+      "args": {
+        "duration": "an hour"
+      }
+    },
+    {
+      "id": "reminders-15",
+      "category": "reminders",
+      "say": "remind me at 3pm to submit taxes",
+      "tool": "set_reminder",
+      "args": {
+        "when": "at 3pm",
+        "text": "submit taxes"
+      }
+    },
+    {
+      "id": "home-1",
+      "category": "home",
+      "say": "turn on the kitchen lights",
+      "tool": "home_turn",
+      "args": {
+        "name": "kitchen lights",
+        "state": "on"
+      }
+    },
+    {
+      "id": "home-2",
+      "category": "home",
+      "say": "turn the ceiling fan off",
+      "tool": "home_turn",
+      "args": {
+        "name": "ceiling fan",
+        "state": "off"
+      }
+    },
+    {
+      "id": "home-3",
+      "category": "home",
+      "say": "switch on the living room lamp",
+      "tool": "home_turn",
+      "args": {
+        "name": "living room lamp",
+        "state": "on"
+      }
+    },
+    {
+      "id": "home-4",
+      "category": "home",
+      "say": "turn off the fan",
+      "tool": "home_turn",
+      "args": {
+        "name": "fan",
+        "state": "off"
+      }
+    },
+    {
+      "id": "home-5",
+      "category": "home",
+      "say": "dim the living room lamp to 50 percent",
+      "tool": "home_set",
+      "args": {
+        "name": "the living room lamp",
+        "value": "50"
+      }
+    },
+    {
+      "id": "home-6",
+      "category": "home",
+      "say": "set the thermostat to 70",
+      "tool": "home_set",
+      "args": {
+        "name": "thermostat",
+        "value": "70"
+      }
+    },
+    {
+      "id": "home-7",
+      "category": "home",
+      "say": "set the heat to 68 degrees",
+      "tool": "home_set",
+      "args": {
+        "name": "the heat",
+        "value": "68"
+      }
+    },
+    {
+      "id": "home-8",
+      "category": "home",
+      "say": "run the movie night scene",
+      "tool": "home_scene",
+      "args": {
+        "name": "movie night"
+      }
+    },
+    {
+      "id": "home-9",
+      "category": "home",
+      "say": "start the movie night scene",
+      "tool": "home_scene",
+      "args": {
+        "name": "movie night"
+      }
+    },
+    {
+      "id": "home-10",
+      "category": "home",
+      "say": "activate the morning scene",
+      "tool": "home_scene",
+      "args": {
+        "name": "morning"
+      }
+    },
+    {
+      "id": "home-11",
+      "category": "home",
+      "say": "is the garage door closed",
+      "tool": "home_status",
+      "args": {
+        "name": "garage door"
+      }
+    },
+    {
+      "id": "home-12",
+      "category": "home",
+      "say": "is the front door locked",
+      "tool": "home_status",
+      "args": {
+        "name": "front door"
+      }
+    },
+    {
+      "id": "home-13",
+      "category": "home",
+      "say": "is the kitchen light on",
+      "tool": "home_status",
+      "args": {
+        "name": "kitchen light"
+      }
+    },
+    {
+      "id": "home-14",
+      "category": "home",
+      "say": "turn on the plug",
+      "tool": "home_turn",
+      "args": {
+        "name": "plug",
+        "state": "on"
+      }
+    },
+    {
+      "id": "home-15",
+      "category": "home",
+      "say": "turn the lamp on",
+      "tool": "home_turn",
+      "args": {
+        "name": "lamp",
+        "state": "on"
+      }
+    },
+    {
+      "id": "home-16",
+      "category": "home",
+      "say": "switch off the ceiling fan",
+      "tool": "home_turn",
+      "args": {
+        "name": "ceiling fan",
+        "state": "off"
+      }
+    },
+    {
+      "id": "home-17",
+      "category": "home",
+      "say": "set the lamp to 80 percent",
+      "tool": "home_set",
+      "args": {
+        "name": "the lamp",
+        "value": "80"
+      }
+    },
+    {
+      "id": "home-18",
+      "category": "home",
+      "say": "is the window open",
+      "tool": "home_status",
+      "args": {
+        "name": "window"
+      }
+    },
+    {
+      "id": "home-19",
+      "category": "home",
+      "say": "turn on the lights",
+      "tool": "home_turn",
+      "args": {
+        "name": "lights",
+        "state": "on"
+      }
+    },
+    {
+      "id": "home-20",
+      "category": "home",
+      "say": "turn off the computer",
+      "tool": null,
+      "args": {}
     }
   ],
   "wishlist": []

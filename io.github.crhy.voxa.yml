@@ -108,6 +108,7 @@ modules:
       - cp -r voxa /app/lib/voxa/
       - find /app/lib/voxa -name __pycache__ -prune -exec rm -rf {} +
       - install -Dm755 packaging/flatpak/voxa /app/bin/voxa
+      - install -Dm755 packaging/flatpak/voxa-host-node /app/bin/voxa-host-node
       - install -Dm755 packaging/flatpak/voxa-backup /app/bin/voxa-backup
       - install -Dm644 io.github.crhy.voxa.desktop /app/share/applications/io.github.crhy.voxa.desktop
       - install -Dm644 io.github.crhy.voxa.metainfo.xml /app/share/metainfo/io.github.crhy.voxa.metainfo.xml

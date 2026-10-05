@@ -86,4 +86,4 @@ def test_open_in_libreoffice_launches_soffice(monkeypatch) -> None:
     launched.clear()
     monkeypatch.setattr(documents, "IN_FLATPAK", True)
     documents.open_in_libreoffice(Path("/tmp/doc.odt"))
-    assert launched[0] == ["flatpak-spawn", "--host", "soffice", "/tmp/doc.odt"]
+    assert launched[0] == ["flatpak-spawn", "--host", "--directory=/", "soffice", "/tmp/doc.odt"]

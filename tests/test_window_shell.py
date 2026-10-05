@@ -20,6 +20,7 @@ Adw.init()
 
 from voxa import window as window_module  # noqa: E402
 from voxa.ollama import OllamaError  # noqa: E402
+from voxa.ui.character_picker import PortraitPicker  # noqa: E402
 from voxa.ui.shell import AssistantShell  # noqa: E402
 from voxa.ui.state import AssistantState  # noqa: E402
 from voxa.window import MainWindow  # noqa: E402
@@ -208,3 +209,31 @@ def test_an_offline_ai_server_is_explained_in_the_model_picker(window, monkeypat
             break
     assert deadline_ok
     assert window.settings.ollama_model == "keep-me"  # an outage must not erase the saved choice
+
+
+def test_speak_wires_word_boundaries_and_clock_to_the_shell(window, monkeypatch) -> None:
+    calls: list[tuple[str, object]] = []
+    monkeypatch.setattr(window.shell, "set_word_timeline", lambda words: calls.append(("words", words)))
+    monkeypatch.setattr(window.shell, "set_speech_clock", lambda clock: calls.append(("clock", clock)))
+    monkeypatch.setattr(window_module, "idle", lambda callback, *args: callback(*args))
+
+    def _fake_speak(text, rate, voice, *, on_started, on_done, on_error, on_words):
+        on_words([("hello", 0.0, 0.5)])
+
+    monkeypatch.setattr(window.speech, "speak", _fake_speak)
+
+    window._conversation_speak("hello")
+    assert calls[0][0] == "clock"
+    assert calls[1] == ("words", [("hello", 0.0, 0.5)])
+
+
+def test_portrait_picker_is_in_the_header_not_the_bottom_controls(window) -> None:
+    picker = window.shell.character_picker
+    assert isinstance(picker, PortraitPicker)
+    assert _is_descendant(picker, window)
+    assert not _is_descendant(picker, window.shell._bottom_controls)
+
+
+def test_face_mode_selection_through_the_window_saves_settings(window) -> None:
+    window.shell.character_picker._face_dropdown.set_selected(2)
+    assert window.settings.face_mode == "still"

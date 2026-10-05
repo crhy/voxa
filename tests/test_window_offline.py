@@ -57,8 +57,11 @@ class FakeSpeech:
         self.stops = 0
         self.callbacks: dict[str, object] = {}
 
-    def speak(self, text, rate, voice, on_started=None, on_done=None, on_error=None) -> None:
+    def speak(self, text, rate, voice, on_started=None, on_done=None, on_error=None, on_words=None) -> None:
         self.callbacks = {"started": on_started, "done": on_done, "error": on_error}
+
+    def position(self) -> float:
+        return 0.0
 
     def stop(self) -> None:
         self.stops += 1

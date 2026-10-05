@@ -14,13 +14,13 @@ from voxa.ui.state import AssistantState  # noqa: E402
 
 
 def test_default_renderer_is_static() -> None:
-    view = AssistantView()
+    view = AssistantView("")
     assert isinstance(view.renderer, StaticAssistantRenderer)
     assert view.renderer.widget.get_css_classes()
 
 
 def test_public_api_forwards_to_renderer() -> None:
-    view = AssistantView()
+    view = AssistantView("")
     view.set_state(AssistantState.READY)
     assert view.caption.get_text() == "Ready"
     view.set_listening(True)
@@ -49,20 +49,20 @@ def test_future_renderer_stub_defaults_are_noops() -> None:
 
 def test_3d_opt_in_falls_back_when_renderer_unavailable(monkeypatch) -> None:
     monkeypatch.setenv("VOXA_3D_AVATAR", "1")
-    view = AssistantView()
+    view = AssistantView("")
     assert isinstance(view.renderer, StaticAssistantRenderer)
 
 
 def test_set_character_empty_keeps_static_renderer(monkeypatch) -> None:
     monkeypatch.setenv("VOXA_3D_AVATAR", "1")
-    view = AssistantView()
+    view = AssistantView("")
     view.set_character("")
     assert isinstance(view.renderer, StaticAssistantRenderer)
     assert view._character_id == ""
 
 
 def test_avatar_widget_is_inside_assistant_view() -> None:
-    view = AssistantView()
+    view = AssistantView("")
     child = view.get_first_child()
     assert child is view.renderer.widget
     avatar = child.get_first_child()

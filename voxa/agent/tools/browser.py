@@ -10,6 +10,7 @@ from voxa.agent import host
 from voxa.agent.policy import RiskLevel
 from voxa.agent.registry import Tool
 from voxa.agent.result import ToolResult
+from voxa.agent.youtube import play
 
 log = logging.getLogger("voxa.agent.tools.browser")
 
@@ -109,7 +110,22 @@ def open_url(args: dict[str, str]) -> ToolResult:
 
 def play_youtube(args: dict[str, str]) -> ToolResult:
     query = args["query"]
-    return _open(youtube_play_url(query), f"Playing {query} on YouTube.")
+    from voxa.agent.cdp import CdpError
+    from voxa.agent.tools.web import get_session
+
+    session = get_session()
+    try:
+        session.ensure()
+    except CdpError:
+        return _open(youtube_play_url(query), f"Playing {query} on YouTube.")
+    ok, how, url = play(query, session)
+    if not ok:
+        return ToolResult.failure("YouTube wouldn't play that. I've left the page open.", detail=url)
+    if how == "embed":
+        speech = f"Playing {query}."
+    else:
+        speech = f"Playing {query} on YouTube."
+    return ToolResult.success(speech, detail=f"{how} - {url}")
 
 
 def search_youtube(args: dict[str, str]) -> ToolResult:
@@ -124,6 +140,11 @@ def compose_gmail(args: dict[str, str]) -> ToolResult:
 def web_search(args: dict[str, str]) -> ToolResult:
     query = args["query"]
     return _open(f"https://duckduckgo.com/?q={urllib.parse.quote(query)}", f"Searching the web for {query}.")
+
+
+def image_search(args: dict[str, str]) -> ToolResult:
+    query = args["query"]
+    return _open(f"https://search.brave.com/images?q={urllib.parse.quote(query)}", f"Here are images of {query}.")
 
 
 def browser_tools() -> list[Tool]:
@@ -173,6 +194,14 @@ def browser_tools() -> list[Tool]:
             parameters={"query": "the search terms"},
             risk=RiskLevel.REVERSIBLE,
             handler=web_search,
+            required=("query",),
+        ),
+        Tool(
+            name="image_search",
+            description="Open a Brave image search for a query.",
+            parameters={"query": "what to search for"},
+            risk=RiskLevel.REVERSIBLE,
+            handler=image_search,
             required=("query",),
         ),
     ]

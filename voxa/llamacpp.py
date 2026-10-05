@@ -28,10 +28,12 @@ class LlamaCppClient:
         base_url: str = "http://127.0.0.1:8080",
         timeout: float = 5.0,
         reasoning_effort: str | None = None,
+        reasoning_budget_tokens: int | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.reasoning_effort = reasoning_effort
+        self.reasoning_budget_tokens = reasoning_budget_tokens
 
     def list_models(self) -> list[str]:
         request = urllib.request.Request(f"{self.base_url}/v1/models", method="GET")
@@ -56,6 +58,24 @@ class LlamaCppClient:
             return False
         return all(isinstance(slot, dict) and slot.get("is_processing") for slot in slots)
 
+    def is_model_loaded(self, model: str = "") -> bool | None:
+        """True when the server has a model resident, False while it is loading, None when unknown."""
+        request = urllib.request.Request(f"{self.base_url}/health", method="GET")
+        try:
+            with open_url(request, timeout=2.0) as response:
+                payload = json.load(response)
+        except urllib.error.HTTPError as exc:
+            if exc.code == 503:
+                return False
+            return None
+        except (urllib.error.URLError, TimeoutError, ValueError, json.JSONDecodeError):
+            return None
+        if not isinstance(payload, dict):
+            return None
+        if "loaded" in payload:
+            return bool(payload["loaded"])
+        return True
+
     def generate_stream(
         self,
         *,
@@ -79,6 +99,8 @@ class LlamaCppClient:
         }
         if self.reasoning_effort:
             body["reasoning_effort"] = self.reasoning_effort
+        if self.reasoning_budget_tokens:
+            body["reasoning_budget_tokens"] = self.reasoning_budget_tokens
         payload = json.dumps(body).encode("utf-8")
         request = urllib.request.Request(
             f"{self.base_url}/v1/chat/completions",
@@ -136,3 +158,40 @@ class LlamaCppClient:
             raise LlamaCppError(stream_error)
 
         return "".join(chunks).strip()
+
+
+class StrataClient(LlamaCppClient):
+    """Talks to a Strata server exposing the OpenAI-compatible API."""
+
+    def __init__(self, base_url: str = "http://127.0.0.1:8080", timeout: float = 5.0) -> None:
+        super().__init__(
+            base_url=base_url,
+            timeout=timeout,
+            reasoning_effort="none",
+            reasoning_budget_tokens=600,
+        )
+
+    def server_info(self) -> dict | None:
+        """The parsed /health payload, or None when the server is unreachable."""
+        request = urllib.request.Request(f"{self.base_url}/health", method="GET")
+        try:
+            with open_url(request, timeout=2.0) as response:
+                payload = json.load(response)
+        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, ValueError, json.JSONDecodeError):
+            return None
+        if not isinstance(payload, dict):
+            return None
+        return payload
+
+
+def detect_backend(url: str) -> str:
+    """"strata" when /health reports service "strata", else "llamacpp"."""
+    request = urllib.request.Request(f"{url.rstrip('/')}/health", method="GET")
+    try:
+        with open_url(request, timeout=2.0) as response:
+            payload = json.load(response)
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, ValueError, json.JSONDecodeError):
+        return "llamacpp"
+    if isinstance(payload, dict) and payload.get("service") == "strata":
+        return "strata"
+    return "llamacpp"

@@ -3,12 +3,25 @@ from __future__ import annotations
 from voxa.agent.registry import ToolRegistry
 from voxa.agent.tools.applications import application_tools
 from voxa.agent.tools.browser import browser_tools
+from voxa.agent.tools.home import home_tools
+from voxa.agent.tools.media import media_tools
+from voxa.agent.tools.reminders import reminders_tools
 from voxa.agent.tools.typing import typing_tools
+from voxa.agent.tools.web import web_tools
 from voxa.agent.tools.windows import window_tools
 
 
 def default_registry() -> ToolRegistry:
     registry = ToolRegistry()
-    for tool in [*browser_tools(), *application_tools(), *typing_tools(), *window_tools()]:
+    for tool in [
+        *browser_tools(),
+        *application_tools(),
+        *media_tools(),
+        *typing_tools(),
+        *window_tools(),
+        *web_tools(),
+        *reminders_tools(),
+        *home_tools(),
+    ]:
         registry.register(tool)
     return registry

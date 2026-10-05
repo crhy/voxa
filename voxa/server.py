@@ -256,7 +256,7 @@ class AiServerManager:
             command = ["ollama", "serve"]
             listen_address = self._host_port(host, port)
             if self._flatpak:
-                command = ["flatpak-spawn", "--host", "env", f"OLLAMA_HOST={listen_address}", *command]
+                command = ["flatpak-spawn", "--host", "--directory=/", "env", f"OLLAMA_HOST={listen_address}", *command]
             return command, {"OLLAMA_HOST": listen_address}
 
         model = self.settings.llamacpp_model
@@ -265,7 +265,7 @@ class AiServerManager:
 
         command = ["llama-server", "--model", model, "--host", host, "--port", str(port)]
         if self._flatpak:
-            command = ["flatpak-spawn", "--host", *command]
+            command = ["flatpak-spawn", "--host", "--directory=/", *command]
         return command, None
 
     @staticmethod

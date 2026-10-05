@@ -9,14 +9,18 @@ from voxa.ui.avatars import (
     AVATAR_DIRECTORY,
     AVATARS,
     RENDERER_GL3D,
+    RENDERER_PHOTO,
     AvatarDescriptor,
     all_avatars,
+    available_avatars,
+    avatar_choice_label,
     avatar_directory,
     character_choices,
     default_avatar,
     discover_avatars,
     get_avatar,
     model_is_downloaded,
+    portrait_is_available,
 )
 
 
@@ -26,12 +30,12 @@ def test_registry_has_grace_by_default() -> None:
     assert avatar.display_name == "Grace"
     assert str(avatar.model_path).endswith("grace.glb")
     assert str(avatar.thumbnail_path).endswith("grace.png")
-    assert avatar.renderer == RENDERER_GL3D
+    assert avatar.renderer == RENDERER_PHOTO
     assert avatar in AVATARS
 
 
-def test_roster_has_fourteen_characters() -> None:
-    assert len(AVATARS) == 14
+def test_roster_has_twenty_two_characters() -> None:
+    assert len(AVATARS) == 22
     ids = {avatar.id for avatar in AVATARS}
     assert ids == {
         "jack",
@@ -48,7 +52,16 @@ def test_roster_has_fourteen_characters() -> None:
         "greta",
         "hiroshi",
         "sakura",
+        "omar",
+        "layla",
+        "arjun",
+        "priya",
+        "koda",
+        "aiyana",
+        "chidi",
+        "amara",
     }
+    assert len(ids) == 22
 
 
 def test_roster_avatars_have_cosmetics() -> None:
@@ -70,15 +83,40 @@ def test_get_avatar_returns_registered_id_or_none() -> None:
 def test_character_choices_start_with_classic_badge() -> None:
     choices = character_choices()
     assert choices[0] == ("", "Classic badge")
-    assert any(character_id == "grace" for character_id, _label in choices)
+    for character_id, _label in choices[1:]:
+        avatar = get_avatar(character_id)
+        assert portrait_is_available(avatar) or model_is_downloaded(avatar)
 
 
-def test_character_choice_label_includes_locale_and_gender() -> None:
-    choices = dict(character_choices())
-    assert "English — Ireland" in choices["seamus"]
-    assert "Male" in choices["seamus"]
-    assert "Japanese — Japan" in choices["sakura"]
-    assert "Female" in choices["sakura"]
+def test_character_choice_label_includes_gender_and_culture() -> None:
+    by_id = {avatar.id: avatar for avatar in AVATARS}
+    seamus = avatar_choice_label(by_id["seamus"])
+    assert seamus == "Seamus (Male, Ireland)"
+    sakura = avatar_choice_label(by_id["sakura"])
+    assert sakura == "Sakura (Female, Japan)"
+
+
+def test_available_avatars_include_roster_when_portraits_exist(monkeypatch, tmp_path) -> None:
+    directory = tmp_path / "avatars"
+    directory.mkdir()
+    monkeypatch.setattr(avatars, "AVATAR_DIRECTORY", str(directory))
+    (directory / "stray-bust.glb").write_bytes(b"glb")
+
+    available = available_avatars()
+    ids = {avatar.id for avatar in available}
+    assert {avatar.id for avatar in AVATARS} <= ids
+    assert "stray-bust" not in ids
+    assert all(portrait_is_available(avatar) or model_is_downloaded(avatar) for avatar in available)
+
+
+def test_character_choices_offer_roster_with_portraits(monkeypatch, tmp_path) -> None:
+    directory = tmp_path / "avatars"
+    directory.mkdir()
+    monkeypatch.setattr(avatars, "AVATAR_DIRECTORY", str(directory))
+    (directory / "stray-bust.glb").write_bytes(b"glb")
+
+    offered = {character_id for character_id, _label in character_choices()}
+    assert offered == {""} | {avatar.id for avatar in AVATARS}
 
 
 def test_roster_voice_ids_are_in_tts_voice_choices() -> None:
@@ -88,7 +126,24 @@ def test_roster_voice_ids_are_in_tts_voice_choices() -> None:
         pytest.skip(f"could not import TTS_VOICES: {exc}")
 
     available = {voice for _label, voice in TTS_VOICES}
-    assert {avatar.voice for avatar in AVATARS} <= available
+    original_ids = {
+        "jack",
+        "grace",
+        "seamus",
+        "aoife",
+        "oliver",
+        "charlotte",
+        "juan",
+        "valentina",
+        "etienne",
+        "camille",
+        "klaus",
+        "greta",
+        "hiroshi",
+        "sakura",
+    }
+    original_voices = {avatar.voice for avatar in AVATARS if avatar.id in original_ids}
+    assert original_voices <= available
 
 
 def test_model_is_downloaded_checks_the_actual_file(tmp_path) -> None:
@@ -141,3 +196,58 @@ def test_registry_paths_use_the_resolved_avatar_directory() -> None:
     for avatar in AVATARS:
         assert avatar.model_path.is_relative_to(AVATAR_DIRECTORY)
         assert avatar.thumbnail_path.is_relative_to(AVATAR_DIRECTORY)
+
+
+def test_roster_portraits_exist_and_are_jpegs() -> None:
+    for avatar in AVATARS:
+        assert avatar.portrait_path.is_file()
+        with avatar.portrait_path.open("rb") as handle:
+            assert handle.read(2) == b"\xff\xd8"
+
+
+def test_roster_ids_are_unique() -> None:
+    ids = [avatar.id for avatar in AVATARS]
+    assert len(ids) == len(set(ids))
+
+
+def test_amara_voice_matches_roster() -> None:
+    assert get_avatar("amara").voice == "en-NG-EzinneNeural"
+
+
+def test_old_roster_ids_still_present() -> None:
+    ids = {avatar.id for avatar in AVATARS}
+    old = {
+        "jack",
+        "grace",
+        "seamus",
+        "aoife",
+        "oliver",
+        "charlotte",
+        "juan",
+        "valentina",
+        "etienne",
+        "camille",
+        "klaus",
+        "greta",
+        "hiroshi",
+        "sakura",
+    }
+    assert old <= ids
+
+
+def test_aoife_choice_label_text() -> None:
+    by_id = {avatar.id: avatar for avatar in AVATARS}
+    assert avatar_choice_label(by_id["aoife"]) == "Aoife (Female, Ireland)"
+
+
+def test_available_avatars_contains_all_roster_without_models(monkeypatch, tmp_path) -> None:
+    directory = tmp_path / "avatars"
+    directory.mkdir()
+    monkeypatch.setattr(avatars, "AVATAR_DIRECTORY", str(directory))
+    available = available_avatars()
+    assert {avatar.id for avatar in available} >= {avatar.id for avatar in AVATARS}
+
+
+def test_roster_avatars_use_photo_renderer() -> None:
+    for avatar in AVATARS:
+        assert avatar.renderer == RENDERER_PHOTO

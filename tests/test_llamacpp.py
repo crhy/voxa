@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from voxa.llamacpp import LlamaCppClient, LlamaCppError
+from voxa.llamacpp import LlamaCppClient, LlamaCppError, StrataClient, detect_backend
 from voxa.ollama import OllamaError
 
 
@@ -183,3 +183,93 @@ def test_generate_stream_rejects_blank_model_and_prompt() -> None:
 
 def test_llamacpp_error_is_an_ollama_error() -> None:
     assert issubclass(LlamaCppError, OllamaError)
+
+
+def test_is_model_loaded_true_when_loaded_key_is_true() -> None:
+    response = FakeResponse(b'{"status": "ok", "loaded": true}')
+    with patch("voxa.llamacpp.open_url", return_value=response):
+        assert LlamaCppClient().is_model_loaded() is True
+
+
+def test_is_model_loaded_false_when_loaded_key_is_false() -> None:
+    response = FakeResponse(b'{"status": "ok", "loaded": false}')
+    with patch("voxa.llamacpp.open_url", return_value=response):
+        assert LlamaCppClient().is_model_loaded() is False
+
+
+def test_is_model_loaded_true_when_health_has_no_loaded_key() -> None:
+    response = FakeResponse(b'{"status": "ok"}')
+    with patch("voxa.llamacpp.open_url", return_value=response):
+        assert LlamaCppClient().is_model_loaded() is True
+
+
+def test_is_model_loaded_false_on_http_503() -> None:
+    error = urllib.error.HTTPError(
+        "http://127.0.0.1:8080/health",
+        503,
+        "Service Unavailable",
+        None,
+        None,
+    )
+    with patch("voxa.llamacpp.open_url", side_effect=error):
+        assert LlamaCppClient().is_model_loaded() is False
+
+
+def test_is_model_loaded_none_when_unreachable() -> None:
+    with patch("voxa.llamacpp.open_url", side_effect=urllib.error.URLError("down")):
+        assert LlamaCppClient().is_model_loaded() is None
+
+
+def test_server_info_returns_health_payload() -> None:
+    response = FakeResponse(
+        b'{"status": "ok", "service": "strata", "model": "qwen3", "max_context": 65536, "loaded": true}'
+    )
+    with patch("voxa.llamacpp.open_url", return_value=response):
+        info = StrataClient().server_info()
+    assert info == {
+        "status": "ok",
+        "service": "strata",
+        "model": "qwen3",
+        "max_context": 65536,
+        "loaded": True,
+    }
+
+
+def test_server_info_none_when_unreachable() -> None:
+    with patch("voxa.llamacpp.open_url", side_effect=urllib.error.URLError("down")):
+        assert StrataClient().server_info() is None
+
+
+def test_detect_backend_strata_when_health_says_strata() -> None:
+    response = FakeResponse(b'{"status": "ok", "service": "strata"}')
+    with patch("voxa.llamacpp.open_url", return_value=response):
+        assert detect_backend("http://127.0.0.1:8080") == "strata"
+
+
+def test_detect_backend_llamacpp_otherwise() -> None:
+    response = FakeResponse(b'{"status": "ok", "service": "llama-server"}')
+    with patch("voxa.llamacpp.open_url", return_value=response):
+        assert detect_backend("http://127.0.0.1:8080") == "llamacpp"
+
+
+def test_detect_backend_llamacpp_when_unreachable() -> None:
+    with patch("voxa.llamacpp.open_url", side_effect=urllib.error.URLError("down")):
+        assert detect_backend("http://127.0.0.1:8080") == "llamacpp"
+
+
+def test_strata_request_carries_effort_and_budget() -> None:
+    response = FakeResponse(
+        b'data: {"choices":[{"delta":{"content":"hi"}}]}\n'
+        b"data: [DONE]\n"
+    )
+    chunks: list[str] = []
+    with patch("voxa.llamacpp.open_url", return_value=response) as mocked:
+        StrataClient().generate_stream(
+            model="test",
+            prompt="hello",
+            cancel_event=threading.Event(),
+            on_chunk=chunks.append,
+        )
+    body = json.loads(mocked.call_args[0][0].data)
+    assert body["reasoning_effort"] == "none"
+    assert body["reasoning_budget_tokens"] == 600

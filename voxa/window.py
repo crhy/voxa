@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from collections.abc import Callable
@@ -15,10 +16,15 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 from . import apps, documents, mail, websearch  # noqa: E402
 from .agent import hearing, intents, planner  # noqa: E402
 from .agent.actionlog import ActionLog, ActionRecord  # noqa: E402
+from .agent.claims import claims_action, first_sentences  # noqa: E402
 from .agent.registry import ToolError  # noqa: E402
+from .agent.reminders import ReminderStore, reminder_phrase, timer_phrase  # noqa: E402
 from .agent.result import ToolResult  # noqa: E402
+from .agent.routines import Routine, RoutineStore, parse_create, parse_delete, parse_list  # noqa: E402
 from .agent.spoken_text import format_dictation, parse_dictation_control  # noqa: E402
+from .agent.suggest import Suggestion, SuggestionState, suggest  # noqa: E402
 from .agent.tools import default_registry, typing  # noqa: E402
+from .agent.tools.web import get_session  # noqa: E402
 from .audio import AudioCapture, AudioDevice  # noqa: E402
 from .catalog import CatalogUnavailable, load_catalog, refresh_and_cache, refresh_due  # noqa: E402
 from .config import ConfigStore  # noqa: E402
@@ -27,7 +33,7 @@ from .conversation import ConversationController, ConversationHistory  # noqa: E
 from .dictation import DictationController  # noqa: E402
 from .hardware import GpuUsage, detect_available_model_memory_gb, sample_gpu_usage, suggest_models  # noqa: E402
 from .installer import InstallerError, install_ollama  # noqa: E402
-from .llamacpp import LlamaCppClient  # noqa: E402
+from .llamacpp import LlamaCppClient, StrataClient  # noqa: E402
 from .ollama import OllamaClient, OllamaError, strip_reasoning  # noqa: E402
 from .server import SERVER_FAILED, SERVER_STARTING, SERVER_UNAVAILABLE, AiServerManager  # noqa: E402
 from .speech import SpeechService  # noqa: E402
@@ -70,7 +76,13 @@ TTS_VOICES = [
 CONVERSATION_HISTORY_MESSAGES = 24
 CONVERSATION_SYSTEM_PROMPT = (
     "You are Voxa, a hands-free voice assistant on the user's desktop. Keep "
-    "answers short and conversational — one or two sentences — since they are spoken aloud."
+    "answers short and conversational — one or two sentences — since they are spoken aloud. "
+    "You cannot perform actions in this reply: never say you opened, closed, sent, played, "
+    "saved, deleted, booked or changed anything. If the user asked for an action you cannot "
+    "perform, say you could not do it and suggest how to phrase it as a direct command."
+)
+FALSE_CLAIM_REPLY = (
+    "I couldn't do that. Try saying it as a direct command, like “close Brutal Chess”."
 )
 # Barge-in: loud sustained speech while a reply is being read interrupts it.
 # A short grace period ignores the TTS itself starting, and the streak
@@ -81,6 +93,14 @@ BARGE_IN_STREAK = 3
 
 def idle(callback: Callable, *args) -> None:
     GLib.idle_add(callback, *args)
+
+
+def short_model_name(model: str) -> str:
+    """The part after the last '/', truncated to 28 characters with an ellipsis."""
+    name = model.rsplit("/", 1)[-1]
+    if len(name) > 28:
+        return name[:27] + "…"
+    return name
 
 
 def string_item_factory(*, wrap: bool, width_chars: int) -> Gtk.SignalListItemFactory:
@@ -154,6 +174,11 @@ class MainWindow(Adw.ApplicationWindow):
         self._level_source = 0
         self._latest_level = 0.0
         self._query_generation = 0
+        self._loading_model_since: float | None = None
+        self._loading_model_name: str = ""
+        self._loading_source: int = 0
+        self._loading_generation: int = -1
+        self._loading_cancel: threading.Event | None = None
         self._hardware_summary = "Detecting your hardware…"
         self._suggested_models: list[str] = []
         self._install_cancel = threading.Event()
@@ -169,6 +194,22 @@ class MainWindow(Adw.ApplicationWindow):
         self.tools = default_registry()
         # Every command Voxa hears is logged here, so we can see what works.
         self.action_log = ActionLog()
+        # True once a tool or app has run for the request being answered; the
+        # ordinary chat path uses it to avoid rewriting a reply that followed a
+        # real action.
+        self._tool_ran_for_request = False
+        # Coaching suggestions: remembers what was offered and dismissed.
+        self.suggestion_state = SuggestionState(self.action_log.path.parent / "suggestions.json")
+        # Timers and reminders: kept in a JSON file next to the action log so they
+        # survive a restart; a 5-second tick delivers the ones whose time has come.
+        self.reminder_store = ReminderStore(self.action_log.path.parent / "reminders.json")
+        self._reminders_source = GLib.timeout_add_seconds(5, self._reminders_tick)
+        # Routines: one phrase runs several commands, kept in a JSON file next to
+        # the action log. A matched routine queues its steps; each runs through the
+        # normal router, drained one at a time as the previous step finishes.
+        self.routine_store = RoutineStore(self.action_log.path.parent / "routines.json")
+        self._routine_queue: list[str] = []
+        self._routine_active = False
         # Dictation mode: utterances go straight into the focused window instead
         # of the model, until the user says "stop dictating".
         self._external_dictation = False
@@ -220,8 +261,6 @@ class MainWindow(Adw.ApplicationWindow):
         menu.append("Transcript and dictation…", "win.transcript")
         menu.append("Keyboard Shortcuts", "win.shortcuts")
         menu.append("About Voxa", "app.about")
-        toolbar.add_top_bar(build_header(menu))
-
         # The assistant shell is the production interface. Everything it shows is
         # rendered from self.assistant_model; the window only wires callbacks.
         self.shell = AssistantShell(self.assistant_model, self.settings)
@@ -229,6 +268,11 @@ class MainWindow(Adw.ApplicationWindow):
         self.shell.on_offline = self._on_shell_offline
         self.shell.on_model_selected = self._on_shell_model_selected
         self.shell.on_backend_selected = self._on_shell_backend_selected
+        self.shell.on_character_selected = self._on_shell_character_selected
+        self.shell.on_face_mode_selected = self._on_shell_face_mode_selected
+        self.shell.set_characters(self.settings.character_id)
+        self.shell.character_picker.set_face_mode(self.settings.face_mode)
+        toolbar.add_top_bar(build_header(menu, self.shell.character_picker))
         # Attachments are a later milestone (issue #7 section 16); until then the paperclip
         # says so instead of silently doing nothing.
         self.shell.attachment_button.set_sensitive(False)
@@ -426,6 +470,7 @@ class MainWindow(Adw.ApplicationWindow):
             self.settings.ollama_model = name
             self.config_store.save(self.settings)
             self._apply_model_combo(self.ollama_models)  # keep the legacy dropdown in step
+            self._warm_up_model(name)
 
     def _on_shell_backend_selected(self, backend: str) -> None:
         if backend != self.settings.ai_backend:
@@ -434,6 +479,34 @@ class MainWindow(Adw.ApplicationWindow):
             self.shell.set_backend(backend)
             self._refresh_ollama_models()
             self._restart_ai_server_async()
+
+    def _on_shell_character_selected(self, character_id: str) -> None:
+        if character_id == self.settings.character_id:
+            return
+        self.settings.character_id = character_id
+        avatar = get_avatar(character_id)
+        if avatar is not None:
+            self.settings.tts_voice = avatar.voice
+        self.config_store.save(self.settings)
+        assistant_view = getattr(self.shell, "assistant_view", None)
+        if assistant_view is not None:
+            assistant_view.set_character(self.settings.character_id)
+        self.shell.set_characters(self.settings.character_id)
+
+    def _on_shell_face_mode_selected(self, face_mode: str) -> None:
+        if face_mode == self.settings.face_mode:
+            return
+        self.settings.face_mode = face_mode
+        self.config_store.save(self.settings)
+        apply = getattr(self, "_apply_face_mode", None)
+        if apply is not None:
+            apply()
+
+    def _apply_face_mode(self) -> None:
+        """Push the saved face mode into the assistant view."""
+        assistant_view = getattr(self.shell, "assistant_view", None)
+        if assistant_view is not None:
+            assistant_view.set_face_mode(self.settings.face_mode)
 
     def show_transcript_window(self) -> None:
         """The original dictation and transcript view, in a secondary window."""
@@ -456,6 +529,15 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _toast(self, text: str) -> None:
         self.shell.show_notice(text)
+
+    def _reminders_tick(self) -> bool:
+        """Deliver reminders whose time has come, then reschedule. Returns True to keep the timer."""
+        for item in self.reminder_store.due(datetime.now()):
+            phrase = timer_phrase(item.text) if item.kind == "timer" else reminder_phrase(item.text)
+            self._toast(phrase)
+            if self.assistant.is_active:
+                self._conversation_speak(phrase)
+        return True
 
     def _start_progress(self) -> None:
         self.progress.set_visible(True)
@@ -500,19 +582,30 @@ class MainWindow(Adw.ApplicationWindow):
         except Exception as exc:  # noqa: BLE001 - platform boundary
             self._toast(f"Microphone scan failed: {exc}")
 
-    def _ai_client(self) -> OllamaClient | LlamaCppClient:
+    def _ai_client(self) -> OllamaClient | LlamaCppClient | StrataClient:
         """The Ask AI client for whichever backend the user picked."""
         if self.settings.ai_backend == "ollama":
             return OllamaClient(self.settings.ollama_url)
+        if self.settings.ai_backend == "strata":
+            return StrataClient(self.settings.strata_url)
         return LlamaCppClient(self.settings.llamacpp_url)
 
     def _backend_label(self) -> str:
-        return "Ollama" if self.settings.ai_backend == "ollama" else "llama.cpp"
+        if self.settings.ai_backend == "ollama":
+            return "Ollama"
+        if self.settings.ai_backend == "strata":
+            return "Strata"
+        return "llama.cpp"
 
     def _refresh_ollama_models(self) -> None:
         def worker() -> None:
             try:
-                models = self._ai_client().list_models()
+                client = self._ai_client()
+                if self.settings.ai_backend == "strata":
+                    info = client.server_info()
+                    models = [info["model"]] if info and info.get("model") else []
+                else:
+                    models = client.list_models()
                 idle(self._apply_ollama_models, models)
             except OllamaError as exc:
                 # Say so in the model picker too ("No models available - Ollama") instead of
@@ -643,6 +736,7 @@ class MainWindow(Adw.ApplicationWindow):
             self.settings.ollama_model = model
             self.config_store.save(self.settings)
             self._set_status(f"Asking with {model} from now on.")
+            self._warm_up_model(model)
 
     @staticmethod
     def _scroll_to_end(view: Gtk.TextView) -> None:
@@ -1151,6 +1245,7 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _open_app(self, app_name: str, prompt: str) -> None:
         """"Open X": launch a menu application directly, without asking the AI."""
+        self._tool_ran_for_request = True
         self.query_cancel.set()
         self._query_generation += 1
         self._end_query_task("cancelled")
@@ -1228,6 +1323,7 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _run_tool(self, call: intents.ToolCall, prompt: str) -> None:
         """A recognised command goes straight to its tool, never to the model."""
+        self._tool_ran_for_request = True
         self.query_cancel.set()
         self._query_generation += 1
         self._end_query_task("cancelled")
@@ -1285,7 +1381,32 @@ class MainWindow(Adw.ApplicationWindow):
 
         threading.Thread(target=worker, name="run-tool", daemon=True).start()
 
+    def _start_routine(self, steps: tuple[str, ...]) -> None:
+        """Queue a routine's steps and run the first through the normal router."""
+        self._routine_queue = list(steps)
+        self._routine_active = True
+        self._run_routine_step()
+
+    def _run_routine_step(self) -> None:
+        """Run the next queued step, or say Done when the queue is empty."""
+        if not self._routine_queue:
+            self._routine_active = False
+            self._toast("Done.")
+            return
+        step = self._routine_queue.pop(0)
+        call = intents.route(step)
+        if call is not None:
+            self._run_tool(call, step)
+        else:
+            # A step Voxa cannot route: skip it and continue with the next.
+            self._run_routine_step()
+
     def _on_tool_finished(self, result) -> bool:
+        if self._routine_active:
+            # A routine step just finished: run the next one, or say Done when the
+            # queue is empty. The per-step speech is suppressed; only "Done." speaks.
+            self._run_routine_step()
+            return False
         speech = result.speech
         self._end_query_task("done" if result.ok else "cancelled")
         if speech:
@@ -1303,13 +1424,48 @@ class MainWindow(Adw.ApplicationWindow):
             # but the turn is over and the assistant is listening again.
             if self.assistant.is_active:
                 self.assistant.reply_finished(self.assistant.token())
-            self._set_status(self._conversation_idle_status())
+            if self.conversation is not None:
+                self.conversation.open_followup(self.settings.followup_seconds)
+            if self.conversation_active and self.settings.followup_seconds > 0:
+                self._set_status("Listening for a follow-up…")
+            else:
+                self._set_status(self._conversation_idle_status())
+        if result.ok:
+            self._maybe_suggest()
         return False
 
     def _on_tool_failed(self, error: str) -> bool:
         self._end_query_task("cancelled")
         self._fail_assistant("That didn't work")
         self._toast(f"That didn't work: {error}")
+        return False
+
+    def _maybe_suggest(self) -> None:
+        """Spawn a worker thread to check for a coaching suggestion."""
+        def worker() -> None:
+            try:
+                records = self.action_log.read(limit=50)
+                suggestion = suggest(records, self.suggestion_state, self.settings.suggestions_enabled)
+            except Exception:  # noqa: BLE001 - coaching must never break a command
+                return
+            if suggestion is not None:
+                heard = str(records[-1].get("heard", "")) if records else ""
+                self.suggestion_state.offered(suggestion.key)
+                idle(self._on_suggestion, suggestion, heard)
+
+        threading.Thread(target=worker, name="suggest", daemon=True).start()
+
+    def _on_suggestion(self, suggestion: Suggestion, heard: str) -> bool:
+        """Show a coaching suggestion on the main thread."""
+        self._toast(suggestion.text)
+        if self.conversation_active:
+            self._conversation_speak(suggestion.text)
+        self._log_action(
+            heard,
+            "suggestion",
+            detail=suggestion.key,
+            speech=suggestion.text,
+        )
         return False
 
     def _clear_display(self) -> None:
@@ -1331,6 +1487,7 @@ class MainWindow(Adw.ApplicationWindow):
         # "done" must not touch a newer request.
         reply_id = self.assistant.current_reply()
         self._set_status("Speaking…", busy=True)
+        self.shell.set_speech_clock(self.speech.position)
         self.speech.speak(
             text,
             self.settings.tts_rate,
@@ -1338,6 +1495,7 @@ class MainWindow(Adw.ApplicationWindow):
             on_started=lambda: idle(self._for_session(token, self._set_status), "Speaking…", True),
             on_done=lambda: idle(self._for_session(token, self._on_conversation_speech_done), reply_id),
             on_error=lambda error: idle(self._for_session(token, self._on_conversation_speech_error), error),
+            on_words=lambda words: idle(self.shell.set_word_timeline, words),
         )
 
     def _conversation_idle_status(self) -> str:
@@ -1351,6 +1509,7 @@ class MainWindow(Adw.ApplicationWindow):
         if self.conversation is not None:
             # Listen for a follow-up straight away, without the wake word.
             self.conversation.arm_prompt()
+            self.conversation.open_followup(self.settings.followup_seconds)
             self._follow_up_token = self.assistant.token()
             GLib.timeout_add_seconds(self.FOLLOW_UP_SECONDS, self._follow_up_expired, self._follow_up_token)
         waiting = self.conversation is not None and self.conversation.waiting_for_prompt
@@ -1598,6 +1757,30 @@ class MainWindow(Adw.ApplicationWindow):
         if intents.is_start_dictation(prompt):
             self._start_external_dictation(prompt)
             return
+        created = parse_create(prompt)
+        if created is not None:
+            name, steps = created
+            self.routine_store.add(Routine(name=name, phrases=(name,), steps=tuple(steps)))
+            self._log_action(prompt, "routine", detail=f"created {name}")
+            joined = ", then ".join(steps)
+            self._toast(f"Okay. When you say “{name}” I'll {joined}.")
+            return
+        if parse_list(prompt):
+            self._log_action(prompt, "routine", detail="list")
+            names = [r.name for r in self.routine_store.all()]
+            self._toast("No routines yet." if not names else "Routines: " + ", ".join(names))
+            return
+        deleted = parse_delete(prompt)
+        if deleted is not None:
+            ok = self.routine_store.remove(deleted)
+            self._log_action(prompt, "routine", ok=ok, detail=f"delete {deleted}")
+            self._toast(f"Deleted the {deleted} routine." if ok else f"There is no {deleted} routine.")
+            return
+        matched = self.routine_store.match(prompt)
+        if matched is not None:
+            self._log_action(prompt, "routine", detail=f"run {matched.name}")
+            self._start_routine(matched.steps)
+            return
         call = intents.route(prompt)
         if call is not None:
             self._run_tool(call, prompt)
@@ -1635,11 +1818,17 @@ class MainWindow(Adw.ApplicationWindow):
             self._log_action(prompt, "legacy")
             return
 
+        if planner.looks_like_browser_task(prompt):
+            self._browse_and_report(prompt)
+            return
+
         if planner.looks_like_command(prompt):
             self._plan_and_run(prompt)
             return
 
         self._log_action(prompt, "model")
+        self._tool_ran_for_request = False
+        heard_prompt = prompt
         self.query_cancel.set()
         cancel_event = threading.Event()
         self.query_cancel = cancel_event
@@ -1697,6 +1886,8 @@ class MainWindow(Adw.ApplicationWindow):
                             prompt = f"{context}\n\nQuestion: {prompt}"
                 if isinstance(client, LlamaCppClient) and client.is_busy():
                     idle(self._on_server_busy, generation, cancel_event)
+                if hasattr(client, "is_model_loaded") and client.is_model_loaded(model) is False:
+                    idle(self._on_model_loading, model, generation, cancel_event)
                 answer = client.generate_stream(
                     model=model,
                     prompt=prompt,
@@ -1705,7 +1896,7 @@ class MainWindow(Adw.ApplicationWindow):
                     messages=messages,
                 )
                 flush_chunks()
-                idle(self._on_query_finished, answer, generation, cancel_event)
+                idle(self._on_query_finished, answer, generation, cancel_event, heard_prompt)
             except OllamaError as exc:
                 flush_chunks()
                 idle(self._on_query_error, str(exc), generation, cancel_event)
@@ -1745,7 +1936,10 @@ class MainWindow(Adw.ApplicationWindow):
 
         def worker() -> None:
             try:
-                answer = self._ai_client().generate_stream(
+                client = self._ai_client()
+                if hasattr(client, "is_model_loaded") and client.is_model_loaded(self.settings.ollama_model) is False:
+                    idle(self._on_model_loading, self.settings.ollama_model, generation, cancel_event)
+                answer = client.generate_stream(
                     model=self.settings.ollama_model,
                     prompt=user_prompt,
                     cancel_event=cancel_event,
@@ -1775,6 +1969,7 @@ class MainWindow(Adw.ApplicationWindow):
             reply = finish(strip_reasoning(answer))
         except Exception as exc:  # noqa: BLE001 - the mail client or LibreOffice may not be installed
             self._end_query_task("failed", str(exc))
+            logging.warning("AI draft failed: %s", exc)
             self._toast(f"Could not complete that: {exc}")
             self._set_status("Draft failed.")
             return False
@@ -1797,6 +1992,7 @@ class MainWindow(Adw.ApplicationWindow):
             return False
         self.ask_button.set_sensitive(True)
         self._end_query_task("failed", error)
+        logging.warning("AI request failed: %s", error)
         if self.conversation_active:
             self._fail_assistant("The AI request failed")
         self._toast(error)
@@ -1845,7 +2041,79 @@ class MainWindow(Adw.ApplicationWindow):
                 ms=ms,
             )
 
-        return planner.run_plan(plan, self.tools, on_step=on_step)
+        result = planner.run_plan(plan, self.tools, on_step=on_step)
+        self._maybe_suggest()
+        return result
+
+    def _browse_and_report(self, prompt: str) -> None:
+        """Run the page-aware planner in one worker thread and speak the result."""
+        self.query_cancel.set()
+        cancel_event = threading.Event()
+        self.query_cancel = cancel_event
+        self._query_generation += 1
+        generation = self._query_generation
+
+        self._end_query_task("cancelled")
+        self.shell.exchange_panel.show_question(prompt)
+        task = self.assistant.begin_task(f"Browsing: {prompt[:40]}")
+        self._query_task_id = task.id if task is not None else None
+        self.assistant.prompt_accepted(self.assistant.token())
+        self._set_text(self.response_view, "")
+        self.ask_button.set_sensitive(False)
+        self._set_status("Browsing…", busy=True)
+        self._start_gpu_monitor()
+
+        def on_step(call: intents.ToolCall, result: ToolResult, ms: int) -> None:
+            self._log_action(
+                prompt,
+                "browser",
+                tool=call.tool,
+                args=call.args,
+                ok=result.ok,
+                speech=result.speech,
+                detail=result.detail,
+                ms=ms,
+            )
+
+        def on_caption(call: intents.ToolCall) -> None:
+            if call.tool == "click_on":
+                detail = f"Clicking {call.args.get('text', '')}…"
+            else:
+                detail = "Reading the page…"
+            idle(self._show_browser_step, detail, generation, cancel_event)
+
+        def worker() -> None:
+            try:
+                def ask_model(messages: list[dict]) -> str:
+                    return self._ai_client().generate_stream(
+                        model=self.settings.ollama_model,
+                        prompt=messages[-1]["content"],
+                        messages=messages,
+                        cancel_event=cancel_event,
+                        on_chunk=lambda chunk: None,
+                    )
+
+                answer = planner.run_browser_task(
+                    prompt,
+                    ask_model,
+                    get_session(),
+                    self.tools,
+                    on_step=on_step,
+                    should_stop=cancel_event.is_set,
+                    on_caption=on_caption,
+                )
+                idle(self._on_draft_finished, answer, generation, cancel_event, lambda text: text)
+            except OllamaError as exc:
+                idle(self._on_draft_error, str(exc), generation, cancel_event)
+
+        threading.Thread(target=worker, name=f"browse-{generation}", daemon=True).start()
+
+    def _show_browser_step(self, detail: str, generation: int, cancel_event: threading.Event) -> bool:
+        if not self._query_is_current(generation, cancel_event) or cancel_event.is_set():
+            return False
+        self._set_status(detail, busy=True)
+        self.assistant_model.set_state(AssistantState.WORKING, detail)
+        return False
 
     def _web_context(self, prompt: str, generation: int, cancel_event: threading.Event) -> str:
         query = websearch.search_query_for(prompt)
@@ -1878,12 +2146,99 @@ class MainWindow(Adw.ApplicationWindow):
             self.assistant_model.set_state(AssistantState.THINKING, "AI server busy — waiting in line")
         return False
 
+    def _on_model_loading(self, model: str, generation: int, cancel_event: threading.Event) -> bool:
+        if not self._query_is_current(generation, cancel_event) or cancel_event.is_set():
+            return False
+        self._loading_model_since = time.monotonic()
+        self._loading_model_name = short_model_name(model)
+        self._loading_generation = generation
+        self._loading_cancel = cancel_event
+        self._show_model_loading()
+        self._loading_source = GLib.timeout_add(1000, self._model_loading_tick)
+        return False
+
+    def _show_model_loading(self) -> None:
+        seconds = int(time.monotonic() - self._loading_model_since) if self._loading_model_since is not None else 0
+        detail = f"Loading {self._loading_model_name}… {seconds}s"
+        self._set_status(detail, busy=True)
+        self.assistant_model.set_state(AssistantState.WORKING, detail)
+
+    def _model_loading_tick(self) -> bool:
+        if self._loading_model_since is None:
+            return False
+        if self._loading_cancel is not None and self._loading_cancel.is_set():
+            self._stop_model_loading()
+            return False
+        if self._loading_generation != self._query_generation:
+            self._stop_model_loading()
+            return False
+        self._show_model_loading()
+        return True
+
+    def _stop_model_loading(self) -> None:
+        if self._loading_source:
+            GLib.source_remove(self._loading_source)
+            self._loading_source = 0
+        self._loading_model_since = None
+        self._loading_model_name = ""
+        self._loading_generation = -1
+        self._loading_cancel = None
+
+    def _warm_up_model(self, model: str) -> None:
+        # Loading a model into memory does not need the microphone, so this runs
+        # whether the assistant is ACTIVE or OFFLINE. A 1-token request makes the
+        # cold-start wait happen the moment the user picks the model.
+        if not model:
+            return
+        client = self._ai_client()
+        if not hasattr(client, "is_model_loaded") or client.is_model_loaded(model) is not False:
+            return
+        cancel_event = threading.Event()
+        self.query_cancel = cancel_event
+        self._query_generation += 1
+        generation = self._query_generation
+        idle(self._on_model_loading, model, generation, cancel_event)
+
+        def worker() -> None:
+            try:
+                client.generate_stream(
+                    model=model,
+                    prompt="hi",
+                    cancel_event=cancel_event,
+                    on_chunk=lambda chunk: None,
+                    num_predict=1,
+                )
+                if not cancel_event.is_set():
+                    idle(self._warm_up_finished, generation, cancel_event)
+            except OllamaError as exc:
+                if not cancel_event.is_set():
+                    idle(self._warm_up_failed, str(exc), generation, cancel_event)
+
+        threading.Thread(target=worker, name=f"warm-up-{generation}", daemon=True).start()
+
+    def _warm_up_finished(self, generation: int, cancel_event: threading.Event) -> bool:
+        if not self._query_is_current(generation, cancel_event):
+            return False
+        self._stop_model_loading()
+        self._set_status("Ready")
+        return False
+
+    def _warm_up_failed(self, error: str, generation: int, cancel_event: threading.Event) -> bool:
+        if not self._query_is_current(generation, cancel_event):
+            return False
+        self._stop_model_loading()
+        self._toast(error)
+        self._set_status("Ready")
+        return False
+
     def _query_is_current(self, generation: int, cancel_event: threading.Event) -> bool:
         return generation == self._query_generation and cancel_event is self.query_cancel
 
     def _append_response(self, batch: str, generation: int, cancel_event: threading.Event) -> bool:
         if not self._query_is_current(generation, cancel_event) or cancel_event.is_set():
             return False
+        if self._loading_model_since is not None:
+            self._stop_model_loading()
         buffer = self.response_view.get_buffer()
         buffer.insert(buffer.get_end_iter(), batch)
         self._scroll_to_end(self.response_view)
@@ -1891,10 +2246,11 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def _on_query_finished(
-        self, answer: str, generation: int, cancel_event: threading.Event
+        self, answer: str, generation: int, cancel_event: threading.Event, heard: str = ""
     ) -> bool:
         if not self._query_is_current(generation, cancel_event):
             return False
+        self._stop_model_loading()
         self.ask_button.set_sensitive(True)
         if (
             self.conversation_active
@@ -1916,6 +2272,10 @@ class MainWindow(Adw.ApplicationWindow):
         # what was streamed with just the answer, so the chain of thought is
         # neither left on screen nor read aloud in conversation mode.
         spoken = strip_reasoning(answer)
+        if claims_action(spoken) and not self._tool_ran_for_request:
+            # The model talked as if it had acted, but no tool ran: answer honestly.
+            self._log_action(heard, "false_claim", detail=first_sentences(answer, 1))
+            spoken = FALSE_CLAIM_REPLY
         if spoken != answer:
             buffer = self.response_view.get_buffer()
             buffer.set_text(spoken)
@@ -1937,6 +2297,7 @@ class MainWindow(Adw.ApplicationWindow):
     ) -> bool:
         if not self._query_is_current(generation, cancel_event) or cancel_event.is_set():
             return False
+        self._stop_model_loading()
         self.ask_button.set_sensitive(True)
         if (
             self.conversation_active
@@ -1948,6 +2309,7 @@ class MainWindow(Adw.ApplicationWindow):
             self._conversation_history.drop_last()
         self._pending_user_generation = None
         self._end_query_task("failed", error)
+        logging.warning("AI request failed: %s", error)
         if self.conversation_active:
             self._fail_assistant("The AI request failed")
         self._toast(error)
@@ -1960,6 +2322,7 @@ class MainWindow(Adw.ApplicationWindow):
             self._toast("There is no text to speak.")
             return
         self._set_status("Starting speech…", busy=True)
+        self.shell.set_speech_clock(self.speech.position)
         self.speech.speak(
             text,
             self.settings.tts_rate,
@@ -1967,6 +2330,7 @@ class MainWindow(Adw.ApplicationWindow):
             on_started=lambda: idle(self._set_status, "Speaking…", True),
             on_done=lambda: idle(self._set_status, "Ready"),
             on_error=lambda error: idle(self._speech_error, error),
+            on_words=lambda words: idle(self.shell.set_word_timeline, words),
         )
 
     def _speech_error(self, error: str) -> bool:
@@ -1983,6 +2347,7 @@ class MainWindow(Adw.ApplicationWindow):
         if self._installing:
             self._install_cancel.set()
         self.ask_button.set_sensitive(True)
+        self._stop_model_loading()
         self._set_status("Stopped.")
 
     @staticmethod
@@ -2141,8 +2506,8 @@ class MainWindow(Adw.ApplicationWindow):
             title="Backend",
             subtitle="llama.cpp-compatible server, or Ollama",
         )
-        backend_row.set_model(Gtk.StringList.new(["llama.cpp", "Ollama"]))
-        backend_row.set_selected(0 if self.settings.ai_backend == "llamacpp" else 1)
+        backend_row.set_model(Gtk.StringList.new(["llama.cpp", "Ollama", "Strata"]))
+        backend_row.set_selected({"llamacpp": 0, "ollama": 1, "strata": 2}.get(self.settings.ai_backend, 0))
         ai_group.add(backend_row)
 
         model_names = self.ollama_models or ["No models found"]
@@ -2163,6 +2528,11 @@ class MainWindow(Adw.ApplicationWindow):
         endpoint_row.set_text(self.settings.ollama_url)
         endpoint_row.set_visible(self.settings.ai_backend == "ollama")
         ai_group.add(endpoint_row)
+
+        strata_row = Adw.EntryRow(title="Strata address")
+        strata_row.set_text(self.settings.strata_url)
+        strata_row.set_visible(self.settings.ai_backend == "strata")
+        ai_group.add(strata_row)
 
         answers_group = Adw.PreferencesGroup(title="Answers")
         ai_page.add(answers_group)
@@ -2196,10 +2566,11 @@ class MainWindow(Adw.ApplicationWindow):
         ollama_group.add(manage_row)
 
         def update_backend_rows(*_):
-            using_ollama = backend_row.get_selected() == 1
-            llamacpp_row.set_visible(not using_ollama)
-            endpoint_row.set_visible(using_ollama)
-            ollama_group.set_visible(using_ollama)
+            selected = backend_row.get_selected()
+            llamacpp_row.set_visible(selected == 0)
+            endpoint_row.set_visible(selected == 1)
+            strata_row.set_visible(selected == 2)
+            ollama_group.set_visible(selected == 1)
 
         backend_row.connect("notify::selected", update_backend_rows)
         dialog.add(ai_page)
@@ -2214,6 +2585,7 @@ class MainWindow(Adw.ApplicationWindow):
             ai_row,
             llamacpp_row,
             endpoint_row,
+            strata_row,
             auto_speak_row,
             web_search_row,
             wake_word_row,
@@ -2233,6 +2605,7 @@ class MainWindow(Adw.ApplicationWindow):
         ai_row,
         llamacpp_row,
         endpoint_row,
+        strata_row,
         auto_speak_row,
         web_search_row,
         wake_word_row,
@@ -2247,9 +2620,12 @@ class MainWindow(Adw.ApplicationWindow):
             self.settings.microphone_name = device.name
         if self.ollama_models:
             self.settings.ollama_model = self.ollama_models[min(ai_row.get_selected(), len(self.ollama_models) - 1)]
-        self.settings.ai_backend = "ollama" if backend_row.get_selected() == 1 else "llamacpp"
+        self.settings.ai_backend = {0: "llamacpp", 1: "ollama", 2: "strata"}.get(
+            backend_row.get_selected(), "llamacpp"
+        )
         self.settings.llamacpp_url = llamacpp_row.get_text().strip()
         self.settings.ollama_url = endpoint_row.get_text().strip()
+        self.settings.strata_url = strata_row.get_text().strip()
         self.settings.auto_speak = auto_speak_row.get_active()
         self.settings.web_search = web_search_row.get_active()
         self.settings.wake_word = wake_word_row.get_text().strip()

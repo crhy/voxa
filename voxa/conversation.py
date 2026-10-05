@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+import logging
 import queue
 import re
 import threading
+import time
 from collections import deque
 from collections.abc import Callable
 from difflib import SequenceMatcher
 
 from .dictation import segment_stream
+from .endpoint import is_complete, is_followup
 from .transcription import WhisperService
+from .vocabulary import build_hint, refresh_app_names
 
 
 def strip_wake_word(text: str, wake_word: str) -> str | None:
@@ -156,11 +160,14 @@ class ConversationController:
         threshold: int,
         silence_ms: int,
         max_segment_seconds: float,
+        early_silence_ms: int = 300,
+        early_final_pass: bool = False,
         on_woken: Callable[[], None],
         on_prompt: Callable[[str], None],
         on_status: Callable[[str], None],
         on_error: Callable[[str], None],
         on_exit: Callable[[str], None] | None = None,
+        on_timing: Callable[[str], None] | None = None,
     ) -> None:
         # The wake phase runs constantly in the background, so it uses a small,
         # dedicated model (see WAKE_WHISPER_MODEL in window.py) instead of
@@ -172,12 +179,15 @@ class ConversationController:
         self.wake_word = wake_word
         self.threshold = threshold
         self.silence_seconds = silence_ms / 1000.0
+        self.early_silence_seconds = early_silence_ms / 1000.0
+        self.early_final_pass = early_final_pass
         self.max_segment_seconds = max_segment_seconds
         self.on_woken = on_woken
         self.on_prompt = on_prompt
         self.on_status = on_status
         self.on_error = on_error
         self.on_exit = on_exit or (lambda _kind: None)
+        self.on_timing = on_timing or (lambda _stage: None)
         self.queue: queue.Queue[tuple[bytes, float] | None] = queue.Queue(maxsize=80)
         self.stop_event = threading.Event()
         self.thread: threading.Thread | None = None
@@ -189,6 +199,16 @@ class ConversationController:
         # Dictation mode: every utterance is a prompt, no wake word needed, until
         # the user says "stop dictating".
         self.keep_prompt = False
+        # Quick transcript captured at the early pause, reused by _run when the
+        # utterance ended early and early_final_pass is False.
+        self._early_text: str | None = None
+        # Vocabulary hint for prompt transcription, built off the listening
+        # thread at start so it never blocks the mic (see _build_prompt_hint).
+        self._prompt_hint = ""
+        # Monotonic deadline for the follow-up window: while it is in the future
+        # an utterance without the wake word may still be delivered as a prompt
+        # (see open_followup). None means no window is open.
+        self.followup_deadline: float | None = None
 
     @property
     def muted(self) -> bool:
@@ -200,6 +220,13 @@ class ConversationController:
         self.waiting_for_prompt = False
         self.thread = threading.Thread(target=self._run, name="conversation-worker", daemon=True)
         self.thread.start()
+        threading.Thread(target=self._build_prompt_hint, name="prompt-hint-builder", daemon=True).start()
+
+    def _build_prompt_hint(self) -> None:
+        try:
+            self._prompt_hint = build_hint(refresh_app_names(), self.wake_word)
+        except Exception as exc:  # noqa: BLE001 - hint boundary, never fatal
+            logging.debug("prompt hint build failed: %s", exc)
 
     def feed(self, pcm: bytes, level: float) -> None:
         # Dropped while muted so the assistant's own spoken reply, played
@@ -236,21 +263,39 @@ class ConversationController:
         """Keep listening for prompts: every utterance is one, wake word or not."""
         self.keep_prompt = True
         self.waiting_for_prompt = True
+        self.followup_deadline = None
 
     def release_prompt(self) -> None:
         """Go back to wake-word-gated listening."""
         self.keep_prompt = False
         self.waiting_for_prompt = False
 
+    def open_followup(self, seconds: float) -> None:
+        """Open a window where follow-ups without the wake word are accepted.
+
+        A non-positive ``seconds`` disables the window. The deadline is cleared
+        by the first accepted follow-up, by :meth:`stop`, and by dictation mode.
+        """
+        if seconds <= 0:
+            self.followup_deadline = None
+        else:
+            self.followup_deadline = time.monotonic() + seconds
+
+    def _followup_open(self) -> bool:
+        return self.followup_deadline is not None and time.monotonic() < self.followup_deadline
+
     def stop(self) -> None:
         self.stop_event.set()
         self.waiting_for_prompt = False
+        self.followup_deadline = None
         try:
             self.queue.put_nowait(None)
         except queue.Full:
             pass
 
     def _next_segment(self, idle_timeout_seconds: float | None) -> bytes | None:
+        self._early_text = None
+        early = not self.keep_prompt
         for segment in segment_stream(
             self.queue,
             self.stop_event,
@@ -258,9 +303,30 @@ class ConversationController:
             silence_seconds=self.silence_seconds,
             max_segment_seconds=self.max_segment_seconds,
             idle_timeout_seconds=idle_timeout_seconds,
+            early_silence_seconds=self.early_silence_seconds if early else None,
+            early_check=self._early_check if early else None,
         ):
             return segment
         return None
+
+    def _early_check(self, segment: bytes) -> bool:
+        """Quick look at the audio so far with the small wake model.
+
+        Never raises: an exception here must not break listening, so it is
+        logged at debug level and reported as "not complete".
+        """
+        if self.stop_event.is_set():
+            return False
+        hint = f"{self.wake_word.strip().capitalize()}."
+        try:
+            text = self.wake_whisper.transcribe(segment, self.language, hint)
+        except Exception as exc:  # noqa: BLE001 - early-check boundary
+            logging.debug("early completion check failed: %s", exc)
+            return False
+        if is_complete(text, self.wake_word):
+            self._early_text = text
+            return True
+        return False
 
     def _transcribe(self, segment: bytes, whisper: WhisperService, hint: str = "") -> str:
         if self.stop_event.is_set():
@@ -293,10 +359,20 @@ class ConversationController:
                 self.waiting_for_prompt = False
                 continue
 
-            whisper = self.prompt_whisper if waiting_for_prompt else self.wake_whisper
-            text = self._transcribe(segment, whisper, hint="" if waiting_for_prompt else f"{self.wake_word.strip().capitalize()}.")
+            self.on_timing("speech_end")
+
+            if not self.early_final_pass and self._early_text is not None:
+                text = self._early_text
+            else:
+                whisper = self.prompt_whisper if waiting_for_prompt else self.wake_whisper
+                text = self._transcribe(
+                    segment,
+                    whisper,
+                    hint=self._prompt_hint if waiting_for_prompt else f"{self.wake_word.strip().capitalize()}.",
+                )
             if not text:
                 continue
+            self.on_timing("transcribed")
             if self.stop_event.is_set():
                 break
 
@@ -317,6 +393,19 @@ class ConversationController:
             if not waiting_for_prompt:
                 remainder = strip_wake_word(text, self.wake_word)
                 if remainder is None:
+                    # No wake word: accept it as a follow-up only while the
+                    # window is open and it is clearly addressed to Voxa (at
+                    # least two words and a routed call, continuation or
+                    # question). The first accepted follow-up clears the window.
+                    if (
+                        self._followup_open()
+                        and len(text.split()) >= 2
+                        and is_followup(text)
+                    ):
+                        self.followup_deadline = None
+                        if self.stop_event.is_set():
+                            break
+                        self.on_prompt(text)
                     continue
                 if self.stop_event.is_set():
                     break

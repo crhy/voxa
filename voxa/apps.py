@@ -164,7 +164,7 @@ def match_app(query: str, apps: list[DesktopApp]) -> DesktopApp | None:
 
 
 def _host(command: list[str]) -> list[str]:
-    return ["flatpak-spawn", "--host", *command] if IN_FLATPAK else command
+    return ["flatpak-spawn", "--host", "--directory=/", *command] if IN_FLATPAK else command
 
 
 def list_apps() -> list[DesktopApp]:

@@ -49,7 +49,7 @@ def test_backend_dropdown_exists_and_defaults_to_llamacpp() -> None:
     backend = selector._backend_dropdown
     assert isinstance(backend, Gtk.DropDown)
     items = [backend.get_model().get_string(i) for i in range(backend.get_model().get_n_items())]
-    assert items == ["llama.cpp", "Ollama"]
+    assert items == ["llama.cpp", "Ollama", "Strata"]
     assert backend.get_selected() == 0
     assert selector.get_backend() == "llamacpp"
 
@@ -105,3 +105,28 @@ def test_button_and_list_factories_are_set_and_different() -> None:
 
 def test_max_button_chars_constant() -> None:
     assert MAX_BUTTON_CHARS == 24
+
+
+def test_three_backends_are_listed() -> None:
+    selector = ModelSelector()
+    items = [
+        selector._backend_dropdown.get_model().get_string(i)
+        for i in range(selector._backend_dropdown.get_model().get_n_items())
+    ]
+    assert items == ["llama.cpp", "Ollama", "Strata"]
+
+
+def test_each_backend_maps_to_its_value() -> None:
+    selector = ModelSelector()
+    for index, value in enumerate(["llamacpp", "ollama", "strata"]):
+        selector._backend_dropdown.set_selected(index)
+        assert selector.get_backend() == value
+
+
+def test_set_backend_strata_selects_third_without_callback() -> None:
+    fired: list[str] = []
+    selector = ModelSelector(on_backend_selected=fired.append)
+    selector.set_backend("strata")
+    assert selector._backend_dropdown.get_selected() == 2
+    assert selector.get_backend() == "strata"
+    assert fired == []

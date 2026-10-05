@@ -11,8 +11,8 @@ gi.require_version("Pango", "1.0")
 from gi.repository import Gtk, Pango  # noqa: E402
 
 EMPTY_LABEL = "No models available"
-BACKENDS = ["llama.cpp", "Ollama"]
-BACKEND_VALUES = ["llamacpp", "ollama"]
+BACKENDS = ["llama.cpp", "Ollama", "Strata"]
+BACKEND_VALUES = ["llamacpp", "ollama", "strata"]
 MAX_BUTTON_CHARS = 24
 
 
@@ -62,14 +62,14 @@ class ModelSelector(Gtk.Box):
         self.append(self._dropdown)
         self.append(self._backend_dropdown)
 
-    def _setup_button_label(self, list_item: Gtk.ListItem) -> None:
+    def _setup_button_label(self, _factory, list_item: Gtk.ListItem) -> None:
         lbl = Gtk.Label(xalign=0)
         lbl.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
         lbl.set_width_chars(12)
         lbl.set_max_width_chars(MAX_BUTTON_CHARS)
         list_item.set_child(lbl)
 
-    def _bind_button_label(self, list_item: Gtk.ListItem) -> None:
+    def _bind_button_label(self, _factory, list_item: Gtk.ListItem) -> None:
         item = list_item.get_item()
         if item is None:
             return
@@ -78,11 +78,11 @@ class ModelSelector(Gtk.Box):
         lbl.set_text(text)
         lbl.set_tooltip_text(text)
 
-    def _setup_list_label(self, list_item: Gtk.ListItem) -> None:
+    def _setup_list_label(self, _factory, list_item: Gtk.ListItem) -> None:
         lbl = Gtk.Label(xalign=0)
         list_item.set_child(lbl)
 
-    def _bind_list_label(self, list_item: Gtk.ListItem) -> None:
+    def _bind_list_label(self, _factory, list_item: Gtk.ListItem) -> None:
         item = list_item.get_item()
         if item is None:
             return
@@ -112,8 +112,8 @@ class ModelSelector(Gtk.Box):
         return item.get_string() if item is not None else ""
 
     def set_backend(self, backend: str) -> None:
-        """Select the backend ("llamacpp" or "ollama") without triggering the callback."""
-        index = 1 if backend == "ollama" else 0
+        """Select the backend ("llamacpp", "ollama" or "strata") without triggering the callback."""
+        index = BACKEND_VALUES.index(backend) if backend in BACKEND_VALUES else 0
         self._backend_updating = True
         try:
             self._backend_dropdown.set_selected(index)
@@ -123,7 +123,10 @@ class ModelSelector(Gtk.Box):
     def get_backend(self) -> str:
         item = self._backend_dropdown.get_selected_item()
         text = item.get_string() if item is not None else ""
-        return "ollama" if text == "Ollama" else "llamacpp"
+        for label, value in zip(BACKENDS, BACKEND_VALUES, strict=True):
+            if text == label:
+                return value
+        return "llamacpp"
 
     def _on_selected(self, *_args) -> None:
         self._dropdown.set_tooltip_text(self.get_selected() or None)

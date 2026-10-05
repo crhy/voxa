@@ -6,10 +6,14 @@ import pytest
 
 from voxa.agent.intents import ToolCall
 from voxa.agent.planner import (
+    BROWSER_TOOLS,
     Plan,
     PlanError,
     looks_like_command,
+    parse_browser_step,
     parse_plan,
+    plan_browser_step,
+    run_browser_task,
     run_plan,
     system_prompt,
 )
@@ -249,3 +253,201 @@ def test_run_plan_on_step_sees_every_result() -> None:
     assert [tool for tool, ok, ms in seen] == ["open_site", "press_key"]
     assert all(ok for _, ok, _ in seen)
     assert all(ms >= 0 for _, _, ms in seen)
+
+
+def make_browser_registry(calls: list[tuple[str, dict[str, str]]]) -> ToolRegistry:
+    registry = ToolRegistry()
+
+    def handler(name: str):
+        def run(args: dict[str, str]) -> ToolResult:
+            calls.append((name, dict(args)))
+            return ToolResult.success("")
+        return run
+
+    registry.register(
+        Tool(name="browse", description="Open a web address", parameters={"url": "address"},
+             risk=RiskLevel.REVERSIBLE, handler=handler("browse"), required=("url",))
+    )
+    registry.register(
+        Tool(name="click_on", description="Click an element", parameters={"text": "text"},
+             risk=RiskLevel.REVERSIBLE, handler=handler("click_on"), required=("text",))
+    )
+    return registry
+
+
+class FakeBrowser:
+    def __init__(self):
+        self._outline = [{"n": 1, "kind": "link", "text": "History", "placeholder": "", "href": "/h"}]
+        self._title = "Wikipedia"
+        self._url = "https://en.wikipedia.org/"
+
+    def outline(self):
+        return self._outline
+
+    def title(self):
+        return self._title
+
+    def url(self):
+        return self._url
+
+
+def test_plan_browser_step_builds_two_messages() -> None:
+    registry = make_browser_registry([])
+    messages = plan_browser_step(
+        "open wikipedia", "Wikipedia", "https://en.wikipedia.org/",
+        ['{"n": 1}'], [], registry,
+    )
+    assert len(messages) == 2
+    assert messages[0]["role"] == "system"
+    assert "browse" in messages[0]["content"]
+    assert messages[1]["role"] == "user"
+    assert "Request: open wikipedia" in messages[1]["content"]
+
+
+def test_parse_browser_step_returns_action() -> None:
+    registry = make_browser_registry([])
+    action = parse_browser_step('{"tool": "browse", "args": {"url": "example.com"}}', registry)
+    assert action == ToolCall("browse", {"url": "example.com"})
+
+
+def test_parse_browser_step_returns_done_sentence() -> None:
+    registry = make_browser_registry([])
+    result = parse_browser_step('{"done": true, "say": "Found it."}', registry)
+    assert result == "Found it."
+
+
+def test_parse_browser_step_rejects_unknown_tool() -> None:
+    registry = make_browser_registry([])
+    with pytest.raises(PlanError, match="unknown tool"):
+        parse_browser_step('{"tool": "launch_rocket", "args": {}}', registry)
+
+
+def test_run_browser_task_stops_on_done() -> None:
+    calls: list[tuple[str, dict[str, str]]] = []
+    registry = make_browser_registry(calls)
+    session = FakeBrowser()
+    sentence = run_browser_task(
+        "read the page",
+        lambda messages: '{"done": true, "say": "All done."}',
+        session,
+        registry,
+    )
+    assert sentence == "All done."
+    assert calls == []
+
+
+def test_run_browser_task_runs_one_step_then_done() -> None:
+    calls: list[tuple[str, dict[str, str]]] = []
+    registry = make_browser_registry(calls)
+    session = FakeBrowser()
+    replies = iter(['{"tool": "browse", "args": {"url": "example.com"}}', '{"done": true, "say": "Done."}'])
+    sentence = run_browser_task(
+        "open example",
+        lambda messages: next(replies),
+        session,
+        registry,
+    )
+    assert sentence == "Done."
+    assert calls == [("browse", {"url": "example.com"})]
+
+
+from voxa.agent.planner import looks_like_browser_task  # noqa: E402
+
+
+def test_looks_like_browser_task_table() -> None:
+    cases = [
+        ("find the opening hours on the luigis.com website", True),
+        ("look up devuan on wikipedia", True),
+        ("check my order status on amazon", True),
+        ("download my statement from mybank.com", True),
+        ("search for reviews on the site", True),
+        ("read the terms on this page", True),
+        ("compare prices on the web page", True),
+        ("book a table on github", True),
+        ("tell me the version online", True),
+        ("show me the changelog on github", True),
+        ("open gmail", False),
+        ("browse to example.com", False),
+        ("what is the capital of France", False),
+        ("play jazz", False),
+        ("open the website", False),
+        ("look up the weather", False),
+    ]
+    for text, expected in cases:
+        assert looks_like_browser_task(text) is expected
+
+
+def test_run_browser_task_calls_on_step_per_step() -> None:
+    calls: list[tuple[str, dict[str, str]]] = []
+    registry = make_browser_registry(calls)
+    session = FakeBrowser()
+    replies = iter(['{"tool": "browse", "args": {"url": "example.com"}}', '{"done": true, "say": "Done."}'])
+    steps: list[tuple[str, bool]] = []
+    sentence = run_browser_task(
+        "open example",
+        lambda messages: next(replies),
+        session,
+        registry,
+        on_step=lambda call, result, ms: steps.append((call.tool, result.ok)),
+    )
+    assert sentence == "Done."
+    assert steps == [("browse", True)]
+
+
+def test_run_browser_task_stops_when_should_stop_says_so() -> None:
+    calls: list[tuple[str, dict[str, str]]] = []
+    registry = make_browser_registry(calls)
+    session = FakeBrowser()
+    replies = iter(
+        [
+            '{"tool": "browse", "args": {"url": "example.com"}}',
+            '{"tool": "click_on", "args": {"text": "Issues"}}',
+        ]
+    )
+    stops = iter([False, True])
+    sentence = run_browser_task(
+        "click issues",
+        lambda messages: next(replies),
+        session,
+        registry,
+        should_stop=lambda: next(stops),
+    )
+    assert calls == [("browse", {"url": "example.com"})]
+    assert sentence == "Wikipedia"
+
+
+def test_browser_tools_contents() -> None:
+    assert BROWSER_TOOLS == (
+        "browse",
+        "search_web",
+        "click_on",
+        "fill_field",
+        "fill_and_submit",
+        "search_site",
+        "scroll",
+        "go_back",
+        "read_page",
+        "wait_for",
+    )
+
+
+def test_parse_browser_step_allows_search_web() -> None:
+    registry = make_browser_registry([])
+    registry.register(
+        Tool(name="search_web", description="Search the web in Voxa's browser",
+             parameters={"query": "query"}, risk=RiskLevel.REVERSIBLE,
+             handler=lambda args: ToolResult.success(""), required=("query",))
+    )
+    action = parse_browser_step('{"tool": "search_web", "args": {"query": "voxa"}}', registry)
+    assert action == ToolCall("search_web", {"query": "voxa"})
+
+
+def test_parse_browser_step_rejects_non_browser_tool_even_if_registered() -> None:
+    registry = make_browser_registry([])
+    registry.register(
+        Tool(name="web_search", description="Search the web with xdg-open",
+             parameters={"query": "query"}, risk=RiskLevel.REVERSIBLE,
+             handler=lambda args: ToolResult.success(""), required=("query",))
+    )
+    with pytest.raises(PlanError, match="only use browser tools"):
+        parse_browser_step('{"tool": "web_search", "args": {"query": "voxa"}}', registry)

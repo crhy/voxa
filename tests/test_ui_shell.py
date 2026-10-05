@@ -211,3 +211,16 @@ def test_choice_card_never_overlaps_the_task_list() -> None:
     separated_horizontally = card.get_x() + card.get_width() <= panel.get_x() or panel.get_x() + panel.get_width() <= card.get_x()
     assert separated_vertically or separated_horizontally
     window.destroy()
+
+
+def test_word_timeline_and_clock_forward_to_the_assistant_view(monkeypatch) -> None:
+    model = AssistantModel()
+    shell = AssistantShell(model)
+    calls: list[tuple[str, object]] = []
+    monkeypatch.setattr(shell.assistant_view, "set_word_timeline", lambda words: calls.append(("words", words)))
+    monkeypatch.setattr(shell.assistant_view, "set_speech_clock", lambda clock: calls.append(("clock", clock)))
+
+    clock = object()
+    shell.set_word_timeline([("hi", 0.0, 0.2)])
+    shell.set_speech_clock(clock)
+    assert calls == [("words", [("hi", 0.0, 0.2)]), ("clock", clock)]

@@ -18,6 +18,8 @@ def segment_stream(
     idle_timeout_seconds: float | None = None,
     on_idle_timeout: Callable[[], None] | None = None,
     trailing_silence_seconds: float | None = None,
+    early_silence_seconds: float | None = None,
+    early_check: Callable[[bytes], bool] | None = None,
 ) -> Iterator[bytes]:
     """Yield PCM segments split at speech pauses from a live audio queue.
 
@@ -31,12 +33,19 @@ def segment_stream(
     the pending segment (if it contains voice) is yielded and the generator ends
     on its own; ``on_idle_timeout`` is not called for this case. ``None`` (the
     default) keeps the behaviour unchanged.
+
+    If ``early_silence_seconds`` and ``early_check`` are both given, then once a
+    pause reaches ``early_silence_seconds`` (before the full ``silence_seconds``
+    boundary) ``early_check`` is called once for that pause with the audio heard
+    so far; if it returns True the segment is yielded immediately. The check
+    runs at most once per pause, and a new burst of voice arms it again.
     """
     segment = bytearray()
     heard_voice = False
     heard_any_voice = False
     last_voice = time.monotonic()
     last_any_voice = last_voice
+    early_checked = False
 
     while not stop_event.is_set():
         try:
@@ -56,12 +65,28 @@ def segment_stream(
                 heard_any_voice = True
                 last_voice = now
                 last_any_voice = now
+                early_checked = False
 
         duration = len(segment) / (16000 * 2)
         # Require a little recorded content before treating a pause as a
         # boundary; scale it with the silence setting so short pauses cut
         # sooner instead of accumulating toward the max-segment cutoff.
         min_content = min(0.8, max(0.3, silence_seconds / 2.0))
+        if (
+            early_check is not None
+            and early_silence_seconds is not None
+            and heard_voice
+            and duration >= min_content
+            and not early_checked
+            and now - last_voice >= early_silence_seconds
+        ):
+            early_checked = True
+            if early_check(bytes(segment)):
+                yield bytes(segment)
+                segment = bytearray()
+                heard_voice = False
+                last_voice = now
+                early_checked = False
         pause_ready = heard_voice and duration >= min_content and now - last_voice >= silence_seconds
         max_ready = heard_voice and duration >= max_segment_seconds
         if pause_ready or max_ready:

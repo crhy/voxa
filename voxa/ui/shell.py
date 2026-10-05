@@ -21,6 +21,7 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk  # noqa: E402
 from voxa.config import Settings  # noqa: E402
 
 from .assistant_view import BADGE_PATH, AssistantView  # noqa: E402
+from .character_picker import PortraitPicker  # noqa: E402
 from .choice_overlay import ChoiceOverlay  # noqa: E402
 from .exchange_panel import ExchangePanel  # noqa: E402
 from .model_selector import ModelSelector  # noqa: E402
@@ -46,6 +47,8 @@ class AssistantShell(Gtk.Overlay):
         self.on_attach: Callable[[], None] | None = None
         self.on_model_selected: Callable[[str], None] | None = None
         self.on_backend_selected: Callable[[str], None] | None = None
+        self.on_character_selected: Callable[[str], None] | None = None
+        self.on_face_mode_selected: Callable[[str], None] | None = None
 
         self.set_hexpand(True)
         self.set_vexpand(True)
@@ -64,7 +67,8 @@ class AssistantShell(Gtk.Overlay):
         bottom_spacer.set_vexpand(True)
 
         character_id = "" if settings is None else settings.character_id
-        self.assistant_view = AssistantView(character_id)
+        face_mode = "prerendered" if settings is None else settings.face_mode
+        self.assistant_view = AssistantView(character_id, face_mode=face_mode)
         self.assistant_view.set_halign(Gtk.Align.CENTER)
         self.assistant_view.set_valign(Gtk.Align.CENTER)
 
@@ -119,10 +123,16 @@ class AssistantShell(Gtk.Overlay):
             on_model_selected=self._model_selected,
             on_backend_selected=self._backend_selected,
         )
-        self.model_selector.set_halign(Gtk.Align.CENTER)
-        self.model_selector.set_valign(Gtk.Align.END)
-        self.model_selector.set_margin_bottom(EDGE_MARGIN)
-        self.add_overlay(self.model_selector)
+        self.character_picker = PortraitPicker(
+            on_character_selected=self._character_selected,
+            on_face_mode_selected=self._face_mode_selected,
+        )
+        self._bottom_controls = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        self._bottom_controls.append(self.model_selector)
+        self._bottom_controls.set_halign(Gtk.Align.CENTER)
+        self._bottom_controls.set_valign(Gtk.Align.END)
+        self._bottom_controls.set_margin_bottom(EDGE_MARGIN)
+        self.add_overlay(self._bottom_controls)
 
         self.status_controls = StatusControls(
             on_active=self._activate,
@@ -154,12 +164,26 @@ class AssistantShell(Gtk.Overlay):
         """Select the backend in the main-shell picker without firing the callback."""
         self.model_selector.set_backend(backend)
 
+    def set_characters(self, selected: str = "") -> None:
+        """Fill the character dropdown and select the active character."""
+        self.character_picker.refresh()
+        if selected:
+            self.character_picker.set_selected(selected)
+
     def show_notice(self, text: str) -> None:
         self.notice_bar.show_text(text)
 
     def set_audio_level(self, level: float) -> None:
         """Forward the microphone level to the assistant view."""
         self.assistant_view.set_audio_level(level)
+
+    def set_word_timeline(self, words: list[tuple[str, float, float]]) -> None:
+        """Forward Edge TTS word boundaries to the assistant view."""
+        self.assistant_view.set_word_timeline(words)
+
+    def set_speech_clock(self, clock) -> None:
+        """Forward the playback clock to the assistant view."""
+        self.assistant_view.set_speech_clock(clock)
 
     # -------------------------------------------------------------- internals
 
@@ -198,6 +222,12 @@ class AssistantShell(Gtk.Overlay):
     def _backend_selected(self, backend: str) -> None:
         self._fire(self.on_backend_selected, backend)
 
+    def _character_selected(self, character_id: str) -> None:
+        self._fire(self.on_character_selected, character_id)
+
+    def _face_mode_selected(self, face_mode: str) -> None:
+        self._fire(self.on_face_mode_selected, face_mode)
+
     def _activate(self) -> None:
         self._fire(self.on_active)
 
@@ -210,8 +240,12 @@ class AssistantShell(Gtk.Overlay):
             callback(*args)
 
 
-def build_header(menu_model: Gio.MenuModel | None = None) -> Adw.HeaderBar:
-    """A clean header: badge plus the name on the left, menu button on the right."""
+def build_header(menu_model: Gio.MenuModel | None = None, end_widget: Gtk.Widget | None = None) -> Adw.HeaderBar:
+    """A clean header: badge plus the name on the left, menu button on the right.
+
+    ``end_widget`` (the portrait picker) is packed after the menu button so it
+    sits just left of it in the top-right corner.
+    """
     header = Adw.HeaderBar()
 
     brand = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
@@ -237,5 +271,8 @@ def build_header(menu_model: Gio.MenuModel | None = None) -> Adw.HeaderBar:
         menu_button.set_icon_name("open-menu-symbolic")
         menu_button.set_menu_model(menu_model)
         header.pack_end(menu_button)
+
+    if end_widget is not None:
+        header.pack_end(end_widget)
 
     return header

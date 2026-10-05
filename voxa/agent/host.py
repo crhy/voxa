@@ -14,7 +14,7 @@ IN_FLATPAK = os.path.exists("/.flatpak-info")
 def host_command(command: list[str]) -> list[str]:
     """Wrap a command so it runs on the host when we are inside Flatpak."""
     if IN_FLATPAK:
-        return ["flatpak-spawn", "--host", *command]
+        return ["flatpak-spawn", "--host", "--directory=/", *command]
     return list(command)
 
 

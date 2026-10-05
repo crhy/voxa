@@ -3,6 +3,7 @@ from __future__ import annotations
 import time
 
 from voxa.conversation import ConversationController, ConversationHistory, detect_exit_phrase, strip_wake_word
+from voxa.vocabulary import build_hint
 
 
 def test_strip_wake_word_returns_none_when_absent() -> None:
@@ -242,3 +243,202 @@ def test_without_hold_prompt_behaviour_is_unchanged() -> None:
     _drain(controller)
     assert prompts == []
     assert exits == ["stop"]
+
+
+class CountingTranscriber:
+    """Returns a fixed utterance and counts how many times it was asked."""
+
+    def __init__(self, text: str) -> None:
+        self.text = text
+        self.calls = 0
+
+    def transcribe(self, segment: bytes, language: str, hint: str = "") -> str:
+        self.calls += 1
+        return self.text
+
+
+def _make_early_controller(
+    text: str,
+    *,
+    early_final_pass: bool,
+) -> tuple[ConversationController, list[str], CountingTranscriber]:
+    prompts: list[str] = []
+    wake = CountingTranscriber(text)
+    controller = ConversationController(
+        wake_whisper=wake,
+        prompt_whisper=CountingTranscriber(text),
+        language="en",
+        wake_word="voxa",
+        threshold=500,
+        silence_ms=100,
+        early_silence_ms=50,
+        early_final_pass=early_final_pass,
+        max_segment_seconds=5.0,
+        on_woken=lambda: None,
+        on_prompt=prompts.append,
+        on_status=lambda _status: None,
+        on_error=lambda _error: None,
+    )
+    return controller, prompts, wake
+
+
+def _feed_early_utterance(controller: ConversationController) -> None:
+    loud = (b"\x00\x10" * 1000, 1000.0)
+    for _ in range(6):
+        controller.feed(*loud)
+    time.sleep(0.4)
+
+
+def test_early_completion_reuses_quick_transcript_when_final_pass_off() -> None:
+    controller, prompts, wake = _make_early_controller("voxa open gmail", early_final_pass=False)
+    controller.start()
+    _feed_early_utterance(controller)
+    _drain(controller)
+    assert prompts == ["open gmail"]
+    assert wake.calls == 1
+
+
+def test_early_completion_retranscribes_when_final_pass_on() -> None:
+    controller, prompts, wake = _make_early_controller("voxa open gmail", early_final_pass=True)
+    controller.start()
+    _feed_early_utterance(controller)
+    _drain(controller)
+    assert prompts == ["open gmail"]
+    assert wake.calls == 2
+
+
+class HintRecordingTranscriber:
+    """Records the hint each utterance is transcribed with."""
+
+    def __init__(self, texts: list[str]) -> None:
+        self.texts = list(texts)
+        self.hints: list[str] = []
+
+    def transcribe(self, segment: bytes, language: str, hint: str = "") -> str:
+        self.hints.append(hint)
+        return self.texts.pop(0) if self.texts else ""
+
+
+def _make_recording_controller(wake: HintRecordingTranscriber, prompt: HintRecordingTranscriber) -> tuple[ConversationController, list[str]]:
+    prompts: list[str] = []
+    controller = ConversationController(
+        wake_whisper=wake,
+        prompt_whisper=prompt,
+        language="en",
+        wake_word="voxa",
+        threshold=500,
+        silence_ms=100,
+        max_segment_seconds=0.3,
+        on_woken=lambda: None,
+        on_prompt=prompts.append,
+        on_status=lambda _status: None,
+        on_error=lambda _error: None,
+    )
+    return controller, prompts
+
+
+def test_wake_phase_keeps_its_short_hint(monkeypatch) -> None:
+    monkeypatch.setattr("voxa.conversation.refresh_app_names", lambda: ["GIMP"])
+    wake = HintRecordingTranscriber(["voxa open gimp"])
+    controller, prompts = _make_recording_controller(wake, HintRecordingTranscriber([]))
+    controller.start()
+    _feed_utterance(controller)
+    _drain(controller)
+    assert prompts == ["open gimp"]
+    assert wake.hints and set(wake.hints) == {"Voxa."}
+
+
+def test_prompt_transcription_gets_the_built_vocabulary_hint(monkeypatch) -> None:
+    monkeypatch.setattr("voxa.conversation.refresh_app_names", lambda: ["GIMP", "Firefox"])
+    expected = build_hint(["GIMP", "Firefox"], "voxa")
+    wake = HintRecordingTranscriber([])
+    prompt = HintRecordingTranscriber(["open gimp"])
+    controller, prompts = _make_recording_controller(wake, prompt)
+    controller.start()
+    controller.hold_prompt()
+    _feed_utterance(controller)
+    _drain(controller)
+    assert prompts == ["open gimp"]
+    assert prompt.hints == [expected]
+    assert wake.hints == []
+
+
+class _ConstTranscriber:
+    """Always returns the same text, so early-check and final pass agree."""
+
+    def __init__(self, text: str) -> None:
+        self.text = text
+
+    def transcribe(self, segment: bytes, language: str, hint: str = "") -> str:
+        return self.text
+
+
+def _make_followup_controller(text: str) -> tuple[ConversationController, list[str], list[str]]:
+    prompts: list[str] = []
+    exits: list[str] = []
+    controller = ConversationController(
+        wake_whisper=_ConstTranscriber(text),
+        prompt_whisper=_ConstTranscriber(text),
+        language="en",
+        wake_word="voxa",
+        threshold=500,
+        silence_ms=100,
+        max_segment_seconds=0.3,
+        on_woken=lambda: None,
+        on_prompt=prompts.append,
+        on_status=lambda _status: None,
+        on_error=lambda _error: None,
+        on_exit=exits.append,
+    )
+    return controller, prompts, exits
+
+
+def test_followup_delivers_continuation_without_wake_word() -> None:
+    controller, prompts, exits = _make_followup_controller("and the hallway too")
+    controller.start()
+    controller.open_followup(6.0)
+    _feed_utterance(controller)
+    _drain(controller)
+    assert prompts == ["and the hallway too"]
+    assert exits == []
+
+
+def test_followup_delivers_question_without_wake_word() -> None:
+    controller, prompts, exits = _make_followup_controller("what is the weather")
+    controller.start()
+    controller.open_followup(6.0)
+    _feed_utterance(controller)
+    _drain(controller)
+    assert prompts == ["what is the weather"]
+    assert exits == []
+
+
+def test_followup_ignores_plain_speech_without_wake_word() -> None:
+    controller, prompts, exits = _make_followup_controller("nice weather today")
+    controller.start()
+    controller.open_followup(6.0)
+    _feed_utterance(controller)
+    _drain(controller)
+    assert prompts == []
+    assert exits == []
+
+
+def test_followup_ignores_speech_after_the_window_closes() -> None:
+    controller, prompts, exits = _make_followup_controller("and the hallway too")
+    controller.start()
+    controller.open_followup(0.05)
+    time.sleep(0.1)
+    _feed_utterance(controller)
+    _drain(controller)
+    assert prompts == []
+    assert exits == []
+
+
+def test_dictation_ignores_the_followup_gate() -> None:
+    controller, prompts, exits = _make_followup_controller("nice weather today")
+    controller.start()
+    controller.hold_prompt()
+    _feed_utterance(controller)
+    _drain(controller)
+    assert prompts == ["nice weather today"]
+    assert exits == []

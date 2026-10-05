@@ -9,6 +9,8 @@ import threading
 import time
 from pathlib import Path
 
+from voxa.agent.actionlog import default_path
+
 from .cases import load_cases, save_cases
 from .commands import (
     DEFAULT_COMMAND_CASES_PATH,
@@ -20,6 +22,7 @@ from .commands import (
 from .config import DEFAULT_DATA_PATH, DEFAULT_FAILURE_REPORT_PATH, DEFAULT_REPORTS_DIR, load_settings
 from .generate_cases import generate_cases
 from .grader import GradeResult
+from .latency import format_latency, latency_report, load_records
 from .report import format_results, report_paths, write_reports
 from .runner import RunResult, run_case
 
@@ -60,6 +63,14 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     commands.add_argument("--cases", default=str(DEFAULT_COMMAND_CASES_PATH))
     commands.add_argument("--report-dir", default=str(DEFAULT_REPORTS_DIR))
     commands.add_argument("--action-log", help="Optional Voxa action log to report real-world misses from.")
+
+    latency = subparsers.add_parser("latency", help="Report command latency stats from the action log.")
+    latency.add_argument(
+        "--action-log",
+        default=str(default_path()),
+        help="Action log path (default: the Voxa action log).",
+    )
+    latency.add_argument("--last", type=int, help="Only consider the last N records.")
 
     return parser.parse_args(argv)
 
@@ -394,6 +405,11 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "commands":
         return _run_command_bench(Path(args.cases), Path(args.report_dir), args.action_log)
+
+    if args.command == "latency":
+        report = latency_report(load_records(Path(args.action_log), args.last))
+        print(format_latency(report))
+        return 0
 
     return 1
 

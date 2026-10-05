@@ -36,7 +36,7 @@ def _privileged_shell_command() -> list[str]:
         # flatpak-spawn --host hands the command to the *host* pkexec, since
         # a sandboxed process cannot show a PolicyKit prompt or install onto
         # the host itself. Requires --talk-name=org.freedesktop.Flatpak.
-        return ["flatpak-spawn", "--host", *base]
+        return ["flatpak-spawn", "--host", "--directory=/", *base]
     return base
 
 

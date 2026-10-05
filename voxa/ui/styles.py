@@ -146,14 +146,39 @@ VOXA_CSS = """
 }
 
 .voxa-state {
-    font-size: 14px;
-    opacity: 0.72;
+    font-size: 30px;
+    font-weight: 800;
+    opacity: 1;
+    margin-top: 16px;
+    letter-spacing: 0.01em;
 }
 
-.voxa-assistant-view.listening .voxa-state,
+.voxa-state-hint {
+    font-size: 15px;
+    opacity: 0.75;
+    margin-top: 4px;
+}
+
+.voxa-assistant-view.ready .voxa-state,
+.voxa-assistant-view.listening .voxa-state {
+    color: #3fb950;
+}
+
 .voxa-assistant-view.thinking .voxa-state,
+.voxa-assistant-view.working .voxa-state {
+    color: #d29922;
+}
+
 .voxa-assistant-view.speaking .voxa-state {
-    opacity: 1;
+    color: #58a6ff;
+}
+
+.voxa-assistant-view.error .voxa-state {
+    color: #f85149;
+}
+
+.voxa-assistant-view.offline .voxa-state {
+    opacity: 0.6;
 }
 
 .voxa-avatar {
@@ -252,6 +277,26 @@ VOXA_CSS = """
 .voxa-assistant-view.speaking .voxa-avatar.audio-high {
     animation-duration: 1.2s;
     opacity: 0.96;
+}
+
+/* Portrait picker: a round photo in the header and a grid of cells in the popover. */
+.voxa-portrait-button {
+    border-radius: 999px;
+}
+
+.voxa-portrait-cell {
+    padding: 4px;
+    border-radius: 10px;
+}
+
+.voxa-portrait-cell.selected-character {
+    outline: 2px solid @accent_color;
+    outline-offset: 2px;
+}
+
+.caption {
+    font-size: 11px;
+    opacity: 0.8;
 }
 """
 

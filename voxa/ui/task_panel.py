@@ -7,7 +7,10 @@ from collections.abc import Callable
 import gi
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk  # noqa: E402
+gi.require_version("Pango", "1.0")
+from gi.repository import GLib, Gtk, Pango  # noqa: E402
+
+from voxa.errors import friendly_error  # noqa: E402
 
 from .state import TaskState, VoxaTask  # noqa: E402
 
@@ -16,13 +19,17 @@ MAX_CONTENT_HEIGHT = 360
 #: to keep the panel within the 250-285 px the design calls for.
 LABEL_WIDTH_CHARS = 26
 PANEL_MIN_WIDTH = 250
+#: A failed or cancelled task stays visible this long, then drops from the list.
+ENDED_HIDE_MS = 12000
+#: A detail label wraps and is capped at this many lines, with an ellipsis.
+DETAIL_MAX_LINES = 3
 
 
 def _detail_for(task: VoxaTask) -> str:
     if task.detail:
         return task.detail
     if task.state is TaskState.FAILED:
-        return task.error or "Failed"
+        return friendly_error(task.error or "Failed")
     if task.state is TaskState.WAITING:
         return "Waiting for approval"
     if task.progress is not None:
@@ -47,10 +54,33 @@ class TaskPanel(Gtk.Box):
         scroller.set_child(self._content)
         self.append(scroller)
         self.set_visible(False)
+        self._last_tasks: list[VoxaTask] = []
+        self._hide_source = 0
 
     def set_tasks(self, tasks: list[VoxaTask]) -> None:
-        """Rebuild the panel from a task snapshot."""
-        active = [t for t in tasks if t.state in (TaskState.RUNNING, TaskState.WAITING, TaskState.FAILED)]
+        """Rebuild the panel from a task snapshot and (re)arm the hide timer."""
+        self._last_tasks = tasks
+        if self._hide_source:
+            GLib.source_remove(self._hide_source)
+            self._hide_source = 0
+        self._rebuild(tasks, hide_ended=False)
+        if any(t.state in (TaskState.FAILED, TaskState.CANCELLED) for t in tasks):
+            self._hide_source = GLib.timeout_add(ENDED_HIDE_MS, self._expire_ended)
+
+    def _expire_ended(self) -> bool:
+        """Drop failed/cancelled tasks once their hide timer fires."""
+        self._hide_source = 0
+        self._rebuild(self._last_tasks, hide_ended=True)
+        return False
+
+    def _rebuild(self, tasks: list[VoxaTask], *, hide_ended: bool) -> None:
+        ended = (TaskState.FAILED, TaskState.CANCELLED)
+        active = [
+            t
+            for t in tasks
+            if t.state in (TaskState.RUNNING, TaskState.WAITING, TaskState.FAILED)
+            and not (hide_ended and t.state in ended)
+        ]
         todo = [t for t in tasks if t.state is TaskState.QUEUED]
 
         child = self._content.get_first_child()
@@ -65,7 +95,8 @@ class TaskPanel(Gtk.Box):
 
         self.set_visible(True)
         if active:
-            self._content.append(self._section_heading("ACTIVE TASKS"))
+            heading = "ACTIVE TASKS" if any(t.state is TaskState.RUNNING for t in active) else "TASKS"
+            self._content.append(self._section_heading(heading))
             for task in active:
                 self._content.append(self._task_row(task, cancellable=task.state is not TaskState.FAILED))
         if todo:
@@ -96,6 +127,8 @@ class TaskPanel(Gtk.Box):
         detail.set_xalign(0)
         detail.set_wrap(True)
         detail.set_max_width_chars(LABEL_WIDTH_CHARS)
+        detail.set_lines(DETAIL_MAX_LINES)
+        detail.set_ellipsize(Pango.EllipsizeMode.END)
         detail.add_css_class("voxa-task-detail")
         if task.state is TaskState.FAILED:
             detail.add_css_class("error")

@@ -1,9 +1,9 @@
 """Central assistant view: artwork plus a state caption.
 
-This is the widget boundary where a live 3D avatar renderer will later be
-swapped in: the rest of the application only calls ``set_state``,
-``set_listening``, ``set_thinking``, ``set_speaking`` and
-``set_audio_level`` and never inspects how the avatar is drawn.
+This is the widget boundary where the photo face renderer is swapped in:
+the rest of the application only calls ``set_state``, ``set_listening``,
+``set_thinking``, ``set_speaking`` and ``set_audio_level`` and never
+inspects how the avatar is drawn.
 """
 
 from __future__ import annotations
@@ -19,6 +19,7 @@ gi.require_version("Gdk", "4.0")
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, Gtk  # noqa: E402
 
+from .avatars import get_avatar, portrait_is_available  # noqa: E402
 from .state import AssistantState  # noqa: E402
 
 BADGE_PATH = Path(__file__).resolve().parent / "assets" / "voxa-badge.png"
@@ -27,12 +28,23 @@ AVATAR_SIZE = 320
 STATE_CAPTIONS = {
     AssistantState.OFFLINE: "Offline",
     AssistantState.READY: "Ready",
-    AssistantState.LISTENING: "Listening…",
+    AssistantState.LISTENING: "Listening",
     AssistantState.THINKING: "Thinking…",
     AssistantState.SPEAKING: "Speaking…",
     AssistantState.WORKING: "Working…",
     AssistantState.WAITING: "Waiting for you…",
     AssistantState.ERROR: "Something went wrong",
+}
+
+STATE_HINTS = {
+    AssistantState.OFFLINE: "Press ACTIVE to start listening",
+    AssistantState.READY: "Say “Voxa”, then your request",
+    AssistantState.LISTENING: "Go ahead",
+    AssistantState.THINKING: "",
+    AssistantState.SPEAKING: "Say “Voxa” to interrupt",
+    AssistantState.WORKING: "",
+    AssistantState.WAITING: "Answer to continue",
+    AssistantState.ERROR: "Try again",
 }
 
 
@@ -46,6 +58,7 @@ class AvatarRenderer(Protocol):
 
     widget: Gtk.Box
     caption: Gtk.Label
+    hint: Gtk.Label
 
     def set_character(self, character_id: str | None) -> None: ...
 
@@ -130,21 +143,32 @@ class StaticAssistantRenderer(AvatarRendererBase):
         self.caption.set_xalign(0.5)
         self.caption.add_css_class("voxa-state")
 
+        self.hint = Gtk.Label(label=STATE_HINTS[AssistantState.OFFLINE])
+        self.hint.set_xalign(0.5)
+        self.hint.add_css_class("voxa-state-hint")
+
         self.widget = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         self.widget.add_css_class("voxa-avatar-renderer")
         self.widget.append(avatar)
         self.widget.append(self.caption)
+        self.widget.append(self.hint)
 
     def set_state(self, state: AssistantState, detail: str = "") -> None:
-        self.caption.set_text(detail if detail else STATE_CAPTIONS.get(state, "Ready"))
-        if state == AssistantState.READY:
-            self._view.add_css_class("ready")
+        if detail:
+            self.caption.set_text(detail)
+            self.hint.set_text("")
+            self.hint.set_visible(False)
         else:
-            self._view.remove_css_class("ready")
-        if state == AssistantState.ERROR:
-            self._view.add_css_class("error")
-        else:
-            self._view.remove_css_class("error")
+            self.caption.set_text(STATE_CAPTIONS.get(state, ""))
+            hint = STATE_HINTS.get(state, "")
+            self.hint.set_text(hint)
+            self.hint.set_visible(bool(hint))
+        for other in AssistantState:
+            css_class = other.name.lower()
+            if other is state:
+                self._view.add_css_class(css_class)
+            else:
+                self._view.remove_css_class(css_class)
 
     def set_listening(self, active: bool) -> None:
         self._set_activity("listening", active)
@@ -178,103 +202,78 @@ class StaticAssistantRenderer(AvatarRendererBase):
             self._avatar.add_css_class("audio-high")
 
 
+def avatar_3d_enabled() -> bool:
+    """The 3D avatar is on by default; only an explicit off value disables it."""
+    value = os.environ.get("VOXA_3D_AVATAR", "").strip().lower()
+    return value not in ("0", "false", "no", "off")
+
+
+def _portrait_available(character_id: str) -> bool:
+    """True only when the character resolves to an avatar with a portrait on disk."""
+    avatar = get_avatar(character_id)
+    return avatar is not None and portrait_is_available(avatar)
+
+
 class AssistantView(Gtk.Box):
     """The Voxa presence at the center of the window."""
 
-    def __init__(self, character_id: str | None = None) -> None:
+    def __init__(self, character_id: str | None = None, face_mode: str = "prerendered") -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         self.add_css_class("voxa-assistant-view")
 
         self._character_id = "grace" if character_id is None else character_id
+        self._face_mode = face_mode
         self._static_renderer = StaticAssistantRenderer(self)
+        self._photo_renderer = None
         self._renderer: AvatarRenderer = self._static_renderer
         self._3d_renderer = None
-        self._3d_enabled = False
-        self._3d_pending = False
-        self.append(self._static_renderer.widget)
+        self._append_static()
+        if self._character_id:
+            self.set_character(self._character_id)
 
-        if self._character_id and os.environ.get("VOXA_3D_AVATAR") == "1":
-            try:
-                from .avatar_3d import Gl3DFaceRenderer
-
-                renderer = Gl3DFaceRenderer(self)
-                renderer.set_character(self._character_id)
-                if renderer.widget is None:
-                    raise RuntimeError("3D avatar renderer produced no widget")
-                self._3d_renderer = renderer
-                self.append(renderer.widget)
-                self._static_renderer.widget.set_visible(False)
-            except Exception as exc:
-                logging.warning("3D avatar renderer unavailable; falling back: %s", exc)
-
-        self.connect("realize", self._enable_3d_renderer)
-
-    def _enable_3d_renderer(self, *_args) -> bool:
-        """Prepare the GLArea renderer once the assistant view is realized.
-
-        GLArea initializes its GL context asynchronously.  This method only
-        attaches and prepares the candidate renderer; the GLArea render callback
-        activates it when the GL context is actually valid.
-        """
-        if self._3d_enabled or self._3d_renderer is None:
-            return False
-
-        renderer = self._3d_renderer
-        widget = renderer.widget
-        if widget.get_parent() is not self:
-            self.append(widget)
-
-        try:
-            renderer._initialize_gl()
-        except Exception as exc:
-            logging.warning("3D avatar renderer unavailable; falling back: %s", exc)
-            self._fallback_3d_renderer()
-            return False
-
-        if renderer._gl_ok and renderer._render_error is None:
-            return self._activate_3d_renderer(renderer)
-
-        self._3d_pending = True
-        return False
-
-    def _activate_3d_renderer(self, renderer=None) -> bool:
-        if renderer is None:
-            renderer = self._3d_renderer
-        if renderer is None:
-            return False
-
-        widget = renderer.widget
-        if widget.get_parent() is not self:
-            self.append(widget)
-
-        if self._static_renderer.widget.get_parent() is self:
-            self.remove(self._static_renderer.widget)
-
-        self._renderer = renderer
-        self._3d_enabled = True
-        self._3d_pending = False
-        return True
-
-    def _on_3d_renderer_ready(self, renderer) -> bool:
-        """Idle-safe callback used by the GLArea render handler."""
-        self._activate_3d_renderer(renderer)
-        return False
-
-    def _fallback_3d_renderer(self) -> None:
-        renderer = self._3d_renderer
-        if renderer is not None:
-            widget = renderer.widget
+    def _append_static(self) -> None:
+        """Show the static badge and make it the active renderer."""
+        if self._photo_renderer is not None:
+            widget = self._photo_renderer.widget
             if widget.get_parent() is self:
                 self.remove(widget)
-
-        self._3d_renderer = None
-        self._renderer = self._static_renderer
-        self._3d_enabled = False
-        self._3d_pending = False
-
+            self._photo_renderer = None
         if self._static_renderer.widget.get_parent() is not self:
             self.append(self._static_renderer.widget)
         self._static_renderer.widget.set_visible(True)
+        self._static_renderer._avatar.set_visible(True)
+        self._renderer = self._static_renderer
+
+    def _show_photo(self, renderer) -> None:
+        """Put the photo face above the caption; only the badge image is hidden, the status text stays."""
+        if self._photo_renderer is not None and self._photo_renderer is not renderer:
+            old = self._photo_renderer.widget
+            if old.get_parent() is self:
+                self.remove(old)
+        widget = renderer.widget
+        widget.set_size_request(AVATAR_SIZE, AVATAR_SIZE)
+        widget.set_hexpand(True)
+        widget.set_vexpand(True)
+        if widget.get_parent() is not self:
+            self.prepend(widget)
+        if self._static_renderer.widget.get_parent() is not self:
+            self.append(self._static_renderer.widget)
+        self._static_renderer.widget.set_visible(True)
+        self._static_renderer._avatar.set_visible(False)
+        self._photo_renderer = renderer
+        self._renderer = renderer
+
+    def _enable_3d_renderer(self, *_args) -> bool:
+        """Kept for callers outside this view; the 3D renderer is no longer used."""
+        return False
+
+    def _on_3d_renderer_ready(self, renderer) -> bool:
+        """Kept for callers outside this view; the 3D renderer is no longer used."""
+        return False
+
+    def _fallback_3d_renderer(self) -> None:
+        """Kept for callers outside this view; nothing to fall back from."""
+        self._3d_renderer = None
 
     @property
     def renderer(self) -> AvatarRenderer:
@@ -282,55 +281,73 @@ class AssistantView(Gtk.Box):
 
     @property
     def caption(self) -> Gtk.Label:
-        return self._renderer.caption
+        return getattr(self._renderer, "caption", self._static_renderer.caption)
+
+    @property
+    def hint(self) -> Gtk.Label:
+        return getattr(self._renderer, "hint", self._static_renderer.hint)
 
     @property
     def audio_level(self) -> float:
-        return self._renderer.audio_level
+        return getattr(self._renderer, "audio_level", self._static_renderer.audio_level)
+
+    def set_face_mode(self, mode: str) -> None:
+        """Remember the face mode and push it into the live photo renderer."""
+        self._face_mode = mode
+        if self._photo_renderer is not None:
+            self._photo_renderer.set_mode(mode)
+
+    def get_face_mode(self) -> str:
+        return self._face_mode
 
     def set_character(self, character_id: str | None) -> None:
         """Switch the assistant avatar without rebuilding the whole view."""
         self._character_id = character_id if character_id is not None else ""
 
         if not self._character_id:
-            if self._3d_renderer is not None:
-                self._fallback_3d_renderer()
+            self._append_static()
             return
 
-        if self._3d_renderer is not None:
-            self._3d_renderer.set_character(self._character_id)
-            if not self._3d_enabled:
-                self._activate_3d_renderer(self._3d_renderer)
-        elif os.environ.get("VOXA_3D_AVATAR") == "1":
+        if _portrait_available(self._character_id):
             try:
-                from .avatar_3d import Gl3DFaceRenderer
+                from .photo_face import PhotoFaceRenderer
 
-                renderer = Gl3DFaceRenderer(self)
+                renderer = PhotoFaceRenderer(self)
                 renderer.set_character(self._character_id)
-                if renderer.widget is None:
-                    raise RuntimeError("3D avatar renderer produced no widget")
-                self._3d_renderer = renderer
-                self._activate_3d_renderer(renderer)
+                renderer.set_mode(self._face_mode)
+                self._show_photo(renderer)
             except Exception as exc:
-                logging.warning("3D avatar renderer unavailable; falling back: %s", exc)
-                self._fallback_3d_renderer()
+                logging.warning("photo face renderer unavailable; falling back: %s", exc)
+                self._append_static()
+        else:
+            self._append_static()
 
     def set_state(self, state: AssistantState, detail: str = "") -> None:
         """Update the caption; a non-empty detail replaces the default text."""
         self._renderer.set_state(state, detail)
+        if self._renderer is not self._static_renderer:
+            self._static_renderer.set_state(state, detail)
 
     def set_listening(self, active: bool) -> None:
         self._renderer.set_listening(active)
+        if self._renderer is not self._static_renderer:
+            self._static_renderer.set_listening(active)
 
     def set_thinking(self, active: bool) -> None:
         self._renderer.set_thinking(active)
+        if self._renderer is not self._static_renderer:
+            self._static_renderer.set_thinking(active)
 
     def set_speaking(self, active: bool) -> None:
         self._renderer.set_speaking(active)
+        if self._renderer is not self._static_renderer:
+            self._static_renderer.set_speaking(active)
 
     def set_audio_level(self, level: float) -> None:
         """Store the clamped 0..1 audio level; cheap enough for 20 Hz calls."""
         self._renderer.set_audio_level(level)
+        if self._renderer is not self._static_renderer:
+            self._static_renderer.set_audio_level(level)
 
     def set_emotion(self, name: str) -> None:
         self._renderer.set_emotion(name)
@@ -343,3 +360,13 @@ class AssistantView(Gtk.Box):
 
     def set_activity_intensity(self, value: float) -> None:
         self._renderer.set_activity_intensity(value)
+
+    def set_word_timeline(self, words: list[tuple[str, float, float]]) -> None:
+        """Forward Edge TTS word boundaries to the active renderer, if it has one."""
+        if hasattr(self._renderer, "set_word_timeline"):
+            self._renderer.set_word_timeline(words)
+
+    def set_speech_clock(self, clock) -> None:
+        """Forward the playback clock to the active renderer, if it has one."""
+        if hasattr(self._renderer, "set_speech_clock"):
+            self._renderer.set_speech_clock(clock)

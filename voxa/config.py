@@ -9,6 +9,8 @@ from typing import Any
 
 from voxa.ui.avatars import get_avatar
 
+FACE_MODES = ("live", "prerendered", "still")
+
 
 @dataclass(slots=True)
 class Settings:
@@ -20,17 +22,25 @@ class Settings:
     ai_backend: str = "llamacpp"
     llamacpp_url: str = "http://127.0.0.1:8080"
     llamacpp_model: str = ""
+    strata_url: str = "http://127.0.0.1:8080"
     language: str = "en"
     character_id: str = ""
+    face_mode: str = "prerendered"
     tts_rate: int = 180
     tts_voice: str = "en-US-AriaNeural"
     appearance: str = "system"
     auto_speak: bool = True
     web_search: bool = True
-    silence_ms: int = 900
+    silence_ms: int = 700
     voice_threshold: int = 450
     max_segment_seconds: float = 6.0
     wake_word: str = "voxa"
+    early_silence_ms: int = 300
+    early_final_pass: bool = False
+    suggestions_enabled: bool = True
+    followup_seconds: float = 6.0
+    home_assistant_url: str = ""
+    home_assistant_token: str = ""
 
     def normalized(self) -> Settings:
         self.tts_rate = max(80, min(350, int(self.tts_rate)))
@@ -38,17 +48,22 @@ class Settings:
             self.appearance = "system"
         self.tts_voice = (self.tts_voice or "en-US-AriaNeural").strip()
         self.silence_ms = max(300, min(4000, int(self.silence_ms)))
+        self.early_silence_ms = max(150, min(800, int(self.early_silence_ms)))
         self.voice_threshold = max(50, min(5000, int(self.voice_threshold)))
         self.max_segment_seconds = max(2.0, min(20.0, float(self.max_segment_seconds)))
+        self.followup_seconds = max(0.0, min(20.0, float(self.followup_seconds)))
         self.ollama_url = self.ollama_url.rstrip("/") or "http://127.0.0.1:11434"
         self.llamacpp_url = self.llamacpp_url.rstrip("/") or "http://127.0.0.1:8080"
-        if self.ai_backend not in {"llamacpp", "ollama"}:
+        self.strata_url = self.strata_url.rstrip("/") or "http://127.0.0.1:8080"
+        if self.ai_backend not in {"llamacpp", "ollama", "strata"}:
             self.ai_backend = "llamacpp"
         self.language = (self.language or "en").strip()[:16]
         self.wake_word = (self.wake_word or "voxa").strip()[:32] or "voxa"
         self.character_id = (self.character_id or "").strip().lower()
         if self.character_id and get_avatar(self.character_id) is None:
             self.character_id = ""
+        if self.face_mode not in FACE_MODES:
+            self.face_mode = "prerendered"
         return self
 
 

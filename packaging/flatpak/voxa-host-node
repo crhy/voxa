@@ -1,0 +1,4 @@
+#!/bin/sh
+# yt-dlp runs this as its JavaScript runtime: Node.js from the host, since the sandbox has none.
+# The host shell started by flatpak-spawn has a short PATH, so the usual per-user locations are added.
+exec flatpak-spawn --host --directory=/ sh -c 'PATH="$HOME/.local/bin:$HOME/.nvm/current/bin:/usr/local/bin:$PATH"; exec node "$@"' voxa-host-node "$@"

@@ -111,6 +111,60 @@ def test_open_url_rejects_bad_input(opened):
 
 
 def test_play_youtube_tool(opened, monkeypatch):
+    class FakeSession:
+        def ensure(self):
+            return None
+
+        def goto(self, url, wait=15.0):
+            return None
+
+        def _call(self, method, params=None, timeout=None):
+            return {}
+
+        def evaluate(self, expression, timeout=10.0):
+            if "has_video" in expression:
+                return {"playing": True, "wall": False, "has_video": True, "time": 1.0, "error": ""}
+            return True
+
+    monkeypatch.setattr("voxa.agent.tools.web.get_session", lambda: FakeSession())
+    result = default_registry().call("play_youtube", {"query": "lo-fi beats"})
+    assert result.ok
+    assert result.speech == "Playing lo-fi beats on YouTube."
+    assert opened == []
+
+
+def test_play_youtube_embed_speech(opened, monkeypatch):
+    states = [{"playing": False, "wall": True}, {"playing": False, "wall": True}, {"playing": True}]
+
+    class FakeSession:
+        def ensure(self):
+            return None
+
+        def goto(self, url, wait=15.0):
+            return None
+
+        def _call(self, method, params=None, timeout=None):
+            return {}
+
+        def evaluate(self, expression, timeout=10.0):
+            if "has_video" in expression:
+                return states.pop(0)
+            return True
+
+    monkeypatch.setattr("voxa.agent.tools.web.get_session", lambda: FakeSession())
+    result = default_registry().call("play_youtube", {"query": "lo-fi beats"})
+    assert result.ok
+    assert result.speech == "Playing lo-fi beats."
+
+
+def test_play_youtube_falls_back_on_cdp_error(opened, monkeypatch):
+    from voxa.agent.cdp import CdpError
+
+    class BrokenSession:
+        def ensure(self):
+            raise CdpError("the browser did not start in time")
+
+    monkeypatch.setattr("voxa.agent.tools.web.get_session", lambda: BrokenSession())
     monkeypatch.setattr(
         "voxa.agent.tools.browser.youtube_play_url",
         lambda query: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
@@ -144,21 +198,52 @@ def test_web_search_tool(opened):
     assert opened == [["xdg-open", "https://duckduckgo.com/?q=lo-fi%20beats%20%26%20rain"]]
 
 
+def test_image_search_tool(opened):
+    result = default_registry().call("image_search", {"query": "lo-fi beats & rain"})
+    assert result.ok
+    assert result.speech == "Here are images of lo-fi beats & rain."
+    assert opened == [["xdg-open", "https://search.brave.com/images?q=lo-fi%20beats%20%26%20rain"]]
+
+
 def test_registry_lists_all_tools():
     names = default_registry().names()
     assert names == [
+        "browse",
+        "cancel_reminders",
+        "click_on",
         "close_app",
         "close_window",
         "compose_gmail",
+        "fill_and_submit",
+        "fill_field",
+        "go_back",
+        "home_scene",
+        "home_set",
+        "home_status",
+        "home_turn",
+        "image_search",
+        "list_reminders",
+        "media_control",
         "open_app",
         "open_site",
         "open_url",
+        "page_outline",
+        "play_latest",
+        "play_music",
+        "play_video",
         "play_youtube",
         "press_key",
+        "read_page",
+        "scroll",
+        "search_site",
+        "search_web",
         "search_youtube",
         "send_gmail",
+        "set_reminder",
+        "set_timer",
         "switch_to",
         "type_text",
+        "wait_for",
         "web_search",
     ]
 

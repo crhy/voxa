@@ -25,7 +25,7 @@ FLATPAK_PATH = "/home/rhy/.flatpak/exports/share/applications/io.github.crhy.Bru
 
 
 def _argvs(calls: list[list[str]]) -> list[list[str]]:
-    return [call[2:] if call[:2] == ["flatpak-spawn", "--host"] else call for call in calls]
+    return [call[3:] if call[:3] == ["flatpak-spawn", "--host", "--directory=/"] else call for call in calls]
 
 
 def _recorder(calls: list[list[str]], listing: str):

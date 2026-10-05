@@ -100,7 +100,7 @@ def test_failed_task_shown_in_active_until_gone() -> None:
     model.fail_task(task.id, "disk full")
     _pump()
     assert panel.get_visible()
-    assert _headings(panel) == ["ACTIVE TASKS"]
+    assert _headings(panel) == ["TASKS"]
     errors = [w for w in _descendants(panel) if w.has_css_class("voxa-task-detail") and w.has_css_class("error")]
     assert errors and errors[0].get_text() == "disk full"
 
@@ -115,3 +115,47 @@ def test_long_titles_wrap_instead_of_widening_the_panel() -> None:
 
     _minimum, natural, _min_baseline, _nat_baseline = panel.measure(Gtk.Orientation.HORIZONTAL, -1)
     assert 250 <= natural <= 290
+
+
+def test_failed_task_hidden_after_the_timer_running_task_kept() -> None:
+    panel = TaskPanel()
+    model = AssistantModel()
+    model.on_tasks_changed = panel.set_tasks
+    failed = model.add_task("Backup")
+    model.start_task(failed.id)
+    model.fail_task(failed.id, "disk full")
+    running = model.add_task("Update website")
+    model.start_task(running.id)
+    _pump()
+
+    assert panel.get_visible()
+    titles = [w.get_text() for w in _descendants(panel) if w.has_css_class("voxa-task-title")]
+    assert titles == ["Backup", "Update website"]
+
+    # Simulate the 12-second hide timer firing.
+    panel._expire_ended()
+    _pump()
+    assert panel.get_visible()
+    titles = [w.get_text() for w in _descendants(panel) if w.has_css_class("voxa-task-title")]
+    assert titles == ["Update website"]
+    assert not [w for w in _descendants(panel) if w.has_css_class("error")]
+
+
+def test_panel_rebuild_cancels_the_previous_hide_timer(monkeypatch) -> None:
+    removed: list[int] = []
+    real_remove = GLib.source_remove
+    monkeypatch.setattr(GLib, "source_remove", lambda src: removed.append(src) or real_remove(src))
+    panel = TaskPanel()
+    model = AssistantModel()
+    model.on_tasks_changed = panel.set_tasks
+    failed = model.add_task("Backup")
+    model.start_task(failed.id)
+    model.fail_task(failed.id, "disk full")
+    _pump()
+    first = panel._hide_source
+    assert first
+
+    model.add_task("Later")  # any later change rebuilds the panel
+    _pump()
+    assert panel._hide_source != first
+    assert first in removed

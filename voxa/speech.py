@@ -6,6 +6,7 @@ import os
 import subprocess
 import tempfile
 import threading
+import time
 from pathlib import Path
 from typing import Any
 
@@ -44,6 +45,8 @@ class SpeechService:
         self._on_started = None
         self._on_done = None
         self._on_error = None
+        self._on_words = None
+        self._started_at = None
         self._started_emitted = False
         self._finished = False
 
@@ -56,6 +59,7 @@ class SpeechService:
         on_started,
         on_done,
         on_error,
+        on_words=None,
     ) -> None:
         self.stop()
         cancel_event = threading.Event()
@@ -63,6 +67,8 @@ class SpeechService:
         self._on_started = on_started
         self._on_done = on_done
         self._on_error = on_error
+        self._on_words = on_words
+        self._started_at = None
         self._started_emitted = False
         self._finished = False
 
@@ -174,6 +180,13 @@ class SpeechService:
         async for message in communicate.stream():
             if cancel_event.is_set() or cancel_event is not self.cancel_event:
                 return
+            if message.get("type") == "WordBoundary":
+                if self._on_words is not None:
+                    word = message.get("text", "")
+                    start_s = message.get("offset", 0) / 10_000_000
+                    duration_s = message.get("duration", 0) / 10_000_000
+                    self._on_words([(word, start_s, duration_s)])
+                continue
             if message.get("type") != "audio":
                 continue
             data = message.get("data", b"")
@@ -299,9 +312,27 @@ class SpeechService:
         if not self._is_current(cancel_event) or self._started_emitted or self._finished:
             return False
         self._started_emitted = True
+        self._started_at = time.monotonic()
         if self._on_started is not None:
             self._on_started()
         return False
+
+    def position(self) -> float:
+        """Playback seconds elapsed in the current utterance, for the renderer.
+
+        Uses the GStreamer pipeline position when it is known, otherwise the
+        wall-clock time since :meth:`on_started` fired, otherwise ``0.0``.
+        """
+        if self.pipeline is not None:
+            try:
+                pos = self.pipeline.get_position()
+            except Exception:
+                pos = -1.0
+            if pos is not None and pos >= 0.0:
+                return pos
+        if self._started_at is not None:
+            return time.monotonic() - self._started_at
+        return 0.0
 
     def _on_eos(self, _bus, _message, cancel_event: threading.Event) -> None:
         if not self._is_current(cancel_event):

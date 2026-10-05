@@ -41,20 +41,24 @@ class ActionRecord:
     speech: str = ""
     detail: str = ""
     ms: int = 0
+    timings: dict[str, int] | None = None
 
     def to_json(self) -> str:
+        data = {
+            "time": self.time,
+            "heard": self.heard,
+            "route": self.route,
+            "tool": self.tool,
+            "args": self.args,
+            "ok": self.ok,
+            "speech": self.speech,
+            "detail": self.detail,
+            "ms": self.ms,
+        }
+        if self.timings:
+            data["timings"] = self.timings
         return json.dumps(
-            {
-                "time": self.time,
-                "heard": self.heard,
-                "route": self.route,
-                "tool": self.tool,
-                "args": self.args,
-                "ok": self.ok,
-                "speech": self.speech,
-                "detail": self.detail,
-                "ms": self.ms,
-            },
+            data,
             ensure_ascii=False,
             separators=(",", ":"),
         )
