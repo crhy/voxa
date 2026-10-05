@@ -36,7 +36,7 @@ MAX_ROTATION = 1.2
 CROSSFADE_MS = 60.0
 CLIP_RADIUS = 18
 MOTION_PERIOD = 300.0  # seconds after which the idle motion repeats; keeps FaceMotion cheap
-OVERSCAN = 1.05  # the frame is drawn slightly large so the sway never shows its edges
+OVERSCAN = 1.0  # no overscan: the frame is drawn exactly, as sharp as the still portrait
 
 
 def _now() -> float:
@@ -108,12 +108,12 @@ def compose(
     target = mouth_target(visemes, pack.rest)
     index = pick_frame(pack, target, previous_index)
     patch = blink_patch(pack, blink)
-    yaw, pitch, roll = head
-    offset = (
-        _clamp(yaw * 0.002, -MAX_OFFSET, MAX_OFFSET),
-        _clamp(pitch * 0.002, -MAX_OFFSET, MAX_OFFSET),
-    )
-    rotation = _clamp(roll * 0.5, -MAX_ROTATION, MAX_ROTATION)
+    # No whole-image motion: shifting a photo by fractions of a pixel makes it shimmer. The head stays still
+    # (as in the clips the pack was cut from); blinks and the mouth carry the life. `head` is accepted so the
+    # live renderer can use the same call.
+    del head
+    offset = (0.0, 0.0)
+    rotation = 0.0
     return (
         FaceFrame(
             base=str(pack.directory / pack.mouth[index].file),

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import shutil
 
 from voxa.agent.player import VlcPlayer, active_player, music_player
 from voxa.agent.policy import RiskLevel
@@ -23,7 +22,9 @@ _CONTROL_KEYS = {
 
 
 def _vlc_installed() -> bool:
-    return shutil.which("vlc") is not None
+    from ..player import _installed
+
+    return _installed("org.videolan.VLC", "vlc")
 
 
 def _apply_to_player(player, action: str) -> None:

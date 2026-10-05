@@ -49,7 +49,7 @@ class FakePlayer:
 def test_play_video_speech(monkeypatch):
     played = FakePlayer()
     monkeypatch.setattr("voxa.agent.tools.media.resolve", lambda q, **kw: _make_media("Lo-fi Beats"))
-    monkeypatch.setattr("voxa.agent.tools.media.shutil.which", lambda name: "/usr/bin/vlc")
+    monkeypatch.setattr("voxa.agent.tools.media._vlc_installed", lambda: True)
     monkeypatch.setattr("voxa.agent.tools.media.VlcPlayer", lambda: played)
     result = _play_video_handler({"query": "lo-fi beats"})
     assert result.ok
@@ -76,7 +76,7 @@ def test_play_video_falls_back_on_resolve_error(monkeypatch):
 
 def test_play_video_falls_back_when_vlc_missing(monkeypatch):
     monkeypatch.setattr("voxa.agent.tools.media.resolve", lambda q, **kw: _make_media("Lo-fi Beats"))
-    monkeypatch.setattr("voxa.agent.tools.media.shutil.which", lambda name: None)
+    monkeypatch.setattr("voxa.agent.tools.media._vlc_installed", lambda: False)
     monkeypatch.setattr(
         "voxa.agent.tools.media.play_youtube",
         lambda args: __import__("voxa.agent.result", fromlist=["ToolResult"]).ToolResult(True, "Playing lo-fi beats on YouTube.", "browser"),

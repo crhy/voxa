@@ -79,11 +79,11 @@ def test_compose_blink_patch_above_threshold():
     assert frame.eye_patch.endswith("b1.jpg")
 
 
-def test_compose_clamps_huge_head():
+def test_compose_never_moves_the_whole_photo():
+    # Sub-pixel shifts make a photo shimmer, so the head pose must not move or rotate the frame.
     frame, _index = compose(_fake_pack(), "prerendered", {}, 0.0, (1000.0, -1000.0, 1000.0), 0, "/p.jpg")
-    assert frame.offset[0] == pytest.approx(0.012)
-    assert frame.offset[1] == pytest.approx(-0.012)
-    assert frame.rotation == pytest.approx(1.2)
+    assert frame.offset == (0.0, 0.0)
+    assert frame.rotation == 0.0
 
 
 def test_compose_live_equals_prerendered():

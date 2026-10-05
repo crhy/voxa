@@ -19,6 +19,20 @@ Gst: Any = None  # Initialized lazily so importing this module needs no GStreame
 GLib: Any = None
 
 
+def _ui_once(callback, *args) -> None:
+    """Run ``callback`` once on the GTK thread at default priority.
+
+    Idle priority is not enough: a window that is animating can keep idle callbacks waiting, which delayed
+    the start of speech and the Speaking/Ready captions.
+    """
+
+    def run() -> bool:
+        callback(*args)
+        return False
+
+    GLib.idle_add(run, priority=GLib.PRIORITY_DEFAULT)
+
+
 def _ensure_gstreamer() -> Any:
     global Gst, GLib
     if Gst is None:
@@ -144,13 +158,13 @@ class SpeechService:
             if cancel_event.is_set() or cancel_event is not self.cancel_event:
                 return
             if received_audio.is_set():
-                GLib.idle_add(
+                _ui_once(
                     self._emit_error_for,
                     f"Natural voice was interrupted: {exc}",
                     cancel_event,
                 )
             else:
-                GLib.idle_add(
+                _ui_once(
                     self._begin_offline_fallback,
                     text,
                     rate,
@@ -214,7 +228,7 @@ class SpeechService:
         received_audio: threading.Event,
     ) -> None:
         received_audio.set()
-        GLib.idle_add(self._emit_started_for, cancel_event)
+        _ui_once(self._emit_started_for, cancel_event)
 
     def _begin_offline_fallback(
         self,
@@ -269,18 +283,18 @@ class SpeechService:
             ) as handle:
                 handle.write(result.stdout)
                 path = handle.name
-            GLib.idle_add(self._play_file, path, cancel_event)
+            _ui_once(self._play_file, path, cancel_event)
         except FileNotFoundError:
             detail = f"Natural voice failed ({natural_error}); eSpeak NG is not installed."
-            GLib.idle_add(self._emit_error_for, detail, cancel_event)
+            _ui_once(self._emit_error_for, detail, cancel_event)
         except subprocess.CalledProcessError as exc:
             detail = exc.stderr.decode("utf-8", errors="replace")[:200]
             message = f"Natural voice failed ({natural_error}); offline speech failed: {detail}"
-            GLib.idle_add(self._emit_error_for, message, cancel_event)
+            _ui_once(self._emit_error_for, message, cancel_event)
         except subprocess.TimeoutExpired:
             detail = "espeak-ng timed out after 30 seconds"
             message = f"Natural voice failed ({natural_error}); offline speech failed: {detail}"
-            GLib.idle_add(self._emit_error_for, message, cancel_event)
+            _ui_once(self._emit_error_for, message, cancel_event)
 
     def _play_file(self, path: str, cancel_event: threading.Event) -> bool:
         _ensure_gstreamer()

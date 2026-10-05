@@ -77,7 +77,9 @@ def test_task_panel_floats_beside_not_over_center() -> None:
     ok_panel, panel_rect = shell.task_panel.compute_bounds(shell)
     ok_view, view_rect = shell.assistant_view.compute_bounds(shell)
     assert ok_panel and ok_view
-    assert panel_rect.get_x() < view_rect.get_x()
+    # The view now spans the window; the face is a centred square as tall as the view allows.
+    face_left = view_rect.get_x() + view_rect.get_width() / 2 - min(view_rect.get_width(), view_rect.get_height()) / 2
+    assert panel_rect.get_x() < face_left
     window.close()
 
 
@@ -189,7 +191,8 @@ def test_assistant_stays_centered_under_a_real_header() -> None:
     ok_view, view_rect = shell.assistant_view.compute_bounds(shell)
     assert ok_shell and ok_view
     assert abs((view_rect.get_x() + view_rect.get_width() / 2) - shell_rect.get_width() / 2) <= 2
-    assert abs((view_rect.get_y() + view_rect.get_height() / 2) - shell_rect.get_height() / 2) <= 40
+    # The view fills the height above the bottom control rows, so its centre sits a little above the middle.
+    assert abs((view_rect.get_y() + view_rect.get_height() / 2) - shell_rect.get_height() / 2) <= 70
     assert shell_rect.get_y() < 64  # the header did not push the stage down
 
 

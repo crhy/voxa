@@ -57,21 +57,24 @@ class AssistantShell(Gtk.Overlay):
         # The stage owns the full dimensions of the shell. Spacers take the
         # slack so the assistant is centered both horizontally and vertically.
         stage = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        stage.set_halign(Gtk.Align.CENTER)
-        stage.set_valign(Gtk.Align.CENTER)
+        stage.set_halign(Gtk.Align.FILL)
+        stage.set_valign(Gtk.Align.FILL)
         stage.set_hexpand(True)
         stage.set_vexpand(True)
 
         top_spacer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        top_spacer.set_vexpand(True)
+        # The face takes all the height there is; the spacers only keep it clear of the header and of the
+        # two control rows that float over the bottom of the window.
+        top_spacer.set_size_request(-1, 6)
         bottom_spacer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        bottom_spacer.set_vexpand(True)
+        bottom_spacer.set_size_request(-1, 112)
 
         character_id = "" if settings is None else settings.character_id
         face_mode = "prerendered" if settings is None else settings.face_mode
         self.assistant_view = AssistantView(character_id, face_mode=face_mode)
-        self.assistant_view.set_halign(Gtk.Align.CENTER)
-        self.assistant_view.set_valign(Gtk.Align.CENTER)
+        self.assistant_view.set_halign(Gtk.Align.FILL)
+        self.assistant_view.set_valign(Gtk.Align.FILL)
+        self.assistant_view.set_vexpand(True)
 
         stage.append(top_spacer)
         stage.append(self.assistant_view)

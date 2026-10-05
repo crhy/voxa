@@ -184,19 +184,33 @@ class AudioPlayer:
         return "Stopped"
 
 
+_INSTALLED_CACHE: dict[tuple[str, str], bool] = {}
+
+
 def _installed(app_id: str, binary: str) -> bool:
-    if shutil.which(binary):
+    """True when the player exists on the HOST, as a plain binary or as a Flatpak.
+
+    Inside Voxa's own Flatpak neither is visible directly, so the host is asked. A positive answer is
+    remembered; a negative one is asked again next time (the user may have just installed it).
+    """
+    key = (app_id, binary)
+    if _INSTALLED_CACHE.get(key):
         return True
+    found = False
     try:
         proc = subprocess.run(
-            host_command(["flatpak", "--list", "applications", "--flatpak-paths", ""]),
+            host_command(["sh", "-c", f"command -v {binary} >/dev/null 2>&1 || flatpak info {app_id} >/dev/null 2>&1"]),
             capture_output=True,
             text=True,
             check=False,
+            timeout=8,
         )
-    except OSError:
-        return False
-    return app_id in proc.stdout
+        found = proc.returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        found = shutil.which(binary) is not None
+    if found:
+        _INSTALLED_CACHE[key] = True
+    return found
 
 
 def music_player(name: str | None = None):

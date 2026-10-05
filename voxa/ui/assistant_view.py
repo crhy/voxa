@@ -242,6 +242,9 @@ class AssistantView(Gtk.Box):
             self.append(self._static_renderer.widget)
         self._static_renderer.widget.set_visible(True)
         self._static_renderer._avatar.set_visible(True)
+        # With no photo above it, the badge and its caption sit in the middle of the space.
+        self._static_renderer.widget.set_vexpand(True)
+        self._static_renderer.widget.set_valign(Gtk.Align.CENTER)
         self._renderer = self._static_renderer
 
     def _show_photo(self, renderer) -> None:
@@ -259,6 +262,8 @@ class AssistantView(Gtk.Box):
         if self._static_renderer.widget.get_parent() is not self:
             self.append(self._static_renderer.widget)
         self._static_renderer.widget.set_visible(True)
+        self._static_renderer.widget.set_vexpand(False)
+        self._static_renderer.widget.set_valign(Gtk.Align.END)
         self._static_renderer._avatar.set_visible(False)
         self._photo_renderer = renderer
         self._renderer = renderer
