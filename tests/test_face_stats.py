@@ -23,7 +23,7 @@ def _blank(t):
     return {"time": t, "face_found": 1}
 
 
-def test_blink_stats():
+def test_blink_stats(tmp_path):
     rows = []
     fps = 30.0
     pattern = [0.6, 0.9, 0.9, 0.45, 0.2]
@@ -45,7 +45,7 @@ def test_blink_stats():
                 r["eyeLookDownLeft"] = 0.8
                 r["eyeLookDownRight"] = 0.8
         rows.append(r)
-    frames = face_stats.load_frames(_write_csv(Path("/tmp/opencode/blink.csv"), rows))
+    frames = face_stats.load_frames(_write_csv(tmp_path / "blink.csv", rows))
     s = face_stats.blink_stats(frames)
     assert len(s["blink_onset_times"]) == 12
     assert 11.0 <= s["rate_per_min"] <= 13.0
@@ -53,7 +53,7 @@ def test_blink_stats():
     assert 4.5 <= s["interval_median_s"] <= 5.5
 
 
-def test_gaze_stats():
+def test_gaze_stats(tmp_path):
     rows = []
     fps = 30.0
     for i in range(int(10 * fps)):
@@ -63,14 +63,14 @@ def test_gaze_stats():
             r["eyeLookInLeft"] = 0.6
             r["eyeLookInRight"] = 0.6
         rows.append(r)
-    frames = face_stats.load_frames(_write_csv(Path("/tmp/opencode/gaze.csv"), rows))
+    frames = face_stats.load_frames(_write_csv(tmp_path / "gaze.csv", rows))
     s = face_stats.gaze_stats(frames)
     assert 40.0 <= s["shifts_per_min"] <= 60.0
     assert 0.8 <= s["fixation_median_s"] <= 1.2
     assert 0.4 <= s["at_camera_fraction"] <= 0.6
 
 
-def test_head_stats():
+def test_head_stats(tmp_path):
     rows = []
     fps = 30.0
     for i in range(int(10 * fps)):
@@ -79,7 +79,7 @@ def test_head_stats():
         r["yaw"] = 10.0 if i % 2 == 0 else -10.0
         r["pitch"] = 5.0 * (1 if (i % 30) < 15 else -1)
         rows.append(r)
-    frames = face_stats.load_frames(_write_csv(Path("/tmp/opencode/head.csv"), rows))
+    frames = face_stats.load_frames(_write_csv(tmp_path / "head.csv", rows))
     s = face_stats.head_stats(frames)
     assert 9.0 <= s["yaw_std"] <= 11.0
     assert s["roll_std"] == 0.0
