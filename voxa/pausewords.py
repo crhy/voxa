@@ -36,20 +36,21 @@ def _wake_aliases(wake_word: str) -> tuple[str, ...]:
 def is_pause_request(text: str, media_playing: bool) -> bool:
     """True when the sentence asks the assistant to pause its listening.
 
-    A bare "pause" counts only when nothing is playing, so it stays a media
-    control while music runs. An optional leading wake word is allowed.
+    A bare "pause" always pauses Voxa herself, whether or not something is playing; media is paused only
+    when it is named ("pause the music"). ``media_playing`` is kept for callers and no longer changes the
+    answer. An optional leading wake word is allowed.
     """
     phrase = _normalize(text)
     if phrase in _PAUSE_PHRASES:
         return True
     if phrase == "pause":
-        return not media_playing
+        return True  # "pause" on its own always means Voxa; the music is paused with "pause the music"
     for alias in _wake_aliases("voxa"):
         if phrase.startswith(alias + " "):
             rest = phrase[len(alias) + 1 :]
             if rest in _PAUSE_PHRASES:
                 return True
-            return rest == "pause" and not media_playing
+            return rest == "pause"
     return False
 
 

@@ -346,6 +346,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.shell.face_quality.set_mode(self.settings.face_mode)
         self.shell.face_quality.set_sensitive(bool(self.settings.character_id))
         self._live_client: LiveFaceClient | None = None
+        GLib.timeout_add(250, self._sync_listening_caption)
         # High is offered only when the face server answers; the check runs off the GTK thread.
         self._refresh_live_available()
         toolbar.add_top_bar(build_header(menu, self.shell.character_picker))
@@ -439,6 +440,26 @@ class MainWindow(Adw.ApplicationWindow):
             self.assistant.resume()
         elif self.assistant.is_active:
             self._pause_now()
+
+    def _sync_listening_caption(self) -> bool:
+        """Keep "Ready" and "Listening" truthful. Runs four times a second.
+
+        "Listening" is shown exactly while the conversation pipeline is capturing a request (after the wake
+        word, or in the follow-up window after a reply) and the microphone is not muted; otherwise "Ready".
+        Other states (Thinking, Speaking, Working, Paused, Offline) are left alone.
+        """
+        if self._closing:
+            return False
+        conversation = self.conversation
+        state = self.assistant_model.state
+        if conversation is None or state not in (AssistantState.READY, AssistantState.LISTENING):
+            return True
+        capturing = bool(conversation.waiting_for_prompt or getattr(conversation, "keep_prompt", False))
+        truly_listening = capturing and not conversation.muted
+        wanted = AssistantState.LISTENING if truly_listening else AssistantState.READY
+        if wanted is not state:
+            self.assistant_model.set_state(wanted, "")
+        return True
 
     def _pause_now(self) -> None:
         """Pause: drop the answer in progress and stop talking, but keep listening for the wake word."""
@@ -1678,7 +1699,8 @@ class MainWindow(Adw.ApplicationWindow):
             return False
         cmd = hearing.direct_command(heard)
         if cmd:
-            if cmd == "pause" and active_player() is None:
+            if cmd == "pause":
+                # "Pause" is for Voxa herself. The music pauses only when it is named ("pause the music").
                 self._pause_now()
                 return False
             call = intents.route(cmd)

@@ -36,7 +36,8 @@ CASES: list[tuple[str, ToolCall | None]] = [
     ("open github", ToolCall("open_site", {"name": "github"})),
     ("go to google maps", ToolCall("open_site", {"name": "google maps"})),
     ("open the youtube website", ToolCall("open_site", {"name": "the youtube website"})),
-    ("pause", ToolCall("media_control", {"action": "pause"})),
+    ("pause the music", ToolCall("media_control", {"action": "pause"})),
+    ("pause", None),  # a bare "pause" is for Voxa herself, handled by the window
     ("resume", ToolCall("media_control", {"action": "resume"})),
     ("play", ToolCall("press_key", {"key": "play pause"})),
     ("pause the music", ToolCall("media_control", {"action": "pause"})),

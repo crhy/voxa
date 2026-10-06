@@ -153,8 +153,38 @@ def image_search(args: dict[str, str]) -> ToolResult:
     return _open(f"https://search.brave.com/images?q={urllib.parse.quote(query)}", f"Here are images of {query}.")
 
 
+def directions(args: dict[str, str]) -> ToolResult:
+    """Google Maps directions from where the user is (Maps works that out itself) to the destination."""
+    destination = args["destination"]
+    url = f"https://www.google.com/maps/dir/?api=1&destination={urllib.parse.quote(destination)}"
+    return _open(url, f"Here are directions to {destination}.")
+
+
+def find_nearby(args: dict[str, str]) -> ToolResult:
+    """Google Maps search for the nearest places of a kind."""
+    what = args["what"]
+    url = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(what + ' near me')}"
+    return _open(url, f"Here is the nearest {what}.")
+
+
 def browser_tools() -> list[Tool]:
     return [
+        Tool(
+            name="directions",
+            description="Open Google Maps directions to a place.",
+            parameters={"destination": "where to go"},
+            risk=RiskLevel.REVERSIBLE,
+            handler=directions,
+            required=("destination",),
+        ),
+        Tool(
+            name="find_nearby",
+            description="Open Google Maps showing the nearest places of a kind (gas station, pharmacy, ...).",
+            parameters={"what": "the kind of place"},
+            risk=RiskLevel.REVERSIBLE,
+            handler=find_nearby,
+            required=("what",),
+        ),
         Tool(
             name="open_site",
             description="Open a well-known website by spoken name.",

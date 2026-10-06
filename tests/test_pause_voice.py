@@ -24,7 +24,8 @@ def test_pause_phrases_without_media():
 def test_pause_phrases_with_media():
     for text in ("pause listening", "stop listening", "take a break", "go to sleep", "voxa pause", "pause voxa"):
         assert is_pause_request(text, media_playing=True) is True
-    assert is_pause_request("pause", media_playing=True) is False
+    # "pause" alone is always for Voxa herself; the music is paused only when it is named.
+    assert is_pause_request("pause", media_playing=True) is True
     assert is_pause_request("voxa pause", media_playing=True) is True
 
 
@@ -86,6 +87,8 @@ def test_decision_order():
     assert decide("pause", assistant, True) == "dropped"
     assert decide("vaxa", assistant, True) == "resumed"
     assert not assistant.paused
-    assert decide("pause", assistant, True) == "routed"
+    assert decide("pause", assistant, True) == "paused"
+    assistant.resume()
+    assert decide("pause the music", assistant, True) == "routed"
     assert decide("voxa take a break", assistant, False) == "paused"
     assert assistant.paused

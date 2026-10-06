@@ -65,6 +65,20 @@ _IMAGE_SEARCH_DO = re.compile(
     r"do\s+an?\s+(?:brave\s+)?image\s+search\s+(?:for|of)\s+(.+)", re.IGNORECASE
 )
 _IMAGE_LOOK_LIKE = re.compile(r"what\s+does\s+(.+?)\s+look\s+like", re.IGNORECASE)
+# "Give me directions to X", "how do I get to X", "navigate to X", "take me to X" -> Google Maps directions.
+_DIRECTIONS = re.compile(
+    r"(?:(?:can you |could you |please )?(?:give me|get me|get|show me|show|find|i need|i want)\s+)?"
+    r"(?:driving |walking |the )?directions?\s+(?:to|for)\s+(.+)"
+    r"|how do i get to\s+(?:the\s+)?(.+)|navigate (?:me )?to\s+(.+)|take me to\s+(.+)",
+    re.IGNORECASE,
+)
+# "Where is the nearest X", "find the closest X", "nearest X" and "X near me" -> Google Maps search.
+_NEAREST = re.compile(
+    r"(?:where(?:'s| is| are)\s+|find\s+(?:me\s+)?|show\s+(?:me\s+)?|what(?:'s| is)\s+)?"
+    r"(?:the\s+|a\s+)?(?:nearest|closest)\s+(.+)",
+    re.IGNORECASE,
+)
+_NEAR_ME = re.compile(r"(?:find\s+(?:me\s+)?|show\s+(?:me\s+)?|where(?:'s| is| are)\s+)?(?:a\s+|an\s+|the\s+)?(.+?)\s+(?:near me|nearby|around here|close to me)", re.IGNORECASE)
 _IMAGE_OF = re.compile(
     r"(?:show\s+me|find|look\s+for|search\s+for|get)\s+(?:\w+\s+)?"
     r"(?:images|pictures|photos|pics)\s+of\s+(.+)",
@@ -324,6 +338,16 @@ def route(text: str) -> ToolCall | None:
     if _GO_BACK.fullmatch(s):
         return call("go_back")
 
+    directions_match = _DIRECTIONS.fullmatch(s)
+    if directions_match:
+        destination = next(g for g in directions_match.groups() if g).strip()
+        # "navigate to github.com" is a web address, not a place: leave it to the URL rules below.
+        if not re.fullmatch(r"[\w-]+(?:\.[\w-]+)+(?:/\S*)?", destination):
+            return call("directions", destination=destination)
+    nearby_match = _NEAREST.fullmatch(s) or _NEAR_ME.fullmatch(s)
+    if nearby_match:
+        return call("find_nearby", what=nearby_match.group(1).strip())
+
     for pattern in (_IMAGE_SEARCH_FOR, _IMAGE_SEARCH_DO, _IMAGE_LOOK_LIKE, _IMAGE_OF):
         image_match = pattern.fullmatch(s)
         if image_match:
@@ -397,7 +421,8 @@ def route(text: str) -> ToolCall | None:
     if site_match and site_url(site_match.group(1)) is not None:
         return call("open_site", name=site_match.group(1))
 
-    if _PLAY_PAUSE.fullmatch(s):
+    if _PLAY_PAUSE.fullmatch(s) and s.casefold() != "pause":
+        # A bare "pause" is for Voxa herself (handled by the window); media needs to be named.
         action = "resume" if "resume" in s.casefold() else "pause"
         return call("media_control", action=action)
     if s.casefold() == "play":

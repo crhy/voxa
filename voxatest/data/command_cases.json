@@ -464,7 +464,7 @@
     {
       "id": "media-3",
       "category": "media",
-      "say": "pause",
+      "say": "pause the music",
       "tool": "media_control",
       "args": {
         "action": "pause"
