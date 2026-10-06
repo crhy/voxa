@@ -178,6 +178,7 @@ class LiveFaceClient:
         self._ready = False
         self._characters: list[str] = []
         self._buffer = None
+        self._buffers: dict[int, FrameBuffer] = {}
         self._next_id = 0
 
     def available(self) -> bool:
@@ -225,6 +226,9 @@ class LiveFaceClient:
         self._next_id += 1
         buffer = FrameBuffer(uid)
         self._buffer = buffer
+        self._buffers[uid] = buffer
+        for old in [key for key in self._buffers if key < uid - 4]:
+            del self._buffers[old]  # keep only the last few: the current one and those being prepared
         try:
             self._sock.sendall(
                 encode(
@@ -255,9 +259,9 @@ class LiveFaceClient:
                 if not data:
                     break
                 for msg, payload in self._reader.feed(data):
-                    buffer = self._buffer
-                    if buffer is None or msg.get("id") != buffer.utterance_id:
-                        continue  # a frame of an utterance that was replaced or cancelled
+                    buffer = self._buffers.get(msg.get("id"))
+                    if buffer is None:
+                        continue  # a frame of an utterance that was cancelled or is long gone
                     op = msg.get("op")
                     if op == "frame":
                         buffer.put(msg.get("index", 0), payload)
@@ -272,15 +276,18 @@ class LiveFaceClient:
             self._sock = None
             self._ready = False
             self._reader = MessageReader()
-        buffer = self._buffer
-        if buffer is not None and not (buffer.done() if callable(buffer.done) else buffer.done):
-            buffer.fail("face server disconnected")
+        for buffer in list(self._buffers.values()):
+            if not (buffer.done() if callable(buffer.done) else buffer.done):
+                buffer.fail("face server disconnected")
 
     def cancel(self) -> None:
-        if self._sock is None or self._buffer is None:
+        """Stop every utterance that is playing or being prepared."""
+        buffers, self._buffers = self._buffers, {}
+        if self._sock is None:
             return
         try:
-            self._sock.sendall(encode({"op": "cancel", "id": self._buffer.utterance_id}))
+            for uid in buffers:
+                self._sock.sendall(encode({"op": "cancel", "id": uid}))
         except OSError:
             self._sock = None
             self._ready = False

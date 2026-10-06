@@ -714,6 +714,39 @@ class MainWindow(Adw.ApplicationWindow):
                 break
             time.sleep(0.02)
 
+    def _live_prepare(self, item) -> None:
+        """Worker thread, as soon as a piece's audio exists: start the neural face on it ahead of time."""
+        client = self._live_client
+        if client is None or self.settings.face_mode != "live":
+            return
+        pcm = decode_audio_to_pcm16k(item.path)
+        item.extra = client.start_utterance(self.settings.character_id or "", pcm, size=512)
+
+    def _live_activate(self, item) -> None:
+        """Worker thread, just before a prepared piece plays: show its frames and hold the voice briefly
+        if they are not in yet (they usually are: the piece was prepared while the previous one played)."""
+        if item.extra is None:
+            try:
+                self._live_prepare(item)
+            except Exception:  # noqa: BLE001 - no neural face for this piece: the pre-rendered mouth is used
+                item.extra = None
+        buffer = item.extra
+        view = getattr(self.shell, "assistant_view", None)
+        photo = getattr(view, "_photo_renderer", None) if view is not None else None
+        if photo is not None:
+            idle(photo.set_live_frames, buffer)
+        if buffer is None:
+            return
+        deadline = time.monotonic() + LIVE_FACE_MAX_HOLD
+
+        def flag(value) -> bool:
+            return bool(value() if callable(value) else value)
+
+        while time.monotonic() < deadline:
+            if buffer.buffered_seconds() >= LIVE_FACE_HEAD_START or flag(buffer.done) or flag(buffer.failed):
+                break
+            time.sleep(0.02)
+
     def _live_reset(self) -> None:
         """Cancel any in-flight live utterance and clear the renderer's buffer."""
         if self._live_client is not None:
@@ -2592,7 +2625,10 @@ class MainWindow(Adw.ApplicationWindow):
             return
         state = getattr(self, "_early", None)
         if state is None or state["generation"] != generation:
+            if state is not None and state.get("next") is not None:
+                state["next"].discard()  # a piece prepared for an answer that was abandoned
             state = {
+                "next": None,
                 "generation": generation,
                 "feeder": SentenceFeeder(),
                 "raw": "",
@@ -2618,11 +2654,29 @@ class MainWindow(Adw.ApplicationWindow):
         self._early_speech_pump()
 
     def _early_speech_pump(self) -> None:
+        """Play the next piece, or — while one is playing — fetch the one after it so there is no gap."""
         state = getattr(self, "_early", None)
-        if state is None or state["playing"] or not state["queue"]:
+        if state is None:
             return
-        text = " ".join(state["queue"])
-        state["queue"].clear()
+        live = self._live_client is not None and self.settings.face_mode == "live"
+        rate, voice = self.settings.tts_rate, self.settings.tts_voice
+        if state["playing"]:
+            if state.get("next") is None and state["queue"]:
+                text = " ".join(state["queue"])
+                state["queue"].clear()
+                state["next"] = self.speech.prepare(text, rate, voice, on_ready=self._live_prepare if live else None)
+            return
+        item = state.get("next")
+        state["next"] = None
+        text = ""
+        if item is None:
+            if not state["queue"]:
+                return
+            text = " ".join(state["queue"])
+            state["queue"].clear()
+            if live or state["started"]:
+                # High needs the whole piece before it plays; later pieces are fetched as files as well.
+                item = self.speech.prepare(text, rate, voice, on_ready=self._live_prepare if live else None)
         state["playing"] = True
         if not state["started"]:
             state["started"] = True
@@ -2637,27 +2691,27 @@ class MainWindow(Adw.ApplicationWindow):
         token, generation = state["token"], state["generation"]
         self._reset_word_timeline()
         self.shell.set_speech_clock(self.speech.position)
-        self.speech.speak(
-            text,
-            self.settings.tts_rate,
-            self.settings.tts_voice,
-            on_started=lambda: idle(self._for_session(token, self._set_status), "Speaking…", True),
-            on_done=lambda: idle(self._for_session(token, self._early_speech_part_done), generation),
-            on_error=lambda error: idle(self._for_session(token, self._early_speech_part_done), generation),
-            on_words=lambda words: idle(self.shell.set_word_timeline, words),
-            **(
-                {"before_play": self._live_before_play}
-                if self._live_client is not None and self.settings.face_mode == "live"
-                else {}
-            ),
-        )
+        callbacks = {
+            "on_started": lambda: idle(self._for_session(token, self._set_status), "Speaking…", True),
+            "on_done": lambda: idle(self._for_session(token, self._early_speech_part_done), generation),
+            "on_error": lambda error: idle(self._for_session(token, self._early_speech_part_done), generation),
+            "on_words": lambda words: idle(self.shell.set_word_timeline, words),
+        }
+        if item is not None:
+            self.speech.speak_prepared(item, before_play=self._live_activate if live else None, **callbacks)
+        else:
+            # Medium/Low, first piece: stream it, which starts soonest.
+            self.speech.speak(text, rate, voice, **callbacks)
+        if state["queue"]:
+            # More text is already waiting: start fetching it now, while this piece plays.
+            self._early_speech_pump()
 
     def _early_speech_part_done(self, generation: int) -> bool:
         state = getattr(self, "_early", None)
         if state is None or state["generation"] != generation:
             return False
         state["playing"] = False
-        if state["queue"]:
+        if state["queue"] or state.get("next") is not None:
             self._early_speech_pump()
         elif state["finished"]:
             self._early = None
@@ -2673,7 +2727,7 @@ class MainWindow(Adw.ApplicationWindow):
             return False
         state["finished"] = True
         state["queue"].extend(state["feeder"].finish(spoken))
-        if state["playing"] or state["queue"]:
+        if state["playing"] or state["queue"] or state.get("next") is not None:
             self._early_speech_pump()
         else:
             self._early = None

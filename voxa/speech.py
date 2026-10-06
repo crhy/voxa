@@ -46,6 +46,10 @@ def _ui_once(callback, *args) -> None:
         callback(*args)
         return False
 
+    if GLib is None:
+        # GLib is loaded lazily with GStreamer; a path that has not touched GStreamer yet (fetching the voice
+        # to a file) must not find it missing.
+        _ensure_gstreamer()
     GLib.idle_add(run, priority=GLib.PRIORITY_DEFAULT)
 
 
@@ -62,6 +66,26 @@ def _ensure_gstreamer() -> Any:
         Gst = _Gst
         GLib = _GLib
     return Gst
+
+
+class Prepared:
+    """One utterance whose audio is being (or has been) fetched ahead of time."""
+
+    def __init__(self, text: str, rate: int, voice: str) -> None:
+        self.text, self.rate, self.voice = text, rate, voice
+        self.path = ""
+        self.words: list = []
+        self.error = ""
+        self.extra = None  # whatever on_ready attached (the neural face's frame buffer)
+        self.ready = threading.Event()
+        self.cancelled = threading.Event()
+
+    def discard(self) -> None:
+        """Not going to be played: stop fetching and remove the file."""
+        self.cancelled.set()
+        if self.path:
+            with contextlib.suppress(OSError):
+                os.unlink(self.path)
 
 
 class SpeechService:
@@ -120,6 +144,95 @@ class SpeechService:
             natural_error = "Edge TTS is unavailable"
 
         self._start_offline_worker(text, rate, cancel_event, natural_error)
+
+    def prepare(self, text: str, rate: int, voice: str, on_ready=None) -> Prepared:
+        """Fetch the voice for ``text`` in the background, without touching what is playing now.
+
+        ``on_ready(item)`` runs in the worker thread once the audio file exists (used to start the neural face
+        on it early). Play the result with :meth:`speak_prepared`.
+        """
+        item = Prepared(text=text, rate=rate, voice=voice)
+
+        def worker() -> None:
+            try:
+                if edge_tts is None:
+                    raise RuntimeError("Edge TTS is unavailable")
+                item.path, item.words = asyncio.run(
+                    self._fetch_to_file(text, rate, voice, item.cancelled.is_set)
+                )
+                if on_ready is not None and item.path and not item.cancelled.is_set():
+                    try:
+                        on_ready(item)
+                    except Exception:  # noqa: BLE001 - preparation extras must never lose the audio
+                        pass
+            except Exception as exc:  # noqa: BLE001 - network/service boundary
+                item.error = str(exc)
+            finally:
+                item.ready.set()
+
+        threading.Thread(target=worker, name="natural-speech-prepare", daemon=True).start()
+        return item
+
+    def speak_prepared(self, item: Prepared, *, on_started, on_done, on_error, on_words=None, before_play=None) -> None:
+        """Play audio fetched by :meth:`prepare` (waiting for it if it is not ready yet)."""
+        self.stop()
+        cancel_event = threading.Event()
+        self.cancel_event = cancel_event
+        self._on_started, self._on_done, self._on_error = on_started, on_done, on_error
+        self._on_words, self._before_play = on_words, None
+        self._started_at = None
+        self._started_emitted = False
+        self._finished = False
+
+        def worker() -> None:
+            item.ready.wait(30)
+            if cancel_event.is_set() or cancel_event is not self.cancel_event:
+                item.discard()
+                return
+            if item.error or not item.path:
+                _ui_once(self._begin_offline_fallback, item.text, item.rate, cancel_event, item.error or "no audio")
+                return
+            if on_words is not None and item.words:
+                on_words(item.words)
+            if before_play is not None:
+                try:
+                    before_play(item)
+                except Exception:  # noqa: BLE001 - callback must not prevent speech
+                    pass
+            _ui_once(self._play_file, item.path, cancel_event)
+
+        threading.Thread(target=worker, name="natural-speech-prepared", daemon=True).start()
+
+    async def _fetch_to_file(self, text: str, rate: int, voice: str, should_stop) -> tuple[str, list]:
+        """Download one utterance to a temporary MP3. Returns (path, word timings)."""
+        percent = max(-50, min(50, round(((rate - 180) / 120) * 50)))
+        communicate = edge_tts.Communicate(text, voice or "en-US-AriaNeural", rate=f"{percent:+d}%", **_WORD_TIMING)
+        words: list[tuple[str, float, float]] = []
+        with tempfile.NamedTemporaryFile(prefix="voxa-speech-", suffix=".mp3", delete=False) as handle:
+            path = handle.name
+            wrote = False
+            async for message in communicate.stream():
+                if should_stop():
+                    break
+                kind = message.get("type")
+                if kind == "WordBoundary":
+                    words.append(
+                        (
+                            message.get("text", ""),
+                            message.get("offset", 0) / 10_000_000,
+                            message.get("duration", 0) / 10_000_000,
+                        )
+                    )
+                elif kind == "audio" and message.get("data"):
+                    handle.write(message["data"])
+                    wrote = True
+        if not wrote or should_stop():
+            with contextlib.suppress(OSError):
+                os.unlink(path)
+            if should_stop():
+                return "", []
+            raise RuntimeError("The speech service returned no audio.")
+        return path, words
 
     def _start_natural_file(self, text: str, rate: int, voice: str, cancel_event: threading.Event) -> None:
         threading.Thread(
