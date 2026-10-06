@@ -49,6 +49,7 @@ from .llamacpp import LlamaCppClient, StrataClient  # noqa: E402
 from .modelwait import wait_for_models  # noqa: E402
 from .ollama import OllamaClient, OllamaError, strip_reasoning  # noqa: E402
 from .server import SERVER_FAILED, SERVER_STARTING, SERVER_UNAVAILABLE, AiServerManager  # noqa: E402
+from .speakstream import SentenceFeeder, is_thinking_model, looks_like_reasoning  # noqa: E402
 from .speech import SpeechService  # noqa: E402
 from .theme import host_theme_is_dark  # noqa: E402
 from .transcription import WhisperService  # noqa: E402
@@ -2580,7 +2581,112 @@ class MainWindow(Adw.ApplicationWindow):
         buffer.insert(buffer.get_end_iter(), batch)
         self._scroll_to_end(self.response_view)
         self.shell.exchange_panel.show_answer(strip_reasoning(self._get_text(self.response_view)))
+        self._early_speech_feed(batch, generation)
         return False
+
+    # ---- speak while the model is still writing -------------------------------------------------
+
+    def _early_speech_feed(self, batch: str, generation: int) -> None:
+        """Hand streamed text to the sentence feeder and start speaking the first complete sentence."""
+        if not self.conversation_active:
+            return
+        state = getattr(self, "_early", None)
+        if state is None or state["generation"] != generation:
+            state = {
+                "generation": generation,
+                "feeder": SentenceFeeder(),
+                "raw": "",
+                "queue": [],
+                "playing": False,
+                "finished": False,
+                "started": False,
+                "disabled": is_thinking_model(self.settings.ollama_model),
+                "token": None,
+                "reply_id": None,
+            }
+            self._early = state
+        if state["disabled"]:
+            return
+        state["raw"] += batch
+        if looks_like_reasoning(state["raw"]):
+            # A scratchpad is streaming: nothing has been spoken yet (or it would not be here), so fall back
+            # to speaking the cleaned answer at the end.
+            if not state["started"]:
+                state["disabled"] = True
+            return
+        state["queue"].extend(state["feeder"].feed(batch))
+        self._early_speech_pump()
+
+    def _early_speech_pump(self) -> None:
+        state = getattr(self, "_early", None)
+        if state is None or state["playing"] or not state["queue"]:
+            return
+        text = " ".join(state["queue"])
+        state["queue"].clear()
+        state["playing"] = True
+        if not state["started"]:
+            state["started"] = True
+            if self.conversation is not None:
+                self.conversation.mute()
+            self._speaking_since = time.monotonic()
+            self._barge_in_streak = 0
+            state["token"] = self.assistant.token()
+            self.assistant.reply_started(state["token"])
+            state["reply_id"] = self.assistant.current_reply()
+            self._set_status("Speaking…", busy=True)
+        token, generation = state["token"], state["generation"]
+        self._reset_word_timeline()
+        self.shell.set_speech_clock(self.speech.position)
+        self.speech.speak(
+            text,
+            self.settings.tts_rate,
+            self.settings.tts_voice,
+            on_started=lambda: idle(self._for_session(token, self._set_status), "Speaking…", True),
+            on_done=lambda: idle(self._for_session(token, self._early_speech_part_done), generation),
+            on_error=lambda error: idle(self._for_session(token, self._early_speech_part_done), generation),
+            on_words=lambda words: idle(self.shell.set_word_timeline, words),
+            **(
+                {"before_play": self._live_before_play}
+                if self._live_client is not None and self.settings.face_mode == "live"
+                else {}
+            ),
+        )
+
+    def _early_speech_part_done(self, generation: int) -> bool:
+        state = getattr(self, "_early", None)
+        if state is None or state["generation"] != generation:
+            return False
+        state["playing"] = False
+        if state["queue"]:
+            self._early_speech_pump()
+        elif state["finished"]:
+            self._early = None
+            self._on_conversation_speech_done(state["reply_id"])
+        # otherwise the model is still writing: the next complete sentence restarts playback
+        return False
+
+    def _early_speech_finish(self, spoken: str, generation: int) -> bool:
+        """The answer is complete. True when early speech is handling it (the caller must not speak it again)."""
+        state = getattr(self, "_early", None)
+        if state is None or state["generation"] != generation or not state["started"]:
+            self._early = None
+            return False
+        state["finished"] = True
+        state["queue"].extend(state["feeder"].finish(spoken))
+        if state["playing"] or state["queue"]:
+            self._early_speech_pump()
+        else:
+            self._early = None
+            self._on_conversation_speech_done(state["reply_id"])
+        return True
+
+    def _reset_word_timeline(self) -> None:
+        """Each spoken piece has its own clock starting at zero: forget the previous piece's word times."""
+        view = getattr(self.shell, "assistant_view", None)
+        renderer = getattr(view, "_photo_renderer", None) if view is not None else None
+        reset = getattr(renderer, "reset_word_timeline", None)
+        if reset is not None:
+            reset()
 
     def _on_query_finished(
         self, answer: str, generation: int, cancel_event: threading.Event, heard: str = ""
@@ -2618,9 +2724,14 @@ class MainWindow(Adw.ApplicationWindow):
             buffer.set_text(spoken)
             self._scroll_to_end(self.response_view)
         self.shell.exchange_panel.show_answer(spoken)
+        replaced = spoken == FALSE_CLAIM_REPLY
         if spoken and self.conversation_active:
             self._conversation_history.add_assistant(spoken)
-            self._conversation_speak(spoken)
+            if replaced:
+                self._early = None  # what was said early is being corrected: say the honest answer in full
+                self._conversation_speak(spoken)
+            elif not self._early_speech_finish(spoken, generation):
+                self._conversation_speak(spoken)
         else:
             if self.conversation_active:  # nothing to say: back to waiting
                 waiting = self.conversation is not None and self.conversation.waiting_for_prompt

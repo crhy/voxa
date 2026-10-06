@@ -310,6 +310,11 @@ class PhotoFaceRenderer:
         self._raw_words.extend(words)
         self._word_timeline = timeline(self._raw_words)
 
+    def reset_word_timeline(self) -> None:
+        """A new piece of speech starts: its word times count from zero again."""
+        self._raw_words = []
+        self._word_timeline = []
+
     def set_speech_clock(self, clock) -> None:
         self._speech_clock = clock
 
