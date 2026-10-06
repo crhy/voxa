@@ -1667,6 +1667,18 @@ class MainWindow(Adw.ApplicationWindow):
             if rest:
                 self.ask_ai(rest)
             return False
+        cmd = hearing.direct_command(heard)
+        if cmd:
+            if cmd == "pause" and active_player() is None:
+                self._pause_now()
+                return False
+            call = intents.route(cmd)
+            if call is not None:
+                self._run_tool(call, cmd)
+            return False
+        if hearing.should_drop_noise(heard, self._follow_up_token is not None):
+            self._set_status("Ready")
+            return False
         if is_pause_request(heard, media_playing=active_player() is not None):
             self._pause_now()
             return False

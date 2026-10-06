@@ -2,6 +2,41 @@
 
 import re
 
+# First words Whisper produces for "Voxa". Used ONLY by direct_command below to
+# recognise a mis-heard wake word in front of a control command; never to wake
+# Voxa (that stays the wake-word matcher's job).
+WAKE_SOUNDALIKES: frozenset[str] = frozenset(
+    {
+        "voxa", "vox", "voxo", "vaxa", "vaxac", "boxa", "boxer", "boxes", "box",
+        "fox", "foxa", "xa", "za", "vodka", "vocal", "voka", "bossa", "so",
+        "set", "step", "sex",
+    }
+)
+
+CONTROL_COMMANDS: frozenset[str] = frozenset(
+    {
+        "stop music", "stop the music", "stop playing", "stop", "pause",
+        "pause music", "pause the music", "resume", "play", "next", "next song",
+        "skip", "louder", "quieter", "volume up", "volume down", "mute",
+    }
+)
+
+# Mis-hearings that clearly mean "stop music", mapped from normalised form.
+MISHEARD_STOP: frozenset[str] = frozenset(
+    {"top music", "its top music", "so its top music", "stop usic", "stopped music"}
+)
+
+# Single words that are pure acknowledgement/noise, never a request.
+NOISE_WORDS: frozenset[str] = frozenset(
+    {"music", "peace", "yeah", "okay", "thanks", "bye", "hmm", "uh", "oh"}
+)
+
+
+def _norm(text: str) -> str:
+    """Lower-case, drop apostrophes, drop other punctuation, collapse whitespace."""
+    text = re.sub(r"['\u2019]", "", text.casefold())
+    return re.sub(r"\s+", " ", re.sub(r"[^\w\s]", " ", text)).strip()
+
 WAKE_VARIANTS: tuple[str, ...] = (
     "voxa", "vox a", "vox", "boxa", "box a", "boxer",
     "voxet", "vaxa", "foxa", "voxer", "vauxa",
@@ -88,3 +123,57 @@ def normalize(text: str) -> str:
                 words[0] = VERB_FIXES[first]
     text = re.sub(r"\s+", " ", " ".join(words)).strip()
     return text.rstrip(" ,.!?")
+
+
+def direct_command(text: str) -> str | None:
+    """Canonical control command for a short, clearly-meant media request.
+
+    Returns the command when the WHOLE utterance is a control command, when it
+    is "<wake-soundalike> <control command>", or when it is a known mis-hearing
+    of "stop music". A longer sentence is never matched.
+    """
+    phrase = _norm(text)
+    if not phrase:
+        return None
+    if phrase in MISHEARD_STOP:
+        return "stop music"
+    if phrase in CONTROL_COMMANDS:
+        return phrase
+    words = phrase.split()
+    if len(words) >= 2 and words[0] in WAKE_SOUNDALIKES:
+        rest = " ".join(words[1:])
+        if rest in MISHEARD_STOP:
+            return "stop music"
+        if rest in CONTROL_COMMANDS:
+            return rest
+    return None
+
+
+def is_noise(text: str) -> bool:
+    """True for one-word filler, short acknowledgements, or a repeated word.
+
+    Covers (a) a single word of four letters or fewer that is not a control
+    command, (b) the listed single acknowledgement words, and (c) the same
+    word repeated five or more times in a row (a Whisper hallucination).
+    """
+    phrase = _norm(text)
+    if not phrase:
+        return False
+    words = phrase.split()
+    if len(words) == 1:
+        word = words[0]
+        if word in NOISE_WORDS:
+            return True
+        return len(word) <= 4 and phrase not in CONTROL_COMMANDS
+    if len(words) >= 5 and len(set(words)) == 1:
+        return True
+    return False
+
+
+def should_drop_noise(text: str, followup_active: bool) -> bool:
+    """True when noise should be dropped silently.
+
+    Noise is dropped only outside a follow-up window: inside a follow-up, short
+    affirmations like "Yes" are genuine replies and must survive.
+    """
+    return is_noise(text) and not followup_active
