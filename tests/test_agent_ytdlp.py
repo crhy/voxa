@@ -144,3 +144,16 @@ def test_js_runtimes_reach_the_factory(monkeypatch):
     media = resolve("q")
     assert seen["options"]["js_runtimes"] == {"node": {"path": "/app/bin/voxa-host-node"}}
     assert media.video_url == "comb"
+
+
+def test_audio_only_falls_back_to_combined():
+    info = _info(
+        [
+            {"format_id": "v", "url": "vid", "vcodec": "h264", "acodec": "none", "height": 720, "abr": 1000},
+            {"format_id": "c", "url": "comb", "vcodec": "h264", "acodec": "opus", "height": 480, "abr": 128},
+        ]
+    )
+    media = resolve("q", audio_only=True, extractor=_extractor(info))
+    assert media.audio_url == "comb"
+    assert media.video_url is None
+    assert media.combined is True

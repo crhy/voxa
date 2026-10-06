@@ -162,3 +162,49 @@ def test_media_tools_registered():
     names = set(default_registry().names())
     for tool in media_tools():
         assert tool.name in names
+
+
+def test_media_control_stop_reaches_every_player(monkeypatch):
+    class Running:
+        calls: list[tuple[str, object]]
+
+        def __init__(self) -> None:
+            self.calls = []
+
+        def status(self) -> str:
+            return "Playing"
+
+        def stop(self) -> None:
+            self.calls.append(("stop", None))
+
+    players = [Running(), Running(), Running()]
+    monkeypatch.setattr("voxa.agent.tools.media.VlcPlayer", lambda: players[0])
+    monkeypatch.setattr("voxa.agent.tools.media.AudaciousPlayer", lambda: players[1])
+    monkeypatch.setattr("voxa.agent.tools.media.AudioPlayer", lambda: players[2])
+    result = _media_control_handler({"action": "stop"})
+    assert result.ok
+    assert result.speech == "Stopped."
+    assert result.detail == "player:stop"
+    assert [player.calls for player in players] == [[("stop", None)]] * 3
+
+
+def test_media_control_stop_falls_back_when_nothing_runs(monkeypatch):
+    class Idle:
+        def status(self) -> str:
+            return ""
+
+        def stop(self) -> None:
+            pass
+
+    monkeypatch.setattr("voxa.agent.tools.media.VlcPlayer", lambda: Idle())
+    monkeypatch.setattr("voxa.agent.tools.media.AudaciousPlayer", lambda: Idle())
+    monkeypatch.setattr("voxa.agent.tools.media.AudioPlayer", lambda: Idle())
+    pressed: list[dict] = []
+    monkeypatch.setattr(
+        "voxa.agent.tools.media._press_key_handler",
+        lambda args: pressed.append(args)
+        or __import__("voxa.agent.result", fromlist=["ToolResult"]).ToolResult(True, "", "key"),
+    )
+    result = _media_control_handler({"action": "stop"})
+    assert pressed == [{"key": "play pause"}]
+    assert result.ok

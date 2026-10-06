@@ -96,7 +96,10 @@ def resolve(query_or_url: str, max_height: int = 1080, audio_only: bool = False,
     if audio_only:
         audio = _pick_audio(formats)
         if audio is None:
-            raise ResolveError("no audio-only stream available")
+            combined = _pick_combined(formats, max_height)
+            if combined is None:
+                raise ResolveError("no playable stream available")
+            return Media(title, uploader, duration, webpage_url, None, combined, True)
         return Media(title, uploader, duration, webpage_url, None, audio, False)
 
     video = _pick_video(formats, max_height)

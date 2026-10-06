@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 
-from voxa.agent.player import VlcPlayer, active_player, music_player
+from voxa.agent.player import AudaciousPlayer, AudioPlayer, VlcPlayer, active_player, music_player
 from voxa.agent.policy import RiskLevel
 from voxa.agent.registry import Tool
 from voxa.agent.result import ToolResult
@@ -85,6 +85,15 @@ def _play_latest_handler(args: dict[str, str]) -> ToolResult:
 
 def _media_control_handler(args: dict[str, str]) -> ToolResult:
     action = args["action"]
+    if action == "stop":
+        stopped = False
+        for player in (VlcPlayer(), AudaciousPlayer(), AudioPlayer()):
+            if player.status() in ("Playing", "Paused"):
+                _apply_to_player(player, "stop")
+                stopped = True
+        if stopped:
+            return ToolResult.success("Stopped.", detail="player:stop")
+        return _press_key_handler({"key": _CONTROL_KEYS["stop"]})
     player = active_player()
     if player is not None:
         _apply_to_player(player, action)

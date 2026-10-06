@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from voxa.agent.player import AudaciousPlayer, AudioPlayer, VlcPlayer, active_player, music_player
+from voxa.agent.player import AudaciousPlayer, AudioPlayer, VlcPlayer, active_player, mpris_bus_names, music_player
 
 
 @pytest.fixture
@@ -90,13 +90,18 @@ def test_mpris_stop_also_closes_the_player(monkeypatch):
     seen: list[list[str]] = []
     monkeypatch.setattr("voxa.agent.player.subprocess.run", lambda *a, **k: seen.append(a[0]) or _completed(a[0]))
     VlcPlayer().stop()
-    assert [argv[-1] for argv in seen] == ["org.mpris.MediaPlayer2.Player.Stop", "org.mpris.MediaPlayer2.Quit"]
+    assert [argv[-1] for argv in seen] == [
+        "org.freedesktop.DBus.ListNames",
+        "org.mpris.MediaPlayer2.Player.Stop",
+        "org.mpris.MediaPlayer2.Quit",
+        "PlaybackStatus",
+    ]
 
 
 def test_vlc_plays_music_that_has_only_an_audio_stream(captured):
     media = _media("Song", None, "aud")
     VlcPlayer().play(media)
-    assert captured[0][-1] == "aud" and None not in captured[0]
+    assert "aud" in captured[0] and captured[0][-1] == "--no-video" and None not in captured[0]
 
 
 def test_mpris_status_parses(monkeypatch):
@@ -155,3 +160,52 @@ def _completed(argv, stdout=""):
     import subprocess
 
     return subprocess.CompletedProcess(argv, 0, stdout=stdout, stderr="")
+
+
+def test_mpris_bus_names_two_instances(monkeypatch):
+    monkeypatch.setattr(
+        "voxa.agent.player.subprocess.run",
+        lambda *a, **k: _completed(
+            a[0],
+            stdout="['org.mpris.MediaPlayer2.mpv', 'org.mpris.MediaPlayer2.vlc', "
+            "'org.mpris.MediaPlayer2.vlc.instance1234', 'org.freedesktop.DBus']\n",
+        ),
+    )
+    assert mpris_bus_names("vlc") == ["org.mpris.MediaPlayer2.vlc", "org.mpris.MediaPlayer2.vlc.instance1234"]
+
+
+def test_mpris_stop_reaches_every_instance_and_kills(monkeypatch):
+    seen: list[list[str]] = []
+
+    def fake_run(argv, **_k):
+        seen.append(argv)
+        if argv[-1] == "org.freedesktop.DBus.ListNames":
+            stdout = "['org.mpris.MediaPlayer2.vlc', 'org.mpris.MediaPlayer2.vlc.instance1234']\n"
+        elif "org.freedesktop.DBus.Properties.Get" in argv:
+            stdout = "variant  string 'Playing'\n"
+        else:
+            stdout = ""
+        return _completed(argv, stdout=stdout)
+
+    monkeypatch.setattr("voxa.agent.player.subprocess.run", fake_run)
+    VlcPlayer().stop()
+    controls = [(argv[argv.index("--dest") + 1], argv[-1]) for argv in seen if "--dest" in argv]
+    for bus in ("org.mpris.MediaPlayer2.vlc", "org.mpris.MediaPlayer2.vlc.instance1234"):
+        assert (bus, "org.mpris.MediaPlayer2.Player.Stop") in controls
+        assert (bus, "org.mpris.MediaPlayer2.Quit") in controls
+    assert "org.videolan.VLC" in [argv[-1] for argv in seen]
+
+
+def test_mpris_status_first_non_empty_over_instances(monkeypatch):
+    def fake_run(argv, **_k):
+        if argv[-1] == "org.freedesktop.DBus.ListNames":
+            stdout = "['org.mpris.MediaPlayer2.vlc.instance1234', 'org.mpris.MediaPlayer2.vlc']\n"
+        elif "org.freedesktop.DBus.Properties.Get" in argv:
+            dest = argv[argv.index("--dest") + 1]
+            stdout = "variant  string ''\n" if dest.endswith(".instance1234") else "variant  string 'Paused'\n"
+        else:
+            stdout = ""
+        return _completed(argv, stdout=stdout)
+
+    monkeypatch.setattr("voxa.agent.player.subprocess.run", fake_run)
+    assert VlcPlayer().status() == "Paused"

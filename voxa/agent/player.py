@@ -16,6 +16,36 @@ Gst: Any = None  # Initialized lazily so importing this module needs no GStreame
 GLib: Any = None
 
 
+def mpris_bus_names(prefix: str) -> list[str]:
+    """Every session-bus name that is org.mpris.MediaPlayer2.<prefix> or starts with that plus ".".
+
+    Extra instances of a player register as org.mpris.MediaPlayer2.<prefix>.instanceNNNN, so a
+    single fixed bus name does not reach them; list the bus names instead.
+    """
+    argv = [
+        "gdbus",
+        "call",
+        "--session",
+        "--dest",
+        "org.freedesktop.DBus",
+        "--object-path",
+        "/org/freedesktop/DBus",
+        "--method",
+        "org.freedesktop.DBus.ListNames",
+    ]
+    try:
+        proc = subprocess.run(host_command(argv), capture_output=True, text=True, check=False, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return []
+    base = f"org.mpris.MediaPlayer2.{prefix}"
+    names: list[str] = []
+    for match in re.finditer(r"'([^']*)'", proc.stdout):
+        name = match.group(1)
+        if name == base or name.startswith(f"{base}."):
+            names.append(name)
+    return names
+
+
 def _ensure_gstreamer() -> Any:
     global Gst, GLib
     if Gst is None:
@@ -34,20 +64,24 @@ def _ensure_gstreamer() -> Any:
 class MprisPlayer:
     """Generic control of any player that speaks MPRIS over the session bus."""
 
-    def __init__(self, bus_suffix: str) -> None:
+    def __init__(self, bus_suffix: str, kill_cmds: list[list[str]] | None = None) -> None:
         self.bus_suffix = bus_suffix
         self.bus = f"org.mpris.MediaPlayer2.{bus_suffix}"
         self.object_path = "/org/mpris/MediaPlayer2"
         self.iface = "org.mpris.MediaPlayer2.Player"
+        self.kill_cmds = kill_cmds or []
 
     def _gdbus(self, method: str, *args: str) -> str:
         """`gdbus call` on the player; arguments are GVariant text, one per argument (gdbus has no --params)."""
+        return self._gdbus_on(self.bus, method, *args)
+
+    def _gdbus_on(self, bus: str, method: str, *args: str) -> str:
         argv = [
             "gdbus",
             "call",
             "--session",
             "--dest",
-            self.bus,
+            bus,
             "--object-path",
             self.object_path,
             "--method",
@@ -78,10 +112,31 @@ class MprisPlayer:
     def toggle(self) -> None:
         self._call("PlayPause")
 
+    def _buses(self) -> list[str]:
+        """Every bus name this player may have registered, falling back to the primary one."""
+        return mpris_bus_names(self.bus_suffix) or [self.bus]
+
     def stop(self) -> None:
-        """Stop playback and close the player: "stop the music" means the player goes away."""
-        self._call("Stop")
-        self._gdbus("org.mpris.MediaPlayer2.Quit")
+        """Stop playback and close the player: "stop the music" means the player goes away.
+
+        Reaches every instance (org.mpris.MediaPlayer2.vlc.instanceNNNN included), and if any
+        still reports a status after Stop+Quit, kills the app as a last resort.
+        """
+        buses = self._buses()
+        for bus in buses:
+            self._gdbus_on(bus, f"{self.iface}.Stop")
+            self._gdbus_on(bus, "org.mpris.MediaPlayer2.Quit")
+        if any(self._status_on(bus) for bus in buses):
+            for cmd in self.kill_cmds:
+                if self._run_ok(cmd):
+                    break
+
+    def _run_ok(self, argv: list[str]) -> bool:
+        try:
+            proc = subprocess.run(host_command(argv), capture_output=True, text=True, check=False, timeout=5)
+        except (OSError, subprocess.SubprocessError):
+            return False
+        return proc.returncode == 0
 
     def next(self) -> None:
         self._call("Next")
@@ -106,16 +161,24 @@ class MprisPlayer:
         current = self.volume()
         self.set_volume((current if current is not None else 0.5) + delta)
 
-    def status(self) -> str:
-        match = re.search(r"'([^']*)'", self._get("PlaybackStatus"))
+    def _status_on(self, bus: str) -> str:
+        match = re.search(r"'([^']*)'", self._gdbus_on(bus, "org.freedesktop.DBus.Properties.Get", self.iface, "PlaybackStatus"))
         return match.group(1) if match else ""
+
+    def status(self) -> str:
+        """First non-empty playback status over every bus this player registered."""
+        for bus in self._buses():
+            value = self._status_on(bus)
+            if value:
+                return value
+        return ""
 
 
 class VlcPlayer(MprisPlayer):
     """Video playback through the VLC Flatpak."""
 
     def __init__(self) -> None:
-        super().__init__("vlc")
+        super().__init__("vlc", [["flatpak", "kill", "org.videolan.VLC"]])
 
     def play(self, media: Media, fullscreen: bool = False) -> None:
         # Music has only an audio stream: play that on its own. Video gets the audio as a companion stream.
@@ -137,6 +200,8 @@ class VlcPlayer(MprisPlayer):
             argv += ["--input-slave", media.audio_url]
         if fullscreen:
             argv += ["--fullscreen"]
+        if not media.video_url:
+            argv += ["--no-video"]
         spawn(argv)
 
 
@@ -144,7 +209,7 @@ class AudaciousPlayer(MprisPlayer):
     """Music playback through Audacious (the org.atheme.audacious Flatpak)."""
 
     def __init__(self) -> None:
-        super().__init__("audacious")
+        super().__init__("audacious", [["flatpak", "kill", "org.atheme.audacious"], ["pkill", "-x", "audacious"]])
 
     def play(self, media: Media) -> None:
         url = media.audio_url or media.video_url
