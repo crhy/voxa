@@ -27,6 +27,8 @@ class Settings:
     language: str = "en"
     character_id: str = ""
     face_mode: str = "prerendered"
+    # Subtract the computer's own sound (Voxa's voice, music) from the microphone.
+    echo_cancel: bool = True
     tts_rate: int = 180
     tts_voice: str = "en-US-AriaNeural"
     appearance: str = "system"

@@ -43,6 +43,12 @@ class VoxaApplication(Adw.Application):
                     client.shutdown_server()  # in this thread: the process is about to exit
             except Exception:  # noqa: BLE001 - never block quitting
                 pass
+            try:
+                echo = getattr(window, "_echo", None)
+                if echo is not None:
+                    echo.disable()
+            except Exception:  # noqa: BLE001 - never block quitting
+                pass
         Adw.Application.do_shutdown(self)
 
     def _show_about(self, *_args) -> None:

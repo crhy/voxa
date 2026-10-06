@@ -35,6 +35,8 @@ from .config import ConfigStore  # noqa: E402
 from .controller import AssistantController, ControllerPorts  # noqa: E402
 from .conversation import ConversationController, ConversationHistory  # noqa: E402
 from .dictation import DictationController  # noqa: E402
+from .echo import SOURCE_NAME as ECHO_SOURCE_NAME  # noqa: E402
+from .echo import EchoCanceller  # noqa: E402
 from .hardware import (  # noqa: E402
     MODEL_CATALOG,
     GpuUsage,
@@ -660,6 +662,15 @@ class MainWindow(Adw.ApplicationWindow):
         assistant_view = getattr(self.shell, "assistant_view", None)
         if assistant_view is not None:
             assistant_view.set_face_mode("prerendered")
+
+    def _prepare_microphone(self) -> None:
+        """Before listening: switch on echo cancellation so Voxa hears the user, not itself or the music."""
+        if getattr(self, "_echo", None) is None:
+            self._echo = EchoCanceller()
+        if self.settings.echo_cancel and self._echo.enable():
+            self.audio.pulse_source = ECHO_SOURCE_NAME
+        else:
+            self.audio.pulse_source = None
 
     def _release_face_server(self) -> None:
         """Drop the live client; stop the face server if Voxa was the one that started it (frees the GPU)."""
@@ -1366,6 +1377,7 @@ class MainWindow(Adw.ApplicationWindow):
         )
         self.dictation.start()
         try:
+            self._prepare_microphone()
             self.audio.start(
                 self.settings.microphone_id,
                 self.dictation.feed,
@@ -1459,6 +1471,7 @@ class MainWindow(Adw.ApplicationWindow):
         )
         self.conversation.start()
         try:
+            self._prepare_microphone()
             self.audio.start(
                 self.settings.microphone_id,
                 self.conversation.feed,
@@ -3014,6 +3027,9 @@ class MainWindow(Adw.ApplicationWindow):
         self._closing = True
         self._live_generation = getattr(self, "_live_generation", 0) + 1
         self._release_face_server()
+        echo = getattr(self, "_echo", None)
+        if echo is not None:
+            echo.disable()  # give the speakers back exactly as they were
         self.stop_current_work()
         self._stop_gpu_monitor()
         self.audio.stop()

@@ -62,6 +62,8 @@ class AudioCapture:
     def __init__(self) -> None:
         self.pipeline: Any | None = None
         self._devices: list[AudioDevice] = []
+        # Name of a PulseAudio source to record from instead of the selected device, or None.
+        self.pulse_source: str | None = None
         self._on_audio = None
         self._on_error = None
         self._last_level_emit = 0.0
@@ -119,10 +121,17 @@ class AudioCapture:
         if selected is not None and is_monitor_source(selected.properties, selected.name):
             raise RuntimeError("The selected source is a monitor stream and cannot capture your voice.")
         gst = _ensure_gstreamer()
-        if selected is not None:
-            source = selected.device.create_element(None)
-        else:
-            source = gst.ElementFactory.make("autoaudiosrc")
+        source = None
+        if self.pulse_source:
+            # The echo-cancelled microphone (see voxa/echo.py): the computer's own sound is already removed.
+            source = gst.ElementFactory.make("pulsesrc")
+            if source is not None:
+                source.set_property("device", self.pulse_source)
+        if source is None:
+            if selected is not None:
+                source = selected.device.create_element(None)
+            else:
+                source = gst.ElementFactory.make("autoaudiosrc")
         convert = gst.ElementFactory.make("audioconvert")
         resample = gst.ElementFactory.make("audioresample")
         capsfilter = gst.ElementFactory.make("capsfilter")
