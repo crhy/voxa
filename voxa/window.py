@@ -2513,6 +2513,10 @@ class MainWindow(Adw.ApplicationWindow):
             self._log_action(prompt, "plan", ok=False, detail=str(exc))
             return "I couldn't work out how to do that."
 
+        if not planner.plan_supported(plan, prompt):
+            self._log_action(prompt, "plan", ok=False, detail="plan not supported by request")
+            return f"I'm not sure what you meant by \u201c{prompt}\u201d."
+
         def on_step(call, result, ms: int) -> None:
             self._log_action(
                 prompt,
@@ -2589,6 +2593,13 @@ class MainWindow(Adw.ApplicationWindow):
                 idle(self._on_draft_finished, answer, generation, cancel_event, lambda text: text)
             except OllamaError as exc:
                 idle(self._on_draft_error, str(exc), generation, cancel_event)
+            except Exception:
+                idle(
+                    self._on_draft_error,
+                    "I lost contact with my browser. Say that again and I'll reopen it.",
+                    generation,
+                    cancel_event,
+                )
 
         threading.Thread(target=worker, name=f"browse-{generation}", daemon=True).start()
 

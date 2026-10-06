@@ -92,9 +92,9 @@ def test_open_site_tool(opened):
 
 def test_open_site_unknown_tool(opened):
     result = default_registry().call("open_site", {"name": "myspace"})
-    assert not result.ok
-    assert result.speech == "I don't know a site called myspace."
-    assert opened == []
+    assert result.ok
+    assert result.speech == "Opening myspace."
+    assert opened == [["xdg-open", "https://www.myspace.com"]]
 
 
 def test_open_url_tool(opened):

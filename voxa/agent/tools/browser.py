@@ -97,7 +97,13 @@ def open_site(args: dict[str, str]) -> ToolResult:
     name = args["name"]
     url = site_url(name)
     if url is None:
-        return ToolResult.failure(f"I don't know a site called {name}.")
+        key = name.casefold().strip()
+        if re.fullmatch(r"[a-z0-9]+\.[a-z0-9.]+", key):
+            url = f"https://{key}"
+        elif re.fullmatch(r"[a-z0-9]+", key):
+            url = f"https://www.{key}.com"
+        else:
+            return ToolResult.failure(f"I don't know a site called {name}.")
     return _open(url, f"Opening {name}.")
 
 

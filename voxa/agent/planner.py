@@ -29,6 +29,7 @@ __all__ = [
     "plan_browser_step",
     "parse_browser_step",
     "run_browser_task",
+    "plan_supported",
 ]
 
 COMMAND_VERBS: frozenset[str] = frozenset(
@@ -116,6 +117,42 @@ class Plan:
 
 class PlanError(Exception):
     """Raised when the model's reply cannot be turned into a valid plan."""
+
+
+PLAY_TOOLS: frozenset[str] = frozenset(
+    {"play_video", "play_music", "play_youtube", "search_youtube"}
+)
+SET_TIME_TOOLS: frozenset[str] = frozenset({"set_reminder", "set_timer"})
+_PLAY_IGNORE: frozenset[str] = frozenset({"play", "music", "video", "song", "the", "and", "some"})
+_PLAY_VERBS: tuple[str, ...] = (
+    "play", "put on", "listen", "hear", "watch", "music", "song", "video", "youtube",
+)
+_TIME_WORDS: tuple[str, ...] = ("minute", "hour", "tomorrow", "at", "in", "pm", "am")
+
+
+def _content_words(text: str) -> set[str]:
+    """Lower-case runs of three or more letters found in the text."""
+    return set(re.findall(r"[a-z]{3,}", text.casefold()))
+
+
+def plan_supported(plan: Plan, heard: str) -> bool:
+    """True when every play/set-time step is backed by the words the user said."""
+    heard_words = _content_words(heard)
+    folded = heard.casefold()
+    for step in plan.steps:
+        if step.tool in PLAY_TOOLS:
+            query = step.args.get("query", "")
+            query_words = _content_words(query) - _PLAY_IGNORE
+            if not (query_words & heard_words):
+                return False
+            if not any(re.search(rf"\b{re.escape(v)}\b", folded) for v in _PLAY_VERBS):
+                return False
+        elif step.tool in SET_TIME_TOOLS:
+            has_word = any(re.search(rf"\b{w}\b", folded) for w in _TIME_WORDS)
+            has_digit = any(c.isdigit() for c in heard)
+            if not (has_word or has_digit):
+                return False
+    return True
 
 
 def parse_plan(reply: str, registry: ToolRegistry, max_steps: int = 6) -> Plan:
@@ -273,32 +310,47 @@ def run_browser_task(
     """Drive a browsing task: outline, ask, parse, run, repeat."""
     history: list[tuple[ToolCall, ToolResult]] = []
     last_title = ""
+    from voxa.agent.cdp import CdpError
+
     # The task may be the first thing that touches the browser: start it if it is not running.
     ensure = getattr(session, "ensure", None)
     if callable(ensure):
-        ensure()
+        try:
+            ensure()
+        except (CdpError, OSError):
+            pass
+    browser_lost = False
     for _ in range(max_steps):
         if should_stop is not None and should_stop():
             return last_title
-        outline = session.outline()
-        outline_lines = [json.dumps(item, separators=(",", ":")) for item in outline]
-        page_title = session.title()
-        page_url = session.url()
-        last_title = page_title
-        messages = plan_browser_step(request, page_title, page_url, outline_lines, history, registry)
-        reply = ask_model(messages)
         try:
-            action = parse_browser_step(reply, registry)
-        except PlanError:
-            return "I got stuck on that page."
-        if isinstance(action, str):
-            return action
-        if on_caption is not None:
-            on_caption(action)
-        started = time.perf_counter()
-        result = registry.call(action.tool, action.args)
-        ms = int((time.perf_counter() - started) * 1000)
-        if on_step is not None:
-            on_step(action, result, ms)
+            outline = session.outline()
+            outline_lines = [json.dumps(item, separators=(",", ":")) for item in outline]
+            page_title = session.title()
+            page_url = session.url()
+            last_title = page_title
+            messages = plan_browser_step(request, page_title, page_url, outline_lines, history, registry)
+            reply = ask_model(messages)
+            try:
+                action = parse_browser_step(reply, registry)
+            except PlanError:
+                return "I got stuck on that page."
+            if isinstance(action, str):
+                return action
+            if on_caption is not None:
+                on_caption(action)
+            started = time.perf_counter()
+            result = registry.call(action.tool, action.args)
+            ms = int((time.perf_counter() - started) * 1000)
+            if on_step is not None:
+                on_step(action, result, ms)
+        except (CdpError, OSError):
+            if browser_lost:
+                return "I lost contact with my browser. Say that again and I'll reopen it."
+            browser_lost = True
+            ensure = getattr(session, "ensure", None)
+            if callable(ensure):
+                ensure()
+            continue
         history.append((action, result))
     return last_title
