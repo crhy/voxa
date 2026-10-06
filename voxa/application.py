@@ -32,6 +32,19 @@ class VoxaApplication(Adw.Application):
             self.window = MainWindow(self)
         self.window.present()
 
+    def do_shutdown(self) -> None:
+        # However Voxa ends, a face server it started must not be left holding the graphics card.
+        window = self.window
+        if window is not None:
+            try:
+                client = getattr(window, "_live_client", None)
+                if client is not None and getattr(window, "_face_server_started", False):
+                    window._face_server_started = False
+                    client.shutdown_server()  # in this thread: the process is about to exit
+            except Exception:  # noqa: BLE001 - never block quitting
+                pass
+        Adw.Application.do_shutdown(self)
+
     def _show_about(self, *_args) -> None:
         about = Adw.AboutDialog(
             application_name=APP_NAME,

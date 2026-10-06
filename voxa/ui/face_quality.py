@@ -64,6 +64,18 @@ class FaceQualitySwitch(Gtk.Box):
             self._buttons[mode] = button
             self.append(button)
 
+        # What High is doing right now ("Loading the high-resolution face…"); empty and hidden otherwise.
+        self._status = Gtk.Label(label="")
+        self._status.set_xalign(0)
+        self._status.add_css_class("voxa-control-caption")
+        self._status.set_visible(False)
+        self.append(self._status)
+
+    def set_status(self, text: str) -> None:
+        """Show a short status after the buttons; an empty string hides it."""
+        self._status.set_text(text)
+        self._status.set_visible(bool(text))
+
     def _make_click_handler(self, mode: str):
         def _handler(_button: Gtk.ToggleButton, mode: str = mode) -> None:
             if self._updating:

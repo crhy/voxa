@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+import os
+import subprocess
 import threading
 import time
 from collections.abc import Callable
@@ -17,6 +19,8 @@ from . import apps, documents, mail, websearch  # noqa: E402
 from .agent import hearing, intents, planner  # noqa: E402
 from .agent.actionlog import ActionLog, ActionRecord  # noqa: E402
 from .agent.claims import claims_action, first_sentences  # noqa: E402
+from .agent.host import host_command  # noqa: E402
+from .agent.host import spawn as host_spawn  # noqa: E402
 from .agent.registry import ToolError  # noqa: E402
 from .agent.reminders import ReminderStore, reminder_phrase, timer_phrase  # noqa: E402
 from .agent.result import ToolResult  # noqa: E402
@@ -98,6 +102,31 @@ FALSE_CLAIM_REPLY = (
 # A short grace period ignores the TTS itself starting, and the streak
 # requirement keeps a cough from killing the reply.
 BARGE_IN_GRACE_SECONDS = 0.6
+# How long the high-resolution face server may take to load its model before Voxa gives up on it.
+FACE_SERVER_START_SECONDS = 90.0
+
+
+def face_server_command() -> list[str] | None:
+    """The command that starts the face server on the host, or None when it is not installed.
+
+    $VOXA_FACE_SERVER overrides the search. The script is looked for on the HOST (Voxa may be sandboxed).
+    """
+    override = os.environ.get("VOXA_FACE_SERVER", "").strip()
+    home = os.path.expanduser("~")
+    candidates = [override] if override else [
+        f"{home}/.local/share/voxa/face-server/run-face-server.sh",
+        f"{home}/voxa-neural/run-face-server.sh",
+    ]
+    for path in candidates:
+        try:
+            found = subprocess.run(host_command(["test", "-x", path]), check=False, timeout=5).returncode == 0
+        except (OSError, subprocess.SubprocessError):
+            found = False
+        if found:
+            return [path, "--steps", "10"]
+    return None
+
+
 # High facial quality: how much video must be buffered before the voice starts, and the longest it may wait.
 LIVE_FACE_HEAD_START = 0.2
 LIVE_FACE_MAX_HOLD = 2.5
@@ -558,23 +587,90 @@ class MainWindow(Adw.ApplicationWindow):
         self._refresh_live_available()
 
     def _refresh_live_available(self) -> None:
-        """Ask the face server whether it is there, and enable or grey out High accordingly."""
-
-        def worker() -> None:
-            client = self._live_client or LiveFaceClient()
-            ok = client.available()
-            idle(self._on_live_available, client if ok else None)
-
-        threading.Thread(target=worker, name="live-face-check", daemon=True).start()
-
-    def _on_live_available(self, client: LiveFaceClient | None) -> None:
-        self._live_client = client
+        """High is always selectable. When it is the chosen quality, make sure the face server is running
+        (starting it if needed) and say what is happening; otherwise let go of a server Voxa started."""
         face_quality = getattr(self.shell, "face_quality", None)
         if face_quality is not None:
-            if client is not None:
-                face_quality.set_live_available(True)
+            face_quality.set_live_available(True)
+        if self.settings.face_mode != "live" or not self.settings.character_id:
+            # Leaving High cancels a start that is still in progress.
+            self._live_generation = getattr(self, "_live_generation", 0) + 1
+            self._live_starting = False
+            self._release_face_server()
+            if face_quality is not None:
+                face_quality.set_status("")
+            return
+        if self._live_client is not None and self._live_client.available():
+            if face_quality is not None:
+                face_quality.set_status("")
+            return
+        if face_quality is not None:
+            face_quality.set_status("Loading the high-resolution face…")
+        if getattr(self, "_live_starting", False):
+            return  # one start at a time: several things ask for this while the window is being built
+        self._live_starting = True
+        generation = getattr(self, "_live_generation", 0)
+
+        def worker() -> None:
+            client = LiveFaceClient()
+            started = False
+            if not client.available():
+                command = face_server_command()
+                if command is None:
+                    idle(self._on_live_ready, generation, None, False,
+                         "The high-resolution face is not installed on this computer")
+                    return
+                host_spawn(command)
+                started = True
+                deadline = time.monotonic() + FACE_SERVER_START_SECONDS
+                while time.monotonic() < deadline and generation == getattr(self, "_live_generation", 0):
+                    if client.available():
+                        break
+                    time.sleep(1.0)
+            if generation != getattr(self, "_live_generation", 0):
+                if started and client.available():
+                    client.shutdown_server()
+                return
+            if client.available():
+                idle(self._on_live_ready, generation, client, started, "")
             else:
-                face_quality.set_live_available(False, "The face server is not running")
+                idle(self._on_live_ready, generation, None, started,
+                     "The high-resolution face could not start (is the graphics card full?)")
+
+        threading.Thread(target=worker, name="live-face-start", daemon=True).start()
+
+    def _on_live_ready(self, generation: int, client: LiveFaceClient | None, started: bool, problem: str) -> None:
+        if generation != getattr(self, "_live_generation", 0):
+            return
+        self._live_starting = False
+        face_quality = getattr(self.shell, "face_quality", None)
+        self._live_client = client
+        self._face_server_started = bool(started and client is not None)
+        if face_quality is not None:
+            face_quality.set_status("")
+        if client is not None:
+            self._toast("High-resolution face ready.")
+            return
+        # Could not start: say why and go back to Medium rather than leave High selected and doing nothing.
+        self._toast(f"{problem}. Using Medium instead.")
+        self.settings.face_mode = "prerendered"
+        self.config_store.save(self.settings)
+        if face_quality is not None:
+            face_quality.set_mode("prerendered")
+        assistant_view = getattr(self.shell, "assistant_view", None)
+        if assistant_view is not None:
+            assistant_view.set_face_mode("prerendered")
+
+    def _release_face_server(self) -> None:
+        """Drop the live client; stop the face server if Voxa was the one that started it (frees the GPU)."""
+        client, self._live_client = self._live_client, None
+        if client is None:
+            return
+        if getattr(self, "_face_server_started", False):
+            self._face_server_started = False
+            threading.Thread(target=client.shutdown_server, name="live-face-stop", daemon=True).start()
+        else:
+            client.close()
 
     def _live_before_play(self, path: str) -> None:
         """Called in the synthesis worker thread before playback: feed the live face server."""
@@ -2916,6 +3012,8 @@ class MainWindow(Adw.ApplicationWindow):
 
     def do_close_request(self) -> bool:
         self._closing = True
+        self._live_generation = getattr(self, "_live_generation", 0) + 1
+        self._release_face_server()
         self.stop_current_work()
         self._stop_gpu_monitor()
         self.audio.stop()

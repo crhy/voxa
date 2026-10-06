@@ -188,9 +188,17 @@ class LiveFaceClient:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(self.connect_timeout)
             sock.connect((self.host, self.port))
+            # A fresh parser for a fresh connection: bytes left over from an attempt that failed half-way
+            # would otherwise make every later reply unreadable.
+            self._reader = MessageReader()
             sock.sendall(encode({"op": "hello", "version": 1}))
-            data = sock.recv(65536)
-            for msg, _payload in self._reader.feed(data):
+            messages = []
+            while not messages:
+                data = sock.recv(65536)
+                if not data:
+                    break
+                messages = self._reader.feed(data)
+            for msg, _payload in messages:
                 if msg.get("op") == "hello" and msg.get("ready"):
                     self._characters = list(msg.get("characters", []))
                     self._ready = True
@@ -276,6 +284,15 @@ class LiveFaceClient:
         except OSError:
             self._sock = None
             self._ready = False
+
+    def shutdown_server(self) -> None:
+        """Ask the face server to exit (used only for a server Voxa started itself)."""
+        if self._sock is not None:
+            try:
+                self._sock.sendall(encode({"op": "shutdown"}))
+            except OSError:
+                pass
+        self.close()
 
     def close(self) -> None:
         sock, self._sock = self._sock, None
