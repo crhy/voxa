@@ -458,7 +458,7 @@ class PhotoFaceRenderer:
         if key in items:
             items.move_to_end(key)
             return items[key]
-        texture = Gdk.Texture.new_from_bytes(jpeg)
+        texture = Gdk.Texture.new_from_bytes(GLib.Bytes.new(jpeg))  # a plain bytes object is rejected
         items[key] = texture
         while len(items) > 64:
             items.popitem(last=False)
@@ -468,6 +468,9 @@ class PhotoFaceRenderer:
         """Draw a live JPEG frame directly (no crossfade, no eye patch)."""
         canvas = self.widget
         canvas.base = texture
+        # The canvas no longer shows a pack frame: make the next pre-rendered draw put its frame back even if
+        # it is the same resting frame as before, or the last neural frame would stay on screen after speech.
+        self._base_path = None
         canvas.previous = None
         canvas.patch = None
         canvas.offset = (0.0, 0.0)

@@ -142,3 +142,17 @@ def test_renderer_widget_under_gtk():
     renderer = PhotoFaceRenderer()
     assert renderer.widget is not None
     renderer.queue_render()
+
+
+def test_live_frames_are_decoded_from_plain_bytes():
+    """The face server's JPEGs arrive as Python bytes; Gdk needs them wrapped, or every tick fails."""
+    import io
+
+    from PIL import Image
+
+    out = io.BytesIO()
+    Image.new("RGB", (16, 16), (200, 100, 50)).save(out, format="JPEG")
+    renderer = PhotoFaceRenderer()
+    texture = renderer._live_texture("live:test:0", out.getvalue())
+    assert texture.get_width() == 16 and texture.get_height() == 16
+    assert renderer._live_texture("live:test:0", out.getvalue()) is texture  # cached by key

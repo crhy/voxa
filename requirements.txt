@@ -5,3 +5,4 @@ PyOpenGL>=3.1,<4
 # Pure-Python GLB reader for downloaded 3D avatar models (no native build step).
 pygltflib>=1.16,<2
 yt-dlp
+yt-dlp-ejs==0.8.0
