@@ -35,6 +35,21 @@ def _word_timing_option() -> dict:
 _WORD_TIMING = _word_timing_option()
 
 
+def _run_quietly(coro):
+    """Run *coro* on a fresh event loop, closing async generators before the loop is closed."""
+    loop = asyncio.new_event_loop()
+    try:
+        try:
+            value = loop.run_until_complete(coro)
+        except BaseException:
+            loop.run_until_complete(loop.shutdown_asyncgens())
+            raise
+        loop.run_until_complete(loop.shutdown_asyncgens())
+        return value
+    finally:
+        loop.close()
+
+
 def _ui_once(callback, *args) -> None:
     """Run ``callback`` once on the GTK thread at default priority.
 
@@ -157,7 +172,7 @@ class SpeechService:
             try:
                 if edge_tts is None:
                     raise RuntimeError("Edge TTS is unavailable")
-                item.path, item.words = asyncio.run(
+                item.path, item.words = _run_quietly(
                     self._fetch_to_file(text, rate, voice, item.cancelled.is_set)
                 )
                 if on_ready is not None and item.path and not item.cancelled.is_set():
@@ -211,21 +226,26 @@ class SpeechService:
         with tempfile.NamedTemporaryFile(prefix="voxa-speech-", suffix=".mp3", delete=False) as handle:
             path = handle.name
             wrote = False
-            async for message in communicate.stream():
-                if should_stop():
-                    break
-                kind = message.get("type")
-                if kind == "WordBoundary":
-                    words.append(
-                        (
-                            message.get("text", ""),
-                            message.get("offset", 0) / 10_000_000,
-                            message.get("duration", 0) / 10_000_000,
+            stream = communicate.stream()
+            try:
+                async for message in stream:
+                    if should_stop():
+                        break
+                    kind = message.get("type")
+                    if kind == "WordBoundary":
+                        words.append(
+                            (
+                                message.get("text", ""),
+                                message.get("offset", 0) / 10_000_000,
+                                message.get("duration", 0) / 10_000_000,
+                            )
                         )
-                    )
-                elif kind == "audio" and message.get("data"):
-                    handle.write(message["data"])
-                    wrote = True
+                    elif kind == "audio" and message.get("data"):
+                        handle.write(message["data"])
+                        wrote = True
+            finally:
+                with contextlib.suppress(Exception):
+                    await stream.aclose()
         if not wrote or should_stop():
             with contextlib.suppress(OSError):
                 os.unlink(path)
@@ -245,7 +265,7 @@ class SpeechService:
     def _natural_file_worker(self, text: str, rate: int, voice: str, cancel_event: threading.Event) -> None:
         path = ""
         try:
-            path = asyncio.run(self._fetch_natural_audio(text, rate, voice, cancel_event))
+            path = _run_quietly(self._fetch_natural_audio(text, rate, voice, cancel_event))
         except Exception as exc:  # noqa: BLE001 - network/service boundary
             if cancel_event.is_set() or cancel_event is not self.cancel_event:
                 return
@@ -271,21 +291,26 @@ class SpeechService:
         with tempfile.NamedTemporaryFile(prefix="voxa-speech-", suffix=".mp3", delete=False) as handle:
             path = handle.name
             wrote = False
-            async for message in communicate.stream():
-                if cancel_event.is_set() or cancel_event is not self.cancel_event:
-                    break
-                kind = message.get("type")
-                if kind == "WordBoundary":
-                    words.append(
-                        (
-                            message.get("text", ""),
-                            message.get("offset", 0) / 10_000_000,
-                            message.get("duration", 0) / 10_000_000,
+            stream = communicate.stream()
+            try:
+                async for message in stream:
+                    if cancel_event.is_set() or cancel_event is not self.cancel_event:
+                        break
+                    kind = message.get("type")
+                    if kind == "WordBoundary":
+                        words.append(
+                            (
+                                message.get("text", ""),
+                                message.get("offset", 0) / 10_000_000,
+                                message.get("duration", 0) / 10_000_000,
+                            )
                         )
-                    )
-                elif kind == "audio" and message.get("data"):
-                    handle.write(message["data"])
-                    wrote = True
+                    elif kind == "audio" and message.get("data"):
+                        handle.write(message["data"])
+                        wrote = True
+            finally:
+                with contextlib.suppress(Exception):
+                    await stream.aclose()
         if not wrote:
             with contextlib.suppress(OSError):
                 os.unlink(path)
@@ -341,7 +366,7 @@ class SpeechService:
         _ensure_gstreamer()
         received_audio = threading.Event()
         try:
-            asyncio.run(
+            _run_quietly(
                 self._push_natural_audio(
                     text,
                     rate,
@@ -389,32 +414,42 @@ class SpeechService:
             **_WORD_TIMING,
         )
         received_audio = False
-        async for message in communicate.stream():
-            if cancel_event.is_set() or cancel_event is not self.cancel_event:
-                return
-            if message.get("type") == "WordBoundary":
-                if self._on_words is not None:
-                    word = message.get("text", "")
-                    start_s = message.get("offset", 0) / 10_000_000
-                    duration_s = message.get("duration", 0) / 10_000_000
-                    self._on_words([(word, start_s, duration_s)])
-                continue
-            if message.get("type") != "audio":
-                continue
-            data = message.get("data", b"")
-            if not data:
-                continue
-            if not received_audio:
-                received_audio = True
-                on_first_audio()
-            buffer = Gst.Buffer.new_allocate(None, len(data), None)
-            buffer.fill(0, data)
-            flow = appsrc.emit("push-buffer", buffer)
-            if flow != Gst.FlowReturn.OK:
-                if cancel_event.is_set():
-                    return
-                raise RuntimeError(f"GStreamer rejected speech audio ({flow.value_nick}).")
+        cancelled = False
+        stream = communicate.stream()
+        try:
+            async for message in stream:
+                if cancel_event.is_set() or cancel_event is not self.cancel_event:
+                    cancelled = True
+                    break
+                if message.get("type") == "WordBoundary":
+                    if self._on_words is not None:
+                        word = message.get("text", "")
+                        start_s = message.get("offset", 0) / 10_000_000
+                        duration_s = message.get("duration", 0) / 10_000_000
+                        self._on_words([(word, start_s, duration_s)])
+                    continue
+                if message.get("type") != "audio":
+                    continue
+                data = message.get("data", b"")
+                if not data:
+                    continue
+                if not received_audio:
+                    received_audio = True
+                    on_first_audio()
+                buffer = Gst.Buffer.new_allocate(None, len(data), None)
+                buffer.fill(0, data)
+                flow = appsrc.emit("push-buffer", buffer)
+                if flow != Gst.FlowReturn.OK:
+                    if cancel_event.is_set():
+                        cancelled = True
+                        break
+                    raise RuntimeError(f"GStreamer rejected speech audio ({flow.value_nick}).")
+        finally:
+            with contextlib.suppress(Exception):
+                await stream.aclose()
 
+        if cancelled:
+            return
         if not received_audio:
             raise RuntimeError("The speech service returned no audio.")
         if self._is_current(cancel_event) and appsrc is self.appsrc:
