@@ -87,10 +87,13 @@ def _synthetic_jpeg(index, size):
     return buf.getvalue()
 
 
+PORTRAITS = Path(__file__).resolve().parents[1] / "voxa" / "ui" / "assets" / "portraits"
+
+
 def _characters():
-    if not PACK_ROOT.is_dir():
-        return []
-    return sorted(d.name for d in PACK_ROOT.iterdir() if d.is_dir())
+    """Characters with a face pack; on a machine without packs, the bundled portraits (frames are then the portrait)."""
+    names = sorted(p.name for p in PACK_ROOT.iterdir() if (p / "index.json").exists()) if PACK_ROOT.is_dir() else []
+    return names or sorted(p.stem for p in PORTRAITS.glob("*.jpg"))
 
 
 def _handle_connection(conn, delay_ms):
@@ -151,6 +154,9 @@ def _send_frames(conn, uid, utterances, delay_ms):
             jpeg = Path(path).read_bytes()
         else:
             jpeg = _synthetic_jpeg(index, size)
+            if not jpeg:  # no Pillow here: the bundled portrait is a perfectly good frame for a stand-in
+                portrait = PORTRAITS / f"{entry['character']}.jpg"
+                jpeg = portrait.read_bytes() if portrait.exists() else b""
         conn.sendall(encode(
             {"op": "frame", "id": uid, "index": index},
             jpeg,

@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from voxa.ui.face_pack import FacePack, MouthFrame
-from voxa.ui.photo_face import FrameCache, PhotoFaceRenderer, compose
+pytest.importorskip("gi")  # the renderer needs GTK; machines without it skip this file
+
+from voxa.ui.face_pack import FacePack, MouthFrame  # noqa: E402
+from voxa.ui.photo_face import FrameCache, PhotoFaceRenderer, compose  # noqa: E402
 
 
 def _fake_pack() -> FacePack:

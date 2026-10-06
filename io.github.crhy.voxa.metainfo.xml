@@ -26,6 +26,25 @@
   </screenshots>
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="0.1.5" date="2026-10-06">
+      <description>
+        <p>Voxa gets a face and learns to act. This release adds photoreal characters, hands-free actions and a much faster, more natural conversation.</p>
+        <ul>
+          <li>22 photoreal characters from 11 cultures, each with its own voice, chosen from a portrait button on the main screen.</li>
+          <li>Facial Quality switch: Low (still portrait), Medium (pre-rendered lip movement) and High (neural face; needs a graphics card and a separately installed face server).</li>
+          <li>Voxa starts speaking while the answer is still being written, with lip movement timed to the words.</li>
+          <li>Voice actions: open and close apps, play music and video directly (no ads), media controls, timers and reminders, routines, web browsing in Voxa's own browser.</li>
+          <li>"Get me the cheapest ticket to Hawaii": flights, hotels, rental cars, cars for sale and products open as a real search, cheapest first, from your current location.</li>
+          <li>Directions and "where is the nearest…" open in Google Maps.</li>
+          <li>Web search for questions about named things and anything current, with the source shown under the answer.</li>
+          <li>PAUSE button and "Voxa, pause": Voxa ignores everything until you say "Voxa" again.</li>
+          <li>Echo cancellation so Voxa does not hear its own voice; mis-heard wake words and background noise are no longer turned into actions.</li>
+          <li>Ask for an answer "in German" (or 11 other languages) and Voxa replies in that language with a matching voice.</li>
+          <li>Strata joins Ollama and llama.cpp as a model backend; models are listed automatically when the server is ready; suggestions leave room for the High face.</li>
+          <li>Fixes: the window no longer freezes its own status updates, the ACTIVE button always responds, "Ready" and "Listening" always reflect what Voxa is really doing.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.4" date="2026-09-23">
       <description>
         <p>Voxa is the successor of Voice2Text AI: this release declares the rename from io.github.crhy.voice2textai so the Spaced Linux Flatpak update repository can end-of-life the older app and rebase its installed users onto Voxa. Existing Voice2Text AI settings, transcriptions and backups are carried over to Voxa during the migration; nothing else changes.</p>
