@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from voxa.config import FACE_MODES, ConfigStore, Settings
+from voxa.config import FACE_MODES, WEB_SEARCH_MODES, ConfigStore, Settings
 
 
 def test_defaults_when_config_is_missing(tmp_path: Path) -> None:
@@ -193,3 +193,29 @@ def test_face_mode_round_trips(tmp_path: Path) -> None:
     store = ConfigStore(tmp_path / "config.json")
     store.save(Settings(face_mode="live"))
     assert store.load().face_mode == "live"
+
+
+def test_web_search_defaults_to_auto(tmp_path: Path) -> None:
+    store = ConfigStore(tmp_path / "config.json")
+    assert store.load().web_search == "auto"
+    assert Settings().web_search == "auto"
+
+
+def test_web_search_keeps_each_valid_value(tmp_path: Path) -> None:
+    store = ConfigStore(tmp_path / "config.json")
+    for mode in WEB_SEARCH_MODES:
+        store.save(Settings(web_search=mode))
+        assert store.load().web_search == mode
+
+
+def test_web_search_normalises_invalid_value(tmp_path: Path) -> None:
+    store = ConfigStore(tmp_path / "config.json")
+    store.save(Settings(web_search="sometimes"))
+    assert store.load().web_search == "auto"
+    assert Settings(web_search="sometimes").normalized().web_search == "auto"
+
+
+def test_web_search_round_trips(tmp_path: Path) -> None:
+    store = ConfigStore(tmp_path / "config.json")
+    store.save(Settings(web_search="never"))
+    assert store.load().web_search == "never"

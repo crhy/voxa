@@ -111,17 +111,31 @@ def test_on_words_none_is_harmless(monkeypatch) -> None:
     )
 
 
-def test_position_uses_pipeline_when_known() -> None:
+def test_position_uses_pipeline_when_known(monkeypatch) -> None:
+    import voxa.speech as speech_module
+
+    monkeypatch.setattr(speech_module, "Gst", types.SimpleNamespace(Format=types.SimpleNamespace(TIME=3)))
     service = SpeechService()
-    service.pipeline = types.SimpleNamespace(get_position=lambda: 1.25)
+    service._started_emitted = True
+    service.pipeline = types.SimpleNamespace(query_position=lambda fmt: (True, 1_250_000_000))
     assert service.position() == 1.25
 
 
 def test_position_falls_back_to_wall_clock() -> None:
     service = SpeechService()
     service.pipeline = None
+    service._started_emitted = True
     service._started_at = time.monotonic() - 2.0
-    assert service.position() == pytest.approx(2.0)
+    assert service.position() == pytest.approx(2.0, abs=0.05)
+
+
+def test_position_is_zero_until_sound_plays_and_after_it_ends() -> None:
+    service = SpeechService()
+    service._started_at = time.monotonic() - 2.0
+    assert service.position() == 0.0  # requested, not started
+    service._started_emitted = True
+    service._finished = True
+    assert service.position() == 0.0  # finished
 
 
 def test_position_is_zero_before_start() -> None:

@@ -63,6 +63,7 @@ class SpeechService:
         self._started_at = None
         self._started_emitted = False
         self._finished = False
+        self._before_play = None
 
     def speak(
         self,
@@ -74,6 +75,7 @@ class SpeechService:
         on_done,
         on_error,
         on_words=None,
+        before_play=None,
     ) -> None:
         self.stop()
         cancel_event = threading.Event()
@@ -82,6 +84,7 @@ class SpeechService:
         self._on_done = on_done
         self._on_error = on_error
         self._on_words = on_words
+        self._before_play = before_play
         self._started_at = None
         self._started_emitted = False
         self._finished = False
@@ -283,6 +286,11 @@ class SpeechService:
             ) as handle:
                 handle.write(result.stdout)
                 path = handle.name
+            if self._before_play is not None:
+                try:
+                    self._before_play(path)
+                except Exception:  # noqa: BLE001 - callback must not prevent speech
+                    pass
             _ui_once(self._play_file, path, cancel_event)
         except FileNotFoundError:
             detail = f"Natural voice failed ({natural_error}); eSpeak NG is not installed."
@@ -332,18 +340,23 @@ class SpeechService:
         return False
 
     def position(self) -> float:
-        """Playback seconds elapsed in the current utterance, for the renderer.
+        """Seconds of audio actually played in the current utterance, for the face renderer.
 
-        Uses the GStreamer pipeline position when it is known, otherwise the
-        wall-clock time since :meth:`on_started` fired, otherwise ``0.0``.
+        ``0.0`` until sound is really coming out and again once the utterance has finished, so a mouth
+        driven by this clock is shut before and after the voice. The pipeline's own position is used when
+        it can be queried (it starts counting only when playback starts); the wall clock since
+        :meth:`on_started` is the fallback for players that cannot report one.
         """
-        if self.pipeline is not None:
+        if self._finished or not self._started_emitted:
+            return 0.0
+        pipeline = self.pipeline
+        if pipeline is not None:
             try:
-                pos = self.pipeline.get_position()
-            except Exception:
-                pos = -1.0
-            if pos is not None and pos >= 0.0:
-                return pos
+                ok, nanoseconds = pipeline.query_position(Gst.Format.TIME)
+                if ok and nanoseconds >= 0:
+                    return nanoseconds / 1_000_000_000
+            except Exception:  # noqa: BLE001 - a clock that cannot answer falls back to the wall clock
+                pass
         if self._started_at is not None:
             return time.monotonic() - self._started_at
         return 0.0

@@ -48,6 +48,7 @@ from .theme import host_theme_is_dark  # noqa: E402
 from .transcription import WhisperService  # noqa: E402
 from .ui.avatars import character_choices, get_avatar  # noqa: E402
 from .ui.legacy_view import LegacyCallbacks, LegacyView  # noqa: E402
+from .ui.live_face import LiveFaceClient, decode_audio_to_pcm16k  # noqa: E402
 from .ui.shell import AssistantShell, build_header  # noqa: E402
 from .ui.state import AssistantModel, AssistantState  # noqa: E402
 from .ui.styles import install_styles  # noqa: E402
@@ -61,6 +62,8 @@ WAKE_WHISPER_MODEL = "tiny"
 GPU_POLL_INTERVAL_SECONDS = 2.0
 APPEARANCE_VALUES = ["system", "light", "dark"]
 APPEARANCE_LABELS = ["System", "Light", "Dark"]
+WEB_SEARCH_VALUES = ["auto", "always", "never"]
+WEB_SEARCH_LABELS = ["Automatically when needed", "Always search", "Never search"]
 TTS_VOICES = [
     ("Aria — US female", "en-US-AriaNeural"),
     ("Jenny — US female", "en-US-JennyNeural"),
@@ -164,6 +167,8 @@ class MainWindow(Adw.ApplicationWindow):
         self.ai_server = AiServerManager(self.settings, log_dir=server_logs)
         self._server_action_lock = threading.Lock()
         self._server_generation = 0
+        self._last_search_query: str | None = None
+        self._last_search_at = 0.0
         self.style_manager = Adw.StyleManager.get_default()
         self._apply_appearance()
         self.whisper = WhisperService()
@@ -294,6 +299,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.shell.face_quality.set_mode(self.settings.face_mode)
         self.shell.face_quality.set_live_available(False)
         self.shell.face_quality.set_sensitive(bool(self.settings.character_id))
+        self._live_client: LiveFaceClient | None = None
         toolbar.add_top_bar(build_header(menu, self.shell.character_picker))
         # Attachments are a later milestone (issue #7 section 16); until then the paperclip
         # says so instead of silently doing nothing.
@@ -447,6 +453,7 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _port_stop_speech(self) -> None:
         self.speech.stop()
+        self._live_reset()
         self._speaking_since = 0.0
         self._barge_in_streak = 0
         if self.conversation is not None:
@@ -544,6 +551,50 @@ class MainWindow(Adw.ApplicationWindow):
         assistant_view = getattr(self.shell, "assistant_view", None)
         if assistant_view is not None:
             assistant_view.set_face_mode(self.settings.face_mode)
+        face_quality = getattr(self.shell, "face_quality", None)
+        if self.settings.face_mode == "live" and self.settings.character_id:
+            client = LiveFaceClient()
+            if client.available():
+                self._live_client = client
+                if face_quality is not None:
+                    face_quality.set_live_available(True)
+            else:
+                self._live_client = None
+                if face_quality is not None:
+                    face_quality.set_live_available(False, "The face server is not running")
+        else:
+            self._live_client = None
+            if face_quality is not None:
+                face_quality.set_live_available(False, "The face server is not running")
+
+    def _live_before_play(self, path: str) -> None:
+        """Called in the synthesis worker thread before playback: feed the live face server."""
+        if self._live_client is None:
+            return
+        try:
+            pcm = decode_audio_to_pcm16k(path)
+        except Exception:
+            return
+        buffer = self._live_client.start_utterance(
+            self.settings.character_id or "", pcm, size=512
+        )
+        if buffer is None:
+            return
+        renderer = getattr(self.shell, "assistant_view", None)
+        if renderer is not None:
+            photo = getattr(renderer, "_photo_renderer", None)
+            if photo is not None:
+                photo.set_live_frames(buffer)
+
+    def _live_reset(self) -> None:
+        """Cancel any in-flight live utterance and clear the renderer's buffer."""
+        if self._live_client is not None:
+            self._live_client.cancel()
+        renderer = getattr(self.shell, "assistant_view", None)
+        if renderer is not None:
+            photo = getattr(renderer, "_photo_renderer", None)
+            if photo is not None:
+                photo.set_live_frames(None)
 
     def show_transcript_window(self) -> None:
         """The original dictation and transcript view, in a secondary window."""
@@ -1325,6 +1376,7 @@ class MainWindow(Adw.ApplicationWindow):
         # A reply may still be playing: speech.stop() fires no callbacks, so
         # the mute/barge-in state is reset explicitly here.
         self.speech.stop()
+        self._live_reset()
         self._speaking_since = 0.0
         self._barge_in_streak = 0
         if self._pending_user_generation is not None:
@@ -1370,6 +1422,7 @@ class MainWindow(Adw.ApplicationWindow):
         if self.conversation is not None:
             self.conversation.unmute()
         self.speech.stop()
+        self._live_reset()
         self._speaking_since = 0.0
         self._barge_in_streak = 0
         if kind == "goodbye":
@@ -1639,6 +1692,11 @@ class MainWindow(Adw.ApplicationWindow):
             on_done=lambda: idle(self._for_session(token, self._on_conversation_speech_done), reply_id),
             on_error=lambda error: idle(self._for_session(token, self._on_conversation_speech_error), error),
             on_words=lambda words: idle(self.shell.set_word_timeline, words),
+            **(
+                {"before_play": self._live_before_play}
+                if self._live_client is not None
+                else {}
+            ),
         )
 
     def _conversation_idle_status(self) -> str:
@@ -1744,6 +1802,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._barge_in_streak = 0
         self._speaking_since = 0.0
         self.speech.stop()
+        self._live_reset()
         self.conversation.unmute()
         self.conversation.arm_prompt()
         self.assistant.barge_in(self.assistant.token())
@@ -2020,7 +2079,8 @@ class MainWindow(Adw.ApplicationWindow):
             try:
                 client = self._ai_client()
                 nonlocal messages, prompt
-                if self.settings.web_search:
+                real_model = isinstance(client, (OllamaClient, LlamaCppClient, StrataClient))
+                if self.settings.web_search != "never" and real_model:
                     context = self._web_context(prompt, generation, cancel_event)
                     if context:
                         if messages:
@@ -2259,9 +2319,14 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def _web_context(self, prompt: str, generation: int, cancel_event: threading.Event) -> str:
-        query = websearch.search_query_for(prompt)
+        previous = self._last_search_query
+        if previous is not None and time.time() - self._last_search_at > 180:
+            previous = None
+        query = websearch.search_query_for(prompt, self.settings.web_search, previous)
         if not query:
             return ""
+        self._last_search_query = query
+        self._last_search_at = time.time()
         idle(self._on_web_search, query, generation, cancel_event)
         try:
             results = websearch.search(query)
@@ -2474,6 +2539,11 @@ class MainWindow(Adw.ApplicationWindow):
             on_done=lambda: idle(self._set_status, "Ready"),
             on_error=lambda error: idle(self._speech_error, error),
             on_words=lambda words: idle(self.shell.set_word_timeline, words),
+            **(
+                {"before_play": self._live_before_play}
+                if self._live_client is not None
+                else {}
+            ),
         )
 
     def _speech_error(self, error: str) -> bool:
@@ -2491,6 +2561,7 @@ class MainWindow(Adw.ApplicationWindow):
             self._install_cancel.set()
         self.ask_button.set_sensitive(True)
         self._stop_model_loading()
+        self._live_reset()
         self._set_status("Stopped.")
 
     @staticmethod
@@ -2679,11 +2750,12 @@ class MainWindow(Adw.ApplicationWindow):
 
         answers_group = Adw.PreferencesGroup(title="Answers")
         ai_page.add(answers_group)
-        web_search_row = Adw.SwitchRow(
-            title="Search the web for current questions",
-            subtitle="Sends the question text to DuckDuckGo when it needs fresh information",
+        web_search_row = Adw.ComboRow(
+            title="Web search",
+            subtitle="Sends the question text to DuckDuckGo when the answer needs facts from outside the model",
         )
-        web_search_row.set_active(self.settings.web_search)
+        web_search_row.set_model(Gtk.StringList.new(WEB_SEARCH_LABELS))
+        web_search_row.set_selected(WEB_SEARCH_VALUES.index(self.settings.web_search))
         answers_group.add(web_search_row)
 
         # Installing and pulling models is an Ollama-only convenience; a
@@ -2770,7 +2842,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.settings.ollama_url = endpoint_row.get_text().strip()
         self.settings.strata_url = strata_row.get_text().strip()
         self.settings.auto_speak = auto_speak_row.get_active()
-        self.settings.web_search = web_search_row.get_active()
+        self.settings.web_search = WEB_SEARCH_VALUES[min(web_search_row.get_selected(), len(WEB_SEARCH_VALUES) - 1)]
         self.settings.wake_word = wake_word_row.get_text().strip()
         self.settings.appearance = APPEARANCE_VALUES[appearance_row.get_selected()]
         self.settings.character_id = self._character_ids[

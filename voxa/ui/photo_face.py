@@ -217,6 +217,8 @@ class PhotoFaceRenderer:
         self._crossfade_from: str | None = None
         self._crossfade_t0 = 0.0
         self._logged = False
+        self._live_buffer = None
+        self._live_textures: OrderedDict = OrderedDict()
 
         self.widget = FaceCanvas()
         self.widget.add_css_class("voxa-photo-face")
@@ -276,6 +278,15 @@ class PhotoFaceRenderer:
     def get_mode(self) -> str:
         return self._mode
 
+    def set_live_frames(self, buffer) -> None:
+        """Hand the renderer a :class:`voxa.ui.live_face.FrameBuffer` (or ``None``).
+
+        With a buffer that already holds frames, live mode draws the server's
+        JPEG frames; with no buffer or no frames yet it falls through to the
+        prerendered path, which is exactly Medium.
+        """
+        self._live_buffer = buffer
+
     def set_state(self, state: AssistantState, detail: str = "") -> None:
         self._state = state
 
@@ -330,8 +341,15 @@ class PhotoFaceRenderer:
         self.widget.add_tick_callback(self._on_tick)
 
     def _speech_visemes(self) -> dict[str, float]:
-        if self._word_timeline and self._speech_clock is not None:
-            return weights_at(self._word_timeline, self._speech_clock())
+        if self._speech_clock is not None:
+            # The clock reads 0 until sound is actually playing and again after it ends: keep the mouth shut
+            # then, instead of mouthing along while the voice is still being fetched.
+            played = self._speech_clock()
+            if played <= 0.0:
+                return {}
+            if self._word_timeline:
+                return weights_at(self._word_timeline, played)
+            return viseme_weights(played)
         return viseme_weights(_now() - self._speaking_since)
 
     def _on_tick(self, widget, *args):
@@ -367,6 +385,16 @@ class PhotoFaceRenderer:
             if now - self._last_redraw < interval:
                 return GLib.SOURCE_CONTINUE
             self._last_redraw = now
+            live = self._live_buffer if self._mode == "live" else None
+            if live is not None:
+                seconds = self._speech_clock() if self._speech_clock is not None else (
+                    _now() - self._speaking_since if self._speaking_since is not None else 0.0
+                )
+                index = live.index_at(seconds) if seconds > 0.0 else None
+                jpeg = live.get(index) if index is not None else None
+                if jpeg is not None:
+                    self._draw_live(self._live_texture(f"live:{live.utterance_id}:{index}", jpeg))
+                    return GLib.SOURCE_CONTINUE
             frame, self._index = compose(
                 self._pack, self._mode, self._viseme, blink, pose.head, self._index, self._portrait
             )
@@ -418,3 +446,26 @@ class PhotoFaceRenderer:
             canvas.queue_draw()
         except Exception:  # the portrait itself is unreadable: leave the canvas as it is
             pass
+
+    def _live_texture(self, key: str, jpeg: bytes):
+        """Return a Gdk.Texture for *jpeg*, cached by *key* (LRU, max 64)."""
+        items = self._live_textures
+        if key in items:
+            items.move_to_end(key)
+            return items[key]
+        texture = Gdk.Texture.new_from_bytes(jpeg)
+        items[key] = texture
+        while len(items) > 64:
+            items.popitem(last=False)
+        return texture
+
+    def _draw_live(self, texture) -> None:
+        """Draw a live JPEG frame directly (no crossfade, no eye patch)."""
+        canvas = self.widget
+        canvas.base = texture
+        canvas.previous = None
+        canvas.patch = None
+        canvas.offset = (0.0, 0.0)
+        canvas.zoom = 1.0
+        canvas.rotation = 0.0
+        canvas.queue_draw()

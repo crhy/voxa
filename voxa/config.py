@@ -10,6 +10,7 @@ from typing import Any
 from voxa.ui.avatars import get_avatar
 
 FACE_MODES = ("live", "prerendered", "still")
+WEB_SEARCH_MODES = ("auto", "always", "never")
 
 
 @dataclass(slots=True)
@@ -30,7 +31,7 @@ class Settings:
     tts_voice: str = "en-US-AriaNeural"
     appearance: str = "system"
     auto_speak: bool = True
-    web_search: bool = True
+    web_search: str = "auto"
     silence_ms: int = 700
     voice_threshold: int = 450
     max_segment_seconds: float = 6.0
@@ -64,6 +65,8 @@ class Settings:
             self.character_id = ""
         if self.face_mode not in FACE_MODES:
             self.face_mode = "prerendered"
+        if self.web_search not in WEB_SEARCH_MODES:
+            self.web_search = "auto"
         return self
 
 
