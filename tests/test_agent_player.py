@@ -13,8 +13,9 @@ def captured(monkeypatch):
 
 
 def _vlc_argv(media, fullscreen=False):
-    argv = ["flatpak", "run", "org.videolan.VLC", "--one-instance", "--meta-title", media.title, media.video_url]
-    if media.audio_url:
+    main = media.video_url or media.audio_url
+    argv = ["flatpak", "run", "org.videolan.VLC", "--one-instance", "--control", "dbus", "--meta-title", media.title, main]
+    if media.video_url and media.audio_url:
         argv += ["--input-slave", media.audio_url]
     if fullscreen:
         argv += ["--fullscreen"]
@@ -67,10 +68,10 @@ def test_mpris_seek_argv(monkeypatch):
     seen: list[list[str]] = []
     monkeypatch.setattr("voxa.agent.player.subprocess.run", lambda *a, **k: seen.append(a[0]) or _completed(a[0]))
     VlcPlayer().seek(5.0)
-    assert seen[1] == [
+    # gdbus takes each argument on its own (there is no --params flag); MPRIS seeks in microseconds.
+    assert seen[0] == [
         "gdbus", "call", "--session", "--dest", "org.mpris.MediaPlayer2.vlc",
-        "--object-path", "/org/mpris/MediaPlayer2", "--method", "org.mpris.MediaPlayer2.Player.Seek",
-        "--params", "<int64 5000000>",
+        "--object-path", "/org/mpris/MediaPlayer2", "--method", "org.mpris.MediaPlayer2.Player.Seek", "5000000",
     ]
 
 
@@ -80,9 +81,22 @@ def test_mpris_set_volume_argv(monkeypatch):
     VlcPlayer().set_volume(0.5)
     assert seen[0] == [
         "gdbus", "call", "--session", "--dest", "org.mpris.MediaPlayer2.vlc",
-        "--object-path", "/org/mpris/MediaPlayer2", "--method", "org.mpris.MediaPlayer2.Player.SetProperty",
-        "--params", '"org.mpris.MediaPlayer2.Player", "Volume", <uint64 50>',
+        "--object-path", "/org/mpris/MediaPlayer2", "--method", "org.freedesktop.DBus.Properties.Set",
+        "org.mpris.MediaPlayer2.Player", "Volume", "<0.50>",
     ]
+
+
+def test_mpris_stop_also_closes_the_player(monkeypatch):
+    seen: list[list[str]] = []
+    monkeypatch.setattr("voxa.agent.player.subprocess.run", lambda *a, **k: seen.append(a[0]) or _completed(a[0]))
+    VlcPlayer().stop()
+    assert [argv[-1] for argv in seen] == ["org.mpris.MediaPlayer2.Player.Stop", "org.mpris.MediaPlayer2.Quit"]
+
+
+def test_vlc_plays_music_that_has_only_an_audio_stream(captured):
+    media = _media("Song", None, "aud")
+    VlcPlayer().play(media)
+    assert captured[0][-1] == "aud" and None not in captured[0]
 
 
 def test_mpris_status_parses(monkeypatch):

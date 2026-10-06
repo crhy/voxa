@@ -19,6 +19,22 @@ Gst: Any = None  # Initialized lazily so importing this module needs no GStreame
 GLib: Any = None
 
 
+def _word_timing_option() -> dict:
+    """Ask Edge TTS for per-WORD timings. Newer versions send only sentence timings unless asked, which left
+    the face without the word times its lip sync is built on."""
+    try:
+        import inspect
+
+        if edge_tts is not None and "boundary" in inspect.signature(edge_tts.Communicate.__init__).parameters:
+            return {"boundary": "WordBoundary"}
+    except (TypeError, ValueError):
+        pass
+    return {}
+
+
+_WORD_TIMING = _word_timing_option()
+
+
 def _ui_once(callback, *args) -> None:
     """Run ``callback`` once on the GTK thread at default priority.
 
@@ -91,7 +107,12 @@ class SpeechService:
 
         if edge_tts is not None:
             try:
-                self._start_natural_stream(text, rate, voice, cancel_event)
+                if self._before_play is not None:
+                    # Something (the neural face) needs the whole sentence before it is heard: fetch the
+                    # voice to a file first, hand it over, then play the file.
+                    self._start_natural_file(text, rate, voice, cancel_event)
+                else:
+                    self._start_natural_stream(text, rate, voice, cancel_event)
                 return
             except Exception as exc:  # noqa: BLE001 - multimedia boundary
                 natural_error = str(exc)
@@ -99,6 +120,66 @@ class SpeechService:
             natural_error = "Edge TTS is unavailable"
 
         self._start_offline_worker(text, rate, cancel_event, natural_error)
+
+    def _start_natural_file(self, text: str, rate: int, voice: str, cancel_event: threading.Event) -> None:
+        threading.Thread(
+            target=self._natural_file_worker,
+            args=(text, rate, voice, cancel_event),
+            name="natural-speech-file",
+            daemon=True,
+        ).start()
+
+    def _natural_file_worker(self, text: str, rate: int, voice: str, cancel_event: threading.Event) -> None:
+        path = ""
+        try:
+            path = asyncio.run(self._fetch_natural_audio(text, rate, voice, cancel_event))
+        except Exception as exc:  # noqa: BLE001 - network/service boundary
+            if cancel_event.is_set() or cancel_event is not self.cancel_event:
+                return
+            _ui_once(self._begin_offline_fallback, text, rate, cancel_event, str(exc))
+            return
+        if not path or cancel_event.is_set() or cancel_event is not self.cancel_event:
+            if path:
+                with contextlib.suppress(OSError):
+                    os.unlink(path)
+            return
+        if self._before_play is not None:
+            try:
+                self._before_play(path)
+            except Exception:  # noqa: BLE001 - callback must not prevent speech
+                pass
+        _ui_once(self._play_file, path, cancel_event)
+
+    async def _fetch_natural_audio(self, text: str, rate: int, voice: str, cancel_event: threading.Event) -> str:
+        """Download the whole utterance to a temporary MP3; word timings are reported as they arrive."""
+        percent = max(-50, min(50, round(((rate - 180) / 120) * 50)))
+        communicate = edge_tts.Communicate(text, voice or "en-US-AriaNeural", rate=f"{percent:+d}%", **_WORD_TIMING)
+        words: list[tuple[str, float, float]] = []
+        with tempfile.NamedTemporaryFile(prefix="voxa-speech-", suffix=".mp3", delete=False) as handle:
+            path = handle.name
+            wrote = False
+            async for message in communicate.stream():
+                if cancel_event.is_set() or cancel_event is not self.cancel_event:
+                    break
+                kind = message.get("type")
+                if kind == "WordBoundary":
+                    words.append(
+                        (
+                            message.get("text", ""),
+                            message.get("offset", 0) / 10_000_000,
+                            message.get("duration", 0) / 10_000_000,
+                        )
+                    )
+                elif kind == "audio" and message.get("data"):
+                    handle.write(message["data"])
+                    wrote = True
+        if not wrote:
+            with contextlib.suppress(OSError):
+                os.unlink(path)
+            raise RuntimeError("The speech service returned no audio.")
+        if words and self._on_words is not None:
+            self._on_words(words)
+        return path
 
     def _start_natural_stream(
         self,
@@ -192,6 +273,7 @@ class SpeechService:
             text,
             voice or "en-US-AriaNeural",
             rate=f"{percent:+d}%",
+            **_WORD_TIMING,
         )
         received_audio = False
         async for message in communicate.stream():

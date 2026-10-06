@@ -135,7 +135,8 @@ def test_media_control_volume_actions(monkeypatch):
     monkeypatch.setattr("voxa.agent.tools.media.active_player", lambda: active)
     _media_control_handler({"action": "louder"})
     _media_control_handler({"action": "quieter"})
-    assert active.calls == [("set_volume", 0.1), ("set_volume", 0.0)]
+    # FakePlayer has no change_volume, so the handler uses its absolute fallback levels.
+    assert active.calls == [("set_volume", 0.8), ("set_volume", 0.3)]
 
 
 def test_media_control_falls_back_to_key_press(monkeypatch):

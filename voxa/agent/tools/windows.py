@@ -82,8 +82,34 @@ def _run(command: list[str], check: bool = True) -> subprocess.CompletedProcess:
     )
 
 
+_GENERIC_BROWSER = {"browser", "web browser", "internet browser", "your browser", "voxa's browser", "voxa browser"}
+
+
+def _close_own_browser(name: str) -> ToolResult | None:
+    """"Close the browser" means the browser Voxa opened, never the user's own with all their tabs.
+
+    Returns None when the request is not about a generic "browser" (e.g. "close Brave": the user's choice).
+    """
+    if name.lower() not in _GENERIC_BROWSER:
+        return None
+    try:
+        from ..browser_session import browser_socket
+        from .web import get_session
+
+        session = get_session()
+        if browser_socket(session._port) is not None:
+            session.close_browser()
+            return ToolResult.success("Closing my browser.")
+    except Exception as exc:  # noqa: BLE001 - fall through to the honest answer below
+        log.debug("could not close the controlled browser: %s", exc)
+    return ToolResult.failure("My browser isn't open. Say the browser's name, like “close Brave”, to close yours.")
+
+
 def close_app(args: dict[str, str]) -> ToolResult:
     name = _THE_PREFIX.sub("", args["name"].strip())
+    own = _close_own_browser(name)
+    if own is not None:
+        return own
     windows = match_windows(name, list_windows())
     app = apps.match_app(name, apps.list_apps())
     app_id = flatpak_app_id(app.path) if app is not None else None

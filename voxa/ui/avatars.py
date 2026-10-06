@@ -234,7 +234,7 @@ AVATARS: tuple[AvatarDescriptor, ...] = (
     _avatar("priya", "Priya", "en-IN-NeerjaNeural", "en-IN", "Female", "India"),
     _avatar("koda", "Koda", "en-US-ChristopherNeural", "en-US", "Male", "Native America"),
     _avatar("aiyana", "Aiyana", "en-US-JennyNeural", "en-US", "Female", "Native America"),
-    _avatar("chidi", "Chidi", "en-NG-AbeoluNeural", "en-NG", "Male", "Nigeria"),
+    _avatar("chidi", "Chidi", "en-NG-AbeoNeural", "en-NG", "Male", "Nigeria"),
     _avatar("amara", "Amara", "en-NG-EzinneNeural", "en-NG", "Female", "Nigeria"),
 )
 

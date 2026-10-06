@@ -43,9 +43,9 @@ def _apply_to_player(player, action: str) -> None:
     elif action == "back":
         player.seek(-30)
     elif action == "louder":
-        player.set_volume(0.1)
+        player.change_volume(0.1) if hasattr(player, "change_volume") else player.set_volume(0.8)
     elif action == "quieter":
-        player.set_volume(0.0)
+        player.change_volume(-0.1) if hasattr(player, "change_volume") else player.set_volume(0.3)
 
 
 def _play_video_handler(args: dict[str, str]) -> ToolResult:

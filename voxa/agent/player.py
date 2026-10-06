@@ -40,7 +40,8 @@ class MprisPlayer:
         self.object_path = "/org/mpris/MediaPlayer2"
         self.iface = "org.mpris.MediaPlayer2.Player"
 
-    def _call(self, method: str, params: str | None = None) -> str:
+    def _gdbus(self, method: str, *args: str) -> str:
+        """`gdbus call` on the player; arguments are GVariant text, one per argument (gdbus has no --params)."""
         argv = [
             "gdbus",
             "call",
@@ -50,30 +51,37 @@ class MprisPlayer:
             "--object-path",
             self.object_path,
             "--method",
-            f"{self.iface}.{method}",
+            method,
+            *args,
         ]
-        if params is not None:
-            argv += ["--params", params]
         return self._run(argv)
 
+    def _call(self, method: str, *args: str) -> str:
+        return self._gdbus(f"{self.iface}.{method}", *args)
+
+    def _get(self, name: str) -> str:
+        return self._gdbus("org.freedesktop.DBus.Properties.Get", self.iface, name)
+
     def _run(self, argv: list[str]) -> str:
-        proc = subprocess.run(host_command(argv), capture_output=True, text=True, check=False)
+        try:
+            proc = subprocess.run(host_command(argv), capture_output=True, text=True, check=False, timeout=5)
+        except (OSError, subprocess.SubprocessError):
+            return ""
         return proc.stdout
 
     def pause(self) -> None:
         self._call("Pause")
 
     def resume(self) -> None:
-        self._call("Resume")
+        self._call("Play")
 
     def toggle(self) -> None:
-        if self.status() == "Playing":
-            self.pause()
-        else:
-            self.resume()
+        self._call("PlayPause")
 
     def stop(self) -> None:
+        """Stop playback and close the player: "stop the music" means the player goes away."""
         self._call("Stop")
+        self._gdbus("org.mpris.MediaPlayer2.Quit")
 
     def next(self) -> None:
         self._call("Next")
@@ -82,16 +90,24 @@ class MprisPlayer:
         self._call("Previous")
 
     def seek(self, seconds: float) -> None:
-        self._call("SetProperty", '"org.mpris.MediaPlayer2.Player", "Relative", <true>')
-        self._call("Seek", f"<int64 {int(seconds * 1_000_000)}>")
+        """Relative seek; MPRIS takes microseconds."""
+        self._call("Seek", str(int(seconds * 1_000_000)))
+
+    def volume(self) -> float | None:
+        match = re.search(r"<([0-9.eE+-]+)>", self._get("Volume"))
+        return float(match.group(1)) if match else None
 
     def set_volume(self, level: float) -> None:
-        volume = max(0, min(100, int(round(level * 100))))
-        self._call("SetProperty", f'"org.mpris.MediaPlayer2.Player", "Volume", <uint64 {volume}>')
+        """Absolute volume, 0.0 to 1.0."""
+        level = max(0.0, min(1.0, float(level)))
+        self._gdbus("org.freedesktop.DBus.Properties.Set", self.iface, "Volume", f"<{level:.2f}>")
+
+    def change_volume(self, delta: float) -> None:
+        current = self.volume()
+        self.set_volume((current if current is not None else 0.5) + delta)
 
     def status(self) -> str:
-        out = self._call("GetProperty", '"org.mpris.MediaPlayer2.Player", "PlaybackStatus"')
-        match = re.search(r"'([^']*)'", out)
+        match = re.search(r"'([^']*)'", self._get("PlaybackStatus"))
         return match.group(1) if match else ""
 
 
@@ -102,16 +118,22 @@ class VlcPlayer(MprisPlayer):
         super().__init__("vlc")
 
     def play(self, media: Media, fullscreen: bool = False) -> None:
+        # Music has only an audio stream: play that on its own. Video gets the audio as a companion stream.
+        main = media.video_url or media.audio_url
+        if not main:
+            raise ValueError("nothing to play: the stream has no audio or video address")
         argv = [
             "flatpak",
             "run",
             "org.videolan.VLC",
             "--one-instance",
+            "--control",
+            "dbus",
             "--meta-title",
             media.title,
-            media.video_url,
+            main,
         ]
-        if media.audio_url:
+        if media.video_url and media.audio_url:
             argv += ["--input-slave", media.audio_url]
         if fullscreen:
             argv += ["--fullscreen"]
