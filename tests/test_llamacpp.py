@@ -273,3 +273,24 @@ def test_strata_request_carries_effort_and_budget() -> None:
     body = json.loads(mocked.call_args[0][0].data)
     assert body["reasoning_effort"] == "none"
     assert body["reasoning_budget_tokens"] == 600
+
+
+def test_server_info_reads_model_from_v1_models() -> None:
+    health = FakeResponse(b'{"status": "ok", "service": "strata"}')
+    models = FakeResponse(b'{"data":[{"id":"qwen3.8-flash-next-coder-iq1_m","status":{"value":"loaded"}}]}')
+    with patch("voxa.llamacpp.open_url", side_effect=[health, models]):
+        info = StrataClient().server_info()
+    assert info["model"] == "qwen3.8-flash-next-coder-iq1_m"
+
+
+def test_list_models_scans_gguf_folder_without_server() -> None:
+    import tempfile
+    from pathlib import Path
+
+    with tempfile.TemporaryDirectory() as folder:
+        (Path(folder) / "b.gguf").touch()
+        (Path(folder) / "a.gguf").touch()
+        (Path(folder) / "notes.txt").touch()
+        with patch("voxa.llamacpp.open_url", side_effect=urllib.error.URLError("down")):
+            found = LlamaCppClient().list_models(folder)
+        assert found == [str(Path(folder) / "a.gguf"), str(Path(folder) / "b.gguf")]

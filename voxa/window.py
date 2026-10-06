@@ -558,7 +558,8 @@ class MainWindow(Adw.ApplicationWindow):
             self.config_store.save(self.settings)
             self.shell.set_backend(backend)
             self._refresh_ollama_models()
-            self._restart_ai_server_async()
+            if backend != "strata":  # Voxa does not manage the Strata server
+                self._restart_ai_server_async()
 
     def _on_shell_character_selected(self, character_id: str) -> None:
         if character_id == self.settings.character_id:
@@ -858,12 +859,34 @@ class MainWindow(Adw.ApplicationWindow):
         generation = self._models_generation
         label = self._backend_label()
 
+        if self.settings.ai_backend == "strata":
+            # Voxa does not manage Strata: one probe, no waiting, and say so when it is down.
+            def strata_worker() -> None:
+                client = self._ai_client()
+                info = client.server_info()
+                if generation != self._models_generation:
+                    return
+                if info is None:
+                    idle(self._show_backend_offline, label)
+                    return
+                model = info.get("model")
+                if model:
+                    idle(self._apply_ollama_models, [model])
+                else:
+                    idle(self._show_no_models)
+
+            threading.Thread(target=strata_worker, name="strata-models", daemon=True).start()
+            return
+
         def list_models() -> list[str]:
             client = self._ai_client()
-            if self.settings.ai_backend == "strata":
-                info = client.server_info()
-                return [info["model"]] if info and info.get("model") else []
             try:
+                if self.settings.ai_backend == "llamacpp":
+                    models_dir = str(Path(self.settings.llamacpp_model).parent) if self.settings.llamacpp_model else None
+                    try:
+                        return client.list_models(models_dir)
+                    except TypeError:
+                        return client.list_models()
                 return client.list_models()
             except OllamaError:
                 raise
@@ -901,6 +924,13 @@ class MainWindow(Adw.ApplicationWindow):
     def _show_no_models(self) -> bool:
         self.ollama_models = []
         self._apply_model_combo([])
+        return False
+
+    def _show_backend_offline(self, label: str) -> bool:
+        """A backend Voxa does not manage (Strata) is down: name it in the picker."""
+        message = f"{label} is not running"
+        self.ollama_models = [message]
+        self._apply_model_combo([message])
         return False
 
     def _detect_hardware_async(self) -> None:

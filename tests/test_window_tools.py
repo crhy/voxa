@@ -730,3 +730,30 @@ def test_smallest_chip_absent_when_already_installed(window, monkeypatch) -> Non
     dialogs = _capture_dialogs(monkeypatch)
     window._show_model_manager()
     assert not _has_label(dialogs[0], "Smallest — runs anywhere")
+
+
+REAL_REFRESH = MainWindow._refresh_ollama_models
+
+
+class StrataUpClient:
+    def server_info(self):
+        return {"model": "qwen3.8-flash-next-coder-iq1_m"}
+
+
+class StrataDownClient:
+    def server_info(self):
+        return None
+
+
+def test_window_shows_strata_model_when_server_answers(window, monkeypatch) -> None:
+    window.settings.ai_backend = "strata"
+    window._ai_client = lambda: StrataUpClient()
+    REAL_REFRESH(window)
+    assert _settle(window, lambda: window.ollama_models == ["qwen3.8-flash-next-coder-iq1_m"])
+
+
+def test_window_says_strata_not_running_when_server_down(window, monkeypatch) -> None:
+    window.settings.ai_backend = "strata"
+    window._ai_client = lambda: StrataDownClient()
+    REAL_REFRESH(window)
+    assert _settle(window, lambda: window.ollama_models == ["Strata is not running"])

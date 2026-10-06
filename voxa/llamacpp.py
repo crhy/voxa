@@ -5,6 +5,7 @@ import threading
 import urllib.error
 import urllib.request
 from collections.abc import Callable
+from pathlib import Path
 
 from .ollama import OllamaError, open_url
 
@@ -35,12 +36,15 @@ class LlamaCppClient:
         self.reasoning_effort = reasoning_effort
         self.reasoning_budget_tokens = reasoning_budget_tokens
 
-    def list_models(self) -> list[str]:
+    def list_models(self, models_dir: str | None = None) -> list[str]:
         request = urllib.request.Request(f"{self.base_url}/v1/models", method="GET")
         try:
             with open_url(request, timeout=self.timeout) as response:
                 payload = json.load(response)
         except (urllib.error.URLError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
+            # No llama-server yet: the GGUF files on disk are what the user can pick.
+            if models_dir is not None:
+                return sorted(str(path) for path in Path(models_dir).glob("*.gguf"))
             raise LlamaCppError(f"Could not connect to the llama.cpp server: {exc}") from exc
         data = payload.get("data", []) if isinstance(payload, dict) else []
         names = [item.get("id", "") for item in data if isinstance(item, dict)]
@@ -172,7 +176,7 @@ class StrataClient(LlamaCppClient):
         )
 
     def server_info(self) -> dict | None:
-        """The parsed /health payload, or None when the server is unreachable."""
+        """The parsed /health payload, with the model id filled from /v1/models when /health omits it."""
         request = urllib.request.Request(f"{self.base_url}/health", method="GET")
         try:
             with open_url(request, timeout=2.0) as response:
@@ -181,7 +185,26 @@ class StrataClient(LlamaCppClient):
             return None
         if not isinstance(payload, dict):
             return None
-        return payload
+        info = dict(payload)
+        if not info.get("model"):
+            model = self._model_from_v1_models()
+            if model:
+                info["model"] = model
+        return info
+
+    def _model_from_v1_models(self) -> str | None:
+        """The first model id from /v1/models, or None when the server is unreachable."""
+        request = urllib.request.Request(f"{self.base_url}/v1/models", method="GET")
+        try:
+            with open_url(request, timeout=2.0) as response:
+                payload = json.load(response)
+        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, ValueError, json.JSONDecodeError):
+            return None
+        data = payload.get("data", []) if isinstance(payload, dict) else []
+        for item in data:
+            if isinstance(item, dict) and item.get("id"):
+                return str(item["id"])
+        return None
 
 
 def detect_backend(url: str) -> str:
