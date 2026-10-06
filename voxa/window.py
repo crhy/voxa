@@ -1902,7 +1902,7 @@ class MainWindow(Adw.ApplicationWindow):
         )
 
     def _on_conversation_speech_done(self, reply_id: int | None = None) -> bool:
-        if self.conversation is not None:
+        if self.conversation is not None and self.settings.followup_seconds > 0:
             # Listen for a follow-up straight away, without the wake word.
             self.conversation.arm_prompt()
             self.conversation.open_followup(self.settings.followup_seconds)

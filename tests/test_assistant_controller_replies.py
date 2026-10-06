@@ -104,3 +104,54 @@ def test_abandon_does_nothing_when_offline_or_stale() -> None:
     controller.go_offline()
     assert controller.abandon(token) is False
     assert controller.model.state is AssistantState.OFFLINE
+
+
+# X3: "Ready" while waiting for the wake word; "Listening" only once it is heard.
+
+def test_activate_shows_ready() -> None:
+    controller, _token = _controller()
+    assert controller.model.state is AssistantState.READY
+
+
+def test_wake_word_shows_listening() -> None:
+    controller, token = _controller()
+    assert controller.wake(token)
+    assert controller.model.state is AssistantState.LISTENING
+
+
+def test_captured_request_shows_thinking() -> None:
+    controller, token = _controller()
+    controller.wake(token)
+    assert controller.prompt_accepted(token)
+    assert controller.model.state is AssistantState.THINKING
+
+
+def test_reply_done_without_followup_window_shows_ready() -> None:
+    controller, token = _controller()
+    reply = _speaking(controller, token)
+    assert controller.reply_finished(token, reply_id=reply)
+    assert controller.model.state is AssistantState.READY
+
+
+def test_reply_done_with_followup_window_shows_listening_then_ready_on_expiry() -> None:
+    controller, token = _controller()
+    reply = _speaking(controller, token)
+    assert controller.reply_finished(token, waiting_for_prompt=True, reply_id=reply)
+    assert controller.model.state is AssistantState.LISTENING
+    assert controller.abandon(token)
+    assert controller.model.state is AssistantState.READY
+
+
+def test_barge_in_shows_listening() -> None:
+    controller, token = _controller()
+    _speaking(controller, token)
+    assert controller.barge_in(token)
+    assert controller.model.state is AssistantState.LISTENING
+
+
+def test_tool_reply_finished_shows_ready() -> None:
+    controller, token = _controller()
+    controller.wake(token)
+    assert controller.prompt_accepted(token)
+    assert controller.reply_finished(token)
+    assert controller.model.state is AssistantState.READY
