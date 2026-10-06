@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from datetime import date
 
+from voxa.agent.deals import parse_request
 from voxa.agent.hearing import normalize
 from voxa.agent.tools.browser import site_url
 
@@ -68,6 +70,11 @@ _IMAGE_OF = re.compile(
     r"(?:images|pictures|photos|pics)\s+of\s+(.+)",
     re.IGNORECASE,
 )
+_LOCATION_SET = re.compile(
+    r"(?:i[\u2019']?m\s+in|my\s+location\s+is)\s+(.+)", re.IGNORECASE
+)
+_LOCATION_USE = re.compile(r"use\s+(.+?)\s+as\s+my\s+location", re.IGNORECASE)
+_LOCATION_FORGET = re.compile(r"forget\s+my\s+location", re.IGNORECASE)
 _URL = re.compile(r"(?:open|go to|visit|navigate to)\s+([^\s]+)", re.IGNORECASE)
 _SITE = re.compile(r"(?:open|go to|visit)\s+(.+)", re.IGNORECASE)
 _PLAY_PAUSE = re.compile(
@@ -205,6 +212,8 @@ ROUTED_TOOLS = frozenset(
         "home_set",
         "home_scene",
         "home_status",
+        "find_deal",
+        "set_location",
     }
 )
 
@@ -319,6 +328,18 @@ def route(text: str) -> ToolCall | None:
         image_match = pattern.fullmatch(s)
         if image_match:
             return call("image_search", query=image_match.group(1))
+
+    location_match = _LOCATION_SET.fullmatch(s)
+    if location_match:
+        return call("set_location", city=location_match.group(1))
+    location_use = _LOCATION_USE.fullmatch(s)
+    if location_use:
+        return call("set_location", city=location_use.group(1))
+    if _LOCATION_FORGET.fullmatch(s):
+        return call("set_location", city="")
+
+    if parse_request(s, date.today()):
+        return call("find_deal", request=s)
 
     if _QUESTION.match(s):
         return None

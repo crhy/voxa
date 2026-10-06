@@ -27,6 +27,8 @@ class Settings:
     language: str = "en"
     character_id: str = ""
     face_mode: str = "prerendered"
+    # Location override set by saying "I'm in X"; empty means detect it from the web.
+    home_location: str = ""
     # Subtract the computer's own sound (Voxa's voice, music) from the microphone.
     echo_cancel: bool = True
     # Milliseconds the lips run ahead of the reported audio position (compensates sound-card and display delay).
