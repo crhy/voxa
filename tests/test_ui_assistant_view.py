@@ -175,5 +175,6 @@ def test_apply_face_mode_pushes_setting() -> None:
     holder = type("Holder", (), {})()
     holder.shell = shell
     holder.settings = _Settings()
+    holder._refresh_live_available = lambda: None  # the face-server check is not part of this test
     MainWindow._apply_face_mode(holder)
     assert view.get_face_mode() == "still"

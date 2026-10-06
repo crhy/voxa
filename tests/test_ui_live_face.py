@@ -106,6 +106,10 @@ def test_live_client_with_fake_server():
     t.start()
     client = LiveFaceClient(host="127.0.0.1", port=port)
     try:
+        for _ in range(100):  # the server thread may not be listening yet
+            if client.available():
+                break
+            time.sleep(0.02)
         assert client.available()
         assert "aoife" in client.characters()
     finally:
@@ -124,6 +128,10 @@ def test_live_client_start_utterance():
     t.start()
     client = LiveFaceClient(host="127.0.0.1", port=port)
     try:
+        for _ in range(100):  # the server thread may not be listening yet
+            if client.available():
+                break
+            time.sleep(0.02)
         assert client.available()
         silence = b"\x00" * (2 * 16000 * 2)
         buf = client.start_utterance("aoife", silence, size=512)

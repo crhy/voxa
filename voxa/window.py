@@ -98,6 +98,9 @@ FALSE_CLAIM_REPLY = (
 # A short grace period ignores the TTS itself starting, and the streak
 # requirement keeps a cough from killing the reply.
 BARGE_IN_GRACE_SECONDS = 0.6
+# High facial quality: how much video must be buffered before the voice starts, and the longest it may wait.
+LIVE_FACE_HEAD_START = 0.2
+LIVE_FACE_MAX_HOLD = 2.5
 BARGE_IN_STREAK = 3
 
 
@@ -297,9 +300,10 @@ class MainWindow(Adw.ApplicationWindow):
         self.shell.on_face_mode_selected = self._on_shell_face_mode_selected
         self.shell.set_characters(self.settings.character_id)
         self.shell.face_quality.set_mode(self.settings.face_mode)
-        self.shell.face_quality.set_live_available(False)
         self.shell.face_quality.set_sensitive(bool(self.settings.character_id))
         self._live_client: LiveFaceClient | None = None
+        # High is offered only when the face server answers; the check runs off the GTK thread.
+        self._refresh_live_available()
         toolbar.add_top_bar(build_header(menu, self.shell.character_picker))
         # Attachments are a later milestone (issue #7 section 16); until then the paperclip
         # says so instead of silently doing nothing.
@@ -551,20 +555,25 @@ class MainWindow(Adw.ApplicationWindow):
         assistant_view = getattr(self.shell, "assistant_view", None)
         if assistant_view is not None:
             assistant_view.set_face_mode(self.settings.face_mode)
+        self._refresh_live_available()
+
+    def _refresh_live_available(self) -> None:
+        """Ask the face server whether it is there, and enable or grey out High accordingly."""
+
+        def worker() -> None:
+            client = self._live_client or LiveFaceClient()
+            ok = client.available()
+            idle(self._on_live_available, client if ok else None)
+
+        threading.Thread(target=worker, name="live-face-check", daemon=True).start()
+
+    def _on_live_available(self, client: LiveFaceClient | None) -> None:
+        self._live_client = client
         face_quality = getattr(self.shell, "face_quality", None)
-        if self.settings.face_mode == "live" and self.settings.character_id:
-            client = LiveFaceClient()
-            if client.available():
-                self._live_client = client
-                if face_quality is not None:
-                    face_quality.set_live_available(True)
+        if face_quality is not None:
+            if client is not None:
+                face_quality.set_live_available(True)
             else:
-                self._live_client = None
-                if face_quality is not None:
-                    face_quality.set_live_available(False, "The face server is not running")
-        else:
-            self._live_client = None
-            if face_quality is not None:
                 face_quality.set_live_available(False, "The face server is not running")
 
     def _live_before_play(self, path: str) -> None:
@@ -584,7 +593,18 @@ class MainWindow(Adw.ApplicationWindow):
         if renderer is not None:
             photo = getattr(renderer, "_photo_renderer", None)
             if photo is not None:
-                photo.set_live_frames(buffer)
+                idle(photo.set_live_frames, buffer)
+        # Hold the voice until the first frames are in, so face and sound start together. The server makes
+        # frames faster than they are played, so a small head start is enough; never wait long.
+        deadline = time.monotonic() + LIVE_FACE_MAX_HOLD
+
+        def flag(value) -> bool:
+            return bool(value() if callable(value) else value)
+
+        while time.monotonic() < deadline:
+            if buffer.buffered_seconds() >= LIVE_FACE_HEAD_START or flag(buffer.done) or flag(buffer.failed):
+                break
+            time.sleep(0.02)
 
     def _live_reset(self) -> None:
         """Cancel any in-flight live utterance and clear the renderer's buffer."""
@@ -1694,7 +1714,7 @@ class MainWindow(Adw.ApplicationWindow):
             on_words=lambda words: idle(self.shell.set_word_timeline, words),
             **(
                 {"before_play": self._live_before_play}
-                if self._live_client is not None
+                if self._live_client is not None and self.settings.face_mode == "live"
                 else {}
             ),
         )
@@ -2541,7 +2561,7 @@ class MainWindow(Adw.ApplicationWindow):
             on_words=lambda words: idle(self.shell.set_word_timeline, words),
             **(
                 {"before_play": self._live_before_play}
-                if self._live_client is not None
+                if self._live_client is not None and self.settings.face_mode == "live"
                 else {}
             ),
         )

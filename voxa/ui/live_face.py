@@ -131,48 +131,38 @@ def decode_audio_to_pcm16k(path) -> bytes:
     from gi.repository import Gst
 
     Gst.init(None)
-    source = Gst.ElementFactory.make("filesrc")
-    decode = Gst.ElementFactory.make("decodebin")
-    convert = Gst.ElementFactory.make("audioconvert")
-    resample = Gst.ElementFactory.make("audioresample")
-    capsfilter = Gst.ElementFactory.make("capsfilter")
-    sink = Gst.ElementFactory.make("appsink")
-    if not all((source, decode, convert, resample, capsfilter, sink)):
-        raise RuntimeError("Required GStreamer audio elements are unavailable.")
-    source.set_property("location", str(path))
-    capsfilter.set_property("caps", Gst.Caps.from_string("audio/x-raw,format=S16LE,channels=1,rate=16000"))
-    sink.set_property("emit-signals", True)
-
-    pipeline = Gst.Pipeline.new("voxa-live-decode")
-    for element in (source, decode, convert, resample, capsfilter, sink):
-        pipeline.add(element)
-    links = (
-        source.link(decode),
-        decode.link(convert),
-        convert.link(resample),
-        resample.link(capsfilter),
-        capsfilter.link(sink),
-    )
-    if not all(links):
-        pipeline.set_state(Gst.State.NULL)
-        raise RuntimeError("Could not connect the GStreamer decode pipeline.")
+    # parse_launch links decodebin's pads when they appear; linking it by hand fails (its pads are dynamic).
+    try:
+        pipeline = Gst.parse_launch(
+            "filesrc name=src ! decodebin ! audioconvert ! audioresample ! "
+            "audio/x-raw,format=S16LE,channels=1,rate=16000 ! appsink name=sink sync=false"
+        )
+    except Exception as exc:  # noqa: BLE001 - missing plugins and the like
+        raise RuntimeError(f"Could not build the audio decode pipeline: {exc}") from exc
+    pipeline.get_by_name("src").set_property("location", str(path))
+    sink = pipeline.get_by_name("sink")
     if pipeline.set_state(Gst.State.PLAYING) == Gst.StateChangeReturn.FAILURE:
-        raise RuntimeError("The decode pipeline could not start.")
+        pipeline.set_state(Gst.State.NULL)
+        raise RuntimeError("The audio decode pipeline could not start.")
 
     chunks = []
-    for _ in range(100000):
-        sample = sink.emit("pull-sample")
-        if sample is None:
-            break
-        buffer = sample.get_buffer()
-        success, mapped = buffer.map(Gst.MapFlags.READ)
-        if not success:
-            break
-        try:
-            chunks.append(bytes(mapped.data))
-        finally:
-            buffer.unmap(mapped)
-    pipeline.set_state(Gst.State.NULL)
+    try:
+        while True:
+            sample = sink.emit("try-pull-sample", 5 * Gst.SECOND)
+            if sample is None:  # end of stream (or nothing for 5 s: a broken file)
+                break
+            buffer = sample.get_buffer()
+            success, mapped = buffer.map(Gst.MapFlags.READ)
+            if not success:
+                break
+            try:
+                chunks.append(bytes(mapped.data))
+            finally:
+                buffer.unmap(mapped)
+    finally:
+        pipeline.set_state(Gst.State.NULL)
+    if not chunks:
+        raise RuntimeError(f"No audio could be decoded from {path}")
     return b"".join(chunks)
 
 
@@ -205,6 +195,9 @@ class LiveFaceClient:
                     self._characters = list(msg.get("characters", []))
                     self._ready = True
                     self._sock = sock
+                    # The connect timeout must not apply to frames: the first one can take a second.
+                    sock.settimeout(None)
+                    threading.Thread(target=self._pump, args=(sock,), name="voxa-live-face", daemon=True).start()
                     sock = None
                     return True
         except OSError:
@@ -244,23 +237,19 @@ class LiveFaceClient:
             self._sock = None
             self._ready = False
             return None
-        threading.Thread(
-            target=self._pump,
-            args=(self._sock, buffer),
-            name="voxa-live-face",
-            daemon=True,
-        ).start()
         return buffer
 
-    def _pump(self, sock, buffer) -> None:
+    def _pump(self, sock) -> None:
+        """One reader per connection: hands each message to the utterance it belongs to."""
         try:
             while True:
                 data = sock.recv(65536)
                 if not data:
                     break
                 for msg, payload in self._reader.feed(data):
-                    if msg.get("id") != buffer.utterance_id:
-                        continue
+                    buffer = self._buffer
+                    if buffer is None or msg.get("id") != buffer.utterance_id:
+                        continue  # a frame of an utterance that was replaced or cancelled
                     op = msg.get("op")
                     if op == "frame":
                         buffer.put(msg.get("index", 0), payload)
@@ -270,6 +259,14 @@ class LiveFaceClient:
                         buffer.fail(msg.get("message", "face server error"))
         except OSError:
             pass
+        # The connection is gone: say so, so the next check reconnects and the mouth falls back at once.
+        if self._sock is sock:
+            self._sock = None
+            self._ready = False
+            self._reader = MessageReader()
+        buffer = self._buffer
+        if buffer is not None and not (buffer.done() if callable(buffer.done) else buffer.done):
+            buffer.fail("face server disconnected")
 
     def cancel(self) -> None:
         if self._sock is None or self._buffer is None:
