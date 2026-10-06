@@ -1846,7 +1846,7 @@ class MainWindow(Adw.ApplicationWindow):
         # "done" must not touch a newer request.
         reply_id = self.assistant.current_reply()
         self._set_status("Speaking…", busy=True)
-        self.shell.set_speech_clock(self.speech.position)
+        self.shell.set_speech_clock(self._lip_clock)
         self.speech.speak(
             text,
             self.settings.tts_rate,
@@ -2690,7 +2690,7 @@ class MainWindow(Adw.ApplicationWindow):
             self._set_status("Speaking…", busy=True)
         token, generation = state["token"], state["generation"]
         self._reset_word_timeline()
-        self.shell.set_speech_clock(self.speech.position)
+        self.shell.set_speech_clock(self._lip_clock)
         callbacks = {
             "on_started": lambda: idle(self._for_session(token, self._set_status), "Speaking…", True),
             "on_done": lambda: idle(self._for_session(token, self._early_speech_part_done), generation),
@@ -2733,6 +2733,12 @@ class MainWindow(Adw.ApplicationWindow):
             self._early = None
             self._on_conversation_speech_done(state["reply_id"])
         return True
+
+    def _lip_clock(self) -> float:
+        """The audio position the face should show: a little AHEAD of what the player reports, because the
+        sound card and the screen each add delay and the lips otherwise trail the voice."""
+        played = self.speech.position()
+        return played + self.settings.lip_sync_lead_ms / 1000.0 if played > 0.0 else 0.0
 
     def _reset_word_timeline(self) -> None:
         """Each spoken piece has its own clock starting at zero: forget the previous piece's word times."""
@@ -2824,7 +2830,7 @@ class MainWindow(Adw.ApplicationWindow):
             self._toast("There is no text to speak.")
             return
         self._set_status("Starting speech…", busy=True)
-        self.shell.set_speech_clock(self.speech.position)
+        self.shell.set_speech_clock(self._lip_clock)
         self.speech.speak(
             text,
             self.settings.tts_rate,

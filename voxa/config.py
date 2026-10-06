@@ -29,6 +29,8 @@ class Settings:
     face_mode: str = "prerendered"
     # Subtract the computer's own sound (Voxa's voice, music) from the microphone.
     echo_cancel: bool = True
+    # Milliseconds the lips run ahead of the reported audio position (compensates sound-card and display delay).
+    lip_sync_lead_ms: int = 160
     tts_rate: int = 180
     tts_voice: str = "en-US-AriaNeural"
     appearance: str = "system"
