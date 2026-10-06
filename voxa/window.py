@@ -51,6 +51,7 @@ from .llamacpp import LlamaCppClient, StrataClient  # noqa: E402
 from .modelwait import wait_for_models  # noqa: E402
 from .ollama import OllamaClient, OllamaError, strip_reasoning  # noqa: E402
 from .pausewords import is_pause_request, resume_request  # noqa: E402
+from .replylang import LANGUAGES, is_only_a_language_request, requested_language  # noqa: E402
 from .server import SERVER_FAILED, SERVER_STARTING, SERVER_UNAVAILABLE, AiServerManager  # noqa: E402
 from .speakstream import SentenceFeeder, is_thinking_model, looks_like_reasoning  # noqa: E402
 from .speech import SpeechService  # noqa: E402
@@ -231,6 +232,11 @@ class MainWindow(Adw.ApplicationWindow):
         # The conversation turn whose user message was just pushed, so a stale
         # finish/error callback can't untangle history built by a newer turn.
         self._pending_user_generation: int | None = None
+        # Language the current session's answers must be in (None = the
+        # character's own language); set by a "…in German" style request.
+        self._reply_language: str | None = None
+        # The last question actually asked, so a bare "in German" can re-answer it.
+        self._last_user_prompt: str | None = None
         self.query_cancel = threading.Event()
         self.devices: list[AudioDevice] = []
         self.ollama_models: list[str] = []
@@ -589,6 +595,7 @@ class MainWindow(Adw.ApplicationWindow):
         avatar = get_avatar(character_id)
         if avatar is not None:
             self.settings.tts_voice = avatar.voice
+        self._reply_language = None
         self.config_store.save(self.settings)
         assistant_view = getattr(self.shell, "assistant_view", None)
         if assistant_view is not None:
@@ -1952,6 +1959,25 @@ class MainWindow(Adw.ApplicationWindow):
         self._set_text(self.response_view, "")
         self.shell.exchange_panel.clear()
 
+    def _own_language(self) -> str:
+        """The language the current character speaks by default."""
+        avatar = get_avatar(self.settings.character_id)
+        locale = avatar.locale if avatar is not None else "en-US"
+        for name, (tag, _, _) in LANGUAGES.items():
+            if tag == locale:
+                return name
+        return "English"
+
+    def _reply_voice(self) -> str:
+        """The voice to speak with: the reply language's, matching the
+        character's gender, while a foreign reply language is active."""
+        if self._reply_language and self._reply_language != self._own_language():
+            _, female, male = LANGUAGES[self._reply_language]
+            avatar = get_avatar(self.settings.character_id)
+            gender = avatar.gender if avatar is not None else "Other"
+            return female if gender == "Female" else male
+        return self.settings.tts_voice
+
     def _conversation_speak(self, text: str) -> None:
         if self.conversation is not None:
             self.conversation.mute()
@@ -1967,7 +1993,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.speech.speak(
             text,
             self.settings.tts_rate,
-            self.settings.tts_voice,
+            self._reply_voice(),
             on_started=lambda: idle(self._for_session(token, self._set_status), "Speaking…", True),
             on_done=lambda: idle(self._for_session(token, self._on_conversation_speech_done), reply_id),
             on_error=lambda error: idle(self._for_session(token, self._on_conversation_speech_error), error),
@@ -2324,9 +2350,19 @@ class MainWindow(Adw.ApplicationWindow):
         # In conversation mode the question joins the running thread of turns;
         # a plain dictation/typed question stays a single-shot prompt.
         if self.conversation_active:
+            wanted = requested_language(prompt)
+            if wanted is not None:
+                self._reply_language = (
+                    None if wanted == self._own_language() else wanted
+                )
+                if is_only_a_language_request(prompt) and self._last_user_prompt:
+                    prompt = self._last_user_prompt
             self._conversation_history.add_user(prompt)
             messages: list[dict[str, str]] | None = self._conversation_history.messages()
             self._pending_user_generation = generation
+            self._last_user_prompt = prompt
+            if self._reply_language and self._reply_language != self._own_language():
+                messages[0]["content"] += f"\nAnswer only in {self._reply_language}."
         else:
             messages = None
             self._pending_user_generation = None
@@ -2805,7 +2841,7 @@ class MainWindow(Adw.ApplicationWindow):
         if state is None:
             return
         live = self._live_client is not None and self.settings.face_mode == "live"
-        rate, voice = self.settings.tts_rate, self.settings.tts_voice
+        rate, voice = self.settings.tts_rate, self._reply_voice()
         if state["playing"]:
             if state.get("next") is None and state["queue"]:
                 text = " ".join(state["queue"])
