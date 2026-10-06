@@ -9,6 +9,7 @@ from voxa.hardware import (
     _nvidia_smi_command,
     detect_gpu_vram_gb,
     detect_system_ram_gb,
+    reserved_gpu_gb,
     sample_gpu_usage,
     suggest_models,
 )
@@ -113,3 +114,28 @@ def test_sample_gpu_usage_returns_none_on_malformed_output() -> None:
     fake = subprocess.CompletedProcess(args=[], returncode=0, stdout="not,a,number\n", stderr="")
     with patch("subprocess.run", return_value=fake):
         assert sample_gpu_usage() is None
+
+
+def test_reserved_gpu_gb_table() -> None:
+    face = hardware.FACE_SERVER_VRAM_GB
+    whisper = hardware.WHISPER_VRAM_GB
+    assert reserved_gpu_gb("live", True) == face + whisper
+    assert reserved_gpu_gb("live", False) == face
+    assert reserved_gpu_gb("medium", True) == whisper
+    assert reserved_gpu_gb("medium", False) == 0.0
+
+
+def test_suggest_models_reserved_leaves_room_for_the_face() -> None:
+    # 16 GB of VRAM with 7.2 GB kept free must suggest what fits in the rest.
+    reserved = [model.name for model in suggest_models(16.0, reserved_gb=7.2)]
+    assert reserved == [model.name for model in suggest_models(8.8)]
+
+
+def test_suggest_models_reserved_beyond_available_gives_smallest() -> None:
+    assert [model.name for model in suggest_models(4.0, reserved_gb=10.0)] == ["qwen2.5:0.5b"]
+
+
+def test_suggest_models_reserved_zero_unchanged() -> None:
+    assert [model.name for model in suggest_models(6.0, reserved_gb=0.0)] == [
+        model.name for model in suggest_models(6.0)
+    ]

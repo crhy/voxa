@@ -49,6 +49,18 @@ CURATED_PREFERENCE_BAND = 0.10
 _HEADROOM_FACTOR = 1.3
 _HEADROOM_FLOOR_GB = 1.0
 
+# Measured on this machine: what the High face server and Whisper-on-GPU hold
+# on the card for themselves, which model suggestions must keep out of the way.
+FACE_SERVER_VRAM_GB = 4.8
+WHISPER_VRAM_GB = 2.4
+
+
+def reserved_gpu_gb(face_mode: str, whisper_on_gpu: bool) -> float:
+    """VRAM the face server and the speech model keep for themselves on the GPU."""
+    face = FACE_SERVER_VRAM_GB if face_mode == "live" else 0.0
+    whisper = WHISPER_VRAM_GB if whisper_on_gpu else 0.0
+    return face + whisper
+
 
 def _fits(available_gb: float, model: ModelSuggestion) -> bool:
     return available_gb >= model.approx_gb * _HEADROOM_FACTOR + _HEADROOM_FLOOR_GB
@@ -59,10 +71,13 @@ def suggest_models(
     *,
     limit: int = 3,
     catalog: tuple[ModelSuggestion, ...] | None = None,
+    reserved_gb: float = 0.0,
 ) -> list[ModelSuggestion]:
-    """Return up to ``limit`` catalog models that fit in ``available_gb``, best first."""
+    """Return up to ``limit`` catalog models that fit in ``available_gb`` minus
+    ``reserved_gb`` (VRAM other components keep), best first."""
     entries = catalog or MODEL_CATALOG
-    fitting = [model for model in entries if _fits(available_gb, model)]
+    usable_gb = max(available_gb - reserved_gb, 0.0)
+    fitting = [model for model in entries if _fits(usable_gb, model)]
     if not fitting:
         return [entries[0]]
     ranked = sorted(fitting, key=lambda model: model.approx_gb, reverse=True)

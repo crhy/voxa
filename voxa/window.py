@@ -41,6 +41,7 @@ from .hardware import (  # noqa: E402
     MODEL_CATALOG,
     GpuUsage,
     detect_available_model_memory_gb,
+    reserved_gpu_gb,
     sample_gpu_usage,
     suggest_models,
 )
@@ -588,6 +589,11 @@ class MainWindow(Adw.ApplicationWindow):
         if assistant_view is not None:
             assistant_view.set_face_mode(self.settings.face_mode)
         self._refresh_live_available()
+        # The face server's share of the card changes what fits, so the
+        # suggestions are re-run for the new mode.
+        detect = getattr(self, "_detect_hardware_async", None)
+        if detect is not None:
+            detect()
 
     def _refresh_live_available(self) -> None:
         """High is always selectable. When it is the chosen quality, make sure the face server is running
@@ -898,8 +904,23 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def _detect_hardware_async(self) -> None:
+        def gpu_fit_warning(available_gb: float, reserved_gb: float) -> bool:
+            """True when the current model plus the reservation exceeds the VRAM."""
+            if self.settings.face_mode != "live" or not self.settings.ollama_model:
+                return False
+            client = OllamaClient(self.settings.ollama_url)
+            try:
+                infos = client.list_models_detailed()
+            except OllamaError:
+                return False
+            for info in infos:
+                if info.name == self.settings.ollama_model and info.size_bytes > 0:
+                    return info.size_bytes / (1024.0**3) + reserved_gb > available_gb
+            return False  # Unknown size: skip silently.
+
         def worker() -> None:
             available_gb, source = detect_available_model_memory_gb()
+            reserved = reserved_gpu_gb(self.settings.face_mode, True) if source == "GPU VRAM" else 0.0
             # Show something immediately from the built-in or cached catalog,
             # so the suggestion never waits on the network.
             catalog = load_catalog()
@@ -907,7 +928,9 @@ class MainWindow(Adw.ApplicationWindow):
                 self._apply_hardware_summary,
                 available_gb,
                 source,
-                suggest_models(available_gb, catalog=catalog),
+                suggest_models(available_gb, catalog=catalog, reserved_gb=reserved),
+                reserved,
+                gpu_fit_warning(available_gb, reserved) if reserved else False,
             )
             if not refresh_due():
                 return
@@ -920,15 +943,24 @@ class MainWindow(Adw.ApplicationWindow):
                     self._apply_hardware_summary,
                     available_gb,
                     source,
-                    suggest_models(available_gb, catalog=refreshed),
+                    suggest_models(available_gb, catalog=refreshed, reserved_gb=reserved),
+                    reserved,
+                    False,  # One toast per detection run.
                 )
 
         threading.Thread(target=worker, name="hardware-detect", daemon=True).start()
 
-    def _apply_hardware_summary(self, available_gb: float, source: str, suggestions: list) -> bool:
+    def _apply_hardware_summary(self, available_gb: float, source: str, suggestions: list, reserved_gb: float = 0.0, gpu_fit_warning: bool = False) -> bool:
         self._suggested_models = [model.name for model in suggestions]
         names = ", ".join(self._suggested_models)
         self._hardware_summary = f"Suggested for this machine (~{available_gb:.0f} GB {source}): {names}"
+        if reserved_gb > 0:
+            self._hardware_summary += f" ({reserved_gb:g} GB kept free for the High face and speech recognition)"
+        if gpu_fit_warning:
+            self._toast(
+                "This model and the High face may not fit on the graphics card together. "
+                "Try a smaller model or Medium."
+            )
         self._has_gpu = source == "GPU VRAM"
         # Keep the gauge live for the app's lifetime once a GPU is detected,
         # not only while an Ollama query is in flight.
