@@ -209,7 +209,10 @@ class ConversationController:
         # an utterance without the wake word may still be delivered as a prompt
         # (see open_followup). None means no window is open.
         self.followup_deadline: float | None = None
-
+        # The raw utterance most recently heard (before wake-word stripping), so
+        # the caller can still see the wake word for pause/resume phrasing.
+        self.last_heard: str = ""
+        
     @property
     def muted(self) -> bool:
         return self._muted.is_set()
@@ -373,6 +376,7 @@ class ConversationController:
             if not text:
                 continue
             self.on_timing("transcribed")
+            self.last_heard = text
             if self.stop_event.is_set():
                 break
 

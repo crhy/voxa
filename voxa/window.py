@@ -21,6 +21,7 @@ from .agent.actionlog import ActionLog, ActionRecord  # noqa: E402
 from .agent.claims import claims_action, first_sentences  # noqa: E402
 from .agent.host import host_command  # noqa: E402
 from .agent.host import spawn as host_spawn  # noqa: E402
+from .agent.player import active_player  # noqa: E402
 from .agent.registry import ToolError  # noqa: E402
 from .agent.reminders import ReminderStore, reminder_phrase, timer_phrase  # noqa: E402
 from .agent.result import ToolResult  # noqa: E402
@@ -33,7 +34,7 @@ from .audio import AudioCapture, AudioDevice  # noqa: E402
 from .catalog import CatalogUnavailable, load_catalog, refresh_and_cache, refresh_due  # noqa: E402
 from .config import ConfigStore  # noqa: E402
 from .controller import AssistantController, ControllerPorts  # noqa: E402
-from .conversation import ConversationController, ConversationHistory  # noqa: E402
+from .conversation import ConversationController, ConversationHistory, strip_wake_word  # noqa: E402
 from .dictation import DictationController  # noqa: E402
 from .echo import SOURCE_NAME as ECHO_SOURCE_NAME  # noqa: E402
 from .echo import EchoCanceller  # noqa: E402
@@ -49,6 +50,7 @@ from .installer import InstallerError, install_ollama  # noqa: E402
 from .llamacpp import LlamaCppClient, StrataClient  # noqa: E402
 from .modelwait import wait_for_models  # noqa: E402
 from .ollama import OllamaClient, OllamaError, strip_reasoning  # noqa: E402
+from .pausewords import is_pause_request, resume_request  # noqa: E402
 from .server import SERVER_FAILED, SERVER_STARTING, SERVER_UNAVAILABLE, AiServerManager  # noqa: E402
 from .speakstream import SentenceFeeder, is_thinking_model, looks_like_reasoning  # noqa: E402
 from .speech import SpeechService  # noqa: E402
@@ -1631,6 +1633,16 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def _on_conversation_woken(self) -> bool:
+        if self.assistant.is_paused:
+            # Saying the wake word while paused resumes the assistant. A bare
+            # wake word (no request after it) confirms with speech; if a request
+            # followed, on_prompt routes it and we stay silent.
+            resumed, rest = resume_request(self.conversation.last_heard, self.settings.wake_word)
+            if resumed:
+                self.assistant.resume()
+                if not rest:
+                    self._conversation_speak("I'm back.")
+                return False
         self.assistant.wake(self.assistant.token())
         self._toast(f"Heard “{self.settings.wake_word}” — listening…")
         self._set_status("Listening for your request…", busy=True)
@@ -1639,7 +1651,26 @@ class MainWindow(Adw.ApplicationWindow):
     def _on_conversation_prompt(self, text: str) -> bool:
         if not text:
             return False
-        self.ask_ai(text)
+        heard = self.conversation.last_heard if self.conversation is not None else text
+        if self.assistant.is_paused:
+            resumed, rest = resume_request(heard, self.settings.wake_word)
+            if not resumed:
+                # Stay paused: the sentence is neither a resume nor a request.
+                return False
+            self.assistant.resume()
+            if not rest:
+                self._conversation_speak("I'm back.")
+            else:
+                self.ask_ai(rest)
+            return False
+        if is_pause_request(heard, media_playing=active_player() is not None):
+            self._conversation_speak("Paused.")
+            self.assistant.pause()
+            return False
+        stripped = strip_wake_word(text, self.settings.wake_word)
+        if stripped is not None and not stripped:
+            return False
+        self.ask_ai(stripped if stripped is not None else text)
         return False
 
     def _on_conversation_exit(self, kind: str) -> bool:
@@ -1852,7 +1883,7 @@ class MainWindow(Adw.ApplicationWindow):
             # but the turn is over and the assistant is listening again.
             if self.assistant.is_active:
                 self.assistant.reply_finished(self.assistant.token())
-            if self.conversation is not None:
+            if self.conversation is not None and not self.assistant.is_paused:
                 self.conversation.open_followup(self.settings.followup_seconds)
             if self.conversation_active and self.settings.followup_seconds > 0:
                 self._set_status("Listening for a follow-up…")
@@ -1939,7 +1970,7 @@ class MainWindow(Adw.ApplicationWindow):
         )
 
     def _on_conversation_speech_done(self, reply_id: int | None = None) -> bool:
-        if self.conversation is not None and self.settings.followup_seconds > 0:
+        if self.conversation is not None and self.settings.followup_seconds > 0 and not self.assistant.is_paused:
             # Listen for a follow-up straight away, without the wake word.
             self.conversation.arm_prompt()
             self.conversation.open_followup(self.settings.followup_seconds)
@@ -2017,6 +2048,9 @@ class MainWindow(Adw.ApplicationWindow):
         here means the user interrupted: stop the reply, unmute, and let the
         very next utterance become a prompt without the wake word.
         """
+        if self.assistant.is_paused:
+            self._barge_in_streak = 0
+            return
         if not self.conversation_active or self.conversation is None or not self.conversation.muted:
             self._barge_in_streak = 0
             return
