@@ -13,21 +13,28 @@ from .state import AssistantState  # noqa: E402
 
 
 class StatusControls(Gtk.Box):
-    """Two large, equal buttons whose selected state mirrors the assistant state."""
+    """Three large, equal buttons whose selected state mirrors the assistant state."""
 
     def __init__(
         self,
         on_active: Callable[[], None] | None = None,
         on_offline: Callable[[], None] | None = None,
+        on_pause: Callable[[], None] | None = None,
     ) -> None:
         super().__init__(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         self.on_active = on_active
         self.on_offline = on_offline
+        self.on_pause = on_pause
 
         self.active_button = Gtk.Button(label="ACTIVE")
         self.active_button.add_css_class("voxa-active")
         self.active_button.update_property([Gtk.AccessibleProperty.LABEL], ["Activate assistant"])
         self.active_button.connect("clicked", lambda *_: self._fire(self.on_active))
+
+        self.pause_button = Gtk.Button(label="PAUSE")
+        self.pause_button.add_css_class("voxa-pause")
+        self.pause_button.update_property([Gtk.AccessibleProperty.LABEL], ["Pause assistant"])
+        self.pause_button.connect("clicked", lambda *_: self._fire(self.on_pause))
 
         self.offline_button = Gtk.Button(label="OFFLINE")
         self.offline_button.add_css_class("voxa-offline")
@@ -35,22 +42,26 @@ class StatusControls(Gtk.Box):
         self.offline_button.connect("clicked", lambda *_: self._fire(self.on_offline))
 
         self.append(self.active_button)
+        self.append(self.pause_button)
         self.append(self.offline_button)
         self.set_state(AssistantState.OFFLINE)
 
     def set_state(self, state: AssistantState) -> None:
-        """OFFLINE selects the offline button; every other state selects ACTIVE."""
+        """OFFLINE selects the offline button; PAUSED selects PAUSE; every other state selects ACTIVE."""
         if state is AssistantState.OFFLINE:
-            self._select(self.offline_button, self.active_button)
+            self._select(self.offline_button, self.active_button, self.pause_button)
+        elif state is AssistantState.PAUSED:
+            self._select(self.pause_button, self.active_button, self.offline_button)
         else:
-            self._select(self.active_button, self.offline_button)
+            self._select(self.active_button, self.pause_button, self.offline_button)
 
     @staticmethod
-    def _select(selected: Gtk.Button, other: Gtk.Button) -> None:
+    def _select(selected: Gtk.Button, *others: Gtk.Button) -> None:
         selected.add_css_class("selected")
         selected.remove_css_class("dimmed")
-        other.add_css_class("dimmed")
-        other.remove_css_class("selected")
+        for other in others:
+            other.add_css_class("dimmed")
+            other.remove_css_class("selected")
 
     @staticmethod
     def _fire(callback: Callable[[], None] | None) -> None:

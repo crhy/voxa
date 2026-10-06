@@ -68,7 +68,8 @@ VOXA_CSS = """
 }
 
 .voxa-active,
-.voxa-offline {
+.voxa-offline,
+.voxa-pause {
     min-width: 118px;
     min-height: 48px;
     border-radius: 12px;
@@ -85,14 +86,21 @@ VOXA_CSS = """
     color: white;
 }
 
+.voxa-pause {
+    background: #e5a50a;
+    color: white;
+}
+
 .voxa-active.selected,
-.voxa-offline.selected {
+.voxa-offline.selected,
+.voxa-pause.selected {
     outline: 1px solid alpha(currentColor, 0.45);
     outline-offset: 2px;
 }
 
 .voxa-active.dimmed,
-.voxa-offline.dimmed {
+.voxa-offline.dimmed,
+.voxa-pause.dimmed {
     opacity: 0.45;
 }
 
@@ -180,6 +188,10 @@ VOXA_CSS = """
 
 .voxa-assistant-view.offline .voxa-state {
     opacity: 0.6;
+}
+
+.voxa-assistant-view.paused .voxa-state {
+    color: #e5a50a;
 }
 
 .voxa-avatar {

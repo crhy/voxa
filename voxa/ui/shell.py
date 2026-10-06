@@ -45,6 +45,7 @@ class AssistantShell(Gtk.Overlay):
 
         self.on_active: Callable[[], None] | None = None
         self.on_offline: Callable[[], None] | None = None
+        self.on_pause: Callable[[], None] | None = None
         self.on_attach: Callable[[], None] | None = None
         self.on_model_selected: Callable[[str], None] | None = None
         self.on_backend_selected: Callable[[str], None] | None = None
@@ -145,6 +146,7 @@ class AssistantShell(Gtk.Overlay):
         self.status_controls = StatusControls(
             on_active=self._activate,
             on_offline=self._go_offline,
+            on_pause=self._pause,
         )
         self.status_controls.set_halign(Gtk.Align.END)
         self.status_controls.set_valign(Gtk.Align.END)
@@ -241,6 +243,9 @@ class AssistantShell(Gtk.Overlay):
 
     def _go_offline(self) -> None:
         self._fire(self.on_offline)
+
+    def _pause(self) -> None:
+        self._fire(self.on_pause)
 
     @staticmethod
     def _fire(callback: Callable | None, *args) -> None:

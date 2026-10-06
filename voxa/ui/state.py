@@ -17,13 +17,14 @@ Transition policy
 enforces this policy (anything not listed is rejected)::
 
     OFFLINE   -> READY
-    READY     -> LISTENING | THINKING | WORKING
-    LISTENING -> THINKING | READY
-    THINKING  -> SPEAKING | READY | WORKING | WAITING
-    SPEAKING  -> READY | LISTENING | THINKING
-    WORKING   -> WAITING | READY | THINKING | SPEAKING
-    WAITING   -> WORKING | READY
-    ERROR     -> READY | OFFLINE
+    READY     -> LISTENING | THINKING | WORKING | PAUSED
+    LISTENING -> THINKING | READY | PAUSED
+    THINKING  -> SPEAKING | READY | WORKING | WAITING | PAUSED
+    SPEAKING  -> READY | LISTENING | THINKING | PAUSED
+    WORKING   -> WAITING | READY | THINKING | SPEAKING | PAUSED
+    WAITING   -> WORKING | READY | PAUSED
+    PAUSED    -> READY
+    ERROR     -> READY | PAUSED
     (any state) -> OFFLINE and ERROR;  staying in the same state is always fine
 
 ``THINKING`` may follow ``READY`` directly because a wake phrase can already
@@ -57,6 +58,7 @@ class AssistantState(Enum):
 
     OFFLINE = auto()
     READY = auto()
+    PAUSED = auto()
     LISTENING = auto()
     THINKING = auto()
     SPEAKING = auto()
@@ -82,13 +84,14 @@ _ANYTIME = frozenset({_S.OFFLINE, _S.ERROR})  # every state may go OFFLINE or ER
 #: The explicit transition policy (see the module docstring).
 ALLOWED_TRANSITIONS: dict[AssistantState, frozenset[AssistantState]] = {
     _S.OFFLINE: frozenset({_S.READY}) | _ANYTIME,
-    _S.READY: frozenset({_S.LISTENING, _S.THINKING, _S.WORKING}) | _ANYTIME,
-    _S.LISTENING: frozenset({_S.THINKING, _S.READY}) | _ANYTIME,
-    _S.THINKING: frozenset({_S.SPEAKING, _S.READY, _S.WORKING, _S.WAITING}) | _ANYTIME,
-    _S.SPEAKING: frozenset({_S.READY, _S.LISTENING, _S.THINKING}) | _ANYTIME,
-    _S.WORKING: frozenset({_S.WAITING, _S.READY, _S.THINKING, _S.SPEAKING}) | _ANYTIME,
-    _S.WAITING: frozenset({_S.WORKING, _S.READY}) | _ANYTIME,
-    _S.ERROR: frozenset({_S.READY}) | _ANYTIME,
+    _S.READY: frozenset({_S.LISTENING, _S.THINKING, _S.WORKING, _S.PAUSED}) | _ANYTIME,
+    _S.LISTENING: frozenset({_S.THINKING, _S.READY, _S.PAUSED}) | _ANYTIME,
+    _S.THINKING: frozenset({_S.SPEAKING, _S.READY, _S.WORKING, _S.WAITING, _S.PAUSED}) | _ANYTIME,
+    _S.SPEAKING: frozenset({_S.READY, _S.LISTENING, _S.THINKING, _S.PAUSED}) | _ANYTIME,
+    _S.WORKING: frozenset({_S.WAITING, _S.READY, _S.THINKING, _S.SPEAKING, _S.PAUSED}) | _ANYTIME,
+    _S.WAITING: frozenset({_S.WORKING, _S.READY, _S.PAUSED}) | _ANYTIME,
+    _S.PAUSED: frozenset({_S.READY}) | _ANYTIME,
+    _S.ERROR: frozenset({_S.READY, _S.PAUSED}) | _ANYTIME,
 }
 
 

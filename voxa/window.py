@@ -327,6 +327,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.shell = AssistantShell(self.assistant_model, self.settings)
         self.shell.on_active = self._on_shell_active
         self.shell.on_offline = self._on_shell_offline
+        self.shell.on_pause = self._on_shell_pause
         self.shell.on_model_selected = self._on_shell_model_selected
         self.shell.on_backend_selected = self._on_shell_backend_selected
         self.shell.on_character_selected = self._on_shell_character_selected
@@ -422,6 +423,12 @@ class MainWindow(Adw.ApplicationWindow):
     def _on_shell_offline(self) -> None:
         self._activate_when_ready = False
         self.stop_current_work()
+
+    def _on_shell_pause(self) -> None:
+        if self.assistant.is_paused:
+            self.assistant.resume()
+        elif self.assistant.is_active:
+            self.assistant.pause()
 
     def _queue_ai_server_action(self, action: str) -> None:
         """Serialize managed-server changes without ever blocking GTK's main loop."""

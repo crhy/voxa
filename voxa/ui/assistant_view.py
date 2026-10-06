@@ -28,6 +28,7 @@ AVATAR_SIZE = 320
 STATE_CAPTIONS = {
     AssistantState.OFFLINE: "Offline",
     AssistantState.READY: "Ready",
+    AssistantState.PAUSED: "Paused",
     AssistantState.LISTENING: "Listening",
     AssistantState.THINKING: "Thinking…",
     AssistantState.SPEAKING: "Speaking…",
@@ -39,6 +40,7 @@ STATE_CAPTIONS = {
 STATE_HINTS = {
     AssistantState.OFFLINE: "Press ACTIVE to start listening",
     AssistantState.READY: "Say “Voxa”, then your request",
+    AssistantState.PAUSED: "Say “Voxa” to continue",
     AssistantState.LISTENING: "Go ahead",
     AssistantState.THINKING: "",
     AssistantState.SPEAKING: "Say “Voxa” to interrupt",

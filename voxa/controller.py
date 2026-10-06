@@ -72,6 +72,10 @@ class AssistantController:
     def is_active(self) -> bool:
         return self.model.state is not AssistantState.OFFLINE
 
+    @property
+    def is_paused(self) -> bool:
+        return self.model.state is AssistantState.PAUSED
+
     # ------------------------------------------------------------- ACTIVE / OFFLINE
 
     def activate(self) -> bool:
@@ -109,6 +113,23 @@ class AssistantController:
             log.warning("OFFLINE: the microphone still reports as active")
         self.model.set_state(AssistantState.OFFLINE, OFFLINE_CONFIRMED if confirmed else OFFLINE_UNCONFIRMED)
         return confirmed
+
+    # ---------------------------------------------------------------- PAUSED
+
+    def pause(self) -> bool:
+        """PAUSED: switched on but ignoring everything. Stops speech and invalidates late callbacks."""
+        if self.is_paused:
+            return True
+        generation = self.model.bump_generation()
+        self._stop_quietly(self.ports.stop_speech, "stop_speech")
+        return self.model.set_state(AssistantState.PAUSED, "", generation=generation)
+
+    def resume(self) -> bool:
+        """PAUSED -> READY: continue. Returns False when not paused or the move is refused."""
+        if not self.is_paused:
+            return False
+        generation = self.model.bump_generation()
+        return self.model.set_state(AssistantState.READY, "", generation=generation)
 
     # ---------------------------------------------------------------- pipeline events
     # Each takes the token captured when the work started and returns False when the
