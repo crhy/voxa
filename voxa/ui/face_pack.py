@@ -22,6 +22,8 @@ def _faces_root() -> Path:
 
 
 FACES_DIRECTORY: Path = _faces_root()
+# Where the Flatpak installs the packs it ships (see the voxa-faces module in the manifest).
+BUNDLED_FACES_DIRECTORY: Path = Path("/app/share/voxa/faces")
 
 
 @dataclass(frozen=True, slots=True)
@@ -71,8 +73,11 @@ def load_pack(character_id: str, directory: Path | None = None) -> FacePack | No
         # Inside the Flatpak XDG_DATA_HOME is the app's private folder; the packs live in the host's
         # ~/.local/share/voxa/faces, which the sandbox can read.
         host_dir = Path.home() / ".local" / "share" / "voxa" / "faces" / character_id
+        bundled_dir = BUNDLED_FACES_DIRECTORY / character_id
         if (host_dir / "index.json").exists():
-            pack_dir = host_dir
+            pack_dir = host_dir          # the user's own or newer packs win
+        elif (bundled_dir / "index.json").exists():
+            pack_dir = bundled_dir       # the packs shipped inside the Flatpak
     index = pack_dir / "index.json"
     try:
         raw = index.read_text()

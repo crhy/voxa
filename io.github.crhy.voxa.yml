@@ -95,6 +95,20 @@ modules:
       - install -Dm755 nvidia-smi /app/lib/nvml/nvidia-smi
       - install -Dm755 libnvidia-ml.so.1 /app/lib/nvml/libnvidia-ml.so.1
 
+  # Pre-rendered face packs for the 22 characters (mouth frames and blink patches): the "Medium" facial
+  # quality. Kept out of the source tree because they are 120 MB of JPEGs; published as a data download.
+  - name: voxa-faces
+    buildsystem: simple
+    sources:
+      - type: archive
+        url: https://github.com/crhy/voxa/releases/download/faces-1/voxa-faces-1.tar.gz
+        sha256: 4b092abee4785b92a8100c0b0cd0db6ec24fd3c21cefbf7ba371158e0e42b9ee
+        strip-components: 0
+    build-commands:
+      - install -d /app/share/voxa/faces
+      - cp -r . /app/share/voxa/faces/
+      - find /app/share/voxa/faces -maxdepth 1 -type f -delete
+
   - name: voxa
     buildsystem: simple
     sources:
