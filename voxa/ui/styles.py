@@ -70,7 +70,7 @@ VOXA_CSS = """
 .voxa-active,
 .voxa-offline,
 .voxa-pause {
-    min-width: 118px;
+    min-width: 84px;
     min-height: 48px;
     border-radius: 12px;
     font-weight: 700;

@@ -139,6 +139,8 @@ class AssistantShell(Gtk.Overlay):
         self._bottom_controls.append(self.face_quality)
         self._bottom_controls.append(self.model_selector)
         self._bottom_controls.set_halign(Gtk.Align.CENTER)
+        # Three status buttons sit bottom-right: nudge the centred rows left so a long model name clears them.
+        self._bottom_controls.set_margin_end(220)
         self._bottom_controls.set_valign(Gtk.Align.END)
         self._bottom_controls.set_margin_bottom(EDGE_MARGIN)
         self.add_overlay(self._bottom_controls)
