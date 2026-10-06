@@ -11,11 +11,40 @@ import re
 
 # A sentence ends at . ! ? … (optionally followed by a closing quote or bracket) and then whitespace.
 _SENTENCE_END = re.compile(r"[.!?…]+[\"'”’)\]]*(?=\s)")
+# CJK sentences end at 。！？｡ with no following space.
+_CJK_SENTENCE_END = re.compile(r"[。！？｡]+[\"'”’)\]]*")
 # Models that write their working first: their stream must not be read aloud until the answer is known.
 _THINKING_MODEL = re.compile(r"qwen3|qwq|deepseek-r1|\br1\b|think|reason|gpt-oss|magistral", re.IGNORECASE)
 
 FIRST_CHUNK_MIN_CHARS = 20   # do not start on a two-word fragment such as "Sure."
 LATER_CHUNK_MIN_CHARS = 60   # later chunks are a sentence or two, so playback is not chopped up
+CJK_CHUNK_MIN_CHARS = 20     # CJK sentences are dense: 20 characters is already a full sentence
+FIRST_CLAUSE_MIN_PENDING = 45  # only hunt for a clause break once this much text has arrived
+FIRST_CLAUSE_MIN_PIECE = 25    # the early piece must still be long enough to be worth speaking
+CJK_CLAUSE_MIN_CHARS = 12      # space-less CJK may start at 、or ，after this many characters
+
+_SPACED_CLAUSE_BREAKS = (", ", "; ", ": ", " — ")
+_CJK_CLAUSE_BREAKS = ("、", "，")
+
+
+def _last_clause_cut(pending: str, breaks: tuple[str, ...], min_piece: int) -> int:
+    """Latest position after which the text can be cut at a clause break, or 0.
+
+    The cut sits after the break's punctuation (before any trailing space), so pieces
+    joined back with a space (or nothing, for CJK) rebuild the text exactly.
+    """
+    cut = 0
+    for br in breaks:
+        start = 0
+        while True:
+            index = pending.find(br, start)
+            if index < 0:
+                break
+            candidate = index + len(br.rstrip())
+            if candidate >= min_piece and candidate > cut:
+                cut = candidate
+            start = index + 1
+    return cut
 
 
 def is_thinking_model(name: str) -> bool:
@@ -60,12 +89,21 @@ class SentenceFeeder:
         if final:
             cut = len(pending)
         else:
-            minimum = LATER_CHUNK_MIN_CHARS if self.released_any else FIRST_CHUNK_MIN_CHARS
             cut = 0
             for match in _SENTENCE_END.finditer(pending):
+                minimum = LATER_CHUNK_MIN_CHARS if self.released_any else FIRST_CHUNK_MIN_CHARS
                 if match.end() >= minimum:
-                    cut = match.end()
-            # `cut` is the LAST sentence end that satisfies the minimum: release as much as is complete.
+                    cut = max(cut, match.end())
+            for match in _CJK_SENTENCE_END.finditer(pending):
+                minimum = CJK_CHUNK_MIN_CHARS if self.released_any else 0
+                if match.end() >= minimum:
+                    cut = max(cut, match.end())
+            if not self.released_any and cut == 0 and not _SENTENCE_END.search(pending) and not _CJK_SENTENCE_END.search(pending):
+                # First piece and no sentence end at all: try to start at a clause break.
+                if len(pending) >= FIRST_CLAUSE_MIN_PENDING:
+                    cut = _last_clause_cut(pending, _SPACED_CLAUSE_BREAKS + _CJK_CLAUSE_BREAKS, FIRST_CLAUSE_MIN_PIECE)
+                if cut == 0 and " " not in pending and len(pending) >= CJK_CLAUSE_MIN_CHARS:
+                    cut = _last_clause_cut(pending, _CJK_CLAUSE_BREAKS, CJK_CLAUSE_MIN_CHARS)
         if cut <= 0:
             return []
         piece = pending[:cut].strip()
