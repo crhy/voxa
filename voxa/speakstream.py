@@ -98,7 +98,7 @@ class SentenceFeeder:
                 minimum = CJK_CHUNK_MIN_CHARS if self.released_any else 0
                 if match.end() >= minimum:
                     cut = max(cut, match.end())
-            if not self.released_any and cut == 0 and not _SENTENCE_END.search(pending) and not _CJK_SENTENCE_END.search(pending):
+            if not self.released_any and cut == 0:  # nothing long enough ended yet (a short "¡Claro!" does not count)
                 # First piece and no sentence end at all: try to start at a clause break.
                 if len(pending) >= FIRST_CLAUSE_MIN_PENDING:
                     cut = _last_clause_cut(pending, _SPACED_CLAUSE_BREAKS + _CJK_CLAUSE_BREAKS, FIRST_CLAUSE_MIN_PIECE)
