@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import math
 
-from tools import fit_character
+import pytest
+
+# The fitting tool needs OpenCV and MediaPipe, which the build machines do not have.
+fit_character = pytest.importorskip("tools.fit_character")
 
 
 def test_error_zscores():

@@ -16,6 +16,8 @@ def argv(monkeypatch) -> list[list[str]]:
         return None
 
     monkeypatch.setattr(typing_mod.subprocess, "run", fake_run)
+    # The build machines have no xdotool; these tests are about the commands Voxa would send.
+    monkeypatch.setattr(typing_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
     return calls
 
 
