@@ -117,19 +117,19 @@ class AssistantController:
     # ---------------------------------------------------------------- PAUSED
 
     def pause(self) -> bool:
-        """PAUSED: switched on but ignoring everything. Stops speech and invalidates late callbacks."""
+        """PAUSED: switched on but ignoring everything except the wake word. Stops speech."""
         if self.is_paused:
             return True
-        generation = self.model.bump_generation()
+        # The generation is NOT bumped: the listening session must stay valid, or the wake word that is
+        # supposed to end the pause would be thrown away as a stale callback.
         self._stop_quietly(self.ports.stop_speech, "stop_speech")
-        return self.model.set_state(AssistantState.PAUSED, "", generation=generation)
+        return self.model.set_state(AssistantState.PAUSED, "")
 
     def resume(self) -> bool:
         """PAUSED -> READY: continue. Returns False when not paused or the move is refused."""
         if not self.is_paused:
             return False
-        generation = self.model.bump_generation()
-        return self.model.set_state(AssistantState.READY, "", generation=generation)
+        return self.model.set_state(AssistantState.READY, "")
 
     # ---------------------------------------------------------------- pipeline events
     # Each takes the token captured when the work started and returns False when the

@@ -430,7 +430,17 @@ class MainWindow(Adw.ApplicationWindow):
         if self.assistant.is_paused:
             self.assistant.resume()
         elif self.assistant.is_active:
-            self.assistant.pause()
+            self._pause_now()
+
+    def _pause_now(self) -> None:
+        """Pause: drop the answer in progress and stop talking, but keep listening for the wake word."""
+        self.query_cancel.set()          # a reply still being written must not be spoken after the pause
+        self._early = None
+        if self.conversation is not None:
+            self.conversation.unmute()   # speech may have muted the microphone: the wake word must get through
+        self._speaking_since = 0.0
+        self.assistant.pause()
+        self._set_status(f"Paused — say “{self.settings.wake_word}” to continue")
 
     def _queue_ai_server_action(self, action: str) -> None:
         """Serialize managed-server changes without ever blocking GTK's main loop."""
@@ -1634,15 +1644,10 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _on_conversation_woken(self) -> bool:
         if self.assistant.is_paused:
-            # Saying the wake word while paused resumes the assistant. A bare
-            # wake word (no request after it) confirms with speech; if a request
-            # followed, on_prompt routes it and we stay silent.
-            resumed, rest = resume_request(self.conversation.last_heard, self.settings.wake_word)
-            if resumed:
-                self.assistant.resume()
-                if not rest:
-                    self._conversation_speak("I'm back.")
-                return False
+            # The wake word was heard: that is exactly what ends a pause. Resume, then carry on as for any
+            # wake word, so a request spoken in the same breath is captured normally.
+            self.assistant.resume()
+            self._toast("I'm back.")
         self.assistant.wake(self.assistant.token())
         self._toast(f"Heard “{self.settings.wake_word}” — listening…")
         self._set_status("Listening for your request…", busy=True)
@@ -1658,14 +1663,12 @@ class MainWindow(Adw.ApplicationWindow):
                 # Stay paused: the sentence is neither a resume nor a request.
                 return False
             self.assistant.resume()
-            if not rest:
-                self._conversation_speak("I'm back.")
-            else:
+            self._toast("I'm back.")
+            if rest:
                 self.ask_ai(rest)
             return False
         if is_pause_request(heard, media_playing=active_player() is not None):
-            self._conversation_speak("Paused.")
-            self.assistant.pause()
+            self._pause_now()
             return False
         stripped = strip_wake_word(text, self.settings.wake_word)
         if stripped is not None and not stripped:
