@@ -203,13 +203,36 @@ def search(query: str) -> list[SearchResult]:
         return parse_results(response.read().decode("utf-8", "replace"))
 
 
+def _site(url: str) -> str:
+    """Site name for a result URL: the host without a leading www."""
+    host = urllib.parse.urlparse(url).netloc.lower()
+    return host[4:] if host.startswith("www.") else host
+
+
 def format_for_prompt(query: str, results: list[SearchResult]) -> str:
-    lines = [f"Web search results for “{query}”:"]
-    for number, item in enumerate(results, 1):
-        lines.append(f"{number}. {item.title} — {item.snippet} ({item.url})")
-    lines.append("Answer using these results, and say which source you relied on.")
-    lines.append(
-        "Answer ONLY from these search results. If they do not contain the answer, "
-        "say you could not find it. Do not add facts from memory."
-    )
+    """Instruction first, then numbered results, today's date, question last."""
+    lines = [
+        "Answer ONLY from these search results. Do not add facts from memory."
+    ]
+    for number, item in enumerate(results[:MAX_RESULTS], 1):
+        lines.append(f"{number}. {item.title} — {item.snippet[:300]} ({item.url})")
+    lines.append("Today is 6 October 2026.")
+    lines.append(f"Question: {query}")
     return "\n".join(lines)
+
+
+def source_line(results: list[SearchResult]) -> str:
+    """Display-only 'Source:' line for the first result, empty when there are none."""
+    if not results:
+        return ""
+    return f"Source: {_site(results[0].url)}"
+
+
+def search_record_fields(query: str, results: list[SearchResult], failed: bool) -> dict:
+    """Action-log fields for a request that attempted a web search."""
+    if failed:
+        return {"route": "model", "args": None, "detail": "web search failed"}
+    if not results:
+        return {"route": "model", "args": None, "detail": "web search found nothing"}
+    first = results[0].title[:80]
+    return {"route": "search", "args": {"query": query}, "detail": f"{len(results)} results: {first}"}

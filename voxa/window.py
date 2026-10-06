@@ -207,6 +207,8 @@ class MainWindow(Adw.ApplicationWindow):
         self._server_generation = 0
         self._last_search_query: str | None = None
         self._last_search_at = 0.0
+        self._search_record: dict | None = None
+        self._search_source = ""
         self.style_manager = Adw.StyleManager.get_default()
         self._apply_appearance()
         self.whisper = WhisperService()
@@ -2309,7 +2311,8 @@ class MainWindow(Adw.ApplicationWindow):
             self._plan_and_run(prompt)
             return
 
-        self._log_action(prompt, "model")
+        self._search_record = None
+        self._search_source = ""
         self._tool_ran_for_request = False
         heard_prompt = prompt
         self.query_cancel.set()
@@ -2360,6 +2363,7 @@ class MainWindow(Adw.ApplicationWindow):
             try:
                 client = self._ai_client()
                 nonlocal messages, prompt
+                heard = prompt
                 real_model = isinstance(client, (OllamaClient, LlamaCppClient, StrataClient))
                 if self.settings.web_search != "never" and real_model:
                     context = self._web_context(prompt, generation, cancel_event)
@@ -2368,6 +2372,11 @@ class MainWindow(Adw.ApplicationWindow):
                             messages = [*messages[:-1], {**messages[-1], "content": f"{context}\n\n{messages[-1]['content']}"}]
                         else:
                             prompt = f"{context}\n\nQuestion: {prompt}"
+                rec = self._search_record
+                if rec is not None:
+                    self._log_action(heard, rec["route"], args=rec["args"], detail=rec["detail"])
+                else:
+                    self._log_action(heard, "model")
                 if isinstance(client, LlamaCppClient) and client.is_busy():
                     idle(self._on_server_busy, generation, cancel_event)
                 if hasattr(client, "is_model_loaded") and client.is_model_loaded(model) is False:
@@ -2458,7 +2467,8 @@ class MainWindow(Adw.ApplicationWindow):
             self._set_status("Draft failed.")
             return False
         self._end_query_task("done")
-        self.shell.exchange_panel.show_answer(reply)
+        display = f"{reply}\n{self._search_source}" if self._search_source else reply
+        self.shell.exchange_panel.show_answer(display)
         if not self.assistant.is_active:
             self._toast(reply)
         elif self.conversation_active:
@@ -2611,6 +2621,8 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def _web_context(self, prompt: str, generation: int, cancel_event: threading.Event) -> str:
+        self._search_record = None
+        self._search_source = ""
         previous = self._last_search_query
         if previous is not None and time.time() - self._last_search_at > 180:
             previous = None
@@ -2624,8 +2636,13 @@ class MainWindow(Adw.ApplicationWindow):
             results = websearch.search(query)
         except Exception:  # noqa: BLE001 - offline or blocked: answer without the web
             idle(self._on_web_unavailable, generation, cancel_event)
+            self._search_record = websearch.search_record_fields(query, [], True)
             return ""
-        return websearch.format_for_prompt(query, results) if results else ""
+        self._search_record = websearch.search_record_fields(query, results, False)
+        if results:
+            self._search_source = websearch.source_line(results)
+            return websearch.format_for_prompt(query, results)
+        return ""
 
     def _on_web_search(self, query: str, generation: int, cancel_event: threading.Event) -> bool:
         if self._query_is_current(generation, cancel_event) and not cancel_event.is_set():
