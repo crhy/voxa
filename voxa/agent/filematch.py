@@ -19,6 +19,23 @@ FOLDER_KEYS = {
     "movies": "VIDEOS",
 }
 
+STANDARD_NAMES = {
+    "DESKTOP": "Desktop",
+    "DOCUMENTS": "Documents",
+    "DOWNLOAD": "Downloads",
+    "MUSIC": "Music",
+    "PICTURES": "Pictures",
+    "VIDEOS": "Videos",
+}
+
+
+def resolve_folder(key: str, home: str, reported: str) -> str:
+    if key == "":
+        return home
+    if not reported or reported.rstrip("/") == home.rstrip("/"):
+        return f"{home}/{STANDARD_NAMES[key]}"
+    return reported
+
 
 def folder_key(spoken: str) -> str | None:
     s = spoken.strip().lower()

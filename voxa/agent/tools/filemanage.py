@@ -5,7 +5,7 @@ import os
 import subprocess
 
 from voxa import simulation
-from voxa.agent.filematch import best_match, folder_key, size_bytes, spoken_list
+from voxa.agent.filematch import best_match, folder_key, resolve_folder, size_bytes, spoken_list
 from voxa.agent.host import host_command
 from voxa.agent.policy import RiskLevel
 from voxa.agent.registry import Tool
@@ -32,9 +32,11 @@ def _folder(spoken: str) -> str | None:
     key = folder_key(spoken)
     if key is None:
         return None
+    home = _run(["sh", "-c", "echo $HOME"]).stdout.strip()
     if key == "":
-        return _run(["sh", "-c", "echo $HOME"]).stdout.strip()
-    return _run(["xdg-user-dir", key]).stdout.strip()
+        return home
+    reported = _run(["xdg-user-dir", key], check=False).stdout.strip()
+    return resolve_folder(key, home, reported)
 
 
 def _names(folder: str) -> list[str]:
@@ -114,9 +116,14 @@ def find_file(args: dict[str, str]) -> ToolResult:
             return ToolResult.failure("I cannot reach your home folder.")
         words = args["name"].split()
         pattern = "*" + "*".join(words) + "*"
-        out = _run(["find", home, "-xdev", "-not", "-path", "*/.*", "-iname", pattern])
+        out = _run(
+            ["timeout", "12", "find", home, "-xdev", "-not", "-path", "*/.*", "-iname", pattern],
+            check=False,
+        )
         lines = out.stdout.splitlines()[:20]
         if not lines:
+            if out.returncode == 124:
+                return ToolResult.failure("I ran out of time looking. Try naming a folder.")
             return ToolResult.failure(f"I could not find a file called {args['name']}.")
         entries = [
             f"{os.path.basename(path)} in {os.path.basename(os.path.dirname(path))}" for path in lines
@@ -135,9 +142,14 @@ def find_large_files(args: dict[str, str]) -> ToolResult:
         if home is None:
             return ToolResult.failure("I cannot reach your home folder.")
         limit = size_bytes(args["amount"], args["unit"])
-        out = _run(["find", home, "-xdev", "-not", "-path", "*/.*", "-type", "f", "-size", f"+{limit}c"])
+        out = _run(
+            ["timeout", "12", "find", home, "-xdev", "-not", "-path", "*/.*", "-type", "f", "-size", f"+{limit}c"],
+            check=False,
+        )
         lines = out.stdout.splitlines()[:20]
         if not lines:
+            if out.returncode == 124:
+                return ToolResult.failure("I ran out of time looking. Try naming a folder.")
             return ToolResult.failure("No files are bigger than that.")
         names = [os.path.basename(path) for path in lines]
         return ToolResult.success(

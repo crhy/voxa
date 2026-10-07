@@ -72,6 +72,7 @@ def test_spoken_list():
 def test_copy_file(monkeypatch):
     records = []
     results = {
+        ("sh", "-c", "echo $HOME"): "/home/u",
         ("xdg-user-dir", "DOWNLOAD"): "/home/u/Downloads",
         ("xdg-user-dir", "DOCUMENTS"): "/home/u/Documents",
         ("ls", "-1A", "/home/u/Downloads"): "Report Final.pdf\nnotes.odt",
@@ -79,7 +80,9 @@ def test_copy_file(monkeypatch):
     monkeypatch.setattr(filemanage, "_run", _make_fake(records, results))
     result = copy_file({"name": "report final", "source": "Downloads", "destination": "Documents"})
     assert records == [
+        ["sh", "-c", "echo $HOME"],
         ["xdg-user-dir", "DOWNLOAD"],
+        ["sh", "-c", "echo $HOME"],
         ["xdg-user-dir", "DOCUMENTS"],
         ["ls", "-1A", "/home/u/Downloads"],
         ["gio", "copy", "/home/u/Downloads/Report Final.pdf", "/home/u/Documents/"],
@@ -90,6 +93,7 @@ def test_copy_file(monkeypatch):
 def test_move_file(monkeypatch):
     records = []
     results = {
+        ("sh", "-c", "echo $HOME"): "/home/u",
         ("xdg-user-dir", "DOWNLOAD"): "/home/u/Downloads",
         ("xdg-user-dir", "VIDEOS"): "/home/u/Videos",
         ("ls", "-1A", "/home/u/Downloads"): "holiday video.mp4",
@@ -103,6 +107,7 @@ def test_move_file(monkeypatch):
 def test_trash_file(monkeypatch):
     records = []
     results = {
+        ("sh", "-c", "echo $HOME"): "/home/u",
         ("xdg-user-dir", "DOCUMENTS"): "/home/u/Documents",
         ("ls", "-1A", "/home/u/Documents"): "old notes.txt",
     }
@@ -130,6 +135,7 @@ def test_unknown_folder(monkeypatch):
 def test_no_match(monkeypatch):
     records = []
     results = {
+        ("sh", "-c", "echo $HOME"): "/home/u",
         ("xdg-user-dir", "DOCUMENTS"): "/home/u/Documents",
         ("ls", "-1A", "/home/u/Documents"): "budget.pdf",
     }
@@ -142,6 +148,7 @@ def test_failing_gio(monkeypatch):
     records = []
     error = subprocess.CalledProcessError(1, ["gio"], stderr="gio: Error: File exists\nmore")
     results = {
+        ("sh", "-c", "echo $HOME"): "/home/u",
         ("xdg-user-dir", "DOWNLOAD"): "/home/u/Downloads",
         ("xdg-user-dir", "DOCUMENTS"): "/home/u/Documents",
         ("ls", "-1A", "/home/u/Downloads"): "report.pdf",
@@ -172,6 +179,8 @@ def test_find_file_one(monkeypatch):
     results = {
         ("sh", "-c", "echo $HOME"): "/home/u",
         (
+            "timeout",
+            "12",
             "find",
             "/home/u",
             "-xdev",
@@ -193,6 +202,8 @@ def test_find_file_three(monkeypatch):
     results = {
         ("sh", "-c", "echo $HOME"): "/home/u",
         (
+            "timeout",
+            "12",
             "find",
             "/home/u",
             "-xdev",
@@ -215,6 +226,8 @@ def test_find_large_files(monkeypatch):
     results = {
         ("sh", "-c", "echo $HOME"): "/home/u",
         (
+            "timeout",
+            "12",
             "find",
             "/home/u",
             "-xdev",
