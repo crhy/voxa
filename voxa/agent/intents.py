@@ -360,6 +360,18 @@ _CANCEL_REMINDERS = re.compile(
     r"cancel\s+(?:(?:my|all|the)\s+)?(?:timers?|reminders?)(?:\s+now)?",
     re.IGNORECASE,
 )
+_TAKE_NOTE = re.compile(
+    r"(?:take|make|write|add|save) (?:a |this |down a )?note(?: that| saying| to| of|:)? (.+)",
+    re.IGNORECASE,
+)
+_NOTE_SAYS = re.compile(r"note (?:that |down )?(.+)", re.IGNORECASE)
+_WRITE_DOWN = re.compile(r"(?:write|jot) (?:this|that) down:? (.+)", re.IGNORECASE)
+_READ_NOTES = re.compile(
+    r"(?:read|what are|show me|tell me) (?:me )?my notes|what(?:'s| is) in my notes|do i have any notes",
+    re.IGNORECASE,
+)
+_DELETE_LAST_NOTE = re.compile(r"(?:delete|remove|erase|scratch) (?:my |the )?last note", re.IGNORECASE)
+_OPEN_NOTES = re.compile(r"open (?:my )?notes", re.IGNORECASE)
 
 _BROWSE = re.compile(
     r"(?:browse to|go to the website|open the page)\s+(.+)", re.IGNORECASE
@@ -435,6 +447,10 @@ ROUTED_TOOLS = frozenset(
         "set_reminder",
         "list_reminders",
         "cancel_reminders",
+        "take_note",
+        "read_notes",
+        "delete_last_note",
+        "open_notes",
         "home_turn",
         "home_set",
         "home_scene",
@@ -547,6 +563,21 @@ def route(text: str) -> ToolCall | None:
         return call("list_reminders")
     if _CANCEL_REMINDERS.fullmatch(s):
         return call("cancel_reminders")
+    take_note = _TAKE_NOTE.fullmatch(s)
+    if take_note:
+        return call("take_note", text=take_note.group(1))
+    note_says = _NOTE_SAYS.fullmatch(s)
+    if note_says:
+        return call("take_note", text=note_says.group(1))
+    write_down = _WRITE_DOWN.fullmatch(s)
+    if write_down:
+        return call("take_note", text=write_down.group(1))
+    if _READ_NOTES.fullmatch(s):
+        return call("read_notes")
+    if _DELETE_LAST_NOTE.fullmatch(s):
+        return call("delete_last_note")
+    if _OPEN_NOTES.fullmatch(s):
+        return call("open_notes")
 
     browse_match = _BROWSE.fullmatch(s)
     if browse_match and "." in browse_match.group(1):

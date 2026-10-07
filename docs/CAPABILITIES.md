@@ -139,6 +139,10 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | --- | --- | --- |
 | “Set a timer for 5 minutes” / “Remind me at 3 pm to call Bob” | Reminder fires and is spoken | 🧪 |
 | “Cancel my reminders” | Reminders cleared | 🧪 |
+| “Take a note: call the vet on Friday” | Appends to a plain text file, Voxa Notes.md in Documents | 🧪 |
+| “Read my notes” | Speaks the notes back, newest first | 🧪 |
+| “Delete my last note” | Removes the last note from the file | 🧪 |
+| “Open my notes” | Opens the notes text file in Documents | 🧪 |
 | “Good morning” (a routine you defined) | Runs its steps | 🧪 |
 
 ## The computer
