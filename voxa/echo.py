@@ -1,18 +1,13 @@
 """Echo cancellation: let Voxa hear the user, not the computer.
 
 Whatever the computer plays (Voxa's own voice, music, a video) reaches the microphone and used to be heard
-as speech: Voxa interrupted itself and transcribed songs. PulseAudio's ``module-echo-cancel`` (WebRTC) solves
-this at the source: it is given the speaker signal and subtracts it from the microphone signal.
+as speech: Voxa interrupted itself and transcribed songs. Voxa's own canceller (:mod:`voxa.anc`) solves this
+by LISTENING to the loopback monitor of the real default output (:func:`default_monitor_source`) and
+subtracting that signal from the microphone. It creates no devices and never changes the user's audio output.
 
-Two virtual devices are created:
-
-* an echo-cancelled *microphone* (:data:`SOURCE_NAME`) that Voxa records from, and
-* an *output* (:data:`SINK_NAME`) that forwards to the real speakers. Only sound played through this output
-  can be subtracted, so it is made the default output while Voxa runs and everything already playing is moved
-  onto it. On exit the previous default is restored and the module is unloaded.
-
-All commands go through ``pactl`` on the host, so this works from inside the Flatpak too. Every step is
-best-effort: if anything is missing (no PulseAudio, no module) Voxa simply records from the normal microphone.
+Versions up to 0.1.5 could leave behind PulseAudio echo-cancel devices that hijacked the user's speakers.
+:func:`remove_leftover_devices` finds such a leftover, hands the real output back (restoring the default
+sink and moving any streams that were on our device) and unloads the module.
 """
 
 from __future__ import annotations
@@ -27,9 +22,6 @@ log = logging.getLogger("voxa.echo")
 
 SOURCE_NAME = "voxa_echo_cancel_mic"
 SINK_NAME = "voxa_echo_cancel_out"
-# WebRTC settings: leave the hardware gain alone and clean up noise. (PulseAudio 17 rejects the module when
-# given options it does not know, so only long-standing ones are used.)
-AEC_ARGS = "analog_gain_control=0 digital_gain_control=1 noise_suppression=1"
 
 
 def _pactl(*args: str, runner=subprocess.run) -> tuple[int, str]:
@@ -54,14 +46,25 @@ def parse_sink_inputs(listing: str) -> list[str]:
     return [line.split("\t")[0] for line in listing.splitlines() if line.strip() and line.split("\t")[0].isdigit()]
 
 
+def parse_sink_master(listing: str, source_name: str = SOURCE_NAME) -> str | None:
+    """The real output a leftover echo-cancel module of ours forwards to (its ``sink_master=`` argument)."""
+    for line in listing.splitlines():
+        parts = line.split("\t")
+        if len(parts) >= 2 and parts[1] == "module-echo-cancel" and f"source_name={source_name}" in line:
+            match = re.search(r"sink_master=(\S+)", line)
+            return match.group(1) if match else None
+    return None
+
+
 def default_monitor_source(runner=subprocess.run) -> str | None:
     """The loopback monitor source for the default sink, e.g. ``"alsa_output.pci-0_0.monitor"``.
 
     This is the signal the computer plays, which the canceller in :mod:`voxa.anc` subtracts from the
-    microphone. Returns ``None`` when PulseAudio cannot report a default sink.
+    microphone. Returns ``None`` when PulseAudio cannot report a default sink, and when the default is
+    our own old device (never use it as the reference).
     """
     code, sink = _pactl("get-default-sink", runner=runner)
-    if code != 0 or not sink:
+    if code != 0 or not sink or sink == SINK_NAME:
         return None
     return f"{sink}.monitor"
 
@@ -83,80 +86,31 @@ def source_for(microphone_id: str, runner=subprocess.run) -> str | None:
     return None
 
 
-class EchoCanceller:
-    """Loads, uses and removes the echo-cancelling devices. Safe to call when PulseAudio is absent."""
-
-    def __init__(self, runner=subprocess.run) -> None:
-        self._runner = runner
-        self._module_id: str | None = None
-        self._previous_sink: str | None = None
-        self._loaded_here = False
-        self.active = False
-
-    def _run(self, *args: str) -> tuple[int, str]:
-        return _pactl(*args, runner=self._runner)
-
-    def enable(self, source_master: str | None = None) -> bool:
-        """Create the devices (or adopt existing ones) and route playback through them. True when active."""
-        if self.active:
-            return True
-        code, modules = self._run("list", "short", "modules")
-        if code != 0:
-            log.info("echo cancellation unavailable: pactl failed (%s)", modules)
-            return False
-        code, default_sink = self._run("get-default-sink")
-        if code != 0 or not default_sink:
-            return False
-        existing = parse_module_id(modules)
-        if existing is not None:
-            # Left over from a run that did not exit cleanly. It may be tied to a microphone or speakers that
-            # are no longer the right ones, so remove it and build a fresh one.
-            self._run("unload-module", existing)
-            code, default_sink = self._run("get-default-sink")
-            if code != 0 or not default_sink:
-                return False
-        if default_sink == SINK_NAME:
-            return False  # inconsistent state: do not stack another module on top
-        arguments = [
-            "load-module",
-            "module-echo-cancel",
-            "aec_method=webrtc",
-            f"source_name={SOURCE_NAME}",
-            f"sink_name={SINK_NAME}",
-            f"sink_master={default_sink}",
-            f'aec_args="{AEC_ARGS}"',  # the quotes are part of the value: it contains spaces
-            "source_properties=device.description=Voxa-echo-cancelled-microphone",
-            "sink_properties=device.description=Voxa-echo-cancelled-output",
-        ]
-        if source_master:
-            arguments.append(f"source_master={source_master}")  # the microphone chosen in Voxa, not the system default
-        code, module_id = self._run(*arguments)
-        if code != 0 or not module_id.isdigit():
-            log.info("echo cancellation unavailable: module-echo-cancel did not load (%s)", module_id)
-            return False
-        self._module_id = module_id
-        self._loaded_here = True
-        self._previous_sink = default_sink
-        # Everything must play THROUGH the cancelling output, or it cannot be subtracted from the microphone.
-        self._run("set-default-sink", SINK_NAME)
-        _code, inputs = self._run("list", "short", "sink-inputs")
-        for stream in parse_sink_inputs(inputs):
-            self._run("move-sink-input", stream, SINK_NAME)
-        self.active = True
-        log.info("echo cancellation active (module %s, speakers %s)", self._module_id, self._previous_sink)
-        return True
-
-    def disable(self) -> None:
-        """Put the sound routing back exactly as it was and remove the devices."""
-        if self._module_id is None:
-            return
-        if self._previous_sink:
-            self._run("set-default-sink", self._previous_sink)
-            _code, inputs = self._run("list", "short", "sink-inputs")
-            for stream in parse_sink_inputs(inputs):
-                self._run("move-sink-input", stream, self._previous_sink)
-        if self._loaded_here:
-            self._run("unload-module", self._module_id)
-        self._module_id = None
-        self._loaded_here = False
-        self.active = False
+def remove_leftover_devices(runner=subprocess.run) -> bool:
+    """Remove the echo-cancel devices an older Voxa created and hand the output back. True if one was removed."""
+    code, modules = _pactl("list", "short", "modules", runner=runner)
+    if code != 0:
+        return False
+    module_id = parse_module_id(modules)
+    if module_id is None:
+        return False
+    master = parse_sink_master(modules)
+    code, default_sink = _pactl("get-default-sink", runner=runner)
+    if code == 0 and default_sink == SINK_NAME and master:
+        _pactl("set-default-sink", master, runner=runner)
+    if master:
+        _code, sinks = _pactl("list", "short", "sinks", runner=runner)
+        our_index = None
+        for line in sinks.splitlines():
+            parts = line.split("\t")
+            if len(parts) >= 2 and parts[1] == SINK_NAME:
+                our_index = parts[0]
+                break
+        if our_index is not None:
+            _code, inputs = _pactl("list", "short", "sink-inputs", runner=runner)
+            for line in inputs.splitlines():
+                parts = line.split("\t")
+                if len(parts) >= 2 and parts[0].isdigit() and parts[1] == our_index:
+                    _pactl("move-sink-input", parts[0], master, runner=runner)
+    _pactl("unload-module", module_id, runner=runner)
+    return True

@@ -11,7 +11,7 @@ from voxa.ui.avatars import get_avatar
 
 FACE_MODES = ("live", "prerendered", "still")
 WEB_SEARCH_MODES = ("auto", "always", "never")
-ECHO_MODES = ("voxa", "system", "off")
+ECHO_MODES = ("voxa", "off")
 
 
 @dataclass(slots=True)
@@ -32,11 +32,10 @@ class Settings:
     home_location: str = ""
     # Subtract the computer's own sound (Voxa's voice, music) from the microphone.
     echo_cancel: bool = True
-    # How to remove the computer's own sound: "voxa" (our canceller), "system" (PulseAudio module-echo-cancel),
-    # "off". ``echo_cancel`` is a deprecated alias: False maps to "off".
-    # "system" is the default: PulseAudio's WebRTC canceller was measured removing 17 dB on real hardware
-    # (down to the room noise). Voxa's own canceller ("voxa") is experimental until it is proven in the app.
-    echo_mode: str = "system"
+    # How to remove the computer's own sound: "voxa" = Voxa's own canceller (listens to the output's
+    # monitor; adds no device and never changes the audio output), "off" = none.
+    # ``echo_cancel`` is a deprecated alias: False maps to "off".
+    echo_mode: str = "voxa"
     # Milliseconds the lips run ahead of the reported audio position (compensates sound-card and display delay).
     lip_sync_lead_ms: int = 160
     tts_rate: int = 180
@@ -83,7 +82,7 @@ class Settings:
         if self.web_search not in WEB_SEARCH_MODES:
             self.web_search = "auto"
         if self.echo_mode not in ECHO_MODES:
-            self.echo_mode = "system"
+            self.echo_mode = "voxa"
         if not self.echo_cancel:
             self.echo_mode = "off"
         return self

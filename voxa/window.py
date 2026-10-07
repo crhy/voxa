@@ -38,12 +38,10 @@ from .config import ConfigStore  # noqa: E402
 from .controller import AssistantController, ControllerPorts  # noqa: E402
 from .conversation import ConversationController, ConversationHistory, strip_wake_word  # noqa: E402
 from .dictation import DictationController  # noqa: E402
-from .echo import SOURCE_NAME as ECHO_SOURCE_NAME  # noqa: E402
 from .echo import (  # noqa: E402
-    EchoCanceller,
     default_monitor_source,
+    remove_leftover_devices,
 )
-from .echo import source_for as echo_source_for  # noqa: E402
 from .hardware import (  # noqa: E402
     MODEL_CATALOG,
     GpuUsage,
@@ -748,22 +746,15 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _prepare_microphone(self) -> None:
         """Before listening: choose how the computer's own sound is removed from the microphone."""
+        if not getattr(self, "_echo_leftovers_checked", False):
+            self._echo_leftovers_checked = True
+            threading.Thread(target=remove_leftover_devices, name="echo-cleanup", daemon=True).start()
         mode = getattr(self.settings, "echo_mode", "voxa")
         if mode == "voxa":
             # Our canceller: record the loopback monitor as the reference and clean the mic against it.
             self.audio.reference_source = default_monitor_source()
             self.audio.pulse_source = None
             self.audio.canceller = AncCanceller()
-        elif mode == "system":
-            # Today's behaviour: PulseAudio's module-echo-cancel route.
-            if getattr(self, "_echo", None) is None:
-                self._echo = EchoCanceller()
-            if self._echo.enable(source_master=echo_source_for(self.settings.microphone_id)):
-                self.audio.pulse_source = ECHO_SOURCE_NAME
-            else:
-                self.audio.pulse_source = None
-            self.audio.reference_source = None
-            self.audio.canceller = None
         else:
             self.audio.pulse_source = None
             self.audio.reference_source = None
@@ -3459,9 +3450,6 @@ class MainWindow(Adw.ApplicationWindow):
         self.shell.close_focus_window()
         self._live_generation = getattr(self, "_live_generation", 0) + 1
         self._release_face_server()
-        echo = getattr(self, "_echo", None)
-        if echo is not None:
-            echo.disable()  # give the speakers back exactly as they were
         self.stop_current_work()
         self._stop_gpu_monitor()
         self.audio.stop()
