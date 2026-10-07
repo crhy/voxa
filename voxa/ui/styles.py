@@ -136,6 +136,12 @@ VOXA_CSS = """
     opacity: 0.9;
 }
 
+.voxa-tips {
+    /* GTK CSS has no max-width: the width cap is applied in TipsPanel. */
+    font-size: 13px;
+    opacity: 0.6;
+}
+
 .voxa-exchange-answer {
     font-size: 13px;
 }

@@ -19,6 +19,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk  # noqa: E402
 
 from voxa.config import Settings  # noqa: E402
+from voxa.tips import tips_for  # noqa: E402
 
 from .assistant_view import BADGE_PATH, AssistantView  # noqa: E402
 from .character_picker import PortraitPicker  # noqa: E402
@@ -30,9 +31,11 @@ from .notice import NoticeBar  # noqa: E402
 from .state import AssistantModel, AssistantState  # noqa: E402
 from .status_controls import StatusControls  # noqa: E402
 from .task_panel import TaskPanel  # noqa: E402
+from .tips_panel import TipsPanel  # noqa: E402
 
 BADGE_SIZE = 24
 EDGE_MARGIN = 24
+TIPS_ROTATE_MS = 8000
 
 
 class AssistantShell(Gtk.Overlay):
@@ -42,6 +45,8 @@ class AssistantShell(Gtk.Overlay):
         super().__init__()
         self.model = model
         self.settings = settings
+        self._tips_tick = 0
+        self._tips_timer = 0
 
         self.on_active: Callable[[], None] | None = None
         self.on_offline: Callable[[], None] | None = None
@@ -110,6 +115,14 @@ class AssistantShell(Gtk.Overlay):
         self.choice_overlay.set_margin_top(EDGE_MARGIN)
         self.add_overlay(self.choice_overlay)
 
+        # Contextual tips for whatever the user is doing, top-left corner.
+        self.tips_panel = TipsPanel()
+        self.tips_panel.set_halign(Gtk.Align.START)
+        self.tips_panel.set_valign(Gtk.Align.START)
+        self.tips_panel.set_margin_start(EDGE_MARGIN)
+        self.tips_panel.set_margin_top(EDGE_MARGIN)
+        self.add_overlay(self.tips_panel)
+
         # Bottom row: attachment, model picker, status controls.
         self.attachment_button = Gtk.Button(icon_name="mail-attachment-symbolic")
         self.attachment_button.add_css_class("flat")
@@ -162,6 +175,7 @@ class AssistantShell(Gtk.Overlay):
         # Render whatever the model already holds.
         self._apply_state(self.model.state, self.model.detail)
         self._apply_tasks(list(self.model.tasks.values()))
+        self._tips_timer = GLib.timeout_add(TIPS_ROTATE_MS, self._rotate_tips)
 
     # ------------------------------------------------------------ public API
 
@@ -208,6 +222,22 @@ class AssistantShell(Gtk.Overlay):
         self.assistant_view.set_listening(state is AssistantState.LISTENING)
         self.assistant_view.set_thinking(state is AssistantState.THINKING)
         self.assistant_view.set_speaking(state is AssistantState.SPEAKING)
+        self._refresh_tips(state)
+        return False
+
+    def _refresh_tips(self, state: AssistantState) -> None:
+        """Push the current state's tips into the top-left tips panel."""
+        context = {
+            "tick": self._tips_tick,
+            "face_mode": self.settings.face_mode if self.settings else "prerendered",
+        }
+        self.tips_panel.set_tips(tips_for(state.name, context))
+
+    def _rotate_tips(self) -> bool:
+        """Bump the rotation tick every 8 s and reschedule (READY tips cycle)."""
+        self._tips_tick += 1
+        self._refresh_tips(self.model.state)
+        self._tips_timer = GLib.timeout_add(TIPS_ROTATE_MS, self._rotate_tips)
         return False
 
     def _on_tasks_changed(self, tasks) -> None:
