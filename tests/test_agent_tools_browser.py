@@ -249,6 +249,7 @@ def test_registry_lists_all_tools():
             "minimize_app",
             "move_file",
             "open_app",
+            "open_file",
             "open_folder",
             "open_site",
             "open_url",

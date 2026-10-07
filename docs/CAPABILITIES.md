@@ -120,6 +120,7 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | “Delete old notes from Documents” | Goes to the trash, no confirmation | 🧪 |
 | “Empty trash” | Empties the trash | 🧪 |
 | “Find the file called budget” | Locates the file by name | 🧪 |
+| “Open the file budget in Documents” | Opens it in its usual program | 🧪 |
 | “Find files bigger than 2 gigabytes” | Lists the oversized files | 🧪 |
 | “Open the Downloads folder” | Opens the folder | 🧪 |
 | “What's in my Documents?” | Reads the first few names | 🧪 |

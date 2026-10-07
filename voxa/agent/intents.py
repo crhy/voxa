@@ -273,6 +273,14 @@ _DOCUMENT = re.compile(
 _SEND = re.compile(r"send\s+(?:it|the\s+email|this\s+email|the\s+message)", re.IGNORECASE)
 _OPEN_APP = re.compile(r"(?:open|launch|start|run)\s+(\w+(?:\s+\w+){0,4})", re.IGNORECASE)
 _APP_NAME_FIXES = {"the file manager": "file manager"}
+_OPEN_FILE_FOLDER = re.compile(
+    r"open (?:the |my )?(?:file|document) (?:called |named )?(.+?) (?:in|from|on) (.+)",
+    re.IGNORECASE,
+)
+_OPEN_FILE = re.compile(
+    r"open (?:the |my )?(?:file|document) (?:called |named )?(.+)",
+    re.IGNORECASE,
+)
 _CLOSE_WINDOW = re.compile(
     r"close (?:this|it|that|the app|(?:this|the|that) window)", re.IGNORECASE
 )
@@ -396,6 +404,7 @@ ROUTED_TOOLS = frozenset(
         "empty_trash",
         "find_file",
         "find_large_files",
+        "open_file",
         "open_folder",
         "list_folder",
         "rename_file",
@@ -683,6 +692,20 @@ def route(text: str) -> ToolCall | None:
 
     if s.casefold() == "google":
         return call("web_search", query="google")
+
+    open_file_folder_match = _OPEN_FILE_FOLDER.fullmatch(s)
+    if open_file_folder_match and folder_key(open_file_folder_match.group(2)) is not None:
+        return call(
+            "open_file",
+            name=open_file_folder_match.group(1),
+            folder=open_file_folder_match.group(2),
+        )
+    open_file_match = _OPEN_FILE.fullmatch(s)
+    if open_file_match and not (
+        open_file_match.group(1).casefold() == "manager"
+        and s.casefold() in {"open the file manager", "open my file manager"}
+    ):
+        return call("open_file", name=open_file_match.group(1), folder="")
 
     url_match = _URL.fullmatch(s)
     if url_match and "." in url_match.group(1):

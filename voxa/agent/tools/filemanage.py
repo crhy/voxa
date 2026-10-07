@@ -188,6 +188,34 @@ def find_file(args: dict[str, str]) -> ToolResult:
         return ToolResult.failure(f"That did not work: {_error_text(error)}")
 
 
+def open_file(args: dict[str, str]) -> ToolResult:
+    try:
+        name = args["name"]
+        folder = args["folder"]
+        if folder:
+            path = _folder(folder)
+            if path is None:
+                return ToolResult.failure(f"I do not know the folder {folder}.")
+            match = best_match(name, _names(path))
+            if match is None:
+                return ToolResult.failure(f"I could not find {name} in {folder}.")
+            _run(["gio", "open", os.path.join(path, match)])
+            return ToolResult.success(f"Opening {match}.")
+        for spoken in ("desktop", "documents", "downloads"):
+            path = _folder(spoken)
+            if path is None:
+                continue
+            match = best_match(name, _names(path))
+            if match is not None:
+                _run(["gio", "open", os.path.join(path, match)])
+                return ToolResult.success(f"Opening {match}.")
+        return ToolResult.failure(
+            f"I could not find a file called {name} on the Desktop, in Documents or in Downloads."
+        )
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as error:
+        return ToolResult.failure(f"That did not work: {_error_text(error)}")
+
+
 def open_folder(args: dict[str, str]) -> ToolResult:
     try:
         path = _folder(args["folder"])
@@ -373,6 +401,14 @@ def file_manage_tools() -> list[Tool]:
             risk=RiskLevel.REVERSIBLE,
             handler=find_large_files,
             required=("amount", "unit"),
+        ),
+        Tool(
+            name="open_file",
+            description="Open a file by name.",
+            parameters={"name": "the file to open", "folder": "the folder it is in"},
+            risk=RiskLevel.REVERSIBLE,
+            handler=open_file,
+            required=("name", "folder"),
         ),
         Tool(
             name="open_folder",
