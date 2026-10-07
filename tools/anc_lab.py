@@ -1,0 +1,461 @@
+#!/usr/bin/env python3
+"""ANC lab: record real speaker-to-microphone data, measure the canceller, keep history, plot.
+
+Usage: .venv/bin/python tools/anc_lab.py <command>
+Commands: make-sources, record, evaluate, plot, all.
+Data lives in .voxa-spec/out/anclab/ (git-ignored). Sound plays only via paplay,
+recording only via parec; nothing here changes the default audio devices.
+"""
+
+from __future__ import annotations
+
+import json
+import re
+import subprocess
+import sys
+import time
+import wave
+from pathlib import Path
+
+import numpy as np
+
+from voxa.anc import EchoCanceller, erle_db, estimate_delay
+
+SR = 16000
+OUT = Path(".voxa-spec/out/anclab")
+SRC_DIR = OUT / "sources"
+REC_DIR = OUT / "recordings"
+HISTORY = OUT / "history.jsonl"
+
+DEFAULT_SOURCE = "@DEFAULT_SOURCE@"
+VOLUMES = (0.2, 0.4, 0.7, 1.0)
+LEVELS = (6.0, 0.0, -6.0)
+
+COMMANDS = [
+    "Voxa stop music", "stop dictation", "Voxa what time is it", "volume down",
+    "volume up", "Voxa pause", "Voxa resume", "stop listening",
+    "Voxa read a story", "Voxa what is the weather", "Voxa write a note", "Voxa stop",
+]
+
+SPEECH_LINES = [
+    ("en", "The morning light came through the curtains slowly."),
+    ("en-gb", "I keep a journal of every sound I hear around the house."),
+    ("en-us", "Music from the speakers can bleed into the microphone if we are not careful."),
+    ("en-sc", "A quiet room lets the canceller learn the shape of the echo first."),
+]
+
+
+def safe(name):
+    return re.sub(r"[^A-Za-z0-9._-]+", "_", name).strip("_") or "x"
+
+
+def write_wav(path: Path, samples, rate: int = SR) -> None:
+    x = np.clip(np.rint(np.asarray(samples, dtype=np.float64) * 32767.0), -32768, 32767)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with wave.open(str(path), "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(rate)
+        w.writeframes(x.astype("<i2").tobytes())
+
+
+def read_wav(path: Path) -> np.ndarray:
+    with wave.open(str(path), "rb") as w:
+        rate = w.getframerate()
+        if w.getnchannels() != 1 or w.getsampwidth() != 2:
+            raise ValueError("only 16-bit mono WAVs are supported")
+        frames = w.readframes(w.getnframes())
+    x = np.frombuffer(frames, dtype="<i2").astype(np.float32) / 32768.0
+    if rate != SR:
+        x = np.interp(np.arange(int(len(x) * SR / rate)), np.arange(len(x)), x).astype(np.float32)
+    return x
+
+
+def rms(x) -> float:
+    return float(np.sqrt(np.mean(np.asarray(x, dtype=np.float64) ** 2)))
+
+
+def dbfs(x) -> float:
+    r = rms(x)
+    return -200.0 if r < 1e-12 else 20.0 * float(np.log10(r))
+
+
+def make_music(seed: int, tempo: float, root: float, seconds: float = 20.0) -> np.ndarray:
+    n = int(seconds * SR)
+    t = np.arange(n, dtype=np.float64) / SR
+    rng = np.random.default_rng(seed)
+    beat = 60.0 / tempo
+    acc = np.zeros(n)
+    for k, pitch in enumerate((root, root * 1.26, root * 1.5)):
+        phase = k * beat / 3.0
+        seg = t - phase
+        strength = 0.6 / (1.0 + 0.4 * np.floor(np.maximum(seg, 0.0) / beat))
+        acc += strength * np.sin(2.0 * np.pi * pitch * seg) * (seg >= 0.0)
+    bass = np.sin(2.0 * np.pi * (root / 2.0) * t) * np.maximum(0.0, np.cos(np.pi * t / beat)) ** 2
+    acc += 0.8 * bass
+    for b in range(int(seconds / beat)):
+        at = int(b * beat * SR)
+        ln = int(0.09 * SR)
+        if at + ln <= n:
+            burst = rng.standard_normal(ln) * np.exp(-np.arange(ln) / (0.02 * SR))
+            acc[at:at + ln] += 0.9 * burst * (0.5 + 0.5 * np.sin(2.0 * np.pi * root * 2.0 * t[at]))
+    m = float(np.max(np.abs(acc)))
+    return (acc * (0.5 / m) if m > 0 else acc).astype(np.float32)
+
+
+def make_pink(seed: int, seconds: float = 10.0) -> np.ndarray:
+    n = int(seconds * SR)
+    rng = np.random.default_rng(seed)
+    size = 1
+    while size < 2 * n:
+        size <<= 1
+    spec = rng.standard_normal(size) + 1j * rng.standard_normal(size)
+    idx = np.arange(size, dtype=np.float64)
+    spec = spec / np.sqrt(np.maximum(idx, 1.0))
+    x = np.fft.irfft(np.conj(spec), n)[:n]
+    m = float(np.max(np.abs(x)))
+    return (x * (0.5 / m) if m > 0 else x).astype(np.float32)
+
+
+def make_sweep(seconds: float = 10.0) -> np.ndarray:
+    n = int(seconds * SR)
+    t = np.arange(n, dtype=np.float64) / SR
+    freq = 80.0 * (7000.0 / 80.0) ** (t / seconds)
+    x = np.sin(2.0 * np.pi * freq * t)
+    fade = int(0.05 * SR)
+    ramp = np.linspace(0.0, 1.0, fade)
+    x[:fade] *= ramp
+    x[-fade:] *= ramp[::-1]
+    return x.astype(np.float32)
+
+
+def espeak_wav(text: str, voice: str, path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["espeak-ng", "-v", voice, "-w", str(path), text], check=True)
+
+
+def make_sources() -> None:
+    SRC_DIR.mkdir(parents=True, exist_ok=True)
+    for i in range(6):
+        write_wav(SRC_DIR / f"music_{i + 1:02d}.wav",
+                  make_music(seed=100 + i, tempo=60.0 + 20.0 * i, root=90.0 + 25.0 * i))
+    for i, (voice, line) in enumerate(SPEECH_LINES):
+        tmp = SRC_DIR / f"_sp_{i}.wav"
+        espeak_wav(line, voice, tmp)
+        write_wav(SRC_DIR / f"speech_{i + 1:02d}.wav", read_wav(tmp))
+        tmp.unlink()
+    write_wav(SRC_DIR / "pink.wav", make_pink(7))
+    write_wav(SRC_DIR / "sweep.wav", make_sweep())
+    for i, cmd in enumerate(COMMANDS):
+        tmp = SRC_DIR / f"_cmd_{i}.wav"
+        espeak_wav(cmd, "en-gb", tmp)
+        write_wav(SRC_DIR / f"cmd_{i + 1:02d}.wav", read_wav(tmp))
+        tmp.unlink()
+
+
+def source_files() -> list[Path]:
+    return sorted(p for p in SRC_DIR.glob("*.wav") if not p.name.startswith("_"))
+
+
+def play_and_record(wav_path: Path | None, volume: float, monitor: str):
+    args = ["parec", "--rate", str(SR), "--channels", "1", "--format", "s16le", "--raw"]
+    mic_p = subprocess.Popen(args + ["--device", DEFAULT_SOURCE], stdout=subprocess.PIPE)
+    ref_p = subprocess.Popen(args + ["--device", monitor], stdout=subprocess.PIPE)
+    time.sleep(0.5)
+    if wav_path is not None:
+        vol = max(1, min(65536, int(round(volume * 65536))))
+        subprocess.run(["paplay", "--volume", str(vol), str(wav_path)], check=False)
+    else:
+        time.sleep(10.0)
+    time.sleep(0.7)
+    mic_p.terminate()
+    ref_p.terminate()
+    mic = np.frombuffer(mic_p.stdout.read(), dtype="<i2").astype(np.float32) / 32768.0
+    ref = np.frombuffer(ref_p.stdout.read(), dtype="<i2").astype(np.float32) / 32768.0
+    n = min(len(mic), len(ref))
+    return mic[:n], ref[:n]
+
+
+def record(volumes: tuple[float, ...]) -> bool:
+    sink = subprocess.run(["pactl", "get-default-sink"], capture_output=True,
+                          text=True, check=True).stdout.strip()
+    if not sink:
+        print("no default sink; cannot record")
+        return False
+    monitor = f"{sink}.monitor"
+    REC_DIR.mkdir(parents=True, exist_ok=True)
+    manifest = []
+
+    def entry(key, name, vol):
+        manifest.append({"key": key, "source": name, "volume": vol,
+                         "date": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                         "sink": sink, "source_device": DEFAULT_SOURCE, "monitor": monitor})
+
+    for wav in source_files():
+        name = wav.name.removesuffix(".wav")
+        for vol in volumes:
+            mic, ref = play_and_record(wav, vol, monitor)
+            if dbfs(mic) < -70.0:
+                print(f"ABORT: microphone silent ({dbfs(mic):.1f} dBFS) for {name}; not writing bogus numbers")
+                return False
+            if dbfs(ref) < -70.0:
+                print(f"ABORT: sink monitor silent for {name}; not writing bogus numbers")
+                return False
+            key = f"{safe(name)}_v{vol}"
+            np.save(REC_DIR / f"{key}.mic.npy", mic)
+            np.save(REC_DIR / f"{key}.ref.npy", ref)
+            entry(key, name, vol)
+            print(f"recorded {name} @ {vol} ({len(mic) / SR:.1f} s)")
+    mic, ref = play_and_record(None, 1.0, monitor)
+    np.save(REC_DIR / "silence.mic.npy", mic)
+    np.save(REC_DIR / "silence.ref.npy", ref)
+    entry("silence", "silence", 1.0)
+    (REC_DIR / "manifest.json").write_text(json.dumps(manifest, indent=1))
+    return True
+
+
+def feed(canceller, mic, ref, chunk=1024):
+    outs = []
+    converged = None
+    for i in range(0, len(mic), chunk):
+        outs.append(canceller.process(mic[i:i + chunk], ref[i:i + chunk]))
+        if converged is None and canceller.converged_db >= 20.0:
+            converged = min(i + chunk, len(mic)) / SR
+    return np.concatenate(outs), converged
+
+
+def removed_percent(mic, ref, cleaned) -> float:
+    removed = []
+    for i in range(0, len(mic), EchoCanceller.BLOCK):
+        rb = ref[i:i + EchoCanceller.BLOCK]
+        if rms(rb) ** 2 >= 1e-5:
+            mb = mic[i:i + EchoCanceller.BLOCK]
+            cb = cleaned[i:i + EchoCanceller.BLOCK]
+            pm = float(np.mean(mb.astype(np.float64) ** 2))
+            if pm > 1e-12:
+                removed.append(1.0 - float(np.mean(cb.astype(np.float64) ** 2)) / pm)
+    return 100.0 * max(0.0, min(1.0, float(np.mean(removed)))) if removed else 0.0
+
+
+def evaluate_pair(mic, ref):
+    delay = estimate_delay(mic, ref)
+    cleaned, converged = feed(EchoCanceller(delay=delay), mic, ref)
+    tail = len(mic) // 4
+    return {
+        "delay": int(delay),
+        "erle_db": erle_db(mic[tail:], cleaned[tail:]),
+        "residual_dbfs": dbfs(cleaned[tail:]),
+        "convergence_s": converged,
+        "removed_percent": removed_percent(mic, ref, cleaned),
+    }
+
+
+def mix_command(mic, cmd, offset: int, echo_rms: float, rel_db: float):
+    target = echo_rms * 10.0 ** (rel_db / 20.0)
+    cur = rms(cmd)
+    scaled = cmd * (target / cur) if cur > 1e-12 else cmd
+    mic2 = np.array(mic, dtype=np.float32, copy=True)
+    end = min(offset + len(scaled), len(mic2))
+    mic2[offset:end] += scaled[:end - offset]
+    return mic2, offset
+
+
+def word_accuracy(text: str, words: list[str]) -> float:
+    toks = [t for t in "".join(c.lower() if c.isalpha() else " " for c in text).split() if t]
+    hits = 0
+    for w in words:
+        for k in range(hits, len(toks)):
+            if toks[k] == w:
+                hits += 1
+                break
+    return hits / len(words) if words else 0.0
+
+
+def distortion_db(cmd, cleaned_window) -> float:
+    p_add = float(np.mean(np.asarray(cmd, dtype=np.float64) ** 2))
+    p_keep = max(float(np.mean(np.asarray(cleaned_window, dtype=np.float64) ** 2)), 1e-20)
+    return max(0.0, 10.0 * float(np.log10(max(p_add, 1e-20) / p_keep)))
+
+
+def transcribe(model, audio) -> str:
+    segs, _ = model.transcribe(np.asarray(audio, dtype=np.float32), language="en")
+    return " ".join(s.text for s in segs)
+
+
+def double_talk(pairs: dict[float, tuple], commands: list[Path]) -> dict:
+    from faster_whisper import WhisperModel
+
+    model = WhisperModel("base", device="cpu", compute_type="int8", cpu_threads=4)
+    out: dict[str, dict] = {f"{rel:+.0f}": {"distortion_db": [], "acc_cleaned": [], "acc_raw": []}
+                            for rel in LEVELS}
+    for _vol, (mic, ref, delay) in pairs.items():
+        echo_rms = rms(ref)
+        for wav in commands:
+            cmd = read_wav(wav)
+            words = COMMANDS[list(commands).index(wav)].lower().split()
+            offset = int(0.15 * len(mic))
+            for rel in LEVELS:
+                mic2, off = mix_command(mic, cmd, offset, echo_rms, rel)
+                cleaned, _ = feed(EchoCanceller(delay=delay), mic2, ref)
+                lo = max(0, off - SR // 2)
+                hi = min(len(mic), off + len(cmd) + SR // 2)
+                key = f"{rel:+.0f}"
+                out[key]["distortion_db"].append(distortion_db(cmd, cleaned[lo:hi]))
+                out[key]["acc_cleaned"].append(word_accuracy(transcribe(model, cleaned[lo:hi]), words))
+                out[key]["acc_raw"].append(word_accuracy(transcribe(model, mic2[lo:hi]), words))
+    for stats in out.values():
+        for k, v in stats.items():
+            stats[k] = float(np.mean(v)) if v else 0.0
+    return out
+
+
+def evaluate(tag: str) -> bool:
+    manifest_path = REC_DIR / "manifest.json"
+    if not manifest_path.is_file():
+        print("no recordings; run record first")
+        return False
+    manifest = json.loads(manifest_path.read_text())
+    per_volume: dict[float, list] = {}
+    for entry in manifest:
+        if entry["source"] == "silence":
+            continue
+        mic = np.load(REC_DIR / f"{entry['key']}.mic.npy")
+        ref = np.load(REC_DIR / f"{entry['key']}.ref.npy")
+        per_volume.setdefault(entry["volume"], []).append(evaluate_pair(mic, ref))
+    summary: dict[str, dict] = {}
+    for vol, ms in sorted(per_volume.items()):
+        conv = [m["convergence_s"] for m in ms if m["convergence_s"] is not None]
+        summary[str(vol)] = {
+            "erle_db": float(np.mean([m["erle_db"] for m in ms])),
+            "residual_dbfs": float(np.mean([m["residual_dbfs"] for m in ms])),
+            "convergence_s": float(np.mean(conv)) if conv else float("nan"),
+            "removed_percent": float(np.mean([m["removed_percent"] for m in ms])),
+        }
+    pairs = {}
+    for vol in per_volume:
+        e = next(x for x in manifest if x["volume"] == vol and x["source"].startswith("music"))
+        mic = np.load(REC_DIR / f"{e['key']}.mic.npy")
+        ref = np.load(REC_DIR / f"{e['key']}.ref.npy")
+        pairs[vol] = (mic, ref, estimate_delay(mic, ref))
+    dt = double_talk(pairs, sorted(SRC_DIR.glob("cmd_*.wav")))
+    commit = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True,
+                            text=True, check=False).stdout.strip()
+    means = {k: float(np.mean([v[k] for v in summary.values()]))
+             for k in ("erle_db", "residual_dbfs", "removed_percent")}
+    line = {
+        "time": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "tag": tag,
+        "git_commit": commit,
+        "per_volume": summary,
+        "means": means,
+        "double_talk": dt,
+        "removed_percent": means["removed_percent"],
+    }
+    HISTORY.parent.mkdir(parents=True, exist_ok=True)
+    with HISTORY.open("a") as f:
+        f.write(json.dumps(line) + "\n")
+    print(f"history appended for tag {tag}: ERLE mean {means['erle_db']:.1f} dB, "
+          f"removed {means['removed_percent']:.1f}%")
+    return True
+
+
+def read_history() -> list[dict]:
+    if not HISTORY.is_file():
+        return []
+    return [json.loads(line) for line in HISTORY.read_text().splitlines() if line.strip()]
+
+
+def plot() -> None:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    hist = read_history()
+    if not hist:
+        print("no history to plot")
+        return
+    OUT.mkdir(parents=True, exist_ok=True)
+    latest = hist[-1]
+    tags = [h["tag"] for h in hist]
+    x = list(range(len(hist)))
+
+    def finish(fig, name):
+        fig.savefig(OUT / name)
+        plt.close(fig)
+
+    def label(ax, ys, fmt):
+        for i, v in enumerate(ys):
+            ax.text(i, v, f"{v:{fmt}}", ha="center", va="bottom")
+
+    vols = sorted(latest["per_volume"], key=float)
+    vals = [latest["per_volume"][v]["erle_db"] for v in vols]
+    fig, ax = plt.subplots()
+    ax.bar(range(len(vols)), vals, label="ERLE dB")
+    ax.set_xticks(range(len(vols)))
+    ax.set_xticklabels(vols)
+    ax.set_xlabel("speaker volume")
+    ax.set_ylabel("ERLE dB (last 75%)")
+    label(ax, vals, ".1f")
+    ax.set_title(f"ERLE by volume - {latest['tag']}")
+    finish(fig, "erle_by_volume.png")
+
+    acc = [float(np.mean([s["acc_cleaned"] for s in h["double_talk"].values()])) for h in hist]
+    erle = [h["means"]["erle_db"] for h in hist]
+    fig, ax = plt.subplots()
+    ax.plot(x, erle, marker="o", label="ERLE dB mean")
+    ax2 = ax.twinx()
+    ax2.plot(x, acc, marker="s", label="command word accuracy")
+    ax.set_xticks(x)
+    ax.set_xticklabels(tags)
+    ax.set_xlabel("run (tag)")
+    ax.set_ylabel("ERLE dB")
+    ax2.set_ylabel("word accuracy")
+    label(ax, erle, ".1f")
+    label(ax2, acc, ".2f")
+    ax.set_title("history: cancellation and command survival")
+    finish(fig, "history.png")
+
+    fig, ax = plt.subplots()
+    ax.bar(x, [h["removed_percent"] for h in hist], label="% speaker energy removed")
+    ax.set_xticks(x)
+    ax.set_xticklabels(tags)
+    ax.set_xlabel("run (tag)")
+    ax.set_ylabel("% of speaker energy removed")
+    label(ax, [h["removed_percent"] for h in hist], ".1f")
+    ax.set_title("speaker energy removed per run")
+    finish(fig, "removed_percent.png")
+
+
+def main(argv: list[str]) -> int:
+    import argparse
+
+    ap = argparse.ArgumentParser(prog="anc_lab")
+    ap.add_argument("command", choices=["make-sources", "record", "evaluate", "plot", "all"])
+    ap.add_argument("--volumes", default=",".join(str(v) for v in VOLUMES))
+    ap.add_argument("--tag", default="run")
+    a = ap.parse_args(argv)
+    vols = tuple(float(v) for v in a.volumes.split(","))
+    if a.command == "make-sources":
+        make_sources()
+        return 0
+    if a.command == "record":
+        return 0 if record(vols) else 2
+    if a.command == "evaluate":
+        return 0 if evaluate(a.tag) else 2
+    if a.command == "plot":
+        plot()
+        return 0
+    if not (SRC_DIR / "pink.wav").is_file():
+        make_sources()
+    if not (REC_DIR / "manifest.json").is_file():
+        if not record(vols):
+            return 2
+    if not evaluate(a.tag):
+        return 2
+    plot()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
