@@ -25,6 +25,7 @@ Voxa combines on-device speech recognition, selectable local AI backends, spoken
 - **Real assistant state** coordinated through `AssistantModel` and `AssistantController`.
 - **Task-oriented UI** rather than a conventional permanent chat interface.
 - **Desktop capabilities** for applications, documents, mail and web-oriented workflows as the capability system develops.
+- **[What Voxa can do](docs/CAPABILITIES.md)** — the full, living list of things to ask for, with a phrase to try for each and its current status. Use it as the test checklist.
 - **A face**: 22 photoreal characters with word-timed lip movement, a Low / Medium / High facial-quality switch, and an optional neural face on a graphics card.
 - **Hardware-aware model suggestions** based on available VRAM/RAM.
 - **Flatpak-first distribution** with CI validation and an update repository.
