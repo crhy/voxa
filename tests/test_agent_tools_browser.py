@@ -263,6 +263,7 @@ def test_registry_lists_all_tools():
             "search_youtube",
             "send_gmail",
             "set_contact_email",
+            "set_github_owner",
             "set_location",
         "set_reminder",
         "set_timer",

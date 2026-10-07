@@ -38,6 +38,10 @@ _COMPOSE = re.compile(
 _PLAY_YT_MUSIC = re.compile(r"play\s+(.+?)\s+on\s+youtube\s+music", re.IGNORECASE)
 _PLAY_LATEST = re.compile(r"play\s+(?:the\s+)?latest\s+(?:video\s+)?from\s+(.+)", re.IGNORECASE)
 _SET_CHANNEL = re.compile(r"my (?:you ?tube )?channel(?: name)? is (?:called )?(.+)", re.IGNORECASE)
+_SET_GITHUB_OWNER = re.compile(
+    r"my (?:git ?hub|get hub) (?:user ?name|name|account|handle)(?: is)? (?:called )?(.+)",
+    re.IGNORECASE,
+)
 _SET_EMAIL = re.compile(r"(?:my )?(.+?)(?:'s|s')? e-?mail(?: address)? is (.+)", re.IGNORECASE)
 _GET_EMAIL = re.compile(r"what(?:'s| is) (?:my )?(.+?)(?:'s|s')? e-?mail(?: address)?", re.IGNORECASE)
 _FORGET_EMAIL = re.compile(r"forget (?:my )?(.+?)(?:'s|s')? e-?mail(?: address)?", re.IGNORECASE)
@@ -313,6 +317,7 @@ ROUTED_TOOLS = frozenset(
         "play_music",
         "play_latest",
         "set_youtube_channel",
+        "set_github_owner",
         "set_contact_email",
         "get_contact_email",
         "forget_contact_email",
@@ -537,6 +542,10 @@ def route(text: str) -> ToolCall | None:
     set_channel_match = _SET_CHANNEL.fullmatch(s)
     if set_channel_match:
         return call("set_youtube_channel", name=set_channel_match.group(1))
+
+    set_owner_match = _SET_GITHUB_OWNER.fullmatch(s)
+    if set_owner_match:
+        return call("set_github_owner", name=set_owner_match.group(1))
 
     for pattern, tool in (
         (_PLAY_YT_MUSIC, "play_youtube"),

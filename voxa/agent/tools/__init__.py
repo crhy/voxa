@@ -8,6 +8,7 @@ from voxa.agent.tools.contacts import contact_tools
 from voxa.agent.tools.deals import deal_tools
 from voxa.agent.tools.filemanage import file_manage_tools
 from voxa.agent.tools.files import file_dialog_tools
+from voxa.agent.tools.github import github_tools
 from voxa.agent.tools.home import home_tools
 from voxa.agent.tools.media import media_tools
 from voxa.agent.tools.reminders import reminders_tools
@@ -25,6 +26,7 @@ def default_registry() -> ToolRegistry:
         *application_tools(),
         *contact_tools(),
         *media_tools(),
+        *github_tools(),
         *typing_tools(),
         *window_tools(),
         *web_tools(),

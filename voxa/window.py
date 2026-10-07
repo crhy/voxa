@@ -29,7 +29,7 @@ from .agent.result import ToolResult  # noqa: E402
 from .agent.routines import Routine, RoutineStore, parse_create, parse_delete, parse_list  # noqa: E402
 from .agent.spoken_text import format_dictation, parse_dictation_control  # noqa: E402
 from .agent.suggest import Suggestion, SuggestionState, suggest  # noqa: E402
-from .agent.tools import contacts, default_registry, media, textedit, typing, windows  # noqa: E402
+from .agent.tools import contacts, default_registry, github, media, textedit, typing, windows  # noqa: E402
 from .agent.tools.web import get_session  # noqa: E402
 from .anc import EchoCanceller as AncCanceller  # noqa: E402
 from .audio import AudioCapture, AudioDevice  # noqa: E402
@@ -279,6 +279,7 @@ class MainWindow(Adw.ApplicationWindow):
         textedit.ask_model = lambda messages: self._ai_client().generate_stream(model=self.settings.ollama_model, prompt=messages[-1]["content"], cancel_event=threading.Event(), on_chunk=lambda chunk: None, messages=messages)
         media.get_my_channel = lambda: self.settings.youtube_channel
         media.set_my_channel = self._save_youtube_channel
+        github.set_owner = self._save_github_owner
         contacts.get_contacts = lambda: self.settings.contacts
         contacts.save_contacts = self._save_contacts
         textedit.read_clipboard = clipboard.read_text
@@ -339,6 +340,10 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _save_youtube_channel(self, handle: str) -> None:
         self.settings.youtube_channel = handle
+        self.config_store.save(self.settings)
+
+    def _save_github_owner(self, owner: str) -> None:
+        self.settings.github_owner = owner
         self.config_store.save(self.settings)
 
     def _save_contacts(self, contacts: dict[str, str]) -> None:
@@ -2369,7 +2374,7 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _begin_issue_flow(self, project: str, repo: str | None) -> bool:
         if repo is None:
-            self._on_tool_finished(ToolResult.failure(f"I could not find a GitHub project called {project}."))
+            self._on_tool_finished(ToolResult.failure(f"I could not find a GitHub project called {project}. If I do not know your GitHub name yet, say: my GitHub name is, and then the name."))
             return False
         self._issue_flow = issueflow.IssueFlow(repo)
         self.assistant_model.set_state(AssistantState.DICTATING, self._issue_flow.caption)
