@@ -51,7 +51,8 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | “What is the current price of Bitcoin?” | Searches the web, answers from the results, shows **Source:** under the answer | 🧪 |
 | “Tell me about Spaced Linux” | Searches for the named thing instead of guessing | 🧪 |
 | “How many wins do they have?” (after a sports question) | Follow-up search using the previous topic | 🧪 |
-| “What's 532 plus 789?” | Answers directly, no search | 🧪 |
+| “What's 532 plus 789?” / “15 percent of 80” / “square root of 144” | Answered instantly, exactly, without the AI model | 🧪 |
+| “How many miles is 10 kilometers?” / “72 Fahrenheit in Celsius” | Unit conversion, instantly | 🧪 |
 
 ## Apps and windows
 

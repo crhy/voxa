@@ -211,6 +211,7 @@ def test_registry_lists_all_tools():
                 "active_window_name",
                 "battery_level",
                 "browse",
+            "calculate",
             "cancel_reminders",
             "cleanup_text",
             "click_on",

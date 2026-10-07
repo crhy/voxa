@@ -3,6 +3,7 @@ from __future__ import annotations
 from voxa.agent.registry import ToolRegistry
 from voxa.agent.tools.applications import application_tools
 from voxa.agent.tools.browser import browser_tools
+from voxa.agent.tools.calc import calc_tools
 from voxa.agent.tools.compiz import compiz_tools
 from voxa.agent.tools.contacts import contact_tools
 from voxa.agent.tools.deals import deal_tools
@@ -25,6 +26,7 @@ def default_registry() -> ToolRegistry:
     registry = ToolRegistry()
     for tool in [
         *browser_tools(),
+        *calc_tools(),
         *deal_tools(),
         *application_tools(),
         *contact_tools(),

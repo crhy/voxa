@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass
 from datetime import date
 
+from voxa.agent import calc
 from voxa.agent.deals import parse_request
 from voxa.agent.filematch import folder_key
 from voxa.agent.hearing import normalize
@@ -442,6 +443,7 @@ ROUTED_TOOLS = frozenset(
         "set_location",
         "tell_time",
         "tell_date",
+        "calculate",
         "disk_space",
         "memory_free",
         "battery_level",
@@ -624,6 +626,8 @@ def route(text: str) -> ToolCall | None:
         return call("tell_time")
     if _TELL_DATE.fullmatch(s):
         return call("tell_date")
+    if calc.answer(s) is not None:
+        return call("calculate", expression=s)
     if _DISK_SPACE.fullmatch(s):
         return call("disk_space")
     if _MEMORY_FREE.fullmatch(s):
