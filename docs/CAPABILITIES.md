@@ -106,6 +106,12 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | “New line”, “comma”, “period” while dictating | Punctuation | ✅ |
 | “Save file” / “load file” / “close file” / “new document” | Sends the app's own shortcuts and asks for a file name | 🧪 |
 | “Clean up the text” | Fixes spelling, grammar and clarity in the foreground window | 🧪 |
+| “Copy report from Downloads to Documents” | Copies the file, no confirmation | 🧪 |
+| “Move holiday video from Downloads to Videos” | Moves the file, no confirmation | 🧪 |
+| “Delete old notes from Documents” | Goes to the trash, no confirmation | 🧪 |
+| “Empty trash” | Empties the trash | 🧪 |
+| “Find the file called budget” | Locates the file by name | 🧪 |
+| “Find files bigger than 2 gigabytes” | Lists the oversized files | 🧪 |
 
 ## Time and routines
 
@@ -146,5 +152,5 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 ## Not built yet
 
 Tracked as issues: adaptive noise cancellation (#72), installing the High face from inside the app (#73), first-boot
-welcome (#76), file management in the file manager (#79), posting a GitHub issue by voice (#83), slimming the
+welcome (#76), posting a GitHub issue by voice (#83), slimming the
 download (#75), messages, email triage, calendar, phone calls, purchases and the other assistant plans (#41–#67).

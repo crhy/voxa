@@ -5,6 +5,7 @@ from voxa.agent.tools.applications import application_tools
 from voxa.agent.tools.browser import browser_tools
 from voxa.agent.tools.compiz import compiz_tools
 from voxa.agent.tools.deals import deal_tools
+from voxa.agent.tools.filemanage import file_manage_tools
 from voxa.agent.tools.files import file_dialog_tools
 from voxa.agent.tools.home import home_tools
 from voxa.agent.tools.media import media_tools
@@ -30,6 +31,7 @@ def default_registry() -> ToolRegistry:
         *volume_tools(),
         *compiz_tools(),
         *file_dialog_tools(),
+        *file_manage_tools(),
     ]:
         registry.register(tool)
     return registry

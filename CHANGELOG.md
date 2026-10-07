@@ -57,7 +57,7 @@ checking by ear and eye on a real desktop; `docs/CAPABILITIES.md` is the checkli
 - "Clean up the text": selects the text in the foreground window, has the model fix spelling, punctuation, grammar
   and clarity, pastes it back and says "Text edited for clarity." An edit that looks wrong (far longer or shorter,
   or chatty) is discarded and your text is left untouched. (#77) — now uses Voxa's own clipboard instead of the
-  `xclip` tool, which is not installed by default. *(in progress)*
+  `xclip` tool, which is not installed by default. 🧪
 - File management by voice: copy, move, delete to the trash, find by name or size, empty the trash. (#79)
   *(in progress)*
 

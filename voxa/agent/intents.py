@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from voxa.agent.deals import parse_request
+from voxa.agent.filematch import folder_key
 from voxa.agent.hearing import normalize
 from voxa.agent.tools.browser import site_url
 
@@ -105,6 +106,20 @@ _FIX_TEXT = re.compile(
 )
 _PROOFREAD = re.compile(r"proofread\s+(?:this|it)", re.IGNORECASE)
 _EDIT_CLARITY = re.compile(r"edit\s+(?:this|it)\s+for\s+clarity", re.IGNORECASE)
+_COPY_FILE = re.compile(r"copy (?:the )?(?:file )?(.+?) from (.+?) to (.+)", re.IGNORECASE)
+_MOVE_FILE = re.compile(r"move (?:the )?(?:file )?(.+?) from (.+?) to (.+)", re.IGNORECASE)
+_TRASH_FILE = re.compile(
+    r"(?:delete|trash|remove) (?:the )?(?:file )?(.+?) (?:from|in) (.+)", re.IGNORECASE
+)
+_EMPTY_TRASH = re.compile(r"empty (?:the |my )?(?:trash|rubbish|recycle bin)(?: can)?", re.IGNORECASE)
+_LARGE_FILES = re.compile(
+    r"(?:find|locate|show)(?: me)?(?: all)?(?: the)? files (?:bigger|larger) than (\d+) ?"
+    r"(megabytes?|gigabytes?|mb|gb|megs?|gigs?)",
+    re.IGNORECASE,
+)
+_FIND_FILE = re.compile(
+    r"(?:find|locate|where is|where's) (?:the |my |a )?file (?:called |named )?(.+)", re.IGNORECASE
+)
 _PREVIOUS = re.compile(
     r"previous\s+(?:song|track|video)|go\s+back\s+a\s+song", re.IGNORECASE
 )
@@ -268,6 +283,12 @@ ROUTED_TOOLS = frozenset(
         "search_youtube",
         "web_search",
         "press_key",
+        "copy_file",
+        "move_file",
+        "trash_file",
+        "empty_trash",
+        "find_file",
+        "find_large_files",
         "type_text",
         "file_dialog",
         "send_gmail",
@@ -618,6 +639,34 @@ def route(text: str) -> ToolCall | None:
     restore_match = _RESTORE_APP.fullmatch(s)
     if restore_match:
         return call("restore_app", name=restore_match.group(1))
+
+    copy_match = _COPY_FILE.fullmatch(s)
+    if copy_match and folder_key(copy_match.group(2)) is not None and folder_key(copy_match.group(3)) is not None:
+        return call(
+            "copy_file",
+            name=copy_match.group(1),
+            source=copy_match.group(2),
+            destination=copy_match.group(3),
+        )
+    move_match = _MOVE_FILE.fullmatch(s)
+    if move_match and folder_key(move_match.group(2)) is not None and folder_key(move_match.group(3)) is not None:
+        return call(
+            "move_file",
+            name=move_match.group(1),
+            source=move_match.group(2),
+            destination=move_match.group(3),
+        )
+    trash_match = _TRASH_FILE.fullmatch(s)
+    if trash_match and folder_key(trash_match.group(2)) is not None:
+        return call("trash_file", name=trash_match.group(1), folder=trash_match.group(2))
+    if _EMPTY_TRASH.fullmatch(s):
+        return call("empty_trash")
+    large_match = _LARGE_FILES.fullmatch(s)
+    if large_match:
+        return call("find_large_files", amount=large_match.group(1), unit=large_match.group(2))
+    find_match = _FIND_FILE.fullmatch(s)
+    if find_match:
+        return call("find_file", name=find_match.group(1))
 
     if _CLEANUP_TEXT.fullmatch(s) or _FIX_TEXT.fullmatch(s) or _PROOFREAD.fullmatch(s) or _EDIT_CLARITY.fullmatch(s):
         return call("cleanup_text")
