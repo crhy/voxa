@@ -32,6 +32,7 @@ from .agent.tools import default_registry, textedit, typing, windows  # noqa: E4
 from .agent.tools.web import get_session  # noqa: E402
 from .anc import EchoCanceller as AncCanceller  # noqa: E402
 from .audio import AudioCapture, AudioDevice  # noqa: E402
+from .bargein import BargeInGate, is_own_voice  # noqa: E402
 from .catalog import CatalogUnavailable, load_catalog, refresh_and_cache, refresh_due  # noqa: E402
 from .config import ConfigStore  # noqa: E402
 from .controller import AssistantController, ControllerPorts  # noqa: E402
@@ -111,9 +112,10 @@ FALSE_CLAIM_REPLY = (
     "I couldn't do that. Try saying it as a direct command, like “close Brutal Chess”."
 )
 # Barge-in: loud sustained speech while a reply is being read interrupts it.
-# A short grace period ignores the TTS itself starting, and the streak
-# requirement keeps a cough from killing the reply.
-BARGE_IN_GRACE_SECONDS = 0.6
+# A short grace period ignores the TTS itself starting (speaker onset is the
+# loudest moment); the level gate in .bargein decides when the mic is loud
+# enough, and the words heard decide whether it was really the user.
+BARGE_IN_GRACE_SECONDS = 0.4
 # How long the high-resolution face server may take to load its model before Voxa gives up on it.
 FACE_SERVER_START_SECONDS = 90.0
 
@@ -142,7 +144,6 @@ def face_server_command() -> list[str] | None:
 # High facial quality: how much video must be buffered before the voice starts, and the longest it may wait.
 LIVE_FACE_HEAD_START = 0.2
 LIVE_FACE_MAX_HOLD = 2.5
-BARGE_IN_STREAK = 3
 
 
 # How long the model list waits for an AI server that Voxa has only just started.
@@ -231,9 +232,12 @@ class MainWindow(Adw.ApplicationWindow):
             CONVERSATION_SYSTEM_PROMPT, CONVERSATION_HISTORY_MESSAGES
         )
         # Barge-in bookkeeping: when the reply started being spoken (0 = not
-        # speaking) and how many recent level ticks were loud enough to count.
+        # speaking), the level gate that decides when the mic is loud enough,
+        # and the text being spoken now / the piece before it (own-voice check).
         self._speaking_since = 0.0
-        self._barge_in_streak = 0
+        self._barge_gate = BargeInGate()
+        self._speaking_text = ""
+        self._recent_spoken = ""
         # The conversation turn whose user message was just pushed, so a stale
         # finish/error callback can't untangle history built by a newer turn.
         self._pending_user_generation: int | None = None
@@ -557,7 +561,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.speech.stop()
         self._live_reset()
         self._speaking_since = 0.0
-        self._barge_in_streak = 0
+        self._barge_gate.reset()
         if self.conversation is not None:
             self.conversation.unmute()
 
@@ -1683,7 +1687,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.speech.stop()
         self._live_reset()
         self._speaking_since = 0.0
-        self._barge_in_streak = 0
+        self._barge_gate.reset()
         if self._pending_user_generation is not None:
             self._conversation_history.drop_last()
         self._pending_user_generation = None
@@ -1764,7 +1768,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.speech.stop()
         self._live_reset()
         self._speaking_since = 0.0
-        self._barge_in_streak = 0
+        self._barge_gate.reset()
         if kind == "goodbye":
             # Exactly what pressing the red OFFLINE button does.
             self.stop_current_work()
@@ -2033,10 +2037,12 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _conversation_speak(self, text: str) -> None:
         typing.LAST_REPLY = text
+        self._recent_spoken = self._speaking_text
+        self._speaking_text = text
         if self.conversation is not None:
             self.conversation.mute()
         self._speaking_since = time.monotonic()
-        self._barge_in_streak = 0
+        self._barge_gate.reset()
         token = self.assistant.token()
         self.assistant.reply_started(token)
         # Tie the completion notification to this reply: after a barge-in the old speech's
@@ -2077,7 +2083,7 @@ class MainWindow(Adw.ApplicationWindow):
         if self.conversation is not None:
             self.conversation.unmute()
         self._speaking_since = 0.0
-        self._barge_in_streak = 0
+        self._barge_gate.reset()
         self.assistant.reply_finished(self.assistant.token(), waiting_for_prompt=waiting, reply_id=reply_id)
         self._set_status("Listening for a follow-up…" if waiting else self._conversation_idle_status())
         return False
@@ -2098,7 +2104,7 @@ class MainWindow(Adw.ApplicationWindow):
         if self.conversation is not None:
             self.conversation.unmute()
         self._speaking_since = 0.0
-        self._barge_in_streak = 0
+        self._barge_gate.reset()
         self._fail_assistant("Speech playback failed")
         self._toast(error)
         self._set_status(self._conversation_idle_status())
@@ -2133,36 +2139,37 @@ class MainWindow(Adw.ApplicationWindow):
         self._maybe_barge_in()
         return True
 
-    def _barge_in_target_level(self) -> float:
-        # Speech over the assistant's own voice: well above the plain
-        # voice-detection threshold so background noise never interrupts.
-        return max(self.settings.voice_threshold * 1.4, self.settings.voice_threshold + 350)
-
     def _maybe_barge_in(self) -> None:
         """Interrupt a spoken reply when the user talks over it.
 
         The mic keeps reporting levels while muted, so sustained loud speech
         here means the user interrupted: stop the reply, unmute, and let the
-        very next utterance become a prompt without the wake word.
+        very next utterance become a prompt without the wake word. A level
+        alone is not enough — the captured window is transcribed first and
+        the reply is stopped only when the words are not her own.
         """
         if self.assistant.is_paused:
-            self._barge_in_streak = 0
+            self._barge_gate.reset()
             return
         if not self.conversation_active or self.conversation is None or not self.conversation.muted:
-            self._barge_in_streak = 0
+            self._barge_gate.reset()
             return
         if self._speaking_since <= 0.0:
             return
         if time.monotonic() - self._speaking_since < BARGE_IN_GRACE_SECONDS:
-            self._barge_in_streak = 0
+            self._barge_gate.reset()
             return
-        if self._latest_level <= self._barge_in_target_level():
-            self._barge_in_streak = 0
+        level01 = self._latest_level / 4000.0
+        if not self._barge_gate.update(level01, self._barge_gate.baseline):
+            # Still her voice (or noise): teach the gate what "normal" is.
+            self._barge_gate.note_speaking_level(level01)
             return
-        self._barge_in_streak += 1
-        if self._barge_in_streak < BARGE_IN_STREAK:
+        heard = self.conversation.candidate_text()
+        if is_own_voice(heard, self._speaking_text, self._recent_spoken):
+            # The loud sound was Voxa's own voice: carry on speaking.
+            self._barge_gate.reset()
             return
-        self._barge_in_streak = 0
+        self._barge_gate.reset()
         self._speaking_since = 0.0
         self.speech.stop()
         self._live_reset()
@@ -2904,9 +2911,12 @@ class MainWindow(Adw.ApplicationWindow):
                 text = " ".join(state["queue"])
                 state["queue"].clear()
                 state["next"] = self.speech.prepare(text, rate, voice, on_ready=self._live_prepare if live else None)
+                state["next_text"] = text
             return
         item = state.get("next")
+        item_text = state.get("next_text") or ""
         state["next"] = None
+        state["next_text"] = ""
         text = ""
         if item is None:
             if not state["queue"]:
@@ -2917,12 +2927,17 @@ class MainWindow(Adw.ApplicationWindow):
                 # High needs the whole piece before it plays; later pieces are fetched as files as well.
                 item = self.speech.prepare(text, rate, voice, on_ready=self._live_prepare if live else None)
         state["playing"] = True
+        piece = item_text or text
+        if piece:
+            self._recent_spoken = self._speaking_text
+            self._speaking_text = piece
+        # Grace period per piece: speaker onset is the loudest moment.
+        self._speaking_since = time.monotonic()
+        self._barge_gate.reset()
         if not state["started"]:
             state["started"] = True
             if self.conversation is not None:
                 self.conversation.mute()
-            self._speaking_since = time.monotonic()
-            self._barge_in_streak = 0
             state["token"] = self.assistant.token()
             self.assistant.reply_started(state["token"])
             state["reply_id"] = self.assistant.current_reply()

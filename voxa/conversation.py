@@ -212,7 +212,13 @@ class ConversationController:
         # The raw utterance most recently heard (before wake-word stripping), so
         # the caller can still see the wake word for pause/resume phrasing.
         self.last_heard: str = ""
-        
+        # Rolling window of the mic kept while muted (echo cancellation has
+        # already removed her own voice), so the UI can transcribe what a
+        # level-based barge-in heard before stopping her reply (candidate_text).
+        self._barge_buf: list[bytes] = []
+        self._barge_bytes = 0
+        self._barge_max_bytes = 160_000  # ~5 s of 16 kHz 16-bit mono
+
     @property
     def muted(self) -> bool:
         return self._muted.is_set()
@@ -234,7 +240,15 @@ class ConversationController:
     def feed(self, pcm: bytes, level: float) -> None:
         # Dropped while muted so the assistant's own spoken reply, played
         # through the speakers, is never picked back up as a new utterance.
-        if self.stop_event.is_set() or self._muted.is_set():
+        if self.stop_event.is_set():
+            return
+        if self._muted.is_set():
+            # Keep only a short rolling window: the UI may transcribe it to
+            # check a barge-in, but it must never become a queued utterance.
+            self._barge_buf.append(pcm)
+            self._barge_bytes += len(pcm)
+            while self._barge_bytes > self._barge_max_bytes and self._barge_buf:
+                self._barge_bytes -= len(self._barge_buf.pop(0))
             return
         try:
             self.queue.put_nowait((pcm, level))
@@ -250,9 +264,13 @@ class ConversationController:
 
     def mute(self) -> None:
         self._muted.set()
+        self._barge_buf = []
+        self._barge_bytes = 0
 
     def unmute(self) -> None:
         self._muted.clear()
+        self._barge_buf = []
+        self._barge_bytes = 0
 
     def arm_prompt(self) -> None:
         """Skip the wake word: the next utterance becomes a prompt directly.
@@ -344,6 +362,20 @@ class ConversationController:
         # A stop pressed while the transcription was in flight must not
         # deliver its result to the UI.
         return "" if self.stop_event.is_set() else text
+
+    def candidate_text(self) -> str:
+        """Transcribe the mic window captured while muted, as a prompt would be.
+
+        Called by the UI when the level gate opens, to check the words before
+        her reply is stopped. The window is consumed: a checked candidate is
+        never checked again. "" when nothing was captured.
+        """
+        if not self._barge_buf:
+            return ""
+        segment = b"".join(self._barge_buf)
+        self._barge_buf = []
+        self._barge_bytes = 0
+        return self._transcribe(segment, self.prompt_whisper, hint=self._prompt_hint)
 
     def _run(self) -> None:
         while not self.stop_event.is_set():
