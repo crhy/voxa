@@ -53,24 +53,34 @@ def test_find_large_files_partial_errors(monkeypatch):
         ("sh", "-c", "echo $HOME"): (0, "/home/u", ""),
         (
             "timeout",
-            "12",
+            "15",
             "find",
             "/home/u",
             "-xdev",
-            "-not",
-            "-path",
-            "*/.*",
+            "(",
+            "-name",
+            ".*",
+            "-o",
+            "-name",
+            "node_modules",
+            "-o",
+            "-name",
+            "__pycache__",
+            ")",
+            "-prune",
+            "-o",
             "-type",
             "f",
             "-size",
             f"+{5 * 1024 ** 3}c",
+            "-print",
         ): (1, "/home/u/a.iso\n/home/u/b.iso", "find: '/home/u/partial': Permission denied"),
     }
     monkeypatch.setattr(filemanage, "_run", _make_fake(records, results))
     result = find_large_files({"amount": "5", "unit": "gigabytes"})
     assert result.speech == "I found 2 files bigger than 5 gigabytes: a.iso and b.iso."
-    find_command = next(cmd for cmd in records if cmd[:3] == ["timeout", "12", "find"])
-    assert find_command[:3] == ["timeout", "12", "find"]
+    find_command = next(cmd for cmd in records if cmd[:3] == ["timeout", "15", "find"])
+    assert find_command[:3] == ["timeout", "15", "find"]
 
 
 def test_find_file_out_of_time(monkeypatch):
@@ -79,15 +89,25 @@ def test_find_file_out_of_time(monkeypatch):
         ("sh", "-c", "echo $HOME"): (0, "/home/u", ""),
         (
             "timeout",
-            "12",
+            "15",
             "find",
             "/home/u",
             "-xdev",
-            "-not",
-            "-path",
-            "*/.*",
+            "(",
+            "-name",
+            ".*",
+            "-o",
+            "-name",
+            "node_modules",
+            "-o",
+            "-name",
+            "__pycache__",
+            ")",
+            "-prune",
+            "-o",
             "-iname",
             "*zebra*",
+            "-print",
         ): (124, "", ""),
     }
     monkeypatch.setattr(filemanage, "_run", _make_fake(records, results))

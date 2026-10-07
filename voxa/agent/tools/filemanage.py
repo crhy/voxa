@@ -117,7 +117,28 @@ def find_file(args: dict[str, str]) -> ToolResult:
         words = args["name"].split()
         pattern = "*" + "*".join(words) + "*"
         out = _run(
-            ["timeout", "12", "find", home, "-xdev", "-not", "-path", "*/.*", "-iname", pattern],
+            [
+                "timeout",
+                "15",
+                "find",
+                home,
+                "-xdev",
+                "(",
+                "-name",
+                ".*",
+                "-o",
+                "-name",
+                "node_modules",
+                "-o",
+                "-name",
+                "__pycache__",
+                ")",
+                "-prune",
+                "-o",
+                "-iname",
+                pattern,
+                "-print",
+            ],
             check=False,
         )
         lines = out.stdout.splitlines()[:20]
@@ -199,7 +220,30 @@ def find_large_files(args: dict[str, str]) -> ToolResult:
             return ToolResult.failure("I cannot reach your home folder.")
         limit = size_bytes(args["amount"], args["unit"])
         out = _run(
-            ["timeout", "12", "find", home, "-xdev", "-not", "-path", "*/.*", "-type", "f", "-size", f"+{limit}c"],
+            [
+                "timeout",
+                "15",
+                "find",
+                home,
+                "-xdev",
+                "(",
+                "-name",
+                ".*",
+                "-o",
+                "-name",
+                "node_modules",
+                "-o",
+                "-name",
+                "__pycache__",
+                ")",
+                "-prune",
+                "-o",
+                "-type",
+                "f",
+                "-size",
+                f"+{limit}c",
+                "-print",
+            ],
             check=False,
         )
         lines = out.stdout.splitlines()[:20]
