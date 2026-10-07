@@ -2222,12 +2222,15 @@ class MainWindow(Adw.ApplicationWindow):
     def _start_external_dictation(self, prompt: str) -> None:
         self._external_dictation = True
         self._last_dictated = ""
+        self.assistant_model.set_state(AssistantState.DICTATING, "")
         if self.conversation is not None:
             self.conversation.hold_prompt()
         self._on_tool_finished(ToolResult.success("Dictating. Say stop dictating when you're done."))
 
     def _stop_external_dictation(self) -> None:
         self._external_dictation = False
+        if self.assistant_model.state is AssistantState.DICTATING:
+            self.assistant_model.set_state(AssistantState.READY, "")
         if self.conversation is not None:
             self.conversation.release_prompt()
 

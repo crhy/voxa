@@ -17,10 +17,11 @@ Transition policy
 enforces this policy (anything not listed is rejected)::
 
     OFFLINE   -> READY
-    READY     -> LISTENING | THINKING | WORKING | PAUSED
-    LISTENING -> THINKING | READY | PAUSED
+    READY     -> LISTENING | THINKING | WORKING | PAUSED | DICTATING
+    LISTENING -> THINKING | READY | PAUSED | DICTATING
     THINKING  -> SPEAKING | READY | WORKING | WAITING | PAUSED
-    SPEAKING  -> READY | LISTENING | THINKING | PAUSED
+    SPEAKING  -> READY | LISTENING | THINKING | PAUSED | DICTATING
+    DICTATING -> READY | LISTENING | PAUSED
     WORKING   -> WAITING | READY | THINKING | SPEAKING | PAUSED
     WAITING   -> WORKING | READY | PAUSED
     PAUSED    -> READY
@@ -60,6 +61,7 @@ class AssistantState(Enum):
     READY = auto()
     PAUSED = auto()
     LISTENING = auto()
+    DICTATING = auto()
     THINKING = auto()
     SPEAKING = auto()
     WORKING = auto()
@@ -84,10 +86,11 @@ _ANYTIME = frozenset({_S.OFFLINE, _S.ERROR})  # every state may go OFFLINE or ER
 #: The explicit transition policy (see the module docstring).
 ALLOWED_TRANSITIONS: dict[AssistantState, frozenset[AssistantState]] = {
     _S.OFFLINE: frozenset({_S.READY}) | _ANYTIME,
-    _S.READY: frozenset({_S.LISTENING, _S.THINKING, _S.WORKING, _S.PAUSED}) | _ANYTIME,
-    _S.LISTENING: frozenset({_S.THINKING, _S.READY, _S.PAUSED}) | _ANYTIME,
+    _S.READY: frozenset({_S.LISTENING, _S.THINKING, _S.WORKING, _S.PAUSED, _S.DICTATING}) | _ANYTIME,
+    _S.LISTENING: frozenset({_S.THINKING, _S.READY, _S.PAUSED, _S.DICTATING}) | _ANYTIME,
     _S.THINKING: frozenset({_S.SPEAKING, _S.READY, _S.WORKING, _S.WAITING, _S.PAUSED}) | _ANYTIME,
-    _S.SPEAKING: frozenset({_S.READY, _S.LISTENING, _S.THINKING, _S.PAUSED}) | _ANYTIME,
+    _S.SPEAKING: frozenset({_S.READY, _S.LISTENING, _S.THINKING, _S.PAUSED, _S.DICTATING}) | _ANYTIME,
+    _S.DICTATING: frozenset({_S.READY, _S.LISTENING, _S.PAUSED}) | _ANYTIME,
     _S.WORKING: frozenset({_S.WAITING, _S.READY, _S.THINKING, _S.SPEAKING, _S.PAUSED}) | _ANYTIME,
     _S.WAITING: frozenset({_S.WORKING, _S.READY, _S.PAUSED}) | _ANYTIME,
     _S.PAUSED: frozenset({_S.READY}) | _ANYTIME,

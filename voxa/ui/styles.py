@@ -169,7 +169,8 @@ VOXA_CSS = """
 }
 
 .voxa-assistant-view.ready .voxa-state,
-.voxa-assistant-view.listening .voxa-state {
+.voxa-assistant-view.listening .voxa-state,
+.voxa-assistant-view.dictating .voxa-state {
     color: #3fb950;
 }
 
@@ -259,7 +260,8 @@ VOXA_CSS = """
     animation: voxa-avatar-idle 5.0s ease-in-out infinite;
 }
 
-.voxa-assistant-view.listening .voxa-avatar {
+.voxa-assistant-view.listening .voxa-avatar,
+.voxa-assistant-view.dictating .voxa-avatar {
     animation: voxa-avatar-listening 1.5s ease-in-out infinite;
 }
 
