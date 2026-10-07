@@ -112,6 +112,10 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | “Empty trash” | Empties the trash | 🧪 |
 | “Find the file called budget” | Locates the file by name | 🧪 |
 | “Find files bigger than 2 gigabytes” | Lists the oversized files | 🧪 |
+| “Open the Downloads folder” | Opens the folder | 🧪 |
+| “What's in my Documents?” | Reads the first few names | 🧪 |
+| “Rename report in Documents to final report” | Renames the file, keeping the old extension when the new name has none | 🧪 |
+| “Create a folder called Taxes in Documents” | Makes the new folder | 🧪 |
 | “Post an issue to GitHub for Voxa” | Asks for a title, then a description (say “stop dictation” to finish), then opens GitHub's new-issue page filled in for you to submit | 🧪 |
 
 ## Time and routines

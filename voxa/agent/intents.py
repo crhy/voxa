@@ -120,6 +120,20 @@ _LARGE_FILES = re.compile(
 _FIND_FILE = re.compile(
     r"(?:find|locate|where is|where's) (?:the |my |a )?file (?:called |named )?(.+)", re.IGNORECASE
 )
+_OPEN_FOLDER = re.compile(
+    r"(?:open|show)(?: me)? (?:my |the )?(.+?) (?:folder|directory)", re.IGNORECASE
+)
+_LIST_FOLDER = re.compile(
+    r"(?:what(?:'s| is)|list(?: the files)?) in (?:my |the )?(.+?)(?: folder| directory)?",
+    re.IGNORECASE,
+)
+_RENAME_FILE = re.compile(
+    r"rename (?:the )?(?:file )?(.+?) (?:in|from) (.+?) to (.+)", re.IGNORECASE
+)
+_MAKE_FOLDER = re.compile(
+    r"(?:create|make|add) (?:a )?(?:new )?(?:folder|directory) (?:called |named )?(.+?) in (.+)",
+    re.IGNORECASE,
+)
 _PREVIOUS = re.compile(
     r"previous\s+(?:song|track|video)|go\s+back\s+a\s+song", re.IGNORECASE
 )
@@ -289,6 +303,10 @@ ROUTED_TOOLS = frozenset(
         "empty_trash",
         "find_file",
         "find_large_files",
+        "open_folder",
+        "list_folder",
+        "rename_file",
+        "make_folder",
         "type_text",
         "file_dialog",
         "send_gmail",
@@ -463,6 +481,10 @@ def route(text: str) -> ToolCall | None:
 
     if parse_request(s, date.today()):
         return call("find_deal", request=s)
+
+    list_folder_match = _LIST_FOLDER.fullmatch(s)
+    if list_folder_match and folder_key(list_folder_match.group(1)) is not None:
+        return call("list_folder", folder=list_folder_match.group(1))
 
     if _QUESTION.match(s):
         return None
@@ -667,6 +689,20 @@ def route(text: str) -> ToolCall | None:
     find_match = _FIND_FILE.fullmatch(s)
     if find_match:
         return call("find_file", name=find_match.group(1))
+    open_folder_match = _OPEN_FOLDER.fullmatch(s)
+    if open_folder_match and folder_key(open_folder_match.group(1)) is not None:
+        return call("open_folder", folder=open_folder_match.group(1))
+    rename_match = _RENAME_FILE.fullmatch(s)
+    if rename_match and folder_key(rename_match.group(2)) is not None:
+        return call(
+            "rename_file",
+            name=rename_match.group(1),
+            folder=rename_match.group(2),
+            new_name=rename_match.group(3),
+        )
+    make_folder_match = _MAKE_FOLDER.fullmatch(s)
+    if make_folder_match and folder_key(make_folder_match.group(2)) is not None:
+        return call("make_folder", name=make_folder_match.group(1), folder=make_folder_match.group(2))
 
     if _CLEANUP_TEXT.fullmatch(s) or _FIX_TEXT.fullmatch(s) or _PROOFREAD.fullmatch(s) or _EDIT_CLARITY.fullmatch(s):
         return call("cleanup_text")

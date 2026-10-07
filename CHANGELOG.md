@@ -58,8 +58,25 @@ checking by ear and eye on a real desktop; `docs/CAPABILITIES.md` is the checkli
   and clarity, pastes it back and says "Text edited for clarity." An edit that looks wrong (far longer or shorter,
   or chatty) is discarded and your text is left untouched. (#77) — now uses Voxa's own clipboard instead of the
   `xclip` tool, which is not installed by default. 🧪
-- File management by voice: copy, move, delete to the trash, find by name or size, empty the trash. (#79)
-  *(in progress)*
+- **File management by voice**: "copy report from Downloads to Documents", "move holiday video from Downloads to
+  Videos", "delete old notes from Documents" (goes to the trash, no confirmation — it can be taken back out),
+  "empty trash", "find the file called budget", "find files bigger than 2 gigabytes", "open the Downloads folder",
+  "what's in my Documents?", "rename report in Documents to final report", "create a folder called Taxes in
+  Documents". File names are matched by how they sound, so "report final" finds `Report_Final.pdf`. Works on
+  machines without an XDG user-dirs file, and the search skips hidden folders so it finishes in seconds. (#79) 🧪
+- **Post a GitHub issue by voice**: "post an issue to GitHub for Spaced Linux" — Voxa asks for the title, then the
+  description (say "stop dictation" to finish; "scratch that" removes the last sentence; "cancel" drops it), then
+  opens GitHub's new-issue page already filled in for you to check and submit. The project is looked up among your
+  own GitHub repositories by name or description; a stranger's project is never opened on a loose match. (#83) 🧪
+- "Close file" now closes the document (Ctrl+W). It used to send Ctrl+Q, which quits the whole application.
+
+### First start
+
+- **A welcome on the very first start**: Voxa greets you by her character's name, out loud and in a small dialog,
+  and offers the one thing that is missing — installing Ollama, or downloading the smallest model
+  (`qwen2.5:0.5b`) — then tells you how to talk to her. After the install she goes straight on to the model
+  download, and says "You're all set" when the first model is in. A tutorial link appears once the video exists.
+  Still to come: the microphone and noise-cancellation check. (#76) 🧪
 
 ### Documentation
 
@@ -70,4 +87,4 @@ checking by ear and eye on a real desktop; `docs/CAPABILITIES.md` is the checkli
 ### Under the hood
 
 - The command bench (`python3 -m voxatest commands`) grew with every new phrase and must stay at 100%.
-- Test suite: 1,786 tests at the time of writing (0.1.5 shipped with about 1,650).
+- Test suite: about 1,900 tests at the time of writing (0.1.5 shipped with about 1,650).

@@ -136,6 +136,62 @@ def find_file(args: dict[str, str]) -> ToolResult:
         return ToolResult.failure(f"That did not work: {_error_text(error)}")
 
 
+def open_folder(args: dict[str, str]) -> ToolResult:
+    try:
+        path = _folder(args["folder"])
+        if path is None:
+            return ToolResult.failure(f"I do not know the folder {args['folder']}.")
+        _run(["gio", "open", path])
+        return ToolResult.success(f"Opening {args['folder']}.")
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as error:
+        return ToolResult.failure(f"That did not work: {_error_text(error)}")
+
+
+def list_folder(args: dict[str, str]) -> ToolResult:
+    try:
+        path = _folder(args["folder"])
+        if path is None:
+            return ToolResult.failure(f"I do not know the folder {args['folder']}.")
+        names = _names(path)
+        if not names:
+            return ToolResult.success(f"{os.path.basename(path)} is empty.")
+        return ToolResult.success(
+            f"{len(names)} items in {args['folder']}: {spoken_list(names, 5)}."
+        )
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as error:
+        return ToolResult.failure(f"That did not work: {_error_text(error)}")
+
+
+def rename_file(args: dict[str, str]) -> ToolResult:
+    try:
+        path = _folder(args["folder"])
+        if path is None:
+            return ToolResult.failure(f"I do not know the folder {args['folder']}.")
+        match = best_match(args["name"], _names(path))
+        if match is None:
+            return ToolResult.failure(f"I could not find {args['name']} in {args['folder']}.")
+        old_path = os.path.join(path, match)
+        new_file_name = args["new_name"].strip()
+        if not os.path.splitext(new_file_name)[1]:
+            new_file_name += os.path.splitext(match)[1]
+        _run(["gio", "rename", old_path, new_file_name])
+        return ToolResult.success(f"Renamed {match} to {new_file_name}.")
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as error:
+        return ToolResult.failure(f"That did not work: {_error_text(error)}")
+
+
+def make_folder(args: dict[str, str]) -> ToolResult:
+    try:
+        path = _folder(args["folder"])
+        if path is None:
+            return ToolResult.failure(f"I do not know the folder {args['folder']}.")
+        new_name = args["name"].strip().title()
+        _run(["mkdir", "--", os.path.join(path, new_name)])
+        return ToolResult.success(f"Created the folder {new_name} in {args['folder']}.")
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as error:
+        return ToolResult.failure(f"That did not work: {_error_text(error)}")
+
+
 def find_large_files(args: dict[str, str]) -> ToolResult:
     try:
         home = _folder("home")
@@ -216,5 +272,41 @@ def file_manage_tools() -> list[Tool]:
             risk=RiskLevel.REVERSIBLE,
             handler=find_large_files,
             required=("amount", "unit"),
+        ),
+        Tool(
+            name="open_folder",
+            description="Open a folder.",
+            parameters={"folder": "the folder to open"},
+            risk=RiskLevel.REVERSIBLE,
+            handler=open_folder,
+            required=("folder",),
+        ),
+        Tool(
+            name="list_folder",
+            description="List the items in a folder.",
+            parameters={"folder": "the folder to list"},
+            risk=RiskLevel.REVERSIBLE,
+            handler=list_folder,
+            required=("folder",),
+        ),
+        Tool(
+            name="rename_file",
+            description="Rename a file in a folder.",
+            parameters={
+                "name": "the file to rename",
+                "new_name": "the new name for the file",
+                "folder": "the folder the file is in",
+            },
+            risk=RiskLevel.REVERSIBLE,
+            handler=rename_file,
+            required=("name", "new_name", "folder"),
+        ),
+        Tool(
+            name="make_folder",
+            description="Create a new folder inside a folder.",
+            parameters={"name": "the name of the new folder", "folder": "the folder to create it in"},
+            risk=RiskLevel.REVERSIBLE,
+            handler=make_folder,
+            required=("name", "folder"),
         ),
     ]
