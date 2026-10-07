@@ -53,7 +53,7 @@ def test_list_folder_names_and_sentence(monkeypatch):
     result = filemanage.list_folder({"folder": "my documents"})
     assert result.ok
     assert result.speech == (
-        "3 items in my documents: alpha.pdf, beta.txt and gamma.doc."
+        "3 items in my documents, including alpha, beta and gamma."
     )
     assert calls[-1] == ["ls", "-1A", "/home/u/Documents"]
 

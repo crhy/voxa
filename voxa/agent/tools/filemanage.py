@@ -5,7 +5,16 @@ import os
 import subprocess
 
 from voxa import simulation
-from voxa.agent.filematch import best_match, folder_key, resolve_folder, size_bytes, spoken_list
+from voxa.agent.filematch import (
+    STANDARD_NAMES,
+    best_match,
+    count_noun,
+    folder_key,
+    resolve_folder,
+    size_bytes,
+    speakable,
+    spoken_list,
+)
 from voxa.agent.host import host_command
 from voxa.agent.policy import RiskLevel
 from voxa.agent.registry import Tool
@@ -141,18 +150,27 @@ def find_file(args: dict[str, str]) -> ToolResult:
             ],
             check=False,
         )
-        lines = out.stdout.splitlines()[:20]
-        if not lines:
+        all_lines = out.stdout.splitlines()
+        if not all_lines:
             if out.returncode == 124:
                 return ToolResult.failure("I ran out of time looking. Try naming a folder.")
             return ToolResult.failure(f"I could not find a file called {args['name']}.")
-        entries = [
-            f"{os.path.basename(path)} in {os.path.basename(os.path.dirname(path))}" for path in lines
-        ]
+        top = set(STANDARD_NAMES.values())
+
+        def rank(path: str) -> tuple[int, int]:
+            parent = os.path.dirname(path)
+            is_top = os.path.basename(parent) in top or parent.rstrip("/") == home.rstrip("/")
+            return (0 if is_top else 1, path.count("/"))
+
+        lines = sorted(all_lines, key=rank)[:20]
         if len(lines) == 1:
-            parent = os.path.dirname(lines[0])
-            _run(["gio", "open", parent], check=False)
-        return ToolResult.success(f"I found {len(lines)}: {spoken_list(entries)}.")
+            _run(["gio", "open", os.path.dirname(lines[0])], check=False)
+        total = len(all_lines)
+        if total > 3:
+            entries = [f"{os.path.basename(p)} in {os.path.basename(os.path.dirname(p))}" for p in lines[:3]]
+            return ToolResult.success(f"I found {total}. The closest are {spoken_list(entries, 3)}.")
+        entries = [f"{os.path.basename(p)} in {os.path.basename(os.path.dirname(p))}" for p in lines]
+        return ToolResult.success(f"I found {total}: {spoken_list(entries)}.")
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as error:
         return ToolResult.failure(f"That did not work: {_error_text(error)}")
 
@@ -176,8 +194,11 @@ def list_folder(args: dict[str, str]) -> ToolResult:
         names = _names(path)
         if not names:
             return ToolResult.success(f"{os.path.basename(path)} is empty.")
+        spoken = speakable(names, 5)
+        if not spoken:
+            return ToolResult.success(f"{count_noun(len(names), 'item')} in {args['folder']}.")
         return ToolResult.success(
-            f"{len(names)} items in {args['folder']}: {spoken_list(names, 5)}."
+            f"{count_noun(len(names), 'item')} in {args['folder']}, including {spoken_list(spoken, 5)}."
         )
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as error:
         return ToolResult.failure(f"That did not work: {_error_text(error)}")
@@ -253,7 +274,7 @@ def find_large_files(args: dict[str, str]) -> ToolResult:
             return ToolResult.failure("No files are bigger than that.")
         names = [os.path.basename(path) for path in lines]
         return ToolResult.success(
-            f"I found {len(lines)} files bigger than {args['amount']} {args['unit']}: {spoken_list(names)}."
+            f"I found {count_noun(len(lines), 'file')} bigger than {args['amount']} {args['unit']}: {spoken_list(names)}."
         )
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as error:
         return ToolResult.failure(f"That did not work: {_error_text(error)}")

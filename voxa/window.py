@@ -2357,7 +2357,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.assistant_model.set_state(AssistantState.DICTATING, self._issue_flow.caption)
         if self.conversation is not None:
             self.conversation.hold_prompt()
-        self._on_tool_finished(ToolResult.success(issueflow.ASK_TITLE))
+        self._on_tool_finished(ToolResult.success(f"This will go to {repo}. {issueflow.ASK_TITLE}"))
         return False
 
     def _feed_issue_flow(self, text: str) -> None:

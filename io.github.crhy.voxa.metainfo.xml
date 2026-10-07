@@ -16,7 +16,7 @@
   <replaces>
     <id>io.github.crhy.voice2textai</id>
   </replaces>
-  <url type="homepage">https://github.com/crhy/voxa</url>
+  <url type="homepage">https://voxaai.me</url>
   <url type="bugtracker">https://github.com/crhy/voxa/issues</url>
   <screenshots>
     <screenshot type="default">

@@ -2624,6 +2624,351 @@
       "args": {
         "action": "zoom_right"
       }
+    },
+    {
+      "id": "file-copy-1",
+      "category": "files",
+      "say": "copy report from downloads to documents",
+      "tool": "copy_file",
+      "args": {
+        "name": "report",
+        "source": "downloads",
+        "destination": "documents"
+      }
+    },
+    {
+      "id": "file-copy-2",
+      "category": "files",
+      "say": "Copy the file budget from my home directory to Documents.",
+      "tool": "copy_file",
+      "args": {
+        "name": "budget",
+        "source": "my home directory",
+        "destination": "Documents"
+      }
+    },
+    {
+      "id": "file-copy-3",
+      "category": "files",
+      "say": "copy holiday photos from the pictures folder to the desktop",
+      "tool": "copy_file",
+      "args": {
+        "name": "holiday photos",
+        "source": "the pictures folder",
+        "destination": "the desktop"
+      }
+    },
+    {
+      "id": "file-copy-4",
+      "category": "files",
+      "say": "please copy invoice from Downloads to my Documents folder",
+      "tool": "copy_file",
+      "args": {
+        "name": "invoice",
+        "source": "Downloads",
+        "destination": "my Documents folder"
+      }
+    },
+    {
+      "id": "file-move-1",
+      "category": "files",
+      "say": "move holiday video from downloads to videos",
+      "tool": "move_file",
+      "args": {
+        "name": "holiday video",
+        "source": "downloads",
+        "destination": "videos"
+      }
+    },
+    {
+      "id": "file-move-2",
+      "category": "files",
+      "say": "Move the file song from Downloads to Music.",
+      "tool": "move_file",
+      "args": {
+        "name": "song",
+        "source": "Downloads",
+        "destination": "Music"
+      }
+    },
+    {
+      "id": "file-move-3",
+      "category": "files",
+      "say": "move resume from the desktop to documents",
+      "tool": "move_file",
+      "args": {
+        "name": "resume",
+        "source": "the desktop",
+        "destination": "documents"
+      }
+    },
+    {
+      "id": "file-trash-1",
+      "category": "files",
+      "say": "delete old notes from documents",
+      "tool": "trash_file",
+      "args": {
+        "name": "old notes",
+        "folder": "documents"
+      }
+    },
+    {
+      "id": "file-trash-2",
+      "category": "files",
+      "say": "Delete the file draft in Downloads.",
+      "tool": "trash_file",
+      "args": {
+        "name": "draft",
+        "folder": "Downloads"
+      }
+    },
+    {
+      "id": "file-trash-3",
+      "category": "files",
+      "say": "trash screenshot from the desktop",
+      "tool": "trash_file",
+      "args": {
+        "name": "screenshot",
+        "folder": "the desktop"
+      }
+    },
+    {
+      "id": "file-trash-4",
+      "category": "files",
+      "say": "remove installer from my downloads folder",
+      "tool": "trash_file",
+      "args": {
+        "name": "installer",
+        "folder": "my downloads folder"
+      }
+    },
+    {
+      "id": "file-empty-1",
+      "category": "files",
+      "say": "empty trash",
+      "tool": "empty_trash",
+      "args": {}
+    },
+    {
+      "id": "file-empty-2",
+      "category": "files",
+      "say": "Empty the trash.",
+      "tool": "empty_trash",
+      "args": {}
+    },
+    {
+      "id": "file-empty-3",
+      "category": "files",
+      "say": "empty the trash can",
+      "tool": "empty_trash",
+      "args": {}
+    },
+    {
+      "id": "file-empty-4",
+      "category": "files",
+      "say": "empty my recycle bin",
+      "tool": "empty_trash",
+      "args": {}
+    },
+    {
+      "id": "file-find-1",
+      "category": "files",
+      "say": "find the file called budget",
+      "tool": "find_file",
+      "args": {
+        "name": "budget"
+      }
+    },
+    {
+      "id": "file-find-2",
+      "category": "files",
+      "say": "locate my file named tax return",
+      "tool": "find_file",
+      "args": {
+        "name": "tax return"
+      }
+    },
+    {
+      "id": "file-find-3",
+      "category": "files",
+      "say": "where is the file holiday plans",
+      "tool": "find_file",
+      "args": {
+        "name": "holiday plans"
+      }
+    },
+    {
+      "id": "file-find-4",
+      "category": "files",
+      "say": "Find a file called resume.",
+      "tool": "find_file",
+      "args": {
+        "name": "resume"
+      }
+    },
+    {
+      "id": "file-big-1",
+      "category": "files",
+      "say": "find files bigger than 2 gigabytes",
+      "tool": "find_large_files",
+      "args": {
+        "amount": "2",
+        "unit": "gigabytes"
+      }
+    },
+    {
+      "id": "file-big-2",
+      "category": "files",
+      "say": "show me files larger than 500 megabytes",
+      "tool": "find_large_files",
+      "args": {
+        "amount": "500",
+        "unit": "megabytes"
+      }
+    },
+    {
+      "id": "file-big-3",
+      "category": "files",
+      "say": "locate all the files bigger than 1 gigabyte",
+      "tool": "find_large_files",
+      "args": {
+        "amount": "1",
+        "unit": "gigabyte"
+      }
+    },
+    {
+      "id": "file-big-4",
+      "category": "files",
+      "say": "find files larger than 10 gb",
+      "tool": "find_large_files",
+      "args": {
+        "amount": "10",
+        "unit": "gb"
+      }
+    },
+    {
+      "id": "file-open-1",
+      "category": "files",
+      "say": "open the downloads folder",
+      "tool": "open_folder",
+      "args": {
+        "folder": "downloads"
+      }
+    },
+    {
+      "id": "file-open-2",
+      "category": "files",
+      "say": "Open my Documents folder.",
+      "tool": "open_folder",
+      "args": {
+        "folder": "Documents"
+      }
+    },
+    {
+      "id": "file-open-3",
+      "category": "files",
+      "say": "show me the pictures folder",
+      "tool": "open_folder",
+      "args": {
+        "folder": "pictures"
+      }
+    },
+    {
+      "id": "file-open-4",
+      "category": "files",
+      "say": "open my home directory",
+      "tool": "open_folder",
+      "args": {
+        "folder": "home"
+      }
+    },
+    {
+      "id": "file-list-1",
+      "category": "files",
+      "say": "what's in my documents",
+      "tool": "list_folder",
+      "args": {
+        "folder": "documents"
+      }
+    },
+    {
+      "id": "file-list-2",
+      "category": "files",
+      "say": "What is in the Downloads folder?",
+      "tool": "list_folder",
+      "args": {
+        "folder": "Downloads"
+      }
+    },
+    {
+      "id": "file-list-3",
+      "category": "files",
+      "say": "list the files in my music folder",
+      "tool": "list_folder",
+      "args": {
+        "folder": "music"
+      }
+    },
+    {
+      "id": "file-rename-1",
+      "category": "files",
+      "say": "rename report in documents to final report",
+      "tool": "rename_file",
+      "args": {
+        "name": "report",
+        "folder": "documents",
+        "new_name": "final report"
+      }
+    },
+    {
+      "id": "file-rename-2",
+      "category": "files",
+      "say": "Rename the file draft in Downloads to chapter one.",
+      "tool": "rename_file",
+      "args": {
+        "name": "draft",
+        "folder": "Downloads",
+        "new_name": "chapter one"
+      }
+    },
+    {
+      "id": "file-mkdir-1",
+      "category": "files",
+      "say": "create a folder called taxes in documents",
+      "tool": "make_folder",
+      "args": {
+        "name": "taxes",
+        "folder": "documents"
+      }
+    },
+    {
+      "id": "file-mkdir-2",
+      "category": "files",
+      "say": "Make a new folder named Holiday in Pictures.",
+      "tool": "make_folder",
+      "args": {
+        "name": "Holiday",
+        "folder": "Pictures"
+      }
+    },
+    {
+      "id": "file-mkdir-3",
+      "category": "files",
+      "say": "add a folder called work in my documents folder",
+      "tool": "make_folder",
+      "args": {
+        "name": "work",
+        "folder": "my documents folder"
+      }
+    },
+    {
+      "id": "file-close-1",
+      "category": "files",
+      "say": "close file",
+      "tool": "file_dialog",
+      "args": {
+        "action": "close"
+      }
     }
   ],
   "wishlist": []

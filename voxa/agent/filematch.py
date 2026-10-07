@@ -109,3 +109,27 @@ def spoken_list(names: list[str], limit: int = 3) -> str:
     if extra > 0:
         text += f" and {extra} more"
     return text
+
+
+def count_noun(n: int, noun: str) -> str:
+    if n == 1:
+        return f"{n} {noun}"
+    return f"{n} {noun}s"
+
+
+def speakable(names: list[str], limit: int = 5) -> list[str]:
+    out: list[str] = []
+    for name in names:
+        s = name
+        dot = s.rfind(".")
+        if dot > 0:
+            s = s[:dot]
+        s = s.replace("_", " ").replace("-", " ")
+        if not re.search(r"[a-z]{3}", s):
+            continue
+        if re.search(r"[0-9a-fA-F]{12}", s):
+            continue
+        out.append(s)
+        if len(out) >= limit:
+            break
+    return out

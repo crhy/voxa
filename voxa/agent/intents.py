@@ -486,6 +486,10 @@ def route(text: str) -> ToolCall | None:
     if list_folder_match and folder_key(list_folder_match.group(1)) is not None:
         return call("list_folder", folder=list_folder_match.group(1))
 
+    where_file_match = _FIND_FILE.fullmatch(s)
+    if where_file_match and re.match(r"where(?:'s| is)\s+(?:the |my |a )file\b", s, re.IGNORECASE):
+        return call("find_file", name=where_file_match.group(1))
+
     if _QUESTION.match(s):
         return None
 
