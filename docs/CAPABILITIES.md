@@ -71,6 +71,8 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | “Zoom in” / “zoom in more” / “zoom out” / “reset zoom” | Compiz desktop zoom | 🧪 |
 | “Zoom left” / “zoom right” | Moves the zoomed view | 🧪 |
 | “Take a screenshot” | Saves a picture of the screen to Pictures | 🧪 |
+| “Install the most popular SNES emulator” / “Install GIMP” | Finds it on Flathub, opens it in Spaced Bazaar, presses Install there, and checks it is really installed before saying so | 🧪 |
+| “Uninstall Snes9x” | Removes an installed Flatpak app | 🧪 |
 
 ## Music and video
 

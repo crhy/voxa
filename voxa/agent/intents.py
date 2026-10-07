@@ -291,6 +291,28 @@ _OPEN_FILE = re.compile(
     r"open (?:the |my )?(?:file|document) (?:called |named )?(.+)",
     re.IGNORECASE,
 )
+_INSTALL_APP = re.compile(
+    r"open spaced bazaar and install (.+)"
+    r"|(?:please )?install (.+?)(?: (?:from|with|using|in|through) (?:spaced )?(?:bazaar|flathub|the app store|the store))?",
+    re.IGNORECASE,
+)
+_UNINSTALL_APP = re.compile(
+    r"(?:uninstall|remove the (?:app|program)|delete the (?:app|program)) (.+)",
+    re.IGNORECASE,
+)
+_INSTALL_SKIP = (
+    "ollama",
+    "updates",
+    "the updates",
+    "all updates",
+    "the latest updates",
+    "all the latest updates",
+    "the high face",
+    "the neural face",
+    "it",
+    "that",
+    "this",
+)
 _CLOSE_WINDOW = re.compile(
     r"close (?:this|it|that|the app|(?:this|the|that) window)", re.IGNORECASE
 )
@@ -463,6 +485,8 @@ ROUTED_TOOLS = frozenset(
         "find_large_files",
         "open_file",
         "open_folder",
+        "install_app",
+        "uninstall_app",
         "list_folder",
         "rename_file",
         "make_folder",
@@ -806,6 +830,18 @@ def route(text: str) -> ToolCall | None:
 
     if _UPDATE_SYSTEM.fullmatch(s):
         return call("update_system")
+
+    install_match = _INSTALL_APP.fullmatch(s)
+    if install_match:
+        captured = (install_match.group(1) or install_match.group(2) or "").strip()
+        if captured and not any(
+            captured == skip or captured.startswith(skip) for skip in _INSTALL_SKIP
+        ):
+            return call("install_app", name=captured)
+
+    uninstall_match = _UNINSTALL_APP.fullmatch(s)
+    if uninstall_match:
+        return call("uninstall_app", name=uninstall_match.group(1).strip())
 
     open_file_folder_match = _OPEN_FILE_FOLDER.fullmatch(s)
     if open_file_folder_match and folder_key(open_file_folder_match.group(2)) is not None:

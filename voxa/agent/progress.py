@@ -101,6 +101,8 @@ _TEMPLATES: dict[str, str] = {
     "search_site": "Searching for {query}…",
     "update_system": "Updating Spaced Linux…",
     "check_system_version": "Checking the version…",
+    "install_app": "Installing {name}…",
+    "uninstall_app": "Removing {name}…",
 }
 
 _NORMALISED = {"folder", "destination"}

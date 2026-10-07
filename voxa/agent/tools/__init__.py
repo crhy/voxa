@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from voxa.agent.registry import ToolRegistry
 from voxa.agent.tools.applications import application_tools
+from voxa.agent.tools.appstore import appstore_tools
 from voxa.agent.tools.browser import browser_tools
 from voxa.agent.tools.calc import calc_tools
 from voxa.agent.tools.compiz import compiz_tools
@@ -51,6 +52,7 @@ def default_registry() -> ToolRegistry:
         *file_manage_tools(),
         *system_tools(),
         *sysupdate_tools(),
+        *appstore_tools(),
         *uicontrol_tools(),
     ]:
         registry.register(tool)
