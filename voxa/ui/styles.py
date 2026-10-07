@@ -334,6 +334,24 @@ VOXA_CSS = """
     opacity: 0.85;
 }
 
+window.voxa-focus-window {
+    background: transparent;
+    box-shadow: none;
+}
+
+.voxa-focus-face {
+    border-radius: 999px;
+}
+
+.voxa-focus-window-caption {
+    background: rgba(20, 20, 24, 0.82);
+    color: #ffffff;
+    border-radius: 10px;
+    padding: 3px 10px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
 .caption {
     font-size: 11px;
     opacity: 0.8;

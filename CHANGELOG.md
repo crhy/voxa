@@ -1,0 +1,72 @@
+# Voxa changelog
+
+## 0.1.6 — in development
+
+Everything below is on `main` after the 0.1.5 release. Items marked 🧪 pass their automated tests and still need
+checking by ear and eye on a real desktop; `docs/CAPABILITIES.md` is the checklist with a phrase to try for each.
+
+### Hearing and turn-taking
+
+- **Voxa no longer interrupts herself.** A barge-in now needs two things: the microphone must be clearly louder
+  than Voxa's own voice for six frames in a row (the level is learned while she speaks), and the words that were
+  heard must not be her own sentence. The first 400 ms of every spoken piece ignore barge-in altogether, because
+  the speaker onset is the loudest moment. (`voxa/bargein.py`)
+- **A single "stop", "wait" or "Voxa" always counts as you interrupting**, unless she is saying that very word
+  herself.
+- **"Say …" is no longer typed into the focused window.** "Say hello to Bob" is spoken; only "type …", "write …",
+  "dictate …" and "enter …" type.
+- **Voxa's own echo canceller** (`voxa/anc.py`): estimates the delay between what the computer plays and what the
+  microphone hears, then subtracts the played sound with an adaptive (NLMS) filter. It stays stable through silent
+  pauses and never outputs louder than the microphone. A calibration routine (`voxa/anccal.py`) measures how many
+  decibels of the computer's own sound are removed. (#72) 🧪
+- Echo cancellation follows the microphone chosen in Voxa rather than the system default.
+- A request may now be up to 20 seconds long.
+
+### Sound devices
+
+- **Voxa no longer adds a sound device or changes your audio output.** Through 0.1.5, the "system" echo
+  mode loaded PulseAudio's echo-cancel module, which showed up in Sound Preferences as "Voxa-echo-cancelled-output"
+  (mono, 32 kHz), became the default output and could be left behind after Voxa exited. That mode is removed; Voxa
+  only listens to the output's monitor. On start, a device left behind by an older build is removed and the real
+  output is restored. *(in progress)*
+
+### On the screen
+
+- **The talking head follows you out of the window.** When Voxa is not the focused window, a round cut-out of the
+  character (Medium lip movement) floats in the top-right corner of the monitor, above the program you are using,
+  with a one-line status underneath. It never takes the keyboard focus; clicking it brings Voxa back. X11 only.
+  (#86) *(in progress)*
+- **Tips in the top-left corner** that change with what you are doing: dictating, paused, music playing and so on.
+  (#85) 🧪
+- The caption reads **Dictating** while dictation is on, instead of Listening. (#84) 🧪
+
+### Apps, windows and the desktop
+
+- "Minimize Pluma", "maximize Pluma", "restore Pluma", "show the desktop". (#74) 🧪
+- "Lock the screen" — Voxa pauses herself first, so she does not react to the room while locked. (#82) 🧪
+- "Volume up", "volume down", "mute", "unmute", "set the volume to 40 percent". (#80) 🧪
+- Compiz by voice: "rotate cube left/right", "zoom in", "zoom in more", "zoom out", "reset zoom", "zoom left/right".
+  Voxa reads your own Compiz key bindings (from the host when sandboxed) and presses those. (#81) 🧪
+
+### Writing and files
+
+- "Dictation" on its own starts dictation, as do "start dictation", "take dictation" and "dictate this". (#87) 🧪
+- "Save file", "load file", "close file", "new document": sends the application's own shortcuts and asks for a file
+  name. (#78) 🧪
+- "Clean up the text": selects the text in the foreground window, has the model fix spelling, punctuation, grammar
+  and clarity, pastes it back and says "Text edited for clarity." An edit that looks wrong (far longer or shorter,
+  or chatty) is discarded and your text is left untouched. (#77) — now uses Voxa's own clipboard instead of the
+  `xclip` tool, which is not installed by default. *(in progress)*
+- File management by voice: copy, move, delete to the trash, find by name or size, empty the trash. (#79)
+  *(in progress)*
+
+### Documentation
+
+- `docs/CAPABILITIES.md`: a living list of everything Voxa can do, with a phrase to try and a tested / untested /
+  not-working mark for each.
+- This changelog.
+
+### Under the hood
+
+- The command bench (`python3 -m voxatest commands`) grew with every new phrase and must stay at 100%.
+- Test suite: 1,786 tests at the time of writing (0.1.5 shipped with about 1,650).

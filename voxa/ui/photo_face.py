@@ -144,12 +144,14 @@ class FaceCanvas(Gtk.Widget):
         self.offset = (0.0, 0.0)
         self.zoom = 1.0
         self.rotation = 0.0
+        self.clip_radius = CLIP_RADIUS
+        self.natural_size = 320
         self.set_hexpand(True)
         self.set_vexpand(True)
         self.set_overflow(Gtk.Overflow.HIDDEN)
 
     def do_measure(self, orientation, for_size):
-        return (120, 320, -1, -1)
+        return (min(120, self.natural_size), self.natural_size, -1, -1)
 
     def do_snapshot(self, snapshot) -> None:
         width, height = self.get_width(), self.get_height()
@@ -158,7 +160,7 @@ class FaceCanvas(Gtk.Widget):
         side = float(min(width, height))
         left, top = (width - side) / 2.0, (height - side) / 2.0
         clip = Gsk.RoundedRect()
-        clip.init_from_rect(Graphene.Rect().init(left, top, side, side), CLIP_RADIUS)
+        clip.init_from_rect(Graphene.Rect().init(left, top, side, side), self.clip_radius)
         snapshot.push_rounded_clip(clip)
         snapshot.save()
         centre = Graphene.Point().init(
