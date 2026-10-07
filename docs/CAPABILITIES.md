@@ -107,7 +107,7 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | “Start dictation” … “stop dictation” | Types what you say into the focused window; caption reads **Dictating** | 🧪 |
 | “New line”, “comma”, “period” while dictating | Punctuation | ✅ |
 | “Save file” / “load file” / “close file” / “new document” | Sends the app's own shortcuts and asks for a file name | 🧪 |
-| “Clean up the text” | Fixes spelling, grammar and clarity in the foreground window | 🧪 |
+| “Clean up the text” | Fixes spelling, grammar and clarity in the selected text, or in the whole text of the foreground window when nothing is selected | 🧪 |
 | “Copy report from Downloads to Documents” | Copies the file, no confirmation | 🧪 |
 | “Move holiday video from Downloads to Videos” | Moves the file, no confirmation | 🧪 |
 | “Delete old notes from Documents” | Goes to the trash, no confirmation | 🧪 |

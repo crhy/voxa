@@ -53,10 +53,10 @@ def test_happy_path(monkeypatch):
     state, writes, runs, asked = install(monkeypatch, saved, saved, "Hello world")
     result = textedit.cleanup_text({})
     assert result.ok
-    assert result.speech == "Text edited for clarity."
+    assert result.speech == "Selection edited for clarity."
     assert state[0] == saved
     assert writes == ["", "Hello world", saved]
-    assert keys(runs) == ["ctrl+a", "ctrl+c", "ctrl+v"]
+    assert keys(runs) == ["ctrl+c", "ctrl+v"]
     assert all("xclip" not in argv for argv in runs)
     assert len(asked) == 1
 

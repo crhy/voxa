@@ -38,17 +38,26 @@ def cleanup_text(args: dict[str, str]) -> ToolResult:
         return ToolResult.failure("I cannot reach the clipboard here.")
     saved = read_clipboard()
     write_clipboard("")
-    _run(["xdotool", "key", "--clearmodifiers", "ctrl+a"])
     _run(["xdotool", "key", "--clearmodifiers", "ctrl+c"])
     time.sleep(0.25)
     copied = read_clipboard()
+    if copied.strip():
+        whole = False
+    else:
+        _run(["xdotool", "key", "--clearmodifiers", "ctrl+a"])
+        _run(["xdotool", "key", "--clearmodifiers", "ctrl+c"])
+        time.sleep(0.25)
+        copied = read_clipboard()
+        whole = True
     if not copied.strip():
         write_clipboard(saved)
-        _run(["xdotool", "key", "Right"])
+        if whole:
+            _run(["xdotool", "key", "Right"])
         return ToolResult.failure("I could not read any text in that window.")
     if len(copied) > 20000:
         write_clipboard(saved)
-        _run(["xdotool", "key", "Right"])
+        if whole:
+            _run(["xdotool", "key", "Right"])
         return ToolResult.failure("That is too much text for me to clean up in one go.")
     edited = ask_model(
         [
@@ -62,9 +71,11 @@ def cleanup_text(args: dict[str, str]) -> ToolResult:
         _run(["xdotool", "key", "--clearmodifiers", "ctrl+v"])
         time.sleep(0.4)
         write_clipboard(saved)
-        return ToolResult.success("Text edited for clarity.")
+        speech = "Text edited for clarity." if whole else "Selection edited for clarity."
+        return ToolResult.success(speech)
     write_clipboard(saved)
-    _run(["xdotool", "key", "Right"])
+    if whole:
+        _run(["xdotool", "key", "Right"])
     return ToolResult.success("I was not sure about my edit, so I left your text as it was.")
 
 

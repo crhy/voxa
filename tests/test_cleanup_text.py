@@ -41,11 +41,10 @@ def test_happy_path(monkeypatch):
     _install(monkeypatch, "old clipboard", "helo wrld", "hello world")
     result = cleanup_text({})
     assert result.ok
-    assert result.speech == "Text edited for clarity."
+    assert result.speech == "Selection edited for clarity."
     assert sane_result("helo wrld", "hello world")
     argv = te._calls
     assert argv == [
-        ["xdotool", "key", "--clearmodifiers", "ctrl+a"],
         ["xdotool", "key", "--clearmodifiers", "ctrl+c"],
         ["xdotool", "key", "--clearmodifiers", "ctrl+v"],
     ]
@@ -59,6 +58,7 @@ def test_empty_selection(monkeypatch):
     assert not result.ok
     assert result.speech == "I could not read any text in that window."
     assert te._calls == [
+        ["xdotool", "key", "--clearmodifiers", "ctrl+c"],
         ["xdotool", "key", "--clearmodifiers", "ctrl+a"],
         ["xdotool", "key", "--clearmodifiers", "ctrl+c"],
         ["xdotool", "key", "Right"],
@@ -72,7 +72,7 @@ def test_insane_result_leaves_text(monkeypatch):
     result = cleanup_text({})
     assert result.ok
     assert result.speech == "I was not sure about my edit, so I left your text as it was."
-    assert te._calls[-1] == ["xdotool", "key", "Right"]
+    assert not any("Right" in call for call in te._calls)
     assert not any("ctrl+v" in call for call in te._calls)
     assert te._writes == ["", "old clipboard"]
 

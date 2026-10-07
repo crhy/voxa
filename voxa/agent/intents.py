@@ -107,6 +107,13 @@ _FIX_TEXT = re.compile(
 )
 _PROOFREAD = re.compile(r"proofread\s+(?:this|it)", re.IGNORECASE)
 _EDIT_CLARITY = re.compile(r"edit\s+(?:this|it)\s+for\s+clarity", re.IGNORECASE)
+_CLEANUP_SELECTION = re.compile(
+    r"clean\s+up\s+(?:this|the|my)\s+(?:selection|paragraph|sentence)", re.IGNORECASE
+)
+_FIX_SELECTION = re.compile(
+    r"fix\s+(?:this|the|my)\s+(?:selection|paragraph|sentence)", re.IGNORECASE
+)
+_CLEAN_IT_UP = re.compile(r"clean\s+(?:this|it)\s+up", re.IGNORECASE)
 _COPY_FILE = re.compile(r"copy (?:the )?(?:file )?(.+?) from (.+?) to (.+)", re.IGNORECASE)
 _MOVE_FILE = re.compile(r"move (?:the )?(?:file )?(.+?) from (.+?) to (.+)", re.IGNORECASE)
 _TRASH_FILE = re.compile(
@@ -714,7 +721,15 @@ def route(text: str) -> ToolCall | None:
     if make_folder_match and folder_key(make_folder_match.group(2)) is not None:
         return call("make_folder", name=make_folder_match.group(1), folder=make_folder_match.group(2))
 
-    if _CLEANUP_TEXT.fullmatch(s) or _FIX_TEXT.fullmatch(s) or _PROOFREAD.fullmatch(s) or _EDIT_CLARITY.fullmatch(s):
+    if (
+        _CLEANUP_TEXT.fullmatch(s)
+        or _FIX_TEXT.fullmatch(s)
+        or _PROOFREAD.fullmatch(s)
+        or _EDIT_CLARITY.fullmatch(s)
+        or _CLEANUP_SELECTION.fullmatch(s)
+        or _FIX_SELECTION.fullmatch(s)
+        or _CLEAN_IT_UP.fullmatch(s)
+    ):
         return call("cleanup_text")
 
     type_match = _TYPE.fullmatch(s)
