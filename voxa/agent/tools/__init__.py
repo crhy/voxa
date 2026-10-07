@@ -13,6 +13,7 @@ from voxa.agent.tools.help import help_tools
 from voxa.agent.tools.home import home_tools
 from voxa.agent.tools.media import media_tools
 from voxa.agent.tools.reminders import reminders_tools
+from voxa.agent.tools.textedit import textedit_tools
 from voxa.agent.tools.typing import typing_tools
 from voxa.agent.tools.volume import volume_tools
 from voxa.agent.tools.web import web_tools
@@ -37,6 +38,7 @@ def default_registry() -> ToolRegistry:
         *volume_tools(),
         *compiz_tools(),
         *file_dialog_tools(),
+        *textedit_tools(),
         *file_manage_tools(),
     ]:
         registry.register(tool)

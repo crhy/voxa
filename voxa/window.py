@@ -273,8 +273,6 @@ class MainWindow(Adw.ApplicationWindow):
         self._app_cache: list[apps.DesktopApp] | None = None
         # Tools the router can call directly, without ever asking the model.
         self.tools = default_registry()
-        for tool in textedit.textedit_tools():
-            self.tools.register(tool)
         windows.ON_LOCK = self._pause_now
         textedit.ask_model = lambda messages: self._ai_client().generate_stream(model=self.settings.ollama_model, prompt=messages[-1]["content"], cancel_event=threading.Event(), on_chunk=lambda chunk: None, messages=messages)
         media.get_my_channel = lambda: self.settings.youtube_channel

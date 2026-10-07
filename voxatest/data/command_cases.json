@@ -2969,6 +2969,267 @@
       "args": {
         "action": "close"
       }
+    },
+    {
+      "id": "undo-file-1",
+      "category": "files",
+      "say": "undo that",
+      "tool": "undo_file_action",
+      "args": {
+        "otherwise": "key"
+      }
+    },
+    {
+      "id": "undo-file-2",
+      "category": "files",
+      "say": "put it back",
+      "tool": "undo_file_action",
+      "args": {}
+    },
+    {
+      "id": "undo-file-3",
+      "category": "files",
+      "say": "Move it back.",
+      "tool": "undo_file_action",
+      "args": {}
+    },
+    {
+      "id": "undo-file-4",
+      "category": "files",
+      "say": "undo the move",
+      "tool": "undo_file_action",
+      "args": {}
+    },
+    {
+      "id": "contact-1",
+      "category": "contacts",
+      "say": "mom's email is mom at example dot com",
+      "tool": "set_contact_email",
+      "args": {
+        "name": "mom",
+        "address": "mom at example dot com"
+      }
+    },
+    {
+      "id": "contact-2",
+      "category": "contacts",
+      "say": "what is bob's email",
+      "tool": "get_contact_email",
+      "args": {
+        "name": "bob"
+      }
+    },
+    {
+      "id": "contact-3",
+      "category": "contacts",
+      "say": "What's my mom's email address?",
+      "tool": "get_contact_email",
+      "args": {
+        "name": "mom"
+      }
+    },
+    {
+      "id": "contact-4",
+      "category": "contacts",
+      "say": "forget bob's email",
+      "tool": "forget_contact_email",
+      "args": {
+        "name": "bob"
+      }
+    },
+    {
+      "id": "github-1",
+      "category": "settings",
+      "say": "my github name is c r h y",
+      "tool": "set_github_owner",
+      "args": {
+        "name": "c r h y"
+      }
+    },
+    {
+      "id": "github-2",
+      "category": "settings",
+      "say": "My GitHub username is crhy.",
+      "tool": "set_github_owner",
+      "args": {
+        "name": "crhy"
+      }
+    },
+    {
+      "id": "yt-chan-1",
+      "category": "settings",
+      "say": "my youtube channel is R H Y K H A N Z",
+      "tool": "set_youtube_channel",
+      "args": {
+        "name": "R H Y K H A N Z"
+      }
+    },
+    {
+      "id": "yt-chan-2",
+      "category": "settings",
+      "say": "My channel is rhykhanz.",
+      "tool": "set_youtube_channel",
+      "args": {
+        "name": "rhykhanz"
+      }
+    },
+    {
+      "id": "help-1",
+      "category": "help",
+      "say": "what can you do",
+      "tool": "voxa_help",
+      "args": {}
+    },
+    {
+      "id": "help-2",
+      "category": "help",
+      "say": "What can you do?",
+      "tool": "voxa_help",
+      "args": {}
+    },
+    {
+      "id": "help-3",
+      "category": "help",
+      "say": "help",
+      "tool": "voxa_help",
+      "args": {}
+    },
+    {
+      "id": "help-4",
+      "category": "help",
+      "say": "what can I say",
+      "tool": "voxa_help",
+      "args": {}
+    },
+    {
+      "id": "help-5",
+      "category": "help",
+      "say": "what can you do with files",
+      "tool": "voxa_help",
+      "args": {
+        "topic": "files"
+      }
+    },
+    {
+      "id": "help-6",
+      "category": "help",
+      "say": "help with music",
+      "tool": "voxa_help",
+      "args": {
+        "topic": "music"
+      }
+    },
+    {
+      "id": "read-sel-1",
+      "category": "reading",
+      "say": "read the selection",
+      "tool": "read_selection",
+      "args": {}
+    },
+    {
+      "id": "read-sel-2",
+      "category": "reading",
+      "say": "Read the selected text to me.",
+      "tool": "read_selection",
+      "args": {}
+    },
+    {
+      "id": "clip-1",
+      "category": "reading",
+      "say": "what's on my clipboard",
+      "tool": "read_clipboard_aloud",
+      "args": {}
+    },
+    {
+      "id": "clip-2",
+      "category": "reading",
+      "say": "read the clipboard",
+      "tool": "read_clipboard_aloud",
+      "args": {}
+    },
+    {
+      "id": "sum-1",
+      "category": "reading",
+      "say": "summarize this",
+      "tool": "summarize_selection",
+      "args": {}
+    },
+    {
+      "id": "sum-2",
+      "category": "reading",
+      "say": "Summarise the selection for me.",
+      "tool": "summarize_selection",
+      "args": {}
+    },
+    {
+      "id": "sum-3",
+      "category": "reading",
+      "say": "sum up this",
+      "tool": "summarize_selection",
+      "args": {}
+    },
+    {
+      "id": "open-win-1",
+      "category": "windows",
+      "say": "what's open",
+      "tool": "list_open_windows",
+      "args": {}
+    },
+    {
+      "id": "open-win-2",
+      "category": "windows",
+      "say": "What windows do I have open?",
+      "tool": "list_open_windows",
+      "args": {}
+    },
+    {
+      "id": "open-win-3",
+      "category": "windows",
+      "say": "which programs are running",
+      "tool": "list_open_windows",
+      "args": {}
+    },
+    {
+      "id": "active-win-1",
+      "category": "windows",
+      "say": "what window is this",
+      "tool": "active_window_name",
+      "args": {}
+    },
+    {
+      "id": "active-win-2",
+      "category": "windows",
+      "say": "What am I looking at?",
+      "tool": "active_window_name",
+      "args": {}
+    },
+    {
+      "id": "cleanup-1",
+      "category": "typing",
+      "say": "clean up the text",
+      "tool": "cleanup_text",
+      "args": {}
+    },
+    {
+      "id": "cleanup-2",
+      "category": "typing",
+      "say": "clean this up",
+      "tool": "cleanup_text",
+      "args": {}
+    },
+    {
+      "id": "cleanup-3",
+      "category": "typing",
+      "say": "fix this paragraph",
+      "tool": "cleanup_text",
+      "args": {}
+    },
+    {
+      "id": "cleanup-4",
+      "category": "typing",
+      "say": "proofread this",
+      "tool": "cleanup_text",
+      "args": {}
     }
   ],
   "wishlist": []
