@@ -157,30 +157,68 @@ def source_files() -> list[Path]:
     return sorted(p for p in SRC_DIR.glob("*.wav") if not p.name.startswith("_"))
 
 
+def align_ends(*arrays: np.ndarray) -> list[np.ndarray]:
+    """Trim the front of every array so all end together and have equal length."""
+    n = min(len(a) for a in arrays)
+    return [a[len(a) - n:] for a in arrays]
+
+
+def correlation_peak(mic, ref, max_delay: int = 8000) -> tuple[int, float]:
+    """Best echo delay in samples and how far the peak stands above correlation noise."""
+    n = min(len(mic), len(ref), 5 * SR)
+    if n <= 0:
+        return 0, 0.0
+    mic_n = np.asarray(mic[:n], dtype=np.float64)
+    ref_n = np.asarray(ref[:n], dtype=np.float64)
+    if float(np.mean(mic_n**2)) < 1e-8 or float(np.mean(ref_n**2)) < 1e-8:
+        return 0, 0.0
+    size = 1
+    while size < 2 * n:
+        size <<= 1
+    corr = np.fft.irfft(np.fft.rfft(mic_n, size) * np.conj(np.fft.rfft(ref_n, size)))
+    window = np.abs(corr[:max_delay + 1])
+    med = float(np.median(window))
+    peak = int(np.argmax(window))
+    ratio = window[peak] / med if med > 0 else float("inf")
+    return peak, ratio
+
+
+def wav_seconds(path: Path) -> float:
+    with wave.open(str(path), "rb") as w:
+        return w.getnframes() / w.getframerate()
+
+
 def play_and_record(wav_path: Path | None, volume: float, monitor: str, wake: Path | None = None):
     wake_p = None
     if wake is not None:
         wake_p = subprocess.Popen(["paplay", "--volume", "1", str(wake)])
-        time.sleep(0.2)
-    args = ["parec", "--rate", str(SR), "--channels", "1", "--format", "s16le", "--raw"]
-    mic_p = subprocess.Popen(args + ["--device", DEFAULT_SOURCE], stdout=subprocess.PIPE)
-    ref_p = subprocess.Popen(args + ["--device", monitor], stdout=subprocess.PIPE)
-    if wake_p is not None:
-        wake_p.wait()
-    else:
+        time.sleep(0.3)
+    args = ["parec", "--rate", str(SR), "--channels", "1", "--format", "s16le", "--raw",
+            "--latency-msec=20"]
+    mic_raw = REC_DIR / "_mic.raw"
+    ref_raw = REC_DIR / "_ref.raw"
+    with open(mic_raw, "wb") as mf, open(ref_raw, "wb") as rf:
+        mic_p = subprocess.Popen(args + ["--device", DEFAULT_SOURCE], stdout=mf, stderr=subprocess.DEVNULL)
+        ref_p = subprocess.Popen(args + ["--device", monitor], stdout=rf, stderr=subprocess.DEVNULL)
+        time.sleep(1.2)
+        if wav_path is not None:
+            vol = max(1, min(65536, int(round(volume * 65536))))
+            subprocess.run(["paplay", "--volume", str(vol), str(wav_path)], check=False)
+        else:
+            time.sleep(10.0)
         time.sleep(0.5)
-    if wav_path is not None:
-        vol = max(1, min(65536, int(round(volume * 65536))))
-        subprocess.run(["paplay", "--volume", str(vol), str(wav_path)], check=False)
-    else:
-        time.sleep(10.0)
-    time.sleep(0.7)
-    mic_p.terminate()
-    ref_p.terminate()
-    mic = np.frombuffer(mic_p.stdout.read(), dtype="<i2").astype(np.float32) / 32768.0
-    ref = np.frombuffer(ref_p.stdout.read(), dtype="<i2").astype(np.float32) / 32768.0
-    n = min(len(mic), len(ref))
-    return mic[:n], ref[:n]
+        mic_p.terminate()
+        ref_p.terminate()
+        mic_p.wait()
+        ref_p.wait()
+        if wake_p is not None:
+            wake_p.terminate()
+            wake_p.wait()
+    mic = np.frombuffer(mic_raw.read_bytes(), dtype="<i2").astype(np.float32) / 32768.0
+    ref = np.frombuffer(ref_raw.read_bytes(), dtype="<i2").astype(np.float32) / 32768.0
+    mic_raw.unlink(missing_ok=True)
+    ref_raw.unlink(missing_ok=True)
+    return align_ends(mic, ref)
 
 
 def record(volumes: tuple[float, ...]) -> bool:
@@ -195,16 +233,18 @@ def record(volumes: tuple[float, ...]) -> bool:
     # Wake the sink before every capture: while idle it is suspended and the monitor stream dies
     # a second after it is opened, which truncates every recording. A tiny paplay resumes it.
     wake = REC_DIR / "wake.wav"
-    wake_t = np.arange(5 * SR, dtype=np.float64) / SR
-    write_wav(wake, np.sin(2.0 * np.pi * 100.0 * wake_t) * 1e-3)
+    wake_t = np.arange(30 * SR, dtype=np.float64) / SR
+    write_wav(wake, np.sin(2.0 * np.pi * 100.0 * wake_t) * 0.3)
 
-    def entry(key, name, vol):
+    def entry(key, name, vol, mic, ref):
         manifest.append({"key": key, "source": name, "volume": vol,
                          "date": time.strftime("%Y-%m-%dT%H:%M:%S"),
-                         "sink": sink, "source_device": DEFAULT_SOURCE, "monitor": monitor})
+                         "sink": sink, "source_device": DEFAULT_SOURCE, "monitor": monitor,
+                         "mic_dbfs": round(dbfs(mic), 1), "ref_dbfs": round(dbfs(ref), 1)})
 
     for wav in source_files():
         name = wav.name.removesuffix(".wav")
+        clip_s = wav_seconds(wav)
         for vol in volumes:
             mic, ref = play_and_record(wav, vol, monitor, wake)
             if dbfs(mic) < -70.0:
@@ -213,16 +253,41 @@ def record(volumes: tuple[float, ...]) -> bool:
             if dbfs(ref) < -70.0:
                 print(f"ABORT: sink monitor silent for {name}; not writing bogus numbers")
                 return False
+            if len(mic) < 0.8 * clip_s * SR or len(ref) < 0.8 * clip_s * SR:
+                print(f"ABORT: truncated capture for {name} @ {vol} "
+                      f"(mic {len(mic) / SR:.2f} s, ref {len(ref) / SR:.2f} s, clip {clip_s:.2f} s); "
+                      "not writing bogus numbers")
+                return False
+            _peak, ratio = correlation_peak(mic, ref)
+            if ratio < 2.0:
+                print(f"ABORT: no clear echo correlation for {name} @ {vol} "
+                      f"(peak only {ratio:.1f}x noise); not writing bogus numbers")
+                return False
             key = f"{safe(name)}_v{vol}"
             np.save(REC_DIR / f"{key}.mic.npy", mic)
             np.save(REC_DIR / f"{key}.ref.npy", ref)
-            entry(key, name, vol)
+            entry(key, name, vol, mic, ref)
             print(f"recorded {name} @ {vol} ({len(mic) / SR:.1f} s)")
     mic, ref = play_and_record(None, 1.0, monitor, wake)
     np.save(REC_DIR / "silence.mic.npy", mic)
     np.save(REC_DIR / "silence.ref.npy", ref)
-    entry("silence", "silence", 1.0)
+    entry("silence", "silence", 1.0, mic, ref)
     (REC_DIR / "manifest.json").write_text(json.dumps(manifest, indent=1))
+    print("measured levels per speaker volume:")
+    print("volume   mic dBFS   ref dBFS")
+    by_vol: dict[float, list] = {}
+    for e in manifest:
+        if e["source"] != "silence":
+            by_vol.setdefault(e["volume"], []).append((e["mic_dbfs"], e["ref_dbfs"]))
+    for vol in sorted(by_vol):
+        pairs = by_vol[vol]
+        mic_mean = float(np.mean([m for m, _r in pairs]))
+        ref_mean = float(np.mean([r for _m, r in pairs]))
+        print(f"{vol:>6.2f}   {mic_mean:>8.1f}   {ref_mean:>8.1f}")
+    if 1.0 in by_vol:
+        mic_at_1 = float(np.mean([m for m, _r in by_vol[1.0]]))
+        if mic_at_1 < -60.0:
+            print(f"WARNING: the microphone is quiet: {mic_at_1:.1f} dBFS at volume 1.0")
     return True
 
 

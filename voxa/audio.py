@@ -75,15 +75,21 @@ class ReferenceRing:
         return self._total
 
 
-def mix_chunk(mic_bytes: bytes, ref_ring: ReferenceRing, counter: int, canceller) -> bytes:
+def mix_chunk(mic_bytes: bytes, ref_ring: ReferenceRing, counter: int, canceller,
+              ref_offset: int = 0) -> bytes:
     """Clean one microphone chunk against the reference samples covering the same span.
 
-    ``counter`` is the global sample position where this microphone chunk begins; the reference
-    samples for that same span are taken from ``ref_ring`` (zero-padded when the reference has not
-    produced enough yet). Returns the cleaned chunk as int16 bytes. Raises if the canceller raises.
+    ``counter`` is the global sample position where this microphone chunk begins; ``ref_offset``
+    is the microphone position that corresponds to the reference stream's position 0, so the
+    reference samples for the same wall-clock span start at ``counter - ref_offset`` (zero-padded
+    when the reference has not produced enough yet). An idle monitor delivers nothing, so a chunk
+    whose reference span is silence is passed through untouched (bypass). Returns the cleaned
+    chunk as int16 bytes. Raises if the canceller raises.
     """
     mic = np.frombuffer(mic_bytes, dtype="<i2").astype(np.float32) / 32768.0
-    ref = ref_ring.window(counter, mic.size)
+    ref = ref_ring.window(counter - ref_offset, mic.size)
+    if float(np.mean(ref * ref)) < 1e-9:
+        return mic_bytes
     cleaned = canceller.process(mic, ref)
     cleaned = np.clip(np.rint(np.asarray(cleaned, dtype=np.float32) * 32767.0), -32768, 32767)
     return cleaned.astype("<i2").tobytes()
@@ -151,6 +157,10 @@ class AudioCapture:
         self._last_level_emit = 0.0
         self._ref_ring: ReferenceRing | None = None
         self._mic_counter = 0
+        # How far the reference stream's position 0 sits ahead of the microphone stream's,
+        # or None until the monitor has produced its first sample. The monitor delivers
+        # nothing while the sink is idle, so the two streams do not start together.
+        self._ref_anchor: int | None = None
         self._canceller_enabled = True
         self._canceller_logged = False
         self._delay_done = True
@@ -254,6 +264,7 @@ class AudioCapture:
 
         # Both counters start together now that the microphone is actually playing.
         self._mic_counter = 0
+        self._ref_anchor = None
         self._canceller_enabled = True
         self._canceller_logged = False
         self._delay_done = self.canceller is None
@@ -274,6 +285,10 @@ class AudioCapture:
             log.info("reference capture unavailable: GStreamer elements missing")
             return
         src.set_property("device", self.reference_source)
+        if src.find_property("latency") is not None:
+            # Default PulseAudio latency delivers huge late chunks; a small latency
+            # keeps the monitor stream flowing in near-real-time pieces.
+            src.set_property("latency", 20)
         capsfilter.set_property("caps", gst.Caps.from_string("audio/x-raw,format=S16LE,channels=1,rate=16000"))
         sink.set_property("emit-signals", True)
         sink.connect("new-sample", self._on_ref_sample, None)
@@ -303,6 +318,10 @@ class AudioCapture:
         if self._ref_ring is not None:
             ref = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
             self._ref_ring.append(ref)
+            if self._ref_anchor is None:
+                # The monitor only starts producing when the sink wakes; anchor its
+                # position 0 to the microphone position of the same moment.
+                self._ref_anchor = self._mic_counter - self._ref_ring.total
         return gst.FlowReturn.OK
 
     def _on_sample(self, sink, on_level):
@@ -343,7 +362,8 @@ class AudioCapture:
             self._mic_counter += len(pcm) // 2
             return pcm
         try:
-            cleaned = mix_chunk(pcm, self._ref_ring, self._mic_counter, self.canceller)
+            cleaned = mix_chunk(pcm, self._ref_ring, self._mic_counter, self.canceller,
+                                self._ref_anchor or 0)
         except Exception as exc:  # noqa: BLE001 - recording must never break
             if not self._canceller_logged:
                 log.warning("echo canceller failed; using raw microphone: %s", exc)
@@ -359,7 +379,7 @@ class AudioCapture:
         if self._delay_done or self._ref_ring is None:
             return
         mic = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
-        ref = self._ref_ring.window(self._mic_counter, mic.size)
+        ref = self._ref_ring.window(self._mic_counter - (self._ref_anchor or 0), mic.size)
         if float(np.mean(ref * ref)) < 1e-6:
             return  # the reference is not loud enough yet
         self._delay_mic.append(mic)
