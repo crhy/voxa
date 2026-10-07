@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import re
+from collections.abc import Callable
 
 from voxa.agent.player import AudaciousPlayer, AudioPlayer, VlcPlayer, active_player, music_player
 from voxa.agent.policy import RiskLevel
@@ -9,6 +11,33 @@ from voxa.agent.result import ToolResult
 from voxa.agent.tools.browser import play_youtube
 from voxa.agent.tools.typing import _press_key_handler
 from voxa.agent.ytdlp import ResolveError, latest_from_channel, resolve
+
+get_my_channel: Callable[[], str] | None = None
+set_my_channel: Callable[[str], None] | None = None
+
+
+def is_my_channel(channel: str) -> bool:
+    if channel == "":
+        return True
+    text = channel.lower()
+    for token in ("youtube", "you tube", "own", "channel", "the"):
+        text = text.replace(token, "")
+    text = text.replace(" ", "")
+    return text in ("", "my", "mine")
+
+
+def clean_channel(spoken: str) -> str:
+    text = spoken.strip()
+    if text.startswith("@"):
+        text = text[1:]
+    parts = re.split(r"[ -]+", text)
+    if parts and all(len(part) == 1 and part.isalpha() for part in parts):
+        text = "".join(parts)
+    else:
+        text = text.replace(" ", "")
+    text = "".join(c for c in text if c.isalnum() or c in "_-.")
+    return text.lower()
+
 
 _CONTROL_KEYS = {
     "pause": "play pause",
@@ -71,16 +100,33 @@ def _play_music_handler(args: dict[str, str]) -> ToolResult:
 
 def _play_latest_handler(args: dict[str, str]) -> ToolResult:
     channel = args.get("channel", "")
-    if not channel or channel in ("my channel", "mychannel", "my"):
-        channel = os.environ.get("VOXA_YOUTUBE_CHANNEL", "")
-    if not channel:
-        return ToolResult.failure("I don't know which channel to play.")
+    if is_my_channel(channel):
+        handle = get_my_channel() if get_my_channel is not None else ""
+        if not handle:
+            handle = os.environ.get("VOXA_YOUTUBE_CHANNEL", "")
+        if not handle:
+            return ToolResult.failure("I don't know your channel yet. Say: my YouTube channel is, and then its name.")
+        if not (handle.startswith("@") or handle.startswith("http") or handle.startswith("UC")):
+            handle = "@" + handle
+        channel = handle
     urls = latest_from_channel(channel)
     if not urls:
         return ToolResult.failure("That channel has no recent uploads.")
     media = resolve(urls[0])
     VlcPlayer().play(media)
     return ToolResult.success(f"Playing {media.title}.", detail=media.webpage_url)
+
+
+def _set_youtube_channel_handler(args: dict[str, str]) -> ToolResult:
+    handle = clean_channel(args["name"])
+    if not handle:
+        return ToolResult.failure("I did not catch the channel name.")
+    if set_my_channel is None:
+        return ToolResult.failure("I cannot save that here.")
+    set_my_channel(handle)
+    return ToolResult.success(
+        f"Got it. Your YouTube channel is {handle}. Say play the latest video from my channel."
+    )
 
 
 def _media_control_handler(args: dict[str, str]) -> ToolResult:
@@ -128,6 +174,14 @@ def media_tools() -> list[Tool]:
             parameters={"channel": "the channel name, or empty for the saved channel"},
             risk=RiskLevel.REVERSIBLE,
             handler=_play_latest_handler,
+        ),
+        Tool(
+            name="set_youtube_channel",
+            description="Remember the user's YouTube channel handle so 'my channel' resolves to it.",
+            parameters={"name": "the channel name or handle"},
+            risk=RiskLevel.REVERSIBLE,
+            handler=_set_youtube_channel_handler,
+            required=("name",),
         ),
         Tool(
             name="media_control",

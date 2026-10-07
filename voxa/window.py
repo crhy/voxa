@@ -28,7 +28,7 @@ from .agent.result import ToolResult  # noqa: E402
 from .agent.routines import Routine, RoutineStore, parse_create, parse_delete, parse_list  # noqa: E402
 from .agent.spoken_text import format_dictation, parse_dictation_control  # noqa: E402
 from .agent.suggest import Suggestion, SuggestionState, suggest  # noqa: E402
-from .agent.tools import default_registry, textedit, typing, windows  # noqa: E402
+from .agent.tools import default_registry, media, textedit, typing, windows  # noqa: E402
 from .agent.tools.web import get_session  # noqa: E402
 from .anc import EchoCanceller as AncCanceller  # noqa: E402
 from .audio import AudioCapture, AudioDevice  # noqa: E402
@@ -276,6 +276,8 @@ class MainWindow(Adw.ApplicationWindow):
             self.tools.register(tool)
         windows.ON_LOCK = self._pause_now
         textedit.ask_model = lambda messages: self._ai_client().generate_stream(model=self.settings.ollama_model, prompt=messages[-1]["content"], cancel_event=threading.Event(), on_chunk=lambda chunk: None, messages=messages)
+        media.get_my_channel = lambda: self.settings.youtube_channel
+        media.set_my_channel = self._save_youtube_channel
         textedit.read_clipboard = clipboard.read_text
         textedit.write_clipboard = clipboard.write_text
         # Every command Voxa hears is logged here, so we can see what works.
@@ -329,6 +331,10 @@ class MainWindow(Adw.ApplicationWindow):
         self._load_whisper(self.settings.whisper_model)
         self._load_wake_whisper()
         self._start_ai_server_async()
+
+    def _save_youtube_channel(self, handle: str) -> None:
+        self.settings.youtube_channel = handle
+        self.config_store.save(self.settings)
 
     def _load_wake_whisper(self) -> None:
         # Runs quietly in the background: conversation mode falls back to the

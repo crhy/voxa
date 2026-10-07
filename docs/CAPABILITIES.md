@@ -76,6 +76,8 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | “Pause the music” / “resume” / “next” | Player control | 🧪 |
 | “Volume up” / “volume down” / “mute” / “unmute” | Computer volume | 🧪 |
 | “Set the volume to 40 percent” | Computer volume set exactly | 🧪 |
+| “My YouTube channel is …” | Remembers your channel | 🧪 |
+| “Play the latest video from my channel” | Plays your newest upload in VLC | 🧪 |
 
 ## Finding and buying
 

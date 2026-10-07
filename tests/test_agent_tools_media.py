@@ -110,7 +110,7 @@ def test_play_latest_without_channel_fails():
     os.environ.pop("VOXA_YOUTUBE_CHANNEL", None)
     result = _play_latest_handler({"channel": ""})
     assert not result.ok
-    assert result.speech == "I don't know which channel to play."
+    assert result.speech == "I don't know your channel yet. Say: my YouTube channel is, and then its name."
 
 
 def test_media_control_uses_active_player(monkeypatch):

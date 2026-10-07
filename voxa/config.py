@@ -54,6 +54,7 @@ class Settings:
     followup_seconds: float = 6.0
     welcomed: bool = False
     github_owner: str = ""
+    youtube_channel: str = ""
     home_assistant_url: str = ""
     home_assistant_token: str = ""
 

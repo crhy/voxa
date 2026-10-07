@@ -263,6 +263,7 @@ def test_registry_lists_all_tools():
         "set_location",
         "set_reminder",
         "set_timer",
+        "set_youtube_channel",
         "switch_to",
         "system_volume",
         "trash_file",

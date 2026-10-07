@@ -36,6 +36,7 @@ _COMPOSE = re.compile(
 )
 _PLAY_YT_MUSIC = re.compile(r"play\s+(.+?)\s+on\s+youtube\s+music", re.IGNORECASE)
 _PLAY_LATEST = re.compile(r"play\s+(?:the\s+)?latest\s+(?:video\s+)?from\s+(.+)", re.IGNORECASE)
+_SET_CHANNEL = re.compile(r"my (?:you ?tube )?channel(?: name)? is (?:called )?(.+)", re.IGNORECASE)
 _PLAY_YT_ON = re.compile(r"(?:play|watch|put on)\s+(.+?)\s+on\s+youtube", re.IGNORECASE)
 _PLAY_MUSIC_QUERY = re.compile(r"play\s+music\s+(.+)", re.IGNORECASE)
 _PLAY_SOME_MUSIC = re.compile(r"play\s+(?:some\s+)?music", re.IGNORECASE)
@@ -291,6 +292,7 @@ ROUTED_TOOLS = frozenset(
         "play_video",
         "play_music",
         "play_latest",
+        "set_youtube_channel",
         "media_control",
         "system_volume",
         "compiz_control",
@@ -497,6 +499,10 @@ def route(text: str) -> ToolCall | None:
         return call("open_site", name="gmail")
     if _COMPOSE.fullmatch(s):
         return call("compose_gmail")
+
+    set_channel_match = _SET_CHANNEL.fullmatch(s)
+    if set_channel_match:
+        return call("set_youtube_channel", name=set_channel_match.group(1))
 
     for pattern, tool in (
         (_PLAY_YT_MUSIC, "play_youtube"),
