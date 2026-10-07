@@ -119,7 +119,12 @@ def is_monitor_source(properties, display_name: str = "") -> bool:
     stable = _stable_field(properties, "object.stable-id").casefold()
     if "monitor" in stable:
         return True
-    return "monitor of" in (display_name or "").casefold()
+    name = (display_name or "").casefold()
+    # Voxa's own echo-cancelling device is plumbing, not a microphone to choose: Voxa routes the chosen
+    # microphone through it by itself.
+    if "voxa-echo-cancel" in name or "voxa_echo_cancel" in name or "voxa_echo_cancel" in stable:
+        return True
+    return "monitor of" in name
 
 
 class AudioCapture:

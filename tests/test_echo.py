@@ -59,14 +59,38 @@ def test_enable_twice_loads_once() -> None:
     assert sum(1 for call in pactl.calls if call[0] == "load-module") == 1
 
 
-def test_a_module_left_by_a_crashed_run_is_adopted_and_cleaned_up() -> None:
+def test_a_module_left_by_a_crashed_run_is_replaced_by_a_fresh_one() -> None:
+    """A leftover may be tied to the wrong microphone or speakers: it is removed and rebuilt, never adopted."""
     leftover = f"24\tmodule-echo-cancel\tsource_name={SOURCE_NAME} sink_name={SINK_NAME}"
-    pactl = FakePactl(modules=leftover, default_sink=SINK_NAME)
+    pactl = FakePactl(modules=leftover, default_sink="speakers")
     echo = EchoCanceller(runner=pactl)
-    assert echo.enable() is True
-    assert not any(call[0] == "load-module" for call in pactl.calls)
+    assert echo.enable(source_master="blue_mic") is True
+    kinds = [call[0] for call in pactl.calls]
+    assert kinds.index("unload-module") < kinds.index("load-module")
+    load = next(call for call in pactl.calls if call[0] == "load-module")
+    assert "source_master=blue_mic" in load and "sink_master=speakers" in load
     echo.disable()
-    assert pactl.calls[-1] == ["unload-module", "24"]
+    assert pactl.calls[-1] == ["unload-module", "31"]
+
+
+def test_the_chosen_microphone_is_found_by_its_serial() -> None:
+    import types
+
+    from voxa.echo import source_for
+
+    listing = (
+        "2\talsa_input.usb-Image__Galyimage_Live_camera_HU1-02.analog-stereo\tx\n"
+        "9\talsa_input.usb-Generic_Blue_Microphones_2111-00.analog-stereo\tx\n"
+        "8\talsa_output.pci.analog-stereo.monitor\tx\n"
+        f"7\t{SOURCE_NAME}\tx"
+    )
+
+    def runner(argv, **_kwargs):
+        return types.SimpleNamespace(returncode=0, stdout=listing, stderr="")
+
+    assert source_for("device.serial:Generic_Blue_Microphones_2111", runner).startswith("alsa_input.usb-Generic_Blue")
+    assert source_for("device.serial:Image+_Galyimage_Live_camera_HU1", runner).startswith("alsa_input.usb-Image__Galy")
+    assert source_for("device.serial:Nothing_Like_It", runner) is None and source_for("", runner) is None
 
 
 def test_failures_leave_the_normal_microphone_in_use() -> None:

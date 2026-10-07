@@ -42,6 +42,7 @@ from .echo import (  # noqa: E402
     EchoCanceller,
     default_monitor_source,
 )
+from .echo import source_for as echo_source_for  # noqa: E402
 from .hardware import (  # noqa: E402
     MODEL_CATALOG,
     GpuUsage,
@@ -748,7 +749,7 @@ class MainWindow(Adw.ApplicationWindow):
             # Today's behaviour: PulseAudio's module-echo-cancel route.
             if getattr(self, "_echo", None) is None:
                 self._echo = EchoCanceller()
-            if self._echo.enable():
+            if self._echo.enable(source_master=echo_source_for(self.settings.microphone_id)):
                 self.audio.pulse_source = ECHO_SOURCE_NAME
             else:
                 self.audio.pulse_source = None

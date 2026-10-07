@@ -18,6 +18,7 @@ best-effort: if anything is missing (no PulseAudio, no module) Voxa simply recor
 from __future__ import annotations
 
 import logging
+import re
 import subprocess
 
 from .agent.host import host_command
@@ -65,6 +66,23 @@ def default_monitor_source(runner=subprocess.run) -> str | None:
     return f"{sink}.monitor"
 
 
+def source_for(microphone_id: str, runner=subprocess.run) -> str | None:
+    """The PulseAudio source name of the microphone chosen in Voxa (matched by its serial), or None."""
+    wanted = re.sub(r"[^a-z0-9]+", "_", (microphone_id or "").split(":", 1)[-1].casefold()).strip("_")
+    if not wanted:
+        return None
+    code, listing = _pactl("list", "short", "sources", runner=runner)
+    if code != 0:
+        return None
+    for line in listing.splitlines():
+        parts = line.split("\t")
+        if len(parts) < 2 or parts[1].endswith(".monitor") or parts[1] == SOURCE_NAME:
+            continue
+        if wanted in re.sub(r"[^a-z0-9]+", "_", parts[1].casefold()):
+            return parts[1]
+    return None
+
+
 class EchoCanceller:
     """Loads, uses and removes the echo-cancelling devices. Safe to call when PulseAudio is absent."""
 
@@ -78,7 +96,7 @@ class EchoCanceller:
     def _run(self, *args: str) -> tuple[int, str]:
         return _pactl(*args, runner=self._runner)
 
-    def enable(self) -> bool:
+    def enable(self, source_master: str | None = None) -> bool:
         """Create the devices (or adopt existing ones) and route playback through them. True when active."""
         if self.active:
             return True
@@ -91,31 +109,34 @@ class EchoCanceller:
             return False
         existing = parse_module_id(modules)
         if existing is not None:
-            # Left over from a run that did not exit cleanly: adopt it and clean it up when this run ends.
-            self._module_id = existing
-            self._loaded_here = True
-            if default_sink != SINK_NAME:
-                self._previous_sink = default_sink
-        else:
-            if default_sink == SINK_NAME:
-                return False  # inconsistent state: do not stack another module on top
-            code, module_id = self._run(
-                "load-module",
-                "module-echo-cancel",
-                "aec_method=webrtc",
-                f"source_name={SOURCE_NAME}",
-                f"sink_name={SINK_NAME}",
-                f"sink_master={default_sink}",
-                f'aec_args="{AEC_ARGS}"',  # the quotes are part of the value: it contains spaces
-                "source_properties=device.description=Voxa-echo-cancelled-microphone",
-                "sink_properties=device.description=Voxa-echo-cancelled-output",
-            )
-            if code != 0 or not module_id.isdigit():
-                log.info("echo cancellation unavailable: module-echo-cancel did not load (%s)", module_id)
+            # Left over from a run that did not exit cleanly. It may be tied to a microphone or speakers that
+            # are no longer the right ones, so remove it and build a fresh one.
+            self._run("unload-module", existing)
+            code, default_sink = self._run("get-default-sink")
+            if code != 0 or not default_sink:
                 return False
-            self._module_id = module_id
-            self._loaded_here = True
-            self._previous_sink = default_sink
+        if default_sink == SINK_NAME:
+            return False  # inconsistent state: do not stack another module on top
+        arguments = [
+            "load-module",
+            "module-echo-cancel",
+            "aec_method=webrtc",
+            f"source_name={SOURCE_NAME}",
+            f"sink_name={SINK_NAME}",
+            f"sink_master={default_sink}",
+            f'aec_args="{AEC_ARGS}"',  # the quotes are part of the value: it contains spaces
+            "source_properties=device.description=Voxa-echo-cancelled-microphone",
+            "sink_properties=device.description=Voxa-echo-cancelled-output",
+        ]
+        if source_master:
+            arguments.append(f"source_master={source_master}")  # the microphone chosen in Voxa, not the system default
+        code, module_id = self._run(*arguments)
+        if code != 0 or not module_id.isdigit():
+            log.info("echo cancellation unavailable: module-echo-cancel did not load (%s)", module_id)
+            return False
+        self._module_id = module_id
+        self._loaded_here = True
+        self._previous_sink = default_sink
         # Everything must play THROUGH the cancelling output, or it cannot be subtracted from the microphone.
         self._run("set-default-sink", SINK_NAME)
         _code, inputs = self._run("list", "short", "sink-inputs")

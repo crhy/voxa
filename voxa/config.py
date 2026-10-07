@@ -46,7 +46,8 @@ class Settings:
     web_search: str = "auto"
     silence_ms: int = 700
     voice_threshold: int = 450
-    max_segment_seconds: float = 6.0
+    # The longest single request Voxa will listen to. 6 s (the old default) cut people off mid-sentence.
+    max_segment_seconds: float = 20.0
     wake_word: str = "voxa"
     early_silence_ms: int = 300
     early_final_pass: bool = False
@@ -63,7 +64,9 @@ class Settings:
         self.silence_ms = max(300, min(4000, int(self.silence_ms)))
         self.early_silence_ms = max(150, min(800, int(self.early_silence_ms)))
         self.voice_threshold = max(50, min(5000, int(self.voice_threshold)))
-        self.max_segment_seconds = max(2.0, min(20.0, float(self.max_segment_seconds)))
+        if float(self.max_segment_seconds) == 6.0:
+            self.max_segment_seconds = 20.0  # the old default, saved in existing profiles
+        self.max_segment_seconds = max(2.0, min(30.0, float(self.max_segment_seconds)))
         self.followup_seconds = max(0.0, min(20.0, float(self.followup_seconds)))
         self.ollama_url = self.ollama_url.rstrip("/") or "http://127.0.0.1:11434"
         self.llamacpp_url = self.llamacpp_url.rstrip("/") or "http://127.0.0.1:8080"
