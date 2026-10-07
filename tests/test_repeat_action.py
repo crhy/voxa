@@ -69,3 +69,15 @@ def test_window_bookkeeping():
     assert src.index("repeat.is_repeat_action(prompt)") > src.index("if self._external_dictation:")
     run_src = inspect.getsource(MainWindow._run_tool)
     assert "self._last_tool_call = call" in run_src
+
+
+def test_dictation_wins_over_starting_an_issue_or_an_email():
+    import inspect
+
+    from voxa.window import MainWindow
+
+    source = inspect.getsource(MainWindow.ask_ai)
+    dictating = source.index("if self._external_dictation:")
+    assert dictating < source.index("issueflow.parse_post_issue(prompt)")
+    assert dictating < source.index("mail.parse_email_command(prompt)")
+    assert dictating < source.index("repeat.is_repeat_action(prompt)")

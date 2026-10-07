@@ -2478,6 +2478,10 @@ class MainWindow(Adw.ApplicationWindow):
         if self._issue_flow is not None:
             self._feed_issue_flow(original)
             return
+        # Dictating into a window wins over starting anything new: the words belong to the document.
+        if self._external_dictation:
+            self._dictate_external(original)
+            return
         project = issueflow.parse_post_issue(prompt)
         if project is not None:
             self._start_issue_flow(project, original)
@@ -2485,9 +2489,6 @@ class MainWindow(Adw.ApplicationWindow):
         email_request = mail.parse_email_command(prompt)
         if email_request is not None and mailflow.wants_dictated_email(email_request.to, email_request.topic):
             self._start_mail_flow(email_request.to, original)
-            return
-        if self._external_dictation:
-            self._dictate_external(original)
             return
         if repeat.is_repeat_action(prompt):
             if self._last_tool_call is None:
