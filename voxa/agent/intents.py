@@ -130,6 +130,15 @@ _IMAGE_OF = re.compile(
     r"(?:images|pictures|photos|pics)\s+of\s+(.+)",
     re.IGNORECASE,
 )
+_IMAGE_BARE = re.compile(
+    r"(?:images|pictures|photos|pics)\s+of\s+(.+)", re.IGNORECASE
+)
+_IMAGE_KIND = re.compile(
+    r"(?:show\s+me|find(?:\s+me)?|look\s+for|search\s+for|get(?:\s+me)?|pull\s+up|bring\s+up)\s+"
+    r"(?:some\s+|a\s+few\s+|more\s+)?(.+?)\s+(?:images|pictures|photos|pics|wallpapers)",
+    re.IGNORECASE,
+)
+_IMAGE_OWN_WORDS = frozenset({"my", "the", "your", "our", "these", "those", "all my"})
 _LOCATION_SET = re.compile(
     r"(?:i[\u2019']?m\s+in|my\s+location\s+is)\s+(.+)", re.IGNORECASE
 )
@@ -618,10 +627,17 @@ def route(text: str) -> ToolCall | None:
     if nearby_match:
         return call("find_nearby", what=nearby_match.group(1).strip())
 
-    for pattern in (_IMAGE_SEARCH_FOR, _IMAGE_SEARCH_DO, _IMAGE_LOOK_LIKE, _IMAGE_OF):
+    for pattern in (_IMAGE_SEARCH_FOR, _IMAGE_SEARCH_DO, _IMAGE_LOOK_LIKE, _IMAGE_OF, _IMAGE_BARE, _IMAGE_KIND):
         image_match = pattern.fullmatch(s)
-        if image_match:
-            return call("image_search", query=image_match.group(1))
+        if not image_match:
+            continue
+        query = image_match.group(1)
+        if pattern is _IMAGE_KIND:
+            if query.lower() in _IMAGE_OWN_WORDS:
+                continue
+            if image_match.group(0).lower().endswith("wallpapers"):
+                query = f"{query} wallpapers"
+        return call("image_search", query=query)
 
     location_match = _LOCATION_SET.fullmatch(s)
     if location_match:
