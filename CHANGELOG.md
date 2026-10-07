@@ -56,8 +56,10 @@ checking by ear and eye on a real desktop; `docs/CAPABILITIES.md` is the checkli
   name. (#78) 🧪
 - "Clean up the text": selects the text in the foreground window, has the model fix spelling, punctuation, grammar
   and clarity, pastes it back and says "Text edited for clarity." An edit that looks wrong (far longer or shorter,
-  or chatty) is discarded and your text is left untouched. (#77) — now uses Voxa's own clipboard instead of the
-  `xclip` tool, which is not installed by default. 🧪
+  or chatty) is discarded and your text is left untouched. It works on **the selection** when something is
+  selected ("clean this up", "fix this paragraph") and on the whole text otherwise, and it uses Voxa's own clipboard
+  instead of the `xclip` tool, which is not installed by default; your clipboard contents are put back afterwards.
+  (#77) 🧪
 - **File management by voice**: "copy report from Downloads to Documents", "move holiday video from Downloads to
   Videos", "delete old notes from Documents" (goes to the trash, no confirmation — it can be taken back out),
   "empty trash", "find the file called budget", "find files bigger than 2 gigabytes", "open the Downloads folder",
@@ -69,6 +71,12 @@ checking by ear and eye on a real desktop; `docs/CAPABILITIES.md` is the checkli
   opens GitHub's new-issue page already filled in for you to check and submit. The project is looked up among your
   own GitHub repositories by name or description; a stranger's project is never opened on a loose match. (#83) 🧪
 - "Close file" now closes the document (Ctrl+W). It used to send Ctrl+Q, which quits the whole application.
+
+### Music and video
+
+- **"Play the latest video from my channel"** now works: say "my YouTube channel is …" once (spelling it out letter
+  by letter is fine) and Voxa remembers it. Before, "my YouTube channel" was searched as if it were a channel's
+  name. A channel that cannot be found is said out loud instead of failing silently. (#32) 🧪
 
 ### First start
 
@@ -83,6 +91,7 @@ checking by ear and eye on a real desktop; `docs/CAPABILITIES.md` is the checkli
 - `docs/CAPABILITIES.md`: a living list of everything Voxa can do, with a phrase to try and a tested / untested /
   not-working mark for each.
 - This changelog.
+- The website link in the app's store and About information points to voxaai.me. (#33)
 
 ### Under the hood
 

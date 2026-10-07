@@ -22,6 +22,7 @@ from .agent.claims import claims_action, first_sentences  # noqa: E402
 from .agent.host import host_command  # noqa: E402
 from .agent.host import spawn as host_spawn  # noqa: E402
 from .agent.player import active_player  # noqa: E402
+from .agent.progress import working_caption  # noqa: E402
 from .agent.registry import ToolError  # noqa: E402
 from .agent.reminders import ReminderStore, reminder_phrase, timer_phrase  # noqa: E402
 from .agent.result import ToolResult  # noqa: E402
@@ -1941,11 +1942,12 @@ class MainWindow(Adw.ApplicationWindow):
         self._end_query_task("cancelled")
         self.shell.exchange_panel.show_question(prompt)
         title = call.tool.replace("_", " ").capitalize()
+        caption = working_caption(call.tool, call.args)
         task = self.assistant.begin_task(title)
         self._query_task_id = task.id if task is not None else None
         token = self.assistant.token()
-        self.assistant.prompt_accepted(token)
-        self._set_status(f"{title}…", busy=True)
+        self.assistant.prompt_accepted(token, caption)
+        self._set_status(caption, busy=True)
 
         # While OFFLINE there is no session to guard: the tool still runs, with a toast.
         active = self.assistant.is_active
