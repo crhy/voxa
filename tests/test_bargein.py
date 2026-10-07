@@ -25,7 +25,7 @@ def test_is_own_voice_real_interruption():
 def test_is_own_voice_noise():
     sentence = "Please continue with the quarterly report"
     assert is_own_voice("", sentence)
-    assert is_own_voice("stop", sentence)
+    assert is_own_voice("stop", sentence) is False  # a bare stop word is a real interruption
     assert is_own_voice("hmm", sentence)
 
 
