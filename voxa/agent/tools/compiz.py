@@ -73,8 +73,21 @@ def bindings(config_files=CONFIG_FILES) -> dict[str, str]:
             result.update(read_bindings(Path(path).read_text()))
             break
         except OSError:
-            continue
+            text = _host_read(path)  # inside the Flatpak the user's Compiz settings are only visible on the host
+            if text:
+                result.update(read_bindings(text))
+                break
     return result
+
+
+def _host_read(path) -> str:
+    if simulation.actions_simulated():
+        return ""
+    try:
+        done = subprocess.run(host_command(["cat", str(path)]), capture_output=True, text=True, timeout=5, check=False)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return done.stdout if done.returncode == 0 else ""
 
 
 def _run(command: list[str]) -> bool:
