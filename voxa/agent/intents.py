@@ -7,6 +7,7 @@ from datetime import date
 from voxa.agent.deals import parse_request
 from voxa.agent.filematch import folder_key
 from voxa.agent.hearing import normalize
+from voxa.agent.helptext import topic_for
 from voxa.agent.mailflow import spoken_address
 from voxa.agent.tools.browser import site_url
 
@@ -38,6 +39,16 @@ _COMPOSE = re.compile(
 _PLAY_YT_MUSIC = re.compile(r"play\s+(.+?)\s+on\s+youtube\s+music", re.IGNORECASE)
 _PLAY_LATEST = re.compile(r"play\s+(?:the\s+)?latest\s+(?:video\s+)?from\s+(.+)", re.IGNORECASE)
 _SET_CHANNEL = re.compile(r"my (?:you ?tube )?channel(?: name)? is (?:called )?(.+)", re.IGNORECASE)
+_HELP_ASK = re.compile(
+    r"(?:what can you do|what do you do|what are you able to do|what can i (?:say|ask)(?: you)?|help|help me"
+    r"|what are your (?:abilities|skills|commands))",
+    re.IGNORECASE,
+)
+_HELP_TOPIC = re.compile(
+    r"(?:what can you do|what can i (?:say|do)|help(?: me)?) (?:with|about|for) (.+)"
+    r"|(.+) help",
+    re.IGNORECASE,
+)
 _SET_GITHUB_OWNER = re.compile(
     r"my (?:git ?hub|get hub) (?:user ?name|name|account|handle)(?: is)? (?:called )?(.+)",
     re.IGNORECASE,
@@ -317,6 +328,7 @@ ROUTED_TOOLS = frozenset(
         "play_music",
         "play_latest",
         "set_youtube_channel",
+        "voxa_help",
         "set_github_owner",
         "set_contact_email",
         "get_contact_email",
@@ -531,6 +543,14 @@ def route(text: str) -> ToolCall | None:
     if forget_email_match:
         return call("forget_contact_email", name=forget_email_match.group(1))
 
+    if _HELP_ASK.fullmatch(s):
+        return call("voxa_help")
+    help_topic = _HELP_TOPIC.fullmatch(s)
+    if help_topic:
+        topic = help_topic.group(1) or help_topic.group(2)
+        if topic_for(topic) is not None:
+            return call("voxa_help", topic=topic)
+
     if _QUESTION.match(s):
         return None
 
@@ -710,6 +730,8 @@ def route(text: str) -> ToolCall | None:
     if maximize_match:
         return call("maximize_app", name=maximize_match.group(1) or maximize_match.group(2))
     if _UNDO_FILE.fullmatch(s):
+        if s.lower() == "undo that":
+            return call("undo_file_action", otherwise="key")
         return call("undo_file_action")
     if _RESTORE_ACTIVE.fullmatch(s):
         return call("restore_app", name="")

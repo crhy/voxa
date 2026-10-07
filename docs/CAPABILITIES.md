@@ -32,6 +32,7 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | “Back to English” | Returns to the character's own language | ✅ |
 | “Volume up” … “again” … “do that again” | Repeats the last command (never a delete, a send or a lock) | 🧪 |
 | A short reply | She starts speaking while the answer is still being written | ✅ |
+| “What can you do?” / “What can you do with files?” | A short spoken list, with phrases to try | 🧪 |
 
 ## The face
 

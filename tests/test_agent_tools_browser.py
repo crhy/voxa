@@ -272,8 +272,9 @@ def test_registry_lists_all_tools():
         "system_volume",
         "trash_file",
         "type_text",
-        "undo_file_action",
-        "wait_for",
+            "undo_file_action",
+            "voxa_help",
+            "wait_for",
         "web_search",
     ]
 

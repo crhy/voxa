@@ -169,3 +169,19 @@ def test_router_bare_undo_is_not_undo(monkeypatch):
     call = route("undo")
     assert call is not None
     assert call.tool != "undo_file_action"
+
+
+def test_undo_that_without_a_file_action_is_the_ordinary_undo(monkeypatch):
+    from voxa.agent import intents
+    from voxa.agent.result import ToolResult
+    from voxa.agent.tools import filemanage, typing
+
+    monkeypatch.setattr(filemanage, "LAST_UNDO", None)
+    pressed = []
+    monkeypatch.setattr(typing, "_press_key_handler", lambda args: pressed.append(args) or ToolResult.success(""))
+    call = intents.route("undo that")
+    assert call.tool == "undo_file_action" and call.args == {"otherwise": "key"}
+    assert filemanage.undo_file_action(call.args).ok
+    assert pressed == [{"key": "undo"}]
+    assert intents.route("put it back").args == {}
+    assert filemanage.undo_file_action({}).speech == "There is no file action to undo."

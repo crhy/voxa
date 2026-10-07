@@ -300,6 +300,11 @@ def find_large_files(args: dict[str, str]) -> ToolResult:
 def undo_file_action(args: dict[str, str]) -> ToolResult:
     global LAST_UNDO
     if LAST_UNDO is None:
+        if args.get("otherwise") == "key":
+            # A bare "undo that" with no file action behind it means the ordinary undo of the focused program.
+            from voxa.agent.tools.typing import _press_key_handler
+
+            return _press_key_handler({"key": "undo"})
         return ToolResult.failure("There is no file action to undo.")
     sentence, commands = LAST_UNDO
     LAST_UNDO = None
@@ -408,7 +413,7 @@ def file_manage_tools() -> list[Tool]:
         Tool(
             name="undo_file_action",
             description="Undo the last file action that was done.",
-            parameters={},
+            parameters={"otherwise": "what to do when there is no file action: key = the ordinary undo"},
             risk=RiskLevel.REVERSIBLE,
             handler=undo_file_action,
             required=(),
