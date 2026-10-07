@@ -63,8 +63,13 @@ def nlms_cancel(mic, ref, taps: int = 1024, mu: float = 0.5, delay: int = 0,
         e = mic[i] - w @ buf
         out[i] = e
         if freeze is None or not freeze[i]:
-            w += mu * e * buf / (buf @ buf + 1e-6)
+            # Regularised by the filter length: with a near-silent reference (the pauses in a voice) a tiny
+            # denominator would make the step enormous and the filter blow up.
+            w += mu * e * buf / (buf @ buf + taps * 1e-5)
     return out.astype(np.float32), w, {"buf": buf, "pending": pending}
+
+
+MIN_REFERENCE_POWER = 1e-5  # about -50 dB: below this the computer is effectively silent
 
 
 class EchoCanceller:
@@ -120,12 +125,15 @@ class EchoCanceller:
             and p_res > 1e-6)
         if speaking:
             self._speaking_left = 25
-        if self._speaking_left > 0:
-            self._speaking_left -= 1
+        # Nothing (or almost nothing) is being played: there is no echo to learn from, so do not adapt.
+        reference_quiet = p_ref < MIN_REFERENCE_POWER
+        if self._speaking_left > 0 or reference_quiet:
+            if self._speaking_left > 0:
+                self._speaking_left -= 1
             self.weights = w1
             self.history = h1
             self._pos += length
-            return trial
+            return self._never_worse(mic_b, trial, p_mic)
         result, w2, h2 = nlms_cancel(mic_b, ref_b, taps=self._taps, mu=self._mu,
                                      delay=self._delay, weights=w0, history=h0, freeze=None)
         self.weights = w2
@@ -134,7 +142,18 @@ class EchoCanceller:
         self._floor = 0.95 * self._floor + 0.05 * (p_res / max(p_mic, 1e-12))
         self._converged = 0.9 * self._converged + 0.1 * erle_db(mic_b, result)
         self._pos += length
-        return result
+        return self._never_worse(mic_b, result, p_mic)
+
+    def _never_worse(self, mic_b, cleaned, p_mic: float):
+        """Safety net: the canceller may never hand on something louder than the microphone itself.
+
+        If it does (a filter gone wrong), pass the raw microphone through for this block and pull the filter
+        back towards zero so it relearns."""
+        if p_mic > 0.0 and float(np.mean(np.asarray(cleaned, dtype=np.float64) ** 2)) > 1.5 * p_mic:
+            if self.weights is not None:
+                self.weights = self.weights * 0.5
+            return np.asarray(mic_b, dtype=np.float32)
+        return cleaned
 
     def process(self, mic, ref) -> np.ndarray:
         mic = np.asarray(mic, dtype=np.float64)

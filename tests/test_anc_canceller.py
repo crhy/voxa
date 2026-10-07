@@ -92,3 +92,22 @@ def test_speed():
     print(f"8 s of audio in {elapsed:.2f} s")
     assert elapsed < 3.0
     assert len(cleaned) == len(echo)
+
+
+def test_a_reference_with_silent_pauses_never_makes_things_worse():
+    """Found on real hardware: a voice (which has pauses) as the reference and a microphone that barely hears the
+    speakers made the filter blow up and ADD 30 dB of noise. It must stay harmless."""
+    import numpy as np
+
+    from voxa.anc import EchoCanceller, erle_db
+
+    rng = np.random.default_rng(1)
+    n = 8 * 16000
+    ref = 0.2 * rng.standard_normal(n)
+    for start in range(0, n, 16000):          # half of every second is digital near-silence
+        ref[start + 8000:start + 16000] = 1e-4 * rng.standard_normal(8000)
+    mic = 0.0015 * rng.standard_normal(n)     # room noise only: the microphone does not hear the speakers
+    canceller = EchoCanceller()
+    out = np.concatenate([canceller.process(mic[i:i + 160], ref[i:i + 160]) for i in range(0, n, 160)])
+    assert erle_db(mic, out) > -1.0           # at worst a hair louder, never tens of dB
+    assert float(np.max(np.abs(out))) < 0.05
