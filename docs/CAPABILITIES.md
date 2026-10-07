@@ -139,7 +139,7 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | Look for | What should happen | Status |
 | --- | --- | --- |
 | Top-left tips | Change with what you are doing (dictating, paused, music playing …) | 🧪 |
-| Small face when Voxa is not in focus | A separate round pop-up in the corner of the screen | ❌ currently only a badge inside Voxa's own window (#86) |
+| Small face when Voxa is not in focus | A round talking head floats in the top-right corner of the screen, above other programs, with a one-line status; click it to bring Voxa back. X11 only | 🧪 |
 
 ---
 

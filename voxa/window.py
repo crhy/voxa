@@ -64,6 +64,7 @@ from .speech import SpeechService  # noqa: E402
 from .theme import host_theme_is_dark  # noqa: E402
 from .transcription import WhisperService  # noqa: E402
 from .ui.avatars import character_choices, get_avatar  # noqa: E402
+from .ui.focus_window import overlay_supported  # noqa: E402
 from .ui.legacy_view import LegacyCallbacks, LegacyView  # noqa: E402
 from .ui.live_face import LiveFaceClient, decode_audio_to_pcm16k  # noqa: E402
 from .ui.shell import AssistantShell, build_header  # noqa: E402
@@ -356,6 +357,8 @@ class MainWindow(Adw.ApplicationWindow):
         self.shell.on_character_selected = self._on_shell_character_selected
         self.shell.on_face_mode_selected = self._on_shell_face_mode_selected
         self.shell.set_characters(self.settings.character_id)
+        if overlay_supported():
+            self.shell.enable_focus_window(self.present)
         self.shell.face_quality.set_mode(self.settings.face_mode)
         self.shell.face_quality.set_sensitive(bool(self.settings.character_id))
         self._live_client: LiveFaceClient | None = None
@@ -479,7 +482,9 @@ class MainWindow(Adw.ApplicationWindow):
         """Show the focus pop-up whenever the window manager reports the window unfocused."""
         if self._closing:
             return False
-        self.shell.set_window_focus(self.is_focus())
+        popup = self.shell.focus_window
+        focused = any(w.is_active() for w in Gtk.Window.list_toplevels() if w is not popup)
+        self.shell.set_window_focus(focused)
         return True
 
     def _pause_now(self) -> None:
@@ -3001,6 +3006,7 @@ class MainWindow(Adw.ApplicationWindow):
         reset = getattr(renderer, "reset_word_timeline", None)
         if reset is not None:
             reset()
+        self.shell.reset_word_timeline()
 
     def _on_query_finished(
         self, answer: str, generation: int, cancel_event: threading.Event, heard: str = ""
@@ -3450,6 +3456,7 @@ class MainWindow(Adw.ApplicationWindow):
 
     def do_close_request(self) -> bool:
         self._closing = True
+        self.shell.close_focus_window()
         self._live_generation = getattr(self, "_live_generation", 0) + 1
         self._release_face_server()
         echo = getattr(self, "_echo", None)

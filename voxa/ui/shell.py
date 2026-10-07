@@ -27,6 +27,7 @@ from .choice_overlay import ChoiceOverlay  # noqa: E402
 from .exchange_panel import ExchangePanel  # noqa: E402
 from .face_quality import FaceQualitySwitch  # noqa: E402
 from .focus_popup import FocusPopup  # noqa: E402
+from .focus_window import FocusWindow  # noqa: E402
 from .model_selector import ModelSelector  # noqa: E402
 from .notice import NoticeBar  # noqa: E402
 from .state import AssistantModel, AssistantState  # noqa: E402
@@ -57,6 +58,7 @@ class AssistantShell(Gtk.Overlay):
         self.on_backend_selected: Callable[[str], None] | None = None
         self.on_character_selected: Callable[[str], None] | None = None
         self.on_face_mode_selected: Callable[[str], None] | None = None
+        self.focus_window: FocusWindow | None = None
 
         self.set_hexpand(True)
         self.set_vexpand(True)
@@ -211,19 +213,61 @@ class AssistantShell(Gtk.Overlay):
 
     def set_window_focus(self, focused: bool) -> None:
         """Show the focus pop-up when the window is not focused."""
-        self.focus_popup.set_window_focus(focused)
+        if self.focus_window is None:
+            self.focus_popup.set_window_focus(focused)
+            return
+        self.focus_popup.set_visible(False)
+        if focused:
+            self.focus_window.hide_window()
+        else:
+            self.focus_window.set_character(self.assistant_view._character_id)
+            if not self.focus_window.get_visible():
+                self.focus_window.show_at_corner(self._focus_monitor())
+            else:
+                self.focus_window.keep_on_top()
 
     def set_audio_level(self, level: float) -> None:
         """Forward the microphone level to the assistant view."""
         self.assistant_view.set_audio_level(level)
+        if self.focus_window is not None:
+            self.focus_window.set_audio_level(level)
 
     def set_word_timeline(self, words: list[tuple[str, float, float]]) -> None:
         """Forward Edge TTS word boundaries to the assistant view."""
         self.assistant_view.set_word_timeline(words)
+        if self.focus_window is not None:
+            self.focus_window.set_word_timeline(words)
 
     def set_speech_clock(self, clock) -> None:
         """Forward the playback clock to the assistant view."""
         self.assistant_view.set_speech_clock(clock)
+        if self.focus_window is not None:
+            self.focus_window.set_speech_clock(clock)
+
+    def enable_focus_window(self, on_activate=None) -> None:
+        """Use the floating head (a separate window) instead of the badge inside this window."""
+        if self.focus_window is None:
+            self.focus_window = FocusWindow(on_activate=on_activate)
+            self.focus_window.set_state(self.model.state, "")
+        self.focus_popup.set_visible(False)
+
+    def close_focus_window(self) -> None:
+        if self.focus_window is not None:
+            self.focus_window.destroy()
+            self.focus_window = None
+
+    def reset_word_timeline(self) -> None:
+        if self.focus_window is not None:
+            self.focus_window.reset_word_timeline()
+
+    def _focus_monitor(self):
+        """Geometry (x, y, width, height) of the monitor this window is on, or None."""
+        try:
+            surface = self.get_root().get_surface()
+            g = surface.get_display().get_monitor_at_surface(surface).get_geometry()
+            return (g.x, g.y, g.width, g.height)
+        except Exception:
+            return None
 
     # -------------------------------------------------------------- internals
 
@@ -237,6 +281,8 @@ class AssistantShell(Gtk.Overlay):
         self.assistant_view.set_thinking(state is AssistantState.THINKING)
         self.assistant_view.set_speaking(state is AssistantState.SPEAKING)
         self.focus_popup.set_state(state, detail)
+        if self.focus_window is not None:
+            self.focus_window.set_state(state, detail)
         self._refresh_tips(state)
         return False
 
