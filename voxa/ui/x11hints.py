@@ -35,10 +35,12 @@ def corner_position(monitor: tuple[int, int, int, int], size: tuple[int, int], m
 
 
 def _load():
-    name = ctypes.util.find_library("X11")
-    if not name:
+    # find_library needs ldconfig or a compiler, which a Flatpak runtime may not have: fall back to the soname.
+    name = ctypes.util.find_library("X11") or "libX11.so.6"
+    try:
+        lib = ctypes.CDLL(name)
+    except OSError:
         return None
-    lib = ctypes.CDLL(name)
     lib.XOpenDisplay.restype = ctypes.c_void_p
     lib.XOpenDisplay.argtypes = [ctypes.c_char_p]
     lib.XChangeWindowAttributes.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_void_p]
