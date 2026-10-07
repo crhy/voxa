@@ -99,6 +99,8 @@ _TEMPLATES: dict[str, str] = {
     "press_button": "Pressing {label}…",
     "read_window": "Reading the window…",
     "search_site": "Searching for {query}…",
+    "update_system": "Updating Spaced Linux…",
+    "check_system_version": "Checking the version…",
 }
 
 _NORMALISED = {"folder", "destination"}

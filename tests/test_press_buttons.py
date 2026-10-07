@@ -203,7 +203,7 @@ def test_list_buttons_three(monkeypatch):
     )
     result = list_buttons({"app": "GIMP"})
     assert result.ok
-    assert result.speech == "I can see 3 buttons: Save, Cancel and Open."
+    assert result.speech == "I can see 4 buttons: Save, Cancel, Open and NotAButton."
 
 
 def test_list_buttons_many(monkeypatch):
@@ -286,3 +286,17 @@ def test_uicontrol_tools_in_registry():
     names = default_registry().names()
     for tool in uicontrol_tools():
         assert tool.name in names
+
+
+def test_list_buttons_accepts_the_role_names_real_programs_use(monkeypatch):
+    from voxa.agent.tools import uicontrol
+
+    seen = [
+        {"role": "button", "name": "Install", "enabled": True, "showing": True},
+        {"role": "radio button", "name": "OS Release", "enabled": True, "showing": True},
+        {"role": "button", "name": "Install", "enabled": True, "showing": True},
+        {"role": "button", "name": "Close", "enabled": True, "showing": True},
+    ]
+    monkeypatch.setattr(uicontrol.ui, "items", lambda app, *roles, **kw: seen)
+    result = uicontrol.list_buttons({"app": "Spaced Bazaar"})
+    assert result.ok and result.speech == "I can see 2 buttons: Install and OS Release."

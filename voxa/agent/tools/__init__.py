@@ -17,6 +17,7 @@ from voxa.agent.tools.notes import notes_tools
 from voxa.agent.tools.reminders import reminders_tools
 from voxa.agent.tools.screenshot import screenshot_tools
 from voxa.agent.tools.system import system_tools
+from voxa.agent.tools.sysupdate import sysupdate_tools
 from voxa.agent.tools.textedit import textedit_tools
 from voxa.agent.tools.typing import typing_tools
 from voxa.agent.tools.uicontrol import uicontrol_tools
@@ -49,6 +50,7 @@ def default_registry() -> ToolRegistry:
         *textedit_tools(),
         *file_manage_tools(),
         *system_tools(),
+        *sysupdate_tools(),
         *uicontrol_tools(),
     ]:
         registry.register(tool)

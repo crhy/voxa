@@ -155,6 +155,8 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | “How much disk space do I have?” | Answered instantly from the computer, not by the AI model | 🧪 |
 | “How much memory is free?” | Answered instantly from the computer, not by the AI model | 🧪 |
 | “How much battery is left?” | Answered instantly from the computer, not by the AI model | 🧪 |
+| “Update Spaced Linux” | Opens Spaced Update and presses its buttons: the OS release update first, then the app updates; you type your password when the desktop asks and she says “please enter your password” when the desktop asks. Checks the installed version against the latest release before saying it worked | 🧪 |
+| “Am I up to date?” | Installed and latest Spaced Linux version | 🧪 |
 
 ## Pressing buttons in other programs
 

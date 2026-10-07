@@ -70,13 +70,15 @@ def list_buttons(args: dict[str, str]) -> ToolResult:
     names = [
         item.get("name")
         for item in ui.items(app)
-        if item.get("role") == "push button"
-        and item.get("showing")
+        # No role filter: `ui.items` already returns only pressable things, and the role of a plain button is
+        # "push button" in older toolkits and "button" in current ones.
+        if item.get("showing")
         and item.get("enabled")
         and item.get("name")
         and len(item["name"]) <= 40
         and item["name"].casefold() not in _FRAME_BUTTONS
     ]
+    names = list(dict.fromkeys(names))
     if not names:
         return ToolResult.failure("I do not see any buttons there.")
     if len(names) <= 10:

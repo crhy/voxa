@@ -419,6 +419,20 @@ _SCROLL = re.compile(
     r"scroll (down|up)|go to the (top|bottom)(?: of the page)?", re.IGNORECASE
 )
 _GO_BACK = re.compile(r"go back|previous page", re.IGNORECASE)
+_UPDATE_SYSTEM = re.compile(
+    r"(?:please )?(?:update|upgrade) (?:spaced(?: linux)?|the (?:system|computer|os|operating system)"
+    r"|my (?:system|computer)|everything|this computer|linux)(?: now| please)?"
+    r"|(?:install|get|run|do) (?:all )?(?:the )?(?:latest |system |available )?updates(?: now| please)?"
+    r"|open spaced update and (?:install|run|do|apply) (?:all )?(?:the )?(?:latest )?updates?"
+    r"|run (?:a |the )?(?:system|os|full) update",
+    re.IGNORECASE,
+)
+_CHECK_VERSION = re.compile(
+    r"(?:what|which) version of spaced(?: linux)? (?:am i|is this|do i have)(?: on| running)?"
+    r"|(?:am i|is (?:this|my) (?:computer|system)) (?:up to date|on the latest(?: version| release)?)"
+    r"|is spaced(?: linux)? up to date",
+    re.IGNORECASE,
+)
 
 ROUTED_TOOLS = frozenset(
     {
@@ -462,6 +476,8 @@ ROUTED_TOOLS = frozenset(
         "lock_screen",
         "switch_to",
         "minimize_app",
+        "update_system",
+        "check_system_version",
         "maximize_app",
         "restore_app",
         "minimize_all",
@@ -728,6 +744,9 @@ def route(text: str) -> ToolCall | None:
     if _WHATS_OPEN.fullmatch(s):
         return call("list_open_windows")
 
+    if _CHECK_VERSION.fullmatch(s):
+        return call("check_system_version")
+
     if _QUESTION.match(s):
         return None
 
@@ -784,6 +803,9 @@ def route(text: str) -> ToolCall | None:
 
     if s.casefold() == "google":
         return call("web_search", query="google")
+
+    if _UPDATE_SYSTEM.fullmatch(s):
+        return call("update_system")
 
     open_file_folder_match = _OPEN_FILE_FOLDER.fullmatch(s)
     if open_file_folder_match and folder_key(open_file_folder_match.group(2)) is not None:
