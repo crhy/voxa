@@ -89,6 +89,53 @@ def window_label(title: str, wm_class: str) -> str:
     return label[:30]
 
 
+def app_name_index(apps_list: list) -> dict[str, str]:
+    """Map lower-cased app keys to the menu name a person would say."""
+    index: dict[str, str] = {}
+    for app in apps_list:
+        menu = app.name.strip()
+        trimmed = re.sub(r"\s+(?:Web Browser|File Manager|Text Editor)$", "", menu, flags=re.IGNORECASE).strip()
+        if len(trimmed) >= 3:
+            menu = trimmed
+        menu = re.sub(r"^(?:MATE|GNOME)\s+", "", menu, flags=re.IGNORECASE).strip() or menu
+        stem = app.path.rsplit("/", 1)[-1]
+        if stem.endswith(".desktop"):
+            stem = stem[: -len(".desktop")]
+        parts = [p for p in stem.split(".") if p]
+        exec_base = parts[-1] if parts else stem
+        keys = {app.name.lower(), stem, exec_base}
+        for key in list(keys):
+            keys.add(key.replace("-", "").replace("_", ""))
+        for key in keys:
+            if key:
+                index.setdefault(key, menu)
+    return index
+
+
+def friendly_label(title: str, wm_class: str, app_names: dict[str, str]) -> str:
+    """The name a person would use for a window, preferring the app menu name."""
+    parts = wm_class.rsplit(".", 1)
+    for part in parts:
+        key = part.casefold()
+        if key in app_names:
+            return app_names[key]
+    for part in parts:
+        key = part.casefold().replace("-", "").replace("_", "")
+        if key in app_names:
+            return app_names[key]
+    base = window_label(title, wm_class)
+    title_parts = re.split(r"\s[-—]\s", title)
+    from_title = len(title_parts) >= 2 and bool(title_parts[-1].strip())
+    if from_title and len(base) <= 4 and base.isalnum():
+        cls = wm_class.rsplit(".", 1)[-1]
+        base = cls[0].upper() + cls[1:] if cls else base
+    if ("-" in base or "_" in base) and " " not in base:
+        base = base.replace("-", " ").replace("_", " ")
+        base = re.sub(r"^(?:mate|gnome|xfce4|org gnome) ", "", base, flags=re.IGNORECASE)
+        base = base.title()
+    return base
+
+
 _NUMBER_WORDS = {
     1: "one",
     2: "two",
@@ -309,8 +356,12 @@ def _is_desktop(window: Window) -> bool:
 
 
 def list_open_windows(args: dict[str, str]) -> ToolResult:
+    try:
+        index = app_name_index(apps.list_apps())
+    except Exception:
+        index = {}
     labels = [
-        window_label(w.title, w.wm_class)
+        friendly_label(w.title, w.wm_class, index)
         for w in list_windows()
         if not _is_desktop(w)
     ]
