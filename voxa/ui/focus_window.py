@@ -53,6 +53,7 @@ class FocusWindow(Gtk.Window):
         caption = Gtk.Label()
         caption.set_xalign(0.5)
         caption.set_wrap(True)
+        caption.set_justify(Gtk.Justification.CENTER)
         caption.set_max_width_chars(20)
         caption.set_halign(Gtk.Align.CENTER)
         caption.add_css_class("voxa-focus-window-caption")

@@ -28,14 +28,15 @@ checking by ear and eye on a real desktop; `docs/CAPABILITIES.md` is the checkli
   mode loaded PulseAudio's echo-cancel module, which showed up in Sound Preferences as "Voxa-echo-cancelled-output"
   (mono, 32 kHz), became the default output and could be left behind after Voxa exited. That mode is removed; Voxa
   only listens to the output's monitor. On start, a device left behind by an older build is removed and the real
-  output is restored. *(in progress)*
+  output is restored. The automated tests are now also barred from the real sound server: test runs during
+  development were the reason the output "kept switching". 🧪
 
 ### On the screen
 
 - **The talking head follows you out of the window.** When Voxa is not the focused window, a round cut-out of the
   character (Medium lip movement) floats in the top-right corner of the monitor, above the program you are using,
   with a one-line status underneath. It never takes the keyboard focus; clicking it brings Voxa back. X11 only.
-  (#86) *(in progress)*
+  (#86) 🧪 — checked in the real app on a private test display; not yet seen on the Compiz desktop.
 - **Tips in the top-left corner** that change with what you are doing: dictating, paused, music playing and so on.
   (#85) 🧪
 - The caption reads **Dictating** while dictation is on, instead of Listening. (#84) 🧪

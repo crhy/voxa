@@ -7,22 +7,34 @@ from voxa.agent.cleanup import sane_result
 from voxa.agent.tools.textedit import cleanup_text
 
 
-def _fake_run(command, **kwargs):
-    calls = te._calls
-    calls.append(list(command))
-    if command[:4] == ["xclip", "-selection", "clipboard", "-o"]:
-        text = te._saved if len([c for c in calls if c[:4] == ["xclip", "-selection", "clipboard", "-o"]]) == 1 else te._copied
-        return subprocess.CompletedProcess(command, 0, text, "")
-    return subprocess.CompletedProcess(command, 0, "", "")
-
-
 def _install(monkeypatch, saved, copied, model_out):
     te._calls = []
-    te._saved = saved
-    te._copied = copied
-    monkeypatch.setattr(te.subprocess, "run", _fake_run)
+    te._writes = []
+    te._asked = []
+    te._state = [saved]
+
+    def fake_run(command, **kwargs):
+        te._calls.append(list(command))
+        if "ctrl+c" in command:
+            te._state[0] = copied
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    def read() -> str:
+        return te._state[0]
+
+    def write(text: str) -> None:
+        te._writes.append(text)
+        te._state[0] = text
+
+    def ask(messages):
+        te._asked.append(messages)
+        return model_out
+
+    monkeypatch.setattr(te, "_run", fake_run)
     monkeypatch.setattr(te.time, "sleep", lambda _s: None)
-    monkeypatch.setattr(te, "ask_model", lambda messages: model_out)
+    monkeypatch.setattr(te, "read_clipboard", read)
+    monkeypatch.setattr(te, "write_clipboard", write)
+    monkeypatch.setattr(te, "ask_model", ask)
 
 
 def test_happy_path(monkeypatch):
@@ -32,14 +44,13 @@ def test_happy_path(monkeypatch):
     assert result.speech == "Text edited for clarity."
     assert sane_result("helo wrld", "hello world")
     argv = te._calls
-    assert argv[0] == ["xclip", "-selection", "clipboard", "-o"]
-    assert argv[1] == ["xdotool", "key", "--clearmodifiers", "ctrl+a"]
-    assert argv[2] == ["xdotool", "key", "--clearmodifiers", "ctrl+c"]
-    assert argv[3] == ["xclip", "-selection", "clipboard", "-o"]
-    assert argv[4] == ["xclip", "-selection", "clipboard", "-i"]
-    assert argv[5] == ["xdotool", "key", "ctrl+v"]
-    assert argv[6] == ["xclip", "-selection", "clipboard", "-i"]
-    assert argv[6] == argv[0][:3] + ["-i"]
+    assert argv == [
+        ["xdotool", "key", "--clearmodifiers", "ctrl+a"],
+        ["xdotool", "key", "--clearmodifiers", "ctrl+c"],
+        ["xdotool", "key", "--clearmodifiers", "ctrl+v"],
+    ]
+    assert te._writes == ["", "hello world", "old clipboard"]
+    assert not any("xclip" in arg for call in argv for arg in call)
 
 
 def test_empty_selection(monkeypatch):
@@ -47,8 +58,13 @@ def test_empty_selection(monkeypatch):
     result = cleanup_text({})
     assert not result.ok
     assert result.speech == "I could not read any text in that window."
-    assert te._calls[3] == ["xclip", "-selection", "clipboard", "-o"]
-    assert len(te._calls) == 4
+    assert te._calls == [
+        ["xdotool", "key", "--clearmodifiers", "ctrl+a"],
+        ["xdotool", "key", "--clearmodifiers", "ctrl+c"],
+        ["xdotool", "key", "Right"],
+    ]
+    assert te._writes == ["", "old clipboard"]
+    assert te._asked == []
 
 
 def test_insane_result_leaves_text(monkeypatch):
@@ -57,11 +73,12 @@ def test_insane_result_leaves_text(monkeypatch):
     assert result.ok
     assert result.speech == "I was not sure about my edit, so I left your text as it was."
     assert te._calls[-1] == ["xdotool", "key", "Right"]
-    assert not any(c[:4] == ["xclip", "-selection", "clipboard", "-i"] for c in te._calls)
+    assert not any("ctrl+v" in call for call in te._calls)
+    assert te._writes == ["", "old clipboard"]
 
 
 def test_clipboard_restored(monkeypatch):
     _install(monkeypatch, "old clipboard", "helo wrld", "hello world")
     cleanup_text({})
-    restores = [c for c in te._calls if c[:4] == ["xclip", "-selection", "clipboard", "-i"]]
-    assert len(restores) == 2
+    assert te._state[0] == "old clipboard"
+    assert te._writes == ["", "hello world", "old clipboard"]

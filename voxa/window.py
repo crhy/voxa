@@ -61,6 +61,7 @@ from .speakstream import SentenceFeeder, is_thinking_model, looks_like_reasoning
 from .speech import SpeechService  # noqa: E402
 from .theme import host_theme_is_dark  # noqa: E402
 from .transcription import WhisperService  # noqa: E402
+from .ui import clipboard  # noqa: E402
 from .ui.avatars import character_choices, get_avatar  # noqa: E402
 from .ui.focus_window import overlay_supported  # noqa: E402
 from .ui.legacy_view import LegacyCallbacks, LegacyView  # noqa: E402
@@ -274,6 +275,8 @@ class MainWindow(Adw.ApplicationWindow):
             self.tools.register(tool)
         windows.ON_LOCK = self._pause_now
         textedit.ask_model = lambda messages: self._ai_client().generate_stream(model=self.settings.ollama_model, prompt=messages[-1]["content"], cancel_event=threading.Event(), on_chunk=lambda chunk: None, messages=messages)
+        textedit.read_clipboard = clipboard.read_text
+        textedit.write_clipboard = clipboard.write_text
         # Every command Voxa hears is logged here, so we can see what works.
         self.action_log = ActionLog()
         # True once a tool or app has run for the request being answered; the
