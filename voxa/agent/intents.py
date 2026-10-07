@@ -161,6 +161,31 @@ _SWITCH_TO = re.compile(
     re.IGNORECASE,
 )
 
+_MINIMIZE_ALL = re.compile(
+    r"(?:minimi[sz]e)\s+(?:everything|all windows)|show the desktop", re.IGNORECASE
+)
+_MINIMIZE_APP = re.compile(
+    r"(?:minimi[sz]e|hide)\s+(\w+(?:\s+\w+){0,4})", re.IGNORECASE
+)
+_MAXIMIZE_APP = re.compile(
+    r"(?:maximi[sz]e)\s+(\w+(?:\s+\w+){0,4})|make\s+(\w+(?:\s+\w+){0,4})\s+(?:bigger|full size)",
+    re.IGNORECASE,
+)
+_RESTORE_APP = re.compile(
+    r"(?:restore|bring back|unminimi[sz]e)\s+(\w+(?:\s+\w+){0,4})", re.IGNORECASE
+)
+_MINIMIZE_ACTIVE = re.compile(
+    r"(?:minimi[sz]e|hide)\s+(?:this|it|that|the window|the app|window|app)", re.IGNORECASE
+)
+_MAXIMIZE_ACTIVE = re.compile(
+    r"(?:maximi[sz]e)\s+(?:this|it|that|the window|the app|window|app)"
+    r"|make\s+(?:this|it|that|the window|the app|window|app)\s+(?:bigger|full size)",
+    re.IGNORECASE,
+)
+_RESTORE_ACTIVE = re.compile(
+    r"(?:restore|bring back|unminimi[sz]e)\s+(?:this|it|that|the window|the app|window|app)", re.IGNORECASE
+)
+
 _TIMER_SET = re.compile(
     r"(?:set\s+(?:a\s+|the\s+|an\s+)?timer|start\s+(?:a\s+|the\s+)?timer|timer)\s*(?:for\s+|of\s+)?(.+)",
     re.IGNORECASE,
@@ -212,6 +237,10 @@ ROUTED_TOOLS = frozenset(
         "close_app",
         "close_window",
         "switch_to",
+        "minimize_app",
+        "maximize_app",
+        "restore_app",
+        "minimize_all",
         "browse",
         "read_page",
         "click_on",
@@ -490,6 +519,23 @@ def route(text: str) -> ToolCall | None:
         if site_url(name) is not None and "." not in name:
             return call("open_site", name=name.casefold())
         return call("switch_to", name=name)
+    if _MINIMIZE_ALL.fullmatch(s):
+        return call("minimize_all")
+    if _MINIMIZE_ACTIVE.fullmatch(s):
+        return call("minimize_app", name="")
+    minimize_match = _MINIMIZE_APP.fullmatch(s)
+    if minimize_match:
+        return call("minimize_app", name=minimize_match.group(1))
+    if _MAXIMIZE_ACTIVE.fullmatch(s):
+        return call("maximize_app", name="")
+    maximize_match = _MAXIMIZE_APP.fullmatch(s)
+    if maximize_match:
+        return call("maximize_app", name=maximize_match.group(1) or maximize_match.group(2))
+    if _RESTORE_ACTIVE.fullmatch(s):
+        return call("restore_app", name="")
+    restore_match = _RESTORE_APP.fullmatch(s)
+    if restore_match:
+        return call("restore_app", name=restore_match.group(1))
 
     type_match = _TYPE.fullmatch(s)
     if type_match and not _DOCUMENT.match(type_match.group(1)):

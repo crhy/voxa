@@ -145,6 +145,66 @@ def switch_to(args: dict[str, str]) -> ToolResult:
     return ToolResult.success(f"Switching to {name}.")
 
 
+def _active_window_id() -> str:
+    result = _run(["xdotool", "getactivewindow"], check=False)
+    return result.stdout.strip()
+
+
+def minimize_app(args: dict[str, str]) -> ToolResult:
+    name = _THE_PREFIX.sub("", args["name"].strip())
+    if not name:
+        window_id = _active_window_id()
+        if not window_id:
+            return ToolResult.failure("Nothing seems to be open.")
+        _run(["xdotool", "windowminimize", window_id], check=False)
+        return ToolResult.success("Minimized.")
+    windows = match_windows(name, list_windows())
+    if not windows:
+        return ToolResult.failure(f"{name} does not seem to be open.")
+    for window in windows:
+        _run(["xdotool", "windowminimize", window.id], check=False)
+    return ToolResult.success(f"Minimized {name}.")
+
+
+def maximize_app(args: dict[str, str]) -> ToolResult:
+    name = _THE_PREFIX.sub("", args["name"].strip())
+    if not name:
+        window_id = _active_window_id()
+        if not window_id:
+            return ToolResult.failure("Nothing seems to be open.")
+        _run(["wmctrl", "-i", "-r", window_id, "-b", "add,maximized_vert,maximized_horz"], check=False)
+        return ToolResult.success("Maximized.")
+    windows = match_windows(name, list_windows())
+    if not windows:
+        return ToolResult.failure(f"{name} does not seem to be open.")
+    for window in windows:
+        _run(["wmctrl", "-i", "-r", window.id, "-b", "add,maximized_vert,maximized_horz"], check=False)
+    return ToolResult.success(f"Maximized {name}.")
+
+
+def restore_app(args: dict[str, str]) -> ToolResult:
+    name = _THE_PREFIX.sub("", args["name"].strip())
+    if not name:
+        window_id = _active_window_id()
+        if not window_id:
+            return ToolResult.failure("Nothing seems to be open.")
+        _run(["wmctrl", "-i", "-r", window_id, "-b", "remove,maximized_vert,maximized_horz"], check=False)
+        _run(["wmctrl", "-i", "-a", window_id], check=False)
+        return ToolResult.success("Restored.")
+    windows = match_windows(name, list_windows())
+    if not windows:
+        return ToolResult.failure(f"{name} does not seem to be open.")
+    for window in windows:
+        _run(["wmctrl", "-i", "-r", window.id, "-b", "remove,maximized_vert,maximized_horz"], check=False)
+        _run(["wmctrl", "-i", "-a", window.id], check=False)
+    return ToolResult.success(f"Restored {name}.")
+
+
+def minimize_all(args: dict[str, str]) -> ToolResult:
+    _run(["wmctrl", "-k", "on"], check=False)
+    return ToolResult.success("Minimized everything.")
+
+
 def window_tools() -> list[Tool]:
     return [
         Tool(
@@ -170,5 +230,37 @@ def window_tools() -> list[Tool]:
             risk=RiskLevel.REVERSIBLE,
             handler=switch_to,
             required=("name",),
+        ),
+        Tool(
+            name="minimize_app",
+            description="Minimize an open application by name, or the focused window when no name is given.",
+            parameters={"name": "the application name"},
+            risk=RiskLevel.REVERSIBLE,
+            handler=minimize_app,
+            required=(),
+        ),
+        Tool(
+            name="maximize_app",
+            description="Maximize an open application by name, or the focused window when no name is given.",
+            parameters={"name": "the application name"},
+            risk=RiskLevel.REVERSIBLE,
+            handler=maximize_app,
+            required=(),
+        ),
+        Tool(
+            name="restore_app",
+            description="Restore an application to its normal size by name, or the focused window when no name is given.",
+            parameters={"name": "the application name"},
+            risk=RiskLevel.REVERSIBLE,
+            handler=restore_app,
+            required=(),
+        ),
+        Tool(
+            name="minimize_all",
+            description="Minimize every open window to show the desktop.",
+            parameters={},
+            risk=RiskLevel.REVERSIBLE,
+            handler=minimize_all,
+            required=(),
         ),
     ]
