@@ -155,7 +155,13 @@ _BARE_KEYS = {
     "full screen",
     "fullscreen",
 }
-_TYPE = re.compile(r"(?:type|write|say)\s+(.+)", re.IGNORECASE)
+_TYPE = re.compile(r"(?:type|write|dictate|enter)\s+(.+)", re.IGNORECASE)
+_SAY_TEXT = re.compile(r"say\s+(.+)", re.IGNORECASE)
+_REPEAT_AFTER_ME = re.compile(r"repeat\s+after\s+me\s+(.+)", re.IGNORECASE)
+_REPEAT_LAST = re.compile(
+    r"(?:say|repeat)\s+that(?:\s+again)?|what\s+did\s+you\s+say",
+    re.IGNORECASE,
+)
 _COPY_THAT = re.compile(r"copy (?:that|this)", re.IGNORECASE)
 _NEW_TAB = re.compile(r"(?:open|add|create)\s+(?:a\s+)?new tab", re.IGNORECASE)
 _SAVE_FILE = re.compile(
@@ -367,6 +373,15 @@ def route(text: str) -> ToolCall | None:
         if type_match and not _DOCUMENT.match(type_match.group(1)):
             return ToolCall("type_text", {"text": type_match.group(1)})
         return None
+
+    if _REPEAT_LAST.fullmatch(s):
+        return call("repeat_last")
+    after_me_match = _REPEAT_AFTER_ME.fullmatch(s)
+    if after_me_match:
+        return call("say_text", text=after_me_match.group(1))
+    say_match = _SAY_TEXT.fullmatch(s)
+    if say_match and normalize(text).strip().casefold().startswith("say "):
+        return call("say_text", text=say_match.group(1))
 
     timer_match = _TIMER_SET.fullmatch(s)
     if timer_match:

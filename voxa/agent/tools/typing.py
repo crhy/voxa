@@ -14,6 +14,8 @@ from voxa.agent.spoken_text import format_dictation
 
 log = logging.getLogger("voxa.agent.tools.typing")
 
+LAST_REPLY: str = ""
+
 _KEY_COMBO = re.compile(r"^[A-Za-z0-9_+]+$")
 
 KEYS: dict[str, str] = {
@@ -129,6 +131,16 @@ def _type_text_handler(args: dict[str, str]) -> ToolResult:
     return ToolResult.success("", detail=args["text"])
 
 
+def _say_text_handler(args: dict[str, str]) -> ToolResult:
+    return ToolResult.success(args["text"])
+
+
+def _repeat_last_handler(args: dict[str, str]) -> ToolResult:
+    if not LAST_REPLY:
+        return ToolResult.success("I have not said anything yet.")
+    return ToolResult.success(LAST_REPLY)
+
+
 def _key_combo(key: str) -> str | None:
     """Resolve a spoken key name to an xdotool combo, accepting common aliases."""
     name = re.sub(r"\s+", " ", key.strip().casefold().replace("_", " "))
@@ -167,6 +179,21 @@ def typing_tools() -> list[Tool]:
             risk=RiskLevel.REVERSIBLE,
             handler=_type_text_handler,
             required=("text",),
+        ),
+        Tool(
+            name="say_text",
+            description="Speak the given text aloud without typing anything.",
+            parameters={"text": "the text to speak"},
+            risk=RiskLevel.READ_ONLY,
+            handler=_say_text_handler,
+            required=("text",),
+        ),
+        Tool(
+            name="repeat_last",
+            description="Repeat the last thing Voxa said aloud.",
+            parameters={},
+            risk=RiskLevel.READ_ONLY,
+            handler=_repeat_last_handler,
         ),
         Tool(
             name="press_key",

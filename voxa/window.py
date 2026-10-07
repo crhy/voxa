@@ -2032,6 +2032,7 @@ class MainWindow(Adw.ApplicationWindow):
         return self.settings.tts_voice
 
     def _conversation_speak(self, text: str) -> None:
+        typing.LAST_REPLY = text
         if self.conversation is not None:
             self.conversation.mute()
         self._speaking_since = time.monotonic()

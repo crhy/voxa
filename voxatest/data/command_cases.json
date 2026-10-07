@@ -798,7 +798,7 @@
       "id": "type-3",
       "category": "typing",
       "say": "say hello world",
-      "tool": "type_text",
+      "tool": "say_text",
       "args": {
         "text": "hello world"
       }
@@ -834,7 +834,7 @@
       "id": "type-7",
       "category": "typing",
       "say": "say the word hello",
-      "tool": "type_text",
+      "tool": "say_text",
       "args": {
         "text": "the word hello"
       }
