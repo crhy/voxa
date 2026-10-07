@@ -73,6 +73,73 @@ def match_windows(name: str, windows: list[Window]) -> list[Window]:
     return matches
 
 
+_DESKTOP_MARKERS = ("desktop_window", "mate-panel", "desktop", "panel")
+
+
+def window_label(title: str, wm_class: str) -> str:
+    """A short name to SAY for a window, from its title or wm_class."""
+    parts = re.split(r"\s[-—]\s", title)
+    if len(parts) >= 2 and parts[-1].strip():
+        label = parts[-1].strip()
+    else:
+        label = wm_class.rsplit(".", 1)[-1]
+        if label:
+            label = label[0].upper() + label[1:]
+    label = re.sub(r"\s+(?:Web Browser|File Manager)$", "", label, flags=re.IGNORECASE).strip()
+    return label[:30]
+
+
+_NUMBER_WORDS = {
+    1: "one",
+    2: "two",
+    3: "three",
+    4: "four",
+    5: "five",
+    6: "six",
+    7: "seven",
+    8: "eight",
+    9: "nine",
+    10: "ten",
+}
+
+
+def describe_windows(labels: list[str]) -> str:
+    """Spoken summary of the open windows, grouping duplicates."""
+    if not labels:
+        return "Nothing is open."
+    counts: dict[str, int] = {}
+    order: list[str] = []
+    for label in labels:
+        if label not in counts:
+            counts[label] = 0
+            order.append(label)
+        counts[label] += 1
+    parts: list[str] = []
+    for label in order:
+        count = counts[label]
+        if count == 1:
+            parts.append(label)
+        else:
+            word = _NUMBER_WORDS.get(count, str(count))
+            parts.append(f"{word} {label} windows")
+    if len(parts) > 6:
+        shown = parts[:6]
+        more = len(parts) - 6
+        shown.append(f"{more} more")
+    else:
+        shown = parts
+    if len(shown) == 1:
+        joined = shown[0]
+    else:
+        joined = ", ".join(shown[:-1]) + " and " + shown[-1]
+    total = len(labels)
+    if total == 1:
+        head = "You have one window open: "
+    else:
+        head = f"You have {total} windows open: "
+    return head + joined + "."
+
+
 def flatpak_app_id(desktop_path: str) -> str | None:
     """The Flatpak app id behind a .desktop file, or None for a non-Flatpak app."""
     if "flatpak/exports/" not in desktop_path:
@@ -233,6 +300,31 @@ def lock_screen(args: dict[str, str]) -> ToolResult:
     return ToolResult.failure("I could not find a screen locker on this computer.")
 
 
+def _is_desktop(window: Window) -> bool:
+    """True for the desktop's own windows and Voxa's own windows."""
+    wm = window.wm_class.casefold()
+    if any(marker in wm for marker in _DESKTOP_MARKERS):
+        return True
+    return window.title.strip() == "Voxa"
+
+
+def list_open_windows(args: dict[str, str]) -> ToolResult:
+    labels = [
+        window_label(w.title, w.wm_class)
+        for w in list_windows()
+        if not _is_desktop(w)
+    ]
+    return ToolResult.success(describe_windows(labels))
+
+
+def active_window_name(args: dict[str, str]) -> ToolResult:
+    result = _run(["xdotool", "getactivewindow", "getwindowname"], check=False)
+    title = result.stdout.strip()
+    if not title:
+        return ToolResult.failure("I cannot tell which window is in front.")
+    return ToolResult.success(f"This is {title[:80]}.")
+
+
 def window_tools() -> list[Tool]:
     return [
         Tool(
@@ -289,6 +381,22 @@ def window_tools() -> list[Tool]:
             parameters={},
             risk=RiskLevel.REVERSIBLE,
             handler=minimize_all,
+            required=(),
+        ),
+        Tool(
+            name="list_open_windows",
+            description="Say which windows are open.",
+            parameters={},
+            risk=RiskLevel.READ_ONLY,
+            handler=list_open_windows,
+            required=(),
+        ),
+        Tool(
+            name="active_window_name",
+            description="Say which window is in front.",
+            parameters={},
+            risk=RiskLevel.READ_ONLY,
+            handler=active_window_name,
             required=(),
         ),
         Tool(

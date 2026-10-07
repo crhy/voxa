@@ -281,6 +281,20 @@ _RESTORE_APP = re.compile(
 _MINIMIZE_ACTIVE = re.compile(
     r"(?:minimi[sz]e|hide)\s+(?:this|it|that|the window|the app|window|app)", re.IGNORECASE
 )
+_WHATS_OPEN = re.compile(
+    r"(?:what(?:'s| is) open"
+    r"|what(?: programs| apps| windows)? (?:do i have|are) open"
+    r"|list (?:the |my )?(?:open )?windows"
+    r"|which (?:programs|apps|windows) are (?:open|running))",
+    re.IGNORECASE,
+)
+_WHICH_WINDOW = re.compile(
+    r"(?:what window is this"
+    r"|which window is (?:this|in front|active)"
+    r"|what(?:'s| is) (?:this|the active|the current) window"
+    r"|what am i looking at)",
+    re.IGNORECASE,
+)
 _MAXIMIZE_ACTIVE = re.compile(
     r"(?:maximi[sz]e)\s+(?:this|it|that|the window|the app|window|app)"
     r"|make\s+(?:this|it|that|the window|the app|window|app)\s+(?:bigger|full size)",
@@ -375,6 +389,8 @@ ROUTED_TOOLS = frozenset(
         "maximize_app",
         "restore_app",
         "minimize_all",
+        "list_open_windows",
+        "active_window_name",
         "browse",
         "read_page",
         "click_on",
@@ -565,6 +581,11 @@ def route(text: str) -> ToolCall | None:
         topic = help_topic.group(1) or help_topic.group(2)
         if topic_for(topic) is not None:
             return call("voxa_help", topic=topic)
+
+    if _WHICH_WINDOW.fullmatch(s):
+        return call("active_window_name")
+    if _WHATS_OPEN.fullmatch(s):
+        return call("list_open_windows")
 
     if _QUESTION.match(s):
         return None

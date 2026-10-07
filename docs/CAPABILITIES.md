@@ -63,6 +63,8 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | “Close Brave” | Closes the browser you named | 🧪 |
 | “Minimize Pluma” / “Maximize Pluma” / “Restore Pluma” | Window state changes | 🧪 |
 | “Show the desktop” | Everything minimizes | 🧪 |
+| “What's open?” | Lists the windows that are open | 🧪 |
+| “What window is this?” | Names the window in front | 🧪 |
 | “Lock the screen” | Screen locks | 🧪 |
 | “Rotate cube right” / “rotate cube left” | Compiz cube turns (uses your Compiz key bindings) | 🧪 |
 | “Zoom in” / “zoom in more” / “zoom out” / “reset zoom” | Compiz desktop zoom | 🧪 |

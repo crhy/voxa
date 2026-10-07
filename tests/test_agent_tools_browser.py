@@ -208,6 +208,7 @@ def test_image_search_tool(opened):
 def test_registry_lists_all_tools():
     names = default_registry().names()
     assert names == [
+        "active_window_name",
         "browse",
         "cancel_reminders",
         "click_on",
@@ -234,6 +235,7 @@ def test_registry_lists_all_tools():
         "home_turn",
         "image_search",
         "list_folder",
+        "list_open_windows",
         "list_reminders",
         "lock_screen",
         "make_folder",
