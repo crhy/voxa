@@ -154,6 +154,9 @@ _CLOSE_WINDOW = re.compile(
 _CLOSE_APP = re.compile(
     r"(?:close|quit|exit|kill|shut down)\s+(?:the\s+)?(\w+(?:\s+\w+){0,4})", re.IGNORECASE
 )
+_LOCK_SCREEN = re.compile(
+    r"lock (?:the |my )?(?:screen|computer|pc|desktop)|lock it|lock up", re.IGNORECASE
+)
 _SWITCH_TO = re.compile(
     r"(?:switch to|go to|focus|bring up)\s+(\w+(?:\s+\w+){0,4})"
     r"|show\s+me\s+(?!images\b|pictures\b|photos\b|pics\b|a\b|an\b|the\b|some\b|how\b|what\b)"
@@ -236,6 +239,7 @@ ROUTED_TOOLS = frozenset(
         "open_app",
         "close_app",
         "close_window",
+        "lock_screen",
         "switch_to",
         "minimize_app",
         "maximize_app",
@@ -510,6 +514,8 @@ def route(text: str) -> ToolCall | None:
 
     if _CLOSE_WINDOW.fullmatch(s):
         return call("close_window")
+    if _LOCK_SCREEN.fullmatch(s):
+        return call("lock_screen")
     close_match = _CLOSE_APP.fullmatch(s)
     if close_match:
         return call("close_app", name=close_match.group(1))

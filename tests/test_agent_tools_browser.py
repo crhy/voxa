@@ -226,6 +226,7 @@ def test_registry_lists_all_tools():
         "home_turn",
         "image_search",
         "list_reminders",
+        "lock_screen",
         "maximize_app",
         "media_control",
         "minimize_all",

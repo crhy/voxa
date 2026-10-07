@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import re
 import subprocess
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from voxa import apps, simulation
@@ -15,6 +16,16 @@ from voxa.agent.tools.applications import open_app
 log = logging.getLogger("voxa.agent.tools.windows")
 
 _THE_PREFIX = re.compile(r"^the\s+", re.IGNORECASE)
+
+ON_LOCK: Callable | None = None
+
+_LOCKERS = (
+    ("mate-screensaver-command", "--lock"),
+    ("xdg-screensaver", "lock"),
+    ("dm-tool", "lock"),
+    ("xscreensaver-command", "-lock"),
+    ("gnome-screensaver-command", "--lock"),
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -205,6 +216,23 @@ def minimize_all(args: dict[str, str]) -> ToolResult:
     return ToolResult.success("Minimized everything.")
 
 
+def lock_screen(args: dict[str, str]) -> ToolResult:
+    if ON_LOCK is not None:
+        ON_LOCK()
+    for name, flag in _LOCKERS:
+        probe = _run(["sh", "-c", f"command -v {name}"], check=False)
+        if probe.returncode != 0:
+            continue
+        if name == "mate-screensaver-command":
+            daemon = _run(["sh", "-c", "pgrep -x mate-screensaver"], check=False)
+            if daemon.returncode != 0:
+                _run(["sh", "-c", "mate-screensaver &"], check=False)
+        result = _run([name, flag], check=False)
+        if result.returncode == 0:
+            return ToolResult.success("Locking the screen.")
+    return ToolResult.failure("I could not find a screen locker on this computer.")
+
+
 def window_tools() -> list[Tool]:
     return [
         Tool(
@@ -261,6 +289,14 @@ def window_tools() -> list[Tool]:
             parameters={},
             risk=RiskLevel.REVERSIBLE,
             handler=minimize_all,
+            required=(),
+        ),
+        Tool(
+            name="lock_screen",
+            description="Lock the screen so it turns off or blanks.",
+            parameters={},
+            risk=RiskLevel.REVERSIBLE,
+            handler=lock_screen,
             required=(),
         ),
     ]
