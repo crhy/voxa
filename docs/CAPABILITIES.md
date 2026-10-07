@@ -30,6 +30,7 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | Press **OFFLINE** | Microphone off, nothing is heard | ✅ |
 | “Can I get that in German?” | Repeats the last answer in German with a German voice (12 languages) | ✅ |
 | “Back to English” | Returns to the character's own language | ✅ |
+| “Volume up” … “again” … “do that again” | Repeats the last command (never a delete, a send or a lock) | 🧪 |
 | A short reply | She starts speaking while the answer is still being written | ✅ |
 
 ## The face

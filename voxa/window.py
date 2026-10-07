@@ -16,7 +16,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
 from . import apps, documents, mail, websearch, welcome  # noqa: E402
-from .agent import hearing, host, intents, issueflow, planner  # noqa: E402
+from .agent import hearing, host, intents, issueflow, planner, repeat  # noqa: E402
 from .agent.actionlog import ActionLog, ActionRecord  # noqa: E402
 from .agent.claims import claims_action, first_sentences  # noqa: E402
 from .agent.host import host_command  # noqa: E402
@@ -303,6 +303,7 @@ class MainWindow(Adw.ApplicationWindow):
         # of the model, until the user says "stop dictating".
         self._external_dictation = False
         self._issue_flow: issueflow.IssueFlow | None = None
+        self._last_tool_call = None
         self._welcome_followup = False
         self._last_dictated = ""
         # The single source of truth for what the assistant is doing; the shell renders it.
@@ -1936,6 +1937,8 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _run_tool(self, call: intents.ToolCall, prompt: str) -> None:
         """A recognised command goes straight to its tool, never to the model."""
+        if repeat.repeatable(call.tool):
+            self._last_tool_call = call
         self._tool_ran_for_request = True
         self.query_cancel.set()
         self._query_generation += 1
@@ -2447,6 +2450,12 @@ class MainWindow(Adw.ApplicationWindow):
             return
         if self._external_dictation:
             self._dictate_external(original)
+            return
+        if repeat.is_repeat_action(prompt):
+            if self._last_tool_call is None:
+                self._on_tool_finished(ToolResult.failure("There is nothing to do again yet."))
+            else:
+                self._run_tool(self._last_tool_call, original)
             return
         if intents.is_start_dictation(prompt):
             self._start_external_dictation(prompt)
