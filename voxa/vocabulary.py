@@ -34,12 +34,16 @@ def build_hint(
 ) -> str:
     """A natural sentence nudging Whisper towards this machine's vocabulary.
 
-    Lists the wake word, the command verbs, then the app names de-duplicated
+    Lists the wake word, the command verbs, the fixed Spaced product names
+    (kept whenever they fit within ``max_chars``), then the app names de-duplicated
     (case-insensitively), shortest first, until ``max_chars``; names longer
     than 40 characters are skipped.
     """
     wake = wake_word.strip().capitalize()
     base = f"{wake}. Commands: {', '.join(_COMMAND_VERBS)}."
+    products = " Products: Spaced Linux, Spaced Update, Spaced Bazaar."
+    if len(base) + len(products) <= max_chars:
+        base += products
     seen: set[str] = set()
     names: list[str] = []
     for name in [*app_names, *extra]:

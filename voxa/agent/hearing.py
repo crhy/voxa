@@ -1,6 +1,7 @@
 """Pure post-processing of what Whisper heard: wake-word stripping and ASR fixes."""
 
 import re
+from collections.abc import Callable
 
 # First words Whisper produces for "Voxa". Used ONLY by direct_command below to
 # recognise a mis-heard wake word in front of a control command; never to wake
@@ -44,13 +45,35 @@ WAKE_VARIANTS: tuple[str, ...] = (
 
 _WAKE_ALT = r"(?:voxa|vox a|vox|boxa|box a|boxer|voxet|vaxa|foxa|voxer|vauxa)"
 
-PHRASE_FIXES: tuple[tuple[str, str], ...] = (
+PHRASE_FIXES: tuple[tuple[str, str | Callable[..., str]], ...] = (
     (r"\blibra office[, ]+(?:right|write|rite|ray|rate|writer)\b", "LibreOffice Writer"),
     (r"\blibre office[, ]+(?:right|write|rite|ray|rate)\b", "LibreOffice Writer"),
     (r"\blibra office\b", "LibreOffice"),
     (r"\bbreathes[., ]+writer\b", "LibreOffice Writer"),
-    (r"\bspace(?:d)?\s+(?:bizarre|bazar|bizaar)\b", "Spaced Bazaar"),
-    (r"\bspace update\b", "Spaced Update"),
+    (
+        r"\b(?:space|spaced|spaces|spayed|spaste|spast|based)[ -]*"
+        r"(?:linux|lennox|lenox|linix|linus)\b",
+        "Spaced Linux",
+    ),
+    (
+        r"\b(?:space|spaced|spaces|spayed|spaste|spast)[ -]*"
+        r"(?:bazaar|bizarre|bazar|bizaar|bizzare|bazzar|bizarro)\b",
+        "Spaced Bazaar",
+    ),
+    (
+        r"\b(?:space|spaced|spaces|spayed|spaste|spast)[ -]*"
+        r"(?:update|updates|updater|updator)\b",
+        "Spaced Update",
+    ),
+    (r"\b(?:space|spaced|spaces|spayed|spaste|spast)[ -]*welcome\b", "Spaced Welcome"),
+    (
+        r"\b(?:space|spaces|spayed|spaste|spast)[ -]*(hub|store|app store|window manager|installer)\b",
+        lambda m: "Spaced " + m.group(1).title(),
+    ),
+    (
+        r"\b((?:update|upgrade|install|open|launch|start|run|close)\b(?:\s+(?:the|my))?\s+)spaces?\s*[,.!?]*$",
+        r"\1Spaced",
+    ),
     (r"\bthe gamp\b|\bgamp\b|\bthe gimp\b", "GIMP"),
     (r"\bstopdictation\b|\bstop dictation\b", "stop dictating"),
     (r"\b(open|close|quit|launch|start)\s+cloud\b", r"\1 Claude"),
