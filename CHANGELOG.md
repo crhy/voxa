@@ -29,6 +29,10 @@ checking by ear and eye on a real desktop; `docs/CAPABILITIES.md` is the checkli
 - **"Again" / "do that again"** repeats the last command ("volume up" … "again" … "again"). It never repeats a
   delete, a send, a lock or typed text. (#69) 🧪
 - While you are dictating into a document, nothing you say can start another command by accident.
+- **"What can you do?"** is answered from a fixed, true list instead of the AI model improvising, with phrases to
+  try; "what can you do with files?", "help with music" and so on go into one area. 🧪
+- **Read-back**: "read the selection to me", "what's on my clipboard?", "summarize this" (three sentences, from the
+  text you selected), "what's open?", "what window is this?". (#68) 🧪
 
 ### Sound devices
 
@@ -74,15 +78,21 @@ checking by ear and eye on a real desktop; `docs/CAPABILITIES.md` is the checkli
   "what's in my Documents?", "rename report in Documents to final report", "create a folder called Taxes in
   Documents". File names are matched by how they sound, so "report final" finds `Report_Final.pdf`. Works on
   machines without an XDG user-dirs file, and the search skips hidden folders so it finishes in seconds. (#79) 🧪
+- **"Undo that" / "put it back"** reverses the last file command: a move goes back, a copy is removed, a rename is
+  reversed, a deleted file comes back out of the trash, a new (empty) folder is removed. With no file command
+  behind it, "undo that" is the focused program's own undo. (#79) 🧪
 - **Post a GitHub issue by voice**: "post an issue to GitHub for Spaced Linux" — Voxa asks for the title, then the
   description (say "stop dictation" to finish; "scratch that" removes the last sentence; "cancel" drops it), then
   opens GitHub's new-issue page already filled in for you to check and submit. The project is looked up among your
-  own GitHub repositories by name or description; a stranger's project is never opened on a loose match. (#83) 🧪
+  own GitHub repositories by name or description; a stranger's project is never opened on a loose match. She says
+  which project it will go to before asking for the title. Your account is read from the `gh` tool, or tell her:
+  "my GitHub name is …". (#83) 🧪
 - **A dictated email**: "send an email to my mom" — Voxa asks for the address the first time and remembers it,
   asks for the subject, then you dictate the message ("scratch that" removes a sentence, "stop dictation" finishes,
   "cancel" drops it). The draft opens in your mail program for you to press Send; she no longer writes the message
   herself or claims to have sent it. "Email Bob about the meeting" (with a topic) still gets an AI-written draft.
-  (#31) 🧪
+  "Mom's email is mom at example dot com", "what is Bob's email?" and "forget Bob's email" manage the addresses
+  she knows. (#31) 🧪
 - "Close file" now closes the document (Ctrl+W). It used to send Ctrl+Q, which quits the whole application.
 
 ### Music and video
@@ -108,5 +118,5 @@ checking by ear and eye on a real desktop; `docs/CAPABILITIES.md` is the checkli
 
 ### Under the hood
 
-- The command bench (`python3 -m voxatest commands`) grew with every new phrase and must stay at 100%.
-- Test suite: about 1,900 tests at the time of writing (0.1.5 shipped with about 1,650).
+- The command bench (`python3 -m voxatest commands`) grew from 296 to 379 phrasings and must stay at 100%.
+- Test suite: about 2,060 test cases at the time of writing; 370 new test functions since 0.1.5 (1,150 to 1,520).

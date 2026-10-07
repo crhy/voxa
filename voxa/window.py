@@ -1267,7 +1267,7 @@ class MainWindow(Adw.ApplicationWindow):
         if success:
             self._refresh_ollama_models()
             if self._welcome_followup:
-                self._show_model_manager()
+                self._download_welcome_model()
         return False
 
     def _show_model_manager(self) -> None:
@@ -1585,12 +1585,57 @@ class MainWindow(Adw.ApplicationWindow):
             on_error=lambda error: None,
         )
 
+    def _download_welcome_model(self) -> None:
+        """Fetch the smallest model with no further click; the model list refresh then finishes the welcome."""
+        if getattr(self, "_welcome_downloading", False):
+            return
+        self._welcome_downloading = True
+        name = welcome.SMALLEST_MODEL
+        cancel_event = threading.Event()
+        self._welcome_cancel = cancel_event
+        self._set_status(welcome.download_status("", 0, 0), busy=True)
+
+        def worker() -> None:
+            client = OllamaClient(self.settings.ollama_url)
+            try:
+                models = wait_for_models(
+                    client.list_models,
+                    attempts=MODEL_WAIT_ATTEMPTS,
+                    delay=MODEL_WAIT_DELAY,
+                    should_stop=cancel_event.is_set,
+                )
+                if models is None:
+                    idle(self._on_welcome_download_done, False, "The AI server never came up.")
+                    return
+                client.pull_model(
+                    name,
+                    cancel_event=cancel_event,
+                    on_progress=lambda status, completed, total: idle(
+                        self._set_status, welcome.download_status(status, completed, total), True
+                    ),
+                )
+                idle(self._on_welcome_download_done, True, f"{name} is ready.")
+            except OllamaError as exc:
+                idle(self._on_welcome_download_done, False, str(exc))
+
+        threading.Thread(target=worker, name="welcome-pull", daemon=True).start()
+
+    def _on_welcome_download_done(self, ok: bool, message: str) -> bool:
+        self._welcome_downloading = False
+        self._toast(message)
+        if ok:
+            self._refresh_ollama_models()   # _apply_ollama_models then says "You're all set"
+        else:
+            self._set_status(message)
+            self._show_model_manager()      # let the user retry or pick another model by hand
+        return False
+
     def _on_welcome_primary(self, step: str) -> None:
         self.speech.stop()
         if step == "install":
             self._start_ollama_install()
         elif step == "model":
-            self._show_model_manager()
+            self._download_welcome_model()
 
     def _on_welcome_tutorial(self) -> None:
         host.spawn(["xdg-open", welcome.TUTORIAL_URL])
@@ -3629,6 +3674,7 @@ class MainWindow(Adw.ApplicationWindow):
 
     def do_close_request(self) -> bool:
         self._closing = True
+        getattr(self, "_welcome_cancel", threading.Event()).set()
         self.shell.close_focus_window()
         self._live_generation = getattr(self, "_live_generation", 0) + 1
         self._release_face_server()

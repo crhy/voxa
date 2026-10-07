@@ -58,6 +58,16 @@ def real_models(models: list[str]) -> list[str]:
     return [model for model in models if " " not in model]
 
 
+def download_status(status: str, completed: int, total: int) -> str:
+    """One line of progress copy for the welcome's own model download."""
+    if total > 0:
+        percent = max(0, min(100, int(100 * completed / total)))
+        return f"Downloading {SMALLEST_MODEL}… {percent}%"
+    if status:
+        return f"Downloading {SMALLEST_MODEL}… {status}"
+    return f"Downloading {SMALLEST_MODEL}…"
+
+
 def probe(
     backend: str,
     installed,
