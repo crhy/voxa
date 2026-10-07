@@ -119,6 +119,7 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | “What's in my Documents?” | Reads the first few names | 🧪 |
 | “Rename report in Documents to final report” | Renames the file, keeping the old extension when the new name has none | 🧪 |
 | “Create a folder called Taxes in Documents” | Makes the new folder | 🧪 |
+| “Undo that” / “put it back” (after a file action) | Reverses the last copy, move, rename, delete or folder made | 🧪 |
 | “Post an issue to GitHub for Voxa” | Asks for a title, then a description (say “stop dictation” to finish), then opens GitHub's new-issue page filled in for you to submit | 🧪 |
 | “Send an email to my mom” | Asks for her address the first time (and remembers it), then the subject, then you dictate the message; opens the draft in your mail program for you to press Send | 🧪 |
 | “Email Bob about the meeting” | Voxa writes a draft about that topic and opens it for you to review | 🧪 |

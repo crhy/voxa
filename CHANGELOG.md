@@ -22,6 +22,14 @@ checking by ear and eye on a real desktop; `docs/CAPABILITIES.md` is the checkli
 - Echo cancellation follows the microphone chosen in Voxa rather than the system default.
 - A request may now be up to 20 seconds long.
 
+### Conversation
+
+- **The caption says what she is doing** while a command runs — "Looking for budget…", "Copying report to
+  Documents…", "Searching for Hawaii…" — in the main window and under the floating head. (#39) 🧪
+- **"Again" / "do that again"** repeats the last command ("volume up" … "again" … "again"). It never repeats a
+  delete, a send, a lock or typed text. (#69) 🧪
+- While you are dictating into a document, nothing you say can start another command by accident.
+
 ### Sound devices
 
 - **Voxa no longer adds a sound device or changes your audio output.** Through 0.1.5, the "system" echo
@@ -70,6 +78,11 @@ checking by ear and eye on a real desktop; `docs/CAPABILITIES.md` is the checkli
   description (say "stop dictation" to finish; "scratch that" removes the last sentence; "cancel" drops it), then
   opens GitHub's new-issue page already filled in for you to check and submit. The project is looked up among your
   own GitHub repositories by name or description; a stranger's project is never opened on a loose match. (#83) 🧪
+- **A dictated email**: "send an email to my mom" — Voxa asks for the address the first time and remembers it,
+  asks for the subject, then you dictate the message ("scratch that" removes a sentence, "stop dictation" finishes,
+  "cancel" drops it). The draft opens in your mail program for you to press Send; she no longer writes the message
+  herself or claims to have sent it. "Email Bob about the meeting" (with a topic) still gets an AI-written draft.
+  (#31) 🧪
 - "Close file" now closes the document (Ctrl+W). It used to send Ctrl+Q, which quits the whole application.
 
 ### Music and video

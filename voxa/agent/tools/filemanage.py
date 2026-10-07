@@ -22,6 +22,8 @@ from voxa.agent.result import ToolResult
 
 log = logging.getLogger(__name__)
 
+LAST_UNDO: tuple[str, list[list[str]]] | None = None
+
 
 def _run(command: list[str], stdin: str | None = None, check: bool = True) -> subprocess.CompletedProcess:
     if simulation.actions_simulated():
@@ -63,6 +65,7 @@ def _error_text(error: Exception) -> str:
 
 
 def copy_file(args: dict[str, str]) -> ToolResult:
+    global LAST_UNDO
     try:
         source = _folder(args["source"])
         destination = _folder(args["destination"])
@@ -74,12 +77,14 @@ def copy_file(args: dict[str, str]) -> ToolResult:
         if match is None:
             return ToolResult.failure(f"I could not find {args['name']} in {args['source']}.")
         _run(["gio", "copy", os.path.join(source, match), destination + "/"])
+        LAST_UNDO = (f"Removed the copy of {match}.", [["gio", "trash", os.path.join(destination, match)]])
         return ToolResult.success(f"Copied {match} to {args['destination']}.")
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as error:
         return ToolResult.failure(f"That did not work: {_error_text(error)}")
 
 
 def move_file(args: dict[str, str]) -> ToolResult:
+    global LAST_UNDO
     try:
         source = _folder(args["source"])
         destination = _folder(args["destination"])
@@ -91,12 +96,17 @@ def move_file(args: dict[str, str]) -> ToolResult:
         if match is None:
             return ToolResult.failure(f"I could not find {args['name']} in {args['source']}.")
         _run(["gio", "move", os.path.join(source, match), destination + "/"])
+        LAST_UNDO = (
+            f"Moved {match} back to {args['source']}.",
+            [["gio", "move", os.path.join(destination, match), source + "/"]],
+        )
         return ToolResult.success(f"Moved {match} to {args['destination']}.")
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as error:
         return ToolResult.failure(f"That did not work: {_error_text(error)}")
 
 
 def trash_file(args: dict[str, str]) -> ToolResult:
+    global LAST_UNDO
     try:
         source = _folder(args["folder"])
         if source is None:
@@ -105,14 +115,17 @@ def trash_file(args: dict[str, str]) -> ToolResult:
         if match is None:
             return ToolResult.failure(f"I could not find {args['name']} in {args['folder']}.")
         _run(["gio", "trash", os.path.join(source, match)])
+        LAST_UNDO = (f"Put {match} back.", [["gio", "trash", "--restore", "trash:///" + match]])
         return ToolResult.success(f"Moved {match} to the trash.")
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as error:
         return ToolResult.failure(f"That did not work: {_error_text(error)}")
 
 
 def empty_trash(args: dict[str, str]) -> ToolResult:
+    global LAST_UNDO
     try:
         _run(["gio", "trash", "--empty"])
+        LAST_UNDO = None
         return ToolResult.success("The trash is empty.")
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as error:
         return ToolResult.failure(f"That did not work: {_error_text(error)}")
@@ -205,6 +218,7 @@ def list_folder(args: dict[str, str]) -> ToolResult:
 
 
 def rename_file(args: dict[str, str]) -> ToolResult:
+    global LAST_UNDO
     try:
         path = _folder(args["folder"])
         if path is None:
@@ -217,18 +231,21 @@ def rename_file(args: dict[str, str]) -> ToolResult:
         if not os.path.splitext(new_file_name)[1]:
             new_file_name += os.path.splitext(match)[1]
         _run(["gio", "rename", old_path, new_file_name])
+        LAST_UNDO = (f"Renamed it back to {match}.", [["gio", "rename", os.path.join(path, new_file_name), match]])
         return ToolResult.success(f"Renamed {match} to {new_file_name}.")
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as error:
         return ToolResult.failure(f"That did not work: {_error_text(error)}")
 
 
 def make_folder(args: dict[str, str]) -> ToolResult:
+    global LAST_UNDO
     try:
         path = _folder(args["folder"])
         if path is None:
             return ToolResult.failure(f"I do not know the folder {args['folder']}.")
         new_name = args["name"].strip().title()
         _run(["mkdir", "--", os.path.join(path, new_name)])
+        LAST_UNDO = (f"Removed the folder {new_name}.", [["rmdir", "--", os.path.join(path, new_name)]])
         return ToolResult.success(f"Created the folder {new_name} in {args['folder']}.")
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as error:
         return ToolResult.failure(f"That did not work: {_error_text(error)}")
@@ -276,6 +293,20 @@ def find_large_files(args: dict[str, str]) -> ToolResult:
         return ToolResult.success(
             f"I found {count_noun(len(lines), 'file')} bigger than {args['amount']} {args['unit']}: {spoken_list(names)}."
         )
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as error:
+        return ToolResult.failure(f"That did not work: {_error_text(error)}")
+
+
+def undo_file_action(args: dict[str, str]) -> ToolResult:
+    global LAST_UNDO
+    if LAST_UNDO is None:
+        return ToolResult.failure("There is no file action to undo.")
+    sentence, commands = LAST_UNDO
+    LAST_UNDO = None
+    try:
+        for command in commands:
+            _run(command)
+        return ToolResult.success(sentence)
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as error:
         return ToolResult.failure(f"That did not work: {_error_text(error)}")
 
@@ -373,5 +404,13 @@ def file_manage_tools() -> list[Tool]:
             risk=RiskLevel.REVERSIBLE,
             handler=make_folder,
             required=("name", "folder"),
+        ),
+        Tool(
+            name="undo_file_action",
+            description="Undo the last file action that was done.",
+            parameters={},
+            risk=RiskLevel.REVERSIBLE,
+            handler=undo_file_action,
+            required=(),
         ),
     ]

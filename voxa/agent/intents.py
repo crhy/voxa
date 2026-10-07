@@ -257,6 +257,15 @@ _MAXIMIZE_ACTIVE = re.compile(
 _RESTORE_ACTIVE = re.compile(
     r"(?:restore|bring back|unminimi[sz]e)\s+(?:this|it|that|the window|the app|window|app)", re.IGNORECASE
 )
+_UNDO_FILE = re.compile(
+    r"undo that"
+    r"|undo the (?:move|copy|rename|delete|last file action)"
+    r"|put (?:it|that|the file) back"
+    r"|move it back"
+    r"|bring (?:it|that) back"
+    r"|restore (?:it|that|the file)",
+    re.IGNORECASE,
+)
 
 _TIMER_SET = re.compile(
     r"(?:set\s+(?:a\s+|the\s+|an\s+)?timer|start\s+(?:a\s+|the\s+)?timer|timer)\s*(?:for\s+|of\s+)?(.+)",
@@ -316,6 +325,7 @@ ROUTED_TOOLS = frozenset(
         "list_folder",
         "rename_file",
         "make_folder",
+        "undo_file_action",
         "type_text",
         "file_dialog",
         "send_gmail",
@@ -673,6 +683,8 @@ def route(text: str) -> ToolCall | None:
     maximize_match = _MAXIMIZE_APP.fullmatch(s)
     if maximize_match:
         return call("maximize_app", name=maximize_match.group(1) or maximize_match.group(2))
+    if _UNDO_FILE.fullmatch(s):
+        return call("undo_file_action")
     if _RESTORE_ACTIVE.fullmatch(s):
         return call("restore_app", name="")
     restore_match = _RESTORE_APP.fullmatch(s)
