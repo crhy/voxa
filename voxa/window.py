@@ -30,6 +30,7 @@ from .agent.spoken_text import format_dictation, parse_dictation_control  # noqa
 from .agent.suggest import Suggestion, SuggestionState, suggest  # noqa: E402
 from .agent.tools import default_registry, textedit, typing, windows  # noqa: E402
 from .agent.tools.web import get_session  # noqa: E402
+from .anc import EchoCanceller as AncCanceller  # noqa: E402
 from .audio import AudioCapture, AudioDevice  # noqa: E402
 from .catalog import CatalogUnavailable, load_catalog, refresh_and_cache, refresh_due  # noqa: E402
 from .config import ConfigStore  # noqa: E402
@@ -37,7 +38,10 @@ from .controller import AssistantController, ControllerPorts  # noqa: E402
 from .conversation import ConversationController, ConversationHistory, strip_wake_word  # noqa: E402
 from .dictation import DictationController  # noqa: E402
 from .echo import SOURCE_NAME as ECHO_SOURCE_NAME  # noqa: E402
-from .echo import EchoCanceller  # noqa: E402
+from .echo import (  # noqa: E402
+    EchoCanceller,
+    default_monitor_source,
+)
 from .hardware import (  # noqa: E402
     MODEL_CATALOG,
     GpuUsage,
@@ -733,13 +737,27 @@ class MainWindow(Adw.ApplicationWindow):
             assistant_view.set_face_mode("prerendered")
 
     def _prepare_microphone(self) -> None:
-        """Before listening: switch on echo cancellation so Voxa hears the user, not itself or the music."""
-        if getattr(self, "_echo", None) is None:
-            self._echo = EchoCanceller()
-        if self.settings.echo_cancel and self._echo.enable():
-            self.audio.pulse_source = ECHO_SOURCE_NAME
+        """Before listening: choose how the computer's own sound is removed from the microphone."""
+        mode = getattr(self.settings, "echo_mode", "voxa")
+        if mode == "voxa":
+            # Our canceller: record the loopback monitor as the reference and clean the mic against it.
+            self.audio.reference_source = default_monitor_source()
+            self.audio.pulse_source = None
+            self.audio.canceller = AncCanceller()
+        elif mode == "system":
+            # Today's behaviour: PulseAudio's module-echo-cancel route.
+            if getattr(self, "_echo", None) is None:
+                self._echo = EchoCanceller()
+            if self._echo.enable():
+                self.audio.pulse_source = ECHO_SOURCE_NAME
+            else:
+                self.audio.pulse_source = None
+            self.audio.reference_source = None
+            self.audio.canceller = None
         else:
             self.audio.pulse_source = None
+            self.audio.reference_source = None
+            self.audio.canceller = None
 
     def _release_face_server(self) -> None:
         """Drop the live client; stop the face server if Voxa was the one that started it (frees the GPU)."""

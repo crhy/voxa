@@ -53,6 +53,18 @@ def parse_sink_inputs(listing: str) -> list[str]:
     return [line.split("\t")[0] for line in listing.splitlines() if line.strip() and line.split("\t")[0].isdigit()]
 
 
+def default_monitor_source(runner=subprocess.run) -> str | None:
+    """The loopback monitor source for the default sink, e.g. ``"alsa_output.pci-0_0.monitor"``.
+
+    This is the signal the computer plays, which the canceller in :mod:`voxa.anc` subtracts from the
+    microphone. Returns ``None`` when PulseAudio cannot report a default sink.
+    """
+    code, sink = _pactl("get-default-sink", runner=runner)
+    if code != 0 or not sink:
+        return None
+    return f"{sink}.monitor"
+
+
 class EchoCanceller:
     """Loads, uses and removes the echo-cancelling devices. Safe to call when PulseAudio is absent."""
 

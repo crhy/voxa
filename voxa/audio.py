@@ -1,13 +1,19 @@
 from __future__ import annotations
 
 import contextlib
+import logging
+import threading
 import time
 from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
 
+from .anc import EchoCanceller, estimate_delay
+
 Gst: Any = None  # Initialized lazily so importing this module needs no GStreamer or PyGObject.
+
+log = logging.getLogger("voxa.audio")
 
 
 def _ensure_gstreamer() -> Any:
@@ -21,6 +27,66 @@ def _ensure_gstreamer() -> Any:
         _Gst.init(None)
         Gst = _Gst
     return Gst
+
+# Reference samples we keep: the last 3 seconds at 16 kHz.
+REFERENCE_SECONDS = 3
+REFERENCE_RATE = 16000
+
+
+class ReferenceRing:
+    """Thread-safe ring buffer of the most recent reference samples with a running counter.
+
+    ``total`` is the number of samples ever appended, so a sample's global position in the
+    reference stream is ``total - len(buffer) + index``. ``window`` returns the samples covering a
+    span of global positions, zero-padding any position the buffer no longer holds (or has not
+    produced yet).
+    """
+
+    def __init__(self, capacity: int) -> None:
+        self._capacity = max(1, capacity)
+        self._buf = np.zeros(0, dtype=np.float32)
+        self._total = 0
+        self._lock = threading.Lock()
+
+    def append(self, samples) -> None:
+        samples = np.asarray(samples, dtype=np.float32)
+        if samples.size == 0:
+            return
+        with self._lock:
+            self._total += samples.size
+            merged = np.concatenate([self._buf, samples])
+            self._buf = merged[-self._capacity :]
+
+    def window(self, start: int, length: int) -> np.ndarray:
+        """Reference samples for global positions ``[start, start + length)``, zero-padded when absent."""
+        out = np.zeros(length, dtype=np.float32)
+        if length <= 0:
+            return out
+        with self._lock:
+            oldest = self._total - self._buf.size
+            lo = max(start, oldest, 0)
+            hi = min(start + length, self._total)
+            if hi > lo:
+                out[lo - start : hi - start] = self._buf[lo - oldest : hi - oldest]
+        return out
+
+    @property
+    def total(self) -> int:
+        return self._total
+
+
+def mix_chunk(mic_bytes: bytes, ref_ring: ReferenceRing, counter: int, canceller) -> bytes:
+    """Clean one microphone chunk against the reference samples covering the same span.
+
+    ``counter`` is the global sample position where this microphone chunk begins; the reference
+    samples for that same span are taken from ``ref_ring`` (zero-padded when the reference has not
+    produced enough yet). Returns the cleaned chunk as int16 bytes. Raises if the canceller raises.
+    """
+    mic = np.frombuffer(mic_bytes, dtype="<i2").astype(np.float32) / 32768.0
+    ref = ref_ring.window(counter, mic.size)
+    cleaned = canceller.process(mic, ref)
+    cleaned = np.clip(np.rint(np.asarray(cleaned, dtype=np.float32) * 32767.0), -32768, 32767)
+    return cleaned.astype("<i2").tobytes()
 
 
 @dataclass(slots=True)
@@ -57,16 +123,34 @@ def is_monitor_source(properties, display_name: str = "") -> bool:
 
 
 class AudioCapture:
-    """Native GStreamer microphone capture producing 16 kHz mono signed PCM."""
+    """Native GStreamer microphone capture producing 16 kHz mono signed PCM.
+
+    When :attr:`reference_source` is set, a second pipeline records the computer's own playback
+    (the loopback monitor of the default sink) into a ring buffer. When :attr:`canceller` is set,
+    each microphone chunk is cleaned against the reference samples covering the same span before it
+    reaches the wake word, Whisper and barge-in.
+    """
 
     def __init__(self) -> None:
         self.pipeline: Any | None = None
+        self._ref_pipeline: Any | None = None
         self._devices: list[AudioDevice] = []
         # Name of a PulseAudio source to record from instead of the selected device, or None.
         self.pulse_source: str | None = None
+        # Loopback monitor to record the computer's own playback from, or None.
+        self.reference_source: str | None = None
+        # The canceller in voxa/anc.py that cleans the microphone, or None when inactive.
+        self.canceller: EchoCanceller | None = None
         self._on_audio = None
         self._on_error = None
         self._last_level_emit = 0.0
+        self._ref_ring: ReferenceRing | None = None
+        self._mic_counter = 0
+        self._canceller_enabled = True
+        self._canceller_logged = False
+        self._delay_done = True
+        self._delay_mic: list = []
+        self._delay_ref: list = []
 
     def list_devices(self) -> list[AudioDevice]:
         gst = _ensure_gstreamer()
@@ -163,6 +247,59 @@ class AudioCapture:
             self.stop()
             raise RuntimeError("The selected microphone could not be opened.")
 
+        # Both counters start together now that the microphone is actually playing.
+        self._mic_counter = 0
+        self._canceller_enabled = True
+        self._canceller_logged = False
+        self._delay_done = self.canceller is None
+        self._delay_mic = []
+        self._delay_ref = []
+        self._ref_ring = ReferenceRing(REFERENCE_SECONDS * REFERENCE_RATE) if self.reference_source else None
+        if self.reference_source:
+            self._start_reference(gst)
+
+    def _start_reference(self, gst) -> None:
+        """Open the second pipeline that records the computer's own playback into the ring buffer."""
+        src = gst.ElementFactory.make("pulsesrc")
+        convert = gst.ElementFactory.make("audioconvert")
+        resample = gst.ElementFactory.make("audioresample")
+        capsfilter = gst.ElementFactory.make("capsfilter")
+        sink = gst.ElementFactory.make("appsink")
+        if not all((src, convert, resample, capsfilter, sink)):
+            log.info("reference capture unavailable: GStreamer elements missing")
+            return
+        src.set_property("device", self.reference_source)
+        capsfilter.set_property("caps", gst.Caps.from_string("audio/x-raw,format=S16LE,channels=1,rate=16000"))
+        sink.set_property("emit-signals", True)
+        sink.connect("new-sample", self._on_ref_sample, None)
+        pipeline = gst.Pipeline.new("voxa-reference")
+        for element in (src, convert, resample, capsfilter, sink):
+            pipeline.add(element)
+        if not src.link(convert) or not convert.link(resample) or not resample.link(capsfilter) or not capsfilter.link(sink):
+            pipeline.set_state(gst.State.NULL)
+            log.info("reference capture unavailable: could not connect pipeline")
+            return
+        pipeline.set_state(gst.State.PLAYING)
+        self._ref_pipeline = pipeline
+
+    def _on_ref_sample(self, sink, _on_level):
+        gst = _ensure_gstreamer()
+        sample = sink.emit("pull-sample")
+        if sample is None:
+            return gst.FlowReturn.ERROR
+        buffer = sample.get_buffer()
+        success, mapped = buffer.map(gst.MapFlags.READ)
+        if not success:
+            return gst.FlowReturn.ERROR
+        try:
+            pcm = bytes(mapped.data)
+        finally:
+            buffer.unmap(mapped)
+        if self._ref_ring is not None:
+            ref = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
+            self._ref_ring.append(ref)
+        return gst.FlowReturn.OK
+
     def _on_sample(self, sink, on_level):
         gst = _ensure_gstreamer()
         sample = sink.emit("pull-sample")
@@ -177,6 +314,10 @@ class AudioCapture:
         finally:
             buffer.unmap(mapped)
 
+        if self.canceller is not None and self._canceller_enabled:
+            self._maybe_estimate_delay(pcm)
+        pcm = self._mix_or_passthrough(pcm)
+
         level = self._rms(pcm)
         try:
             if self._on_audio is not None:
@@ -190,6 +331,42 @@ class AudioCapture:
                 self._on_error(str(exc))
             return gst.FlowReturn.ERROR
         return gst.FlowReturn.OK
+
+    def _mix_or_passthrough(self, pcm: bytes) -> bytes:
+        """Clean ``pcm`` against the reference when a canceller is active; never break recording."""
+        if self.canceller is None or not self._canceller_enabled or self._ref_ring is None:
+            self._mic_counter += len(pcm) // 2
+            return pcm
+        try:
+            cleaned = mix_chunk(pcm, self._ref_ring, self._mic_counter, self.canceller)
+        except Exception as exc:  # noqa: BLE001 - recording must never break
+            if not self._canceller_logged:
+                log.warning("echo canceller failed; using raw microphone: %s", exc)
+                self._canceller_logged = True
+            self._canceller_enabled = False
+            self._mic_counter += len(pcm) // 2
+            return pcm
+        self._mic_counter += len(pcm) // 2
+        return cleaned
+
+    def _maybe_estimate_delay(self, pcm: bytes) -> None:
+        """During the first loud-enough 3 seconds, measure the echo delay once and rebuild the canceller."""
+        if self._delay_done or self._ref_ring is None:
+            return
+        mic = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
+        ref = self._ref_ring.window(self._mic_counter, mic.size)
+        if float(np.mean(ref * ref)) < 1e-6:
+            return  # the reference is not loud enough yet
+        self._delay_mic.append(mic)
+        self._delay_ref.append(ref)
+        collected = sum(chunk.size for chunk in self._delay_mic)
+        if collected < REFERENCE_SECONDS * REFERENCE_RATE:
+            return
+        self._delay_done = True
+        delay = estimate_delay(np.concatenate(self._delay_mic), np.concatenate(self._delay_ref))
+        if delay > 0:
+            self.canceller = EchoCanceller(delay=delay)
+            log.info("echo delay estimated at %d samples (%.3f s)", delay, delay / REFERENCE_RATE)
 
     @staticmethod
     def _rms(pcm: bytes) -> float:
@@ -215,7 +392,10 @@ class AudioCapture:
         return self.pipeline is not None
 
     def stop(self) -> None:
-        gst = _ensure_gstreamer() if self.pipeline is not None else None
+        gst = _ensure_gstreamer() if (self.pipeline is not None or self._ref_pipeline is not None) else None
         pipeline, self.pipeline = self.pipeline, None
+        ref_pipeline, self._ref_pipeline = self._ref_pipeline, None
         if pipeline is not None:
             pipeline.set_state(gst.State.NULL)
+        if ref_pipeline is not None:
+            ref_pipeline.set_state(gst.State.NULL)

@@ -11,6 +11,7 @@ from voxa.ui.avatars import get_avatar
 
 FACE_MODES = ("live", "prerendered", "still")
 WEB_SEARCH_MODES = ("auto", "always", "never")
+ECHO_MODES = ("voxa", "system", "off")
 
 
 @dataclass(slots=True)
@@ -31,6 +32,9 @@ class Settings:
     home_location: str = ""
     # Subtract the computer's own sound (Voxa's voice, music) from the microphone.
     echo_cancel: bool = True
+    # How to remove the computer's own sound: "voxa" (our canceller), "system" (PulseAudio module-echo-cancel),
+    # "off". ``echo_cancel`` is a deprecated alias: False maps to "off".
+    echo_mode: str = "voxa"
     # Milliseconds the lips run ahead of the reported audio position (compensates sound-card and display delay).
     lip_sync_lead_ms: int = 160
     tts_rate: int = 180
@@ -73,6 +77,10 @@ class Settings:
             self.face_mode = "prerendered"
         if self.web_search not in WEB_SEARCH_MODES:
             self.web_search = "auto"
+        if self.echo_mode not in ECHO_MODES:
+            self.echo_mode = "voxa"
+        if not self.echo_cancel:
+            self.echo_mode = "off"
         return self
 
 
