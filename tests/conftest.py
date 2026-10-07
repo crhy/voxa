@@ -7,3 +7,4 @@ switched the default audio output. Pointing PULSE_SERVER at nothing makes every 
 import os
 
 os.environ["PULSE_SERVER"] = "unix:/nonexistent-voxa-tests"
+os.environ["VOXA_NO_WELCOME"] = "1"

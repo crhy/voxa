@@ -52,6 +52,7 @@ class Settings:
     early_final_pass: bool = False
     suggestions_enabled: bool = True
     followup_seconds: float = 6.0
+    welcomed: bool = False
     home_assistant_url: str = ""
     home_assistant_token: str = ""
 

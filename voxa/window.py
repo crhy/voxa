@@ -15,7 +15,7 @@ gi.require_version("Adw", "1")
 gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
-from . import apps, documents, mail, websearch  # noqa: E402
+from . import apps, documents, mail, websearch, welcome  # noqa: E402
 from .agent import hearing, host, intents, issueflow, planner  # noqa: E402
 from .agent.actionlog import ActionLog, ActionRecord  # noqa: E402
 from .agent.claims import claims_action, first_sentences  # noqa: E402
@@ -69,6 +69,7 @@ from .ui.live_face import LiveFaceClient, decode_audio_to_pcm16k  # noqa: E402
 from .ui.shell import AssistantShell, build_header  # noqa: E402
 from .ui.state import AssistantModel, AssistantState  # noqa: E402
 from .ui.styles import install_styles  # noqa: E402
+from .ui.welcome_dialog import WelcomeDialog  # noqa: E402
 
 WHISPER_MODELS = ["tiny", "base", "small", "medium", "large-v3", "turbo"]
 # Conversation mode's wake-word phase runs continuously in the background, so
@@ -1513,7 +1514,41 @@ class MainWindow(Adw.ApplicationWindow):
             # ACTIVE cannot start listening until the speech model has loaded; say when it can.
             self._announced_ready = True
             self._toast("Voxa is ready. Press ACTIVE to start listening.")
+        GLib.timeout_add(1500, lambda: (self._maybe_welcome(), False)[1])
         return False
+
+    def _maybe_welcome(self) -> None:
+        """First start only: greet the user and offer the one missing piece (Ollama, or a model)."""
+        if os.environ.get("VOXA_NO_WELCOME") or self.settings.welcomed or getattr(self, "_closing", False):
+            return
+        self.settings.welcomed = True
+        self.config_store.save(self.settings)
+        models = [m for m in self.ollama_models if ":" in m or "/" in m or "-" in m]
+        step = welcome.next_step(self.settings.ai_backend, bool(models), len(models))
+        name = self._character_name()
+        WelcomeDialog(name, step, self._on_welcome_primary, self._on_welcome_tutorial).present(self)
+        self.speech.speak(
+            welcome.spoken(step, name),
+            self.settings.tts_rate,
+            self._reply_voice(),
+            on_started=lambda: None,
+            on_done=lambda: None,
+            on_error=lambda error: None,
+        )
+
+    def _on_welcome_primary(self, step: str) -> None:
+        self.speech.stop()
+        if step == "install":
+            self._start_ollama_install()
+        elif step == "model":
+            self._show_model_manager()
+
+    def _on_welcome_tutorial(self) -> None:
+        host.spawn(["xdg-open", welcome.TUTORIAL_URL])
+
+    def _character_name(self) -> str:
+        avatar = get_avatar(self.settings.character_id) if self.settings.character_id else None
+        return getattr(avatar, "name", "") or "Voxa"
 
     def _on_whisper_error(self, error: str) -> bool:
         self._stop_progress()
