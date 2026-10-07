@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
-from dataclasses import asdict, dataclass, fields
+from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 from typing import Any
 
@@ -55,6 +55,7 @@ class Settings:
     welcomed: bool = False
     github_owner: str = ""
     youtube_channel: str = ""
+    contacts: dict[str, str] = field(default_factory=dict)
     home_assistant_url: str = ""
     home_assistant_token: str = ""
 

@@ -16,7 +16,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
 from . import apps, documents, mail, websearch, welcome  # noqa: E402
-from .agent import hearing, host, intents, issueflow, planner, repeat  # noqa: E402
+from .agent import hearing, host, intents, issueflow, mailflow, planner, repeat  # noqa: E402
 from .agent.actionlog import ActionLog, ActionRecord  # noqa: E402
 from .agent.claims import claims_action, first_sentences  # noqa: E402
 from .agent.host import host_command  # noqa: E402
@@ -303,6 +303,7 @@ class MainWindow(Adw.ApplicationWindow):
         # of the model, until the user says "stop dictating".
         self._external_dictation = False
         self._issue_flow: issueflow.IssueFlow | None = None
+        self._mail_flow: mailflow.MailFlow | None = None
         self._last_tool_call = None
         self._welcome_followup = False
         self._last_dictated = ""
@@ -2387,6 +2388,36 @@ class MainWindow(Adw.ApplicationWindow):
         if speech:
             self._on_tool_finished(ToolResult.success(speech))
 
+    def _start_mail_flow(self, to_spoken: str, heard: str) -> None:
+        self._log_action(heard, "email", detail=f"dictated to {to_spoken}")
+        self._mail_flow = mailflow.MailFlow(to_spoken, dict(self.settings.contacts))
+        self.assistant_model.set_state(AssistantState.DICTATING, self._mail_flow.caption)
+        if self.conversation is not None:
+            self.conversation.hold_prompt()
+        self._on_tool_finished(ToolResult.success(self._mail_flow.first_question()))
+
+    def _feed_mail_flow(self, text: str) -> None:
+        flow = self._mail_flow
+        speech, ready = flow.feed(text, parse_dictation_control(text))
+        if flow.learned is not None:
+            name, address = flow.learned
+            flow.learned = None
+            self.settings.contacts[name] = address
+            self.config_store.save(self.settings)
+        if ready:
+            to, subject, body = flow.to, flow.subject, flow.body
+            threading.Thread(target=mail.compose, args=(to, subject, body), name="mail-compose", daemon=True).start()
+        if not flow.active:
+            self._mail_flow = None
+            if self.assistant_model.state is AssistantState.DICTATING:
+                self.assistant_model.set_state(AssistantState.READY, "")
+            if self.conversation is not None:
+                self.conversation.release_prompt()
+        else:
+            self.assistant_model.set_state(AssistantState.DICTATING, flow.caption)
+        if speech:
+            self._on_tool_finished(ToolResult.success(speech))
+
     def _dictate_external(self, text: str) -> None:
         """Handle one utterance while dictating: type it, undo it, send it, or stop."""
         action = parse_dictation_control(text)
@@ -2441,12 +2472,19 @@ class MainWindow(Adw.ApplicationWindow):
             return
         original = prompt
         prompt = hearing.normalize(prompt) or prompt
+        if self._mail_flow is not None:
+            self._feed_mail_flow(original)
+            return
         if self._issue_flow is not None:
             self._feed_issue_flow(original)
             return
         project = issueflow.parse_post_issue(prompt)
         if project is not None:
             self._start_issue_flow(project, original)
+            return
+        email_request = mail.parse_email_command(prompt)
+        if email_request is not None and mailflow.wants_dictated_email(email_request.to, email_request.topic):
+            self._start_mail_flow(email_request.to, original)
             return
         if self._external_dictation:
             self._dictate_external(original)
@@ -3240,6 +3278,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.assistant.go_offline()
         self._stop_external_dictation()
         self._issue_flow = None
+        self._mail_flow = None
         self._stop_ai_server_async()
         if self._installing:
             self._install_cancel.set()
