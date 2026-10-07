@@ -32,3 +32,36 @@ def estimate_delay(mic, ref, max_delay: int = 8000) -> int:
     if window[peak] < 8.0 * float(np.median(window)):
         return 0
     return peak
+
+
+def nlms_cancel(mic, ref, taps: int = 1024, mu: float = 0.5, delay: int = 0,
+                weights=None, history=None, freeze=None):
+    """Normalised least-mean-squares echo cancellation, sample by sample.
+    Returns (cleaned, weights, history). `weights` (taps,) and `history` (a dict with "buf" (taps,) and
+    "pending" (delay,)) carry the filter and the most recent reference samples from one call to the next so
+    audio can be processed in chunks; None starts from zeros. `freeze`: optional boolean array, True where
+    the filter must NOT adapt (the user is speaking)."""
+    mic = np.asarray(mic, dtype=np.float64)
+    ref = np.asarray(ref, dtype=np.float64)
+    w = np.zeros(taps) if weights is None else np.asarray(weights, dtype=np.float64).copy()
+    if history is None:
+        buf = np.zeros(taps)
+        pending = np.zeros(delay)
+    else:
+        buf = np.asarray(history["buf"], dtype=np.float64).copy()
+        pending = np.asarray(history["pending"], dtype=np.float64).copy()
+    out = np.empty(len(mic))
+    for i in range(len(mic)):
+        if delay > 0:
+            push = pending[-1]
+            pending[1:] = pending[:-1]
+            pending[0] = ref[i]
+        else:
+            push = ref[i]
+        buf[1:] = buf[:-1]
+        buf[0] = push
+        e = mic[i] - w @ buf
+        out[i] = e
+        if freeze is None or not freeze[i]:
+            w += mu * e * buf / (buf @ buf + 1e-6)
+    return out.astype(np.float32), w, {"buf": buf, "pending": pending}
