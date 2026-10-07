@@ -70,6 +70,7 @@ def nlms_cancel(mic, ref, taps: int = 1024, mu: float = 0.5, delay: int = 0,
 
 
 MIN_REFERENCE_POWER = 1e-5  # about -50 dB: below this the computer is effectively silent
+SILENT_REFERENCE_POWER = 1e-6  # about -60 dB: the speakers are off, the mic must be untouched
 
 
 class EchoCanceller:
@@ -119,6 +120,7 @@ class EchoCanceller:
         p_mic = float(np.mean(mic_b ** 2))
         p_res = float(np.mean(trial ** 2))
         p_ref = float(np.mean(delayed ** 2))
+        p_now = float(np.mean(ref_b ** 2))  # power of the reference block itself (what the speakers play now)
         speaking = (p_ref < 1e-7 and p_mic > 1e-6) or (
             self._blocks_adapted > 100
             and p_res / max(p_mic, 1e-12) > max(8.0 * self._floor, 0.05)
@@ -126,7 +128,15 @@ class EchoCanceller:
         if speaking:
             self._speaking_left = 25
         # Nothing (or almost nothing) is being played: there is no echo to learn from, so do not adapt.
-        reference_quiet = p_ref < MIN_REFERENCE_POWER
+        reference_quiet = p_now < MIN_REFERENCE_POWER
+        silent = p_now < SILENT_REFERENCE_POWER
+        if silent:
+            # The speakers are off: hand the microphone through untouched, bit for bit, keep the
+            # learned filter, and still advance the reference history so alignment is not lost.
+            self.weights = w1
+            self.history = h1
+            self._pos += length
+            return np.asarray(mic_b, dtype=np.float32)
         if self._speaking_left > 0 or reference_quiet:
             if self._speaking_left > 0:
                 self._speaking_left -= 1
@@ -150,6 +160,10 @@ class EchoCanceller:
         If it does (a filter gone wrong), pass the raw microphone through for this block and pull the filter
         back towards zero so it relearns."""
         if p_mic > 0.0 and float(np.mean(np.asarray(cleaned, dtype=np.float64) ** 2)) > 1.5 * p_mic:
+            if self.weights is not None:
+                self.weights = self.weights * 0.5
+            return np.asarray(mic_b, dtype=np.float32)
+        if not np.all(np.isfinite(cleaned)):
             if self.weights is not None:
                 self.weights = self.weights * 0.5
             return np.asarray(mic_b, dtype=np.float32)

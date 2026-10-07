@@ -143,6 +143,8 @@ def _media_control_handler(args: dict[str, str]) -> ToolResult:
         if stopped:
             return ToolResult.success("Stopped.", detail="player:stop")
         return _press_key_handler({"key": _CONTROL_KEYS["stop"]})
+    if action not in _CONTROL_KEYS and action not in ("forward", "back"):
+        return ToolResult.failure("I don't know that control.")
     player = active_player()
     if player is not None:
         _apply_to_player(player, action)
