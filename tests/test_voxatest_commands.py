@@ -15,7 +15,7 @@ from voxatest.commands import (
     summarize,
 )
 
-CATEGORIES = {"web", "youtube", "media", "keys", "typing", "apps", "windows", "dictation", "question", "heard", "browser", "images", "reminders", "home"}
+CATEGORIES = {"web", "youtube", "media", "keys", "typing", "apps", "windows", "dictation", "question", "heard", "browser", "images", "reminders", "home", "compiz", "files"}
 
 
 def _registry():

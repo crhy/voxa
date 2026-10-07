@@ -519,7 +519,7 @@
       "id": "media-9",
       "category": "media",
       "say": "volume up",
-      "tool": "media_control",
+      "tool": "system_volume",
       "args": {
         "action": "louder"
       }
@@ -528,7 +528,7 @@
       "id": "media-10",
       "category": "media",
       "say": "louder",
-      "tool": "media_control",
+      "tool": "system_volume",
       "args": {
         "action": "louder"
       }
@@ -537,7 +537,7 @@
       "id": "media-11",
       "category": "media",
       "say": "turn the volume up",
-      "tool": "media_control",
+      "tool": "system_volume",
       "args": {
         "action": "louder"
       }
@@ -546,7 +546,7 @@
       "id": "media-12",
       "category": "media",
       "say": "Volume down.",
-      "tool": "media_control",
+      "tool": "system_volume",
       "args": {
         "action": "quieter"
       }
@@ -555,7 +555,7 @@
       "id": "media-13",
       "category": "media",
       "say": "quieter",
-      "tool": "media_control",
+      "tool": "system_volume",
       "args": {
         "action": "quieter"
       }
@@ -564,7 +564,7 @@
       "id": "media-14",
       "category": "media",
       "say": "turn it down",
-      "tool": "media_control",
+      "tool": "system_volume",
       "args": {
         "action": "quieter"
       }
@@ -573,18 +573,18 @@
       "id": "media-15",
       "category": "media",
       "say": "mute",
-      "tool": "press_key",
+      "tool": "system_volume",
       "args": {
-        "key": "mute"
+        "action": "mute"
       }
     },
     {
       "id": "media-16",
       "category": "media",
       "say": "unmute the music",
-      "tool": "press_key",
+      "tool": "system_volume",
       "args": {
-        "key": "mute"
+        "action": "unmute"
       }
     },
     {
@@ -1257,6 +1257,12 @@
       "tool": null
     },
     {
+      "id": "wish-dictation-bare",
+      "category": "dictation",
+      "say": "dictation",
+      "tool": null
+    },
+    {
       "id": "wish-4",
       "category": "web",
       "say": "switch to Gmail",
@@ -1330,7 +1336,7 @@
       "id": "wish-12",
       "category": "media",
       "say": "turn up the volume",
-      "tool": "media_control",
+      "tool": "system_volume",
       "args": {
         "action": "louder"
       }
@@ -1553,9 +1559,64 @@
       "id": "heard-9",
       "category": "heard",
       "say": "Vox, save the file.",
-      "tool": "press_key",
+      "tool": "file_dialog",
       "args": {
-        "key": "save"
+        "action": "save"
+      }
+    },
+    {
+      "id": "files-1",
+      "category": "files",
+      "say": "save the file",
+      "tool": "file_dialog",
+      "args": {
+        "action": "save"
+      }
+    },
+    {
+      "id": "files-2",
+      "category": "files",
+      "say": "save as notes.txt",
+      "tool": "file_dialog",
+      "args": {
+        "action": "save",
+        "name": "notes.txt"
+      }
+    },
+    {
+      "id": "files-3",
+      "category": "files",
+      "say": "load the file",
+      "tool": "file_dialog",
+      "args": {
+        "action": "load"
+      }
+    },
+    {
+      "id": "files-4",
+      "category": "files",
+      "say": "open the file",
+      "tool": "file_dialog",
+      "args": {
+        "action": "load"
+      }
+    },
+    {
+      "id": "files-5",
+      "category": "files",
+      "say": "close the file",
+      "tool": "file_dialog",
+      "args": {
+        "action": "close"
+      }
+    },
+    {
+      "id": "files-6",
+      "category": "files",
+      "say": "new document",
+      "tool": "file_dialog",
+      "args": {
+        "action": "new"
       }
     },
     {
@@ -2509,6 +2570,60 @@
       "say": "turn off the computer",
       "tool": null,
       "args": {}
+    },
+    {
+      "id": "compiz-1",
+      "category": "compiz",
+      "say": "rotate cube right",
+      "tool": "compiz_control",
+      "args": {
+        "action": "cube_right"
+      }
+    },
+    {
+      "id": "compiz-2",
+      "category": "compiz",
+      "say": "rotate cube left",
+      "tool": "compiz_control",
+      "args": {
+        "action": "cube_left"
+      }
+    },
+    {
+      "id": "compiz-3",
+      "category": "compiz",
+      "say": "zoom in",
+      "tool": "compiz_control",
+      "args": {
+        "action": "zoom_in"
+      }
+    },
+    {
+      "id": "compiz-4",
+      "category": "compiz",
+      "say": "zoom in more",
+      "tool": "compiz_control",
+      "args": {
+        "action": "zoom_in_more"
+      }
+    },
+    {
+      "id": "compiz-5",
+      "category": "compiz",
+      "say": "zoom left",
+      "tool": "compiz_control",
+      "args": {
+        "action": "zoom_left"
+      }
+    },
+    {
+      "id": "compiz-6",
+      "category": "compiz",
+      "say": "zoom right",
+      "tool": "compiz_control",
+      "args": {
+        "action": "zoom_right"
+      }
     }
   ],
   "wishlist": []

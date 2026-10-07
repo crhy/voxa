@@ -26,6 +26,7 @@ from .character_picker import PortraitPicker  # noqa: E402
 from .choice_overlay import ChoiceOverlay  # noqa: E402
 from .exchange_panel import ExchangePanel  # noqa: E402
 from .face_quality import FaceQualitySwitch  # noqa: E402
+from .focus_popup import FocusPopup  # noqa: E402
 from .model_selector import ModelSelector  # noqa: E402
 from .notice import NoticeBar  # noqa: E402
 from .state import AssistantModel, AssistantState  # noqa: E402
@@ -123,6 +124,15 @@ class AssistantShell(Gtk.Overlay):
         self.tips_panel.set_margin_top(EDGE_MARGIN)
         self.add_overlay(self.tips_panel)
 
+        # Focus pop-up: the talking head plus a status caption, top-right, shown only
+        # while the window is not focused (the user is working elsewhere).
+        self.focus_popup = FocusPopup()
+        self.focus_popup.set_halign(Gtk.Align.END)
+        self.focus_popup.set_valign(Gtk.Align.START)
+        self.focus_popup.set_margin_end(EDGE_MARGIN)
+        self.focus_popup.set_margin_top(EDGE_MARGIN)
+        self.add_overlay(self.focus_popup)
+
         # Bottom row: attachment, model picker, status controls.
         self.attachment_button = Gtk.Button(icon_name="mail-attachment-symbolic")
         self.attachment_button.add_css_class("flat")
@@ -199,6 +209,10 @@ class AssistantShell(Gtk.Overlay):
     def show_notice(self, text: str) -> None:
         self.notice_bar.show_text(text)
 
+    def set_window_focus(self, focused: bool) -> None:
+        """Show the focus pop-up when the window is not focused."""
+        self.focus_popup.set_window_focus(focused)
+
     def set_audio_level(self, level: float) -> None:
         """Forward the microphone level to the assistant view."""
         self.assistant_view.set_audio_level(level)
@@ -222,6 +236,7 @@ class AssistantShell(Gtk.Overlay):
         self.assistant_view.set_listening(state is AssistantState.LISTENING)
         self.assistant_view.set_thinking(state is AssistantState.THINKING)
         self.assistant_view.set_speaking(state is AssistantState.SPEAKING)
+        self.focus_popup.set_state(state, detail)
         self._refresh_tips(state)
         return False
 

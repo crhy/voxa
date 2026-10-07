@@ -315,6 +315,25 @@ VOXA_CSS = """
     outline-offset: 2px;
 }
 
+/* Focus pop-up: a circular talking-head cut-out with a status caption, shown
+   in the top-right only while the window is not focused. */
+.voxa-focus-popup {
+    background: alpha(currentColor, 0.06);
+    border: 1px solid alpha(currentColor, 0.12);
+    border-radius: 12px;
+    padding: 8px;
+}
+
+.voxa-focus-circle {
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.voxa-focus-caption {
+    font-size: 11px;
+    opacity: 0.85;
+}
+
 .caption {
     font-size: 11px;
     opacity: 0.8;

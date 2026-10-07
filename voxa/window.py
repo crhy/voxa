@@ -351,6 +351,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.shell.face_quality.set_sensitive(bool(self.settings.character_id))
         self._live_client: LiveFaceClient | None = None
         GLib.timeout_add(250, self._sync_listening_caption)
+        GLib.timeout_add(500, self._sync_window_focus)
         # High is offered only when the face server answers; the check runs off the GTK thread.
         self._refresh_live_available()
         toolbar.add_top_bar(build_header(menu, self.shell.character_picker))
@@ -463,6 +464,13 @@ class MainWindow(Adw.ApplicationWindow):
         wanted = AssistantState.LISTENING if truly_listening else AssistantState.READY
         if wanted is not state:
             self.assistant_model.set_state(wanted, "")
+        return True
+
+    def _sync_window_focus(self) -> bool:
+        """Show the focus pop-up whenever the window manager reports the window unfocused."""
+        if self._closing:
+            return False
+        self.shell.set_window_focus(self.is_focus())
         return True
 
     def _pause_now(self) -> None:

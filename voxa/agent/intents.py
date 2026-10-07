@@ -119,7 +119,18 @@ _VOLUME_DOWN = re.compile(
 _STOP = re.compile(r"stop\s+(?:the\s+)?(?:music|video|playback)", re.IGNORECASE)
 _SKIP_AHEAD = re.compile(r"skip\s+ahead|forward\s+(?:30\s+)?seconds?", re.IGNORECASE)
 _GO_BACK_30 = re.compile(r"go\s+back\s+(?:30\s+)?seconds", re.IGNORECASE)
-_MUTE = re.compile(r"(?:un)?mute(?:\s+(?:the\s+)?(?:music|video))?", re.IGNORECASE)
+_MUTE = re.compile(r"(?:un)?mute(?:\s+(?:the\s+)?(?:music|video|computer|sound|pc))?", re.IGNORECASE)
+_SET_VOLUME = re.compile(r"set\s+(?:the\s+)?volume\s+to\s+(\d{1,3})\s*(?:percent|%)?", re.IGNORECASE)
+_VOLUME_NUM = re.compile(r"volume\s+(\d{1,3})(?:\s*(?:percent|%))?", re.IGNORECASE)
+_MAX_VOLUME = re.compile(r"max(?:imum)?\s+volume", re.IGNORECASE)
+_HALF_VOLUME = re.compile(r"half\s+volume", re.IGNORECASE)
+_GET_VOLUME = re.compile(r"what(?:'s| is)?\s+the\s+volume|current\s+volume", re.IGNORECASE)
+_CUBE_RIGHT = re.compile(r"rotate\s+(?:the\s+)?cube\s+right", re.IGNORECASE)
+_CUBE_LEFT = re.compile(r"rotate\s+(?:the\s+)?cube\s+left", re.IGNORECASE)
+_ZOOM_IN_MORE = re.compile(r"zoom\s+in\s+more", re.IGNORECASE)
+_ZOOM_IN = re.compile(r"zoom\s+in", re.IGNORECASE)
+_ZOOM_LEFT = re.compile(r"zoom\s+left", re.IGNORECASE)
+_ZOOM_RIGHT = re.compile(r"zoom\s+right", re.IGNORECASE)
 _HOME_TURN_ON = re.compile(r"(?:turn|switch)\s+on\s+(?:the\s+)?(.+)", re.IGNORECASE)
 _HOME_TURN_OFF = re.compile(r"(?:turn|switch)\s+off\s+(?:the\s+)?(.+)", re.IGNORECASE)
 _HOME_TURN_SUFFIX = re.compile(r"turn\s+(?:the\s+)?(.+?)\s+(on|off)", re.IGNORECASE)
@@ -147,7 +158,14 @@ _BARE_KEYS = {
 _TYPE = re.compile(r"(?:type|write|say)\s+(.+)", re.IGNORECASE)
 _COPY_THAT = re.compile(r"copy (?:that|this)", re.IGNORECASE)
 _NEW_TAB = re.compile(r"(?:open|add|create)\s+(?:a\s+)?new tab", re.IGNORECASE)
-_SAVE = re.compile(r"save\s+(?:the|this)\s+(?:file|document)", re.IGNORECASE)
+_SAVE_FILE = re.compile(
+    r"(?:save\s+(?:the\s+|this\s+)?(?:file|document)(?:\s+as\s+(\S+))?"
+    r"|save\s+as\s+(\S+))",
+    re.IGNORECASE,
+)
+_LOAD_FILE = re.compile(r"(?:load|open)\s+(?:the\s+|a\s+|this\s+)?(?:file|document)", re.IGNORECASE)
+_CLOSE_FILE = re.compile(r"(?:close|quit|exit)\s+(?:the\s+|this\s+)?(?:file|document)", re.IGNORECASE)
+_NEW_DOC = re.compile(r"(?:create|start|make)?\s*(?:a\s+)?new\s+(?:document|file)", re.IGNORECASE)
 _DOCUMENT = re.compile(
     r"^(?:a|an|the)?\s*(?:new\s+)?(?:e-?mail|message|document|report|letter|essay|"
     r"note|notes|post|article|memo|draft|resume|summary)",
@@ -239,10 +257,13 @@ ROUTED_TOOLS = frozenset(
         "play_music",
         "play_latest",
         "media_control",
+        "system_volume",
+        "compiz_control",
         "search_youtube",
         "web_search",
         "press_key",
         "type_text",
+        "file_dialog",
         "send_gmail",
         "open_app",
         "close_app",
@@ -299,6 +320,7 @@ _DICTATION_STARTS = frozenset(
         "dictate",
         "dictate this",
         "dictation mode",
+        "dictation",
         "start typing",
         "type what i say",
     }
@@ -479,11 +501,39 @@ def route(text: str) -> ToolCall | None:
     if _PREVIOUS.fullmatch(s):
         return call("media_control", action="previous")
     if _VOLUME_UP.fullmatch(s):
-        return call("media_control", action="louder")
+        return call("system_volume", action="louder")
     if _VOLUME_DOWN.fullmatch(s):
-        return call("media_control", action="quieter")
+        return call("system_volume", action="quieter")
     if _MUTE.fullmatch(s):
-        return call("press_key", key="mute")
+        return call("system_volume", action="unmute" if s.casefold().startswith("unmute") else "mute")
+    if _SET_VOLUME.fullmatch(s):
+        return call("system_volume", action="set", percent=_SET_VOLUME.fullmatch(s).group(1))
+    if _MAX_VOLUME.fullmatch(s):
+        return call("system_volume", action="set", percent="100")
+    if _HALF_VOLUME.fullmatch(s):
+        return call("system_volume", action="set", percent="50")
+    if _GET_VOLUME.fullmatch(s):
+        return call("system_volume", action="get")
+    if _VOLUME_NUM.fullmatch(s):
+        return call("system_volume", action="set", percent=_VOLUME_NUM.fullmatch(s).group(1))
+    if _CUBE_RIGHT.fullmatch(s):
+        return call("compiz_control", action="cube_right")
+    if _CUBE_LEFT.fullmatch(s):
+        return call("compiz_control", action="cube_left")
+    if _ZOOM_IN_MORE.fullmatch(s):
+        return call("compiz_control", action="zoom_in_more")
+    if _ZOOM_IN.fullmatch(s):
+        return call("compiz_control", action="zoom_in")
+    if re.fullmatch(r"zoom\s+(?:back\s+)?out(?:\s+more)?", s, re.IGNORECASE):
+        return call("compiz_control", action="zoom_out")
+    if re.fullmatch(r"(?:reset|stop|cancel)\s+(?:the\s+)?zoom|zoom\s+(?:all the way out|reset|off)|normal size", s, re.IGNORECASE):
+        return call("compiz_control", action="zoom_reset")
+    if re.fullmatch(r"what(?:'s| is)\s+the\s+volume(?:\s+(?:at|level))?|how loud is it|volume level", s, re.IGNORECASE):
+        return call("system_volume", action="get")
+    if _ZOOM_LEFT.fullmatch(s):
+        return call("compiz_control", action="zoom_left")
+    if _ZOOM_RIGHT.fullmatch(s):
+        return call("compiz_control", action="zoom_right")
     if _COPY_THAT.fullmatch(s):
         return call("press_key", key="copy")
     key_match = _PRESS_KEY.fullmatch(s)
@@ -524,6 +574,9 @@ def route(text: str) -> ToolCall | None:
         return call("close_window")
     if _LOCK_SCREEN.fullmatch(s):
         return call("lock_screen")
+    close_file_match = _CLOSE_FILE.fullmatch(s)
+    if close_file_match:
+        return call("file_dialog", action="close")
     close_match = _CLOSE_APP.fullmatch(s)
     if close_match:
         return call("close_app", name=close_match.group(1))
@@ -560,8 +613,18 @@ def route(text: str) -> ToolCall | None:
     if _SEND.fullmatch(s):
         return call("send_gmail")
 
-    if _SAVE.fullmatch(s):
-        return call("press_key", key="save")
+    save_match = _SAVE_FILE.fullmatch(s)
+    if save_match:
+        name = save_match.group(1) or save_match.group(2) or ""
+        if name:
+            return call("file_dialog", action="save", name=name)
+        return call("file_dialog", action="save")
+    load_match = _LOAD_FILE.fullmatch(s)
+    if load_match:
+        return call("file_dialog", action="load")
+    new_match = _NEW_DOC.fullmatch(s)
+    if new_match:
+        return call("file_dialog", action="new")
     if _NEW_TAB.fullmatch(s):
         return call("press_key", key="new tab")
     app_match = _OPEN_APP.fullmatch(s)
