@@ -79,8 +79,8 @@ def test_settings_echo_cancel_false_maps_to_off():
     assert Settings(echo_cancel=False).normalized().echo_mode == "off"
 
 
-def test_settings_invalid_mode_defaults_to_voxa():
-    assert Settings(echo_mode="banana").normalized().echo_mode == "voxa"
+def test_settings_invalid_mode_defaults_to_system():
+    assert Settings(echo_mode="banana").normalized().echo_mode == "system"
 
 
 def test_default_monitor_source_with_fake_pactl():
