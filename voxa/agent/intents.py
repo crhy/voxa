@@ -372,6 +372,11 @@ _READ_NOTES = re.compile(
 )
 _DELETE_LAST_NOTE = re.compile(r"(?:delete|remove|erase|scratch) (?:my |the )?last note", re.IGNORECASE)
 _OPEN_NOTES = re.compile(r"open (?:my )?notes", re.IGNORECASE)
+_TAKE_SCREENSHOT = re.compile(
+    r"(?:take|grab|capture|make) (?:a |me a )?(?:screen ?shot|picture of (?:the|my) screen)"
+    r"(?: of (?:the|my) screen)?(?: please)?|screen ?shot(?: this| that| the screen)?",
+    re.IGNORECASE,
+)
 
 _BROWSE = re.compile(
     r"(?:browse to|go to the website|open the page)\s+(.+)", re.IGNORECASE
@@ -451,6 +456,7 @@ ROUTED_TOOLS = frozenset(
         "read_notes",
         "delete_last_note",
         "open_notes",
+        "take_screenshot",
         "home_turn",
         "home_set",
         "home_scene",
@@ -578,6 +584,8 @@ def route(text: str) -> ToolCall | None:
         return call("delete_last_note")
     if _OPEN_NOTES.fullmatch(s):
         return call("open_notes")
+    if _TAKE_SCREENSHOT.fullmatch(s):
+        return call("take_screenshot")
 
     browse_match = _BROWSE.fullmatch(s)
     if browse_match and "." in browse_match.group(1):

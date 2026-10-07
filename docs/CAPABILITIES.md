@@ -70,6 +70,7 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | “Rotate cube right” / “rotate cube left” | Compiz cube turns (uses your Compiz key bindings) | 🧪 |
 | “Zoom in” / “zoom in more” / “zoom out” / “reset zoom” | Compiz desktop zoom | 🧪 |
 | “Zoom left” / “zoom right” | Moves the zoomed view | 🧪 |
+| “Take a screenshot” | Saves a picture of the screen to Pictures | 🧪 |
 
 ## Music and video
 

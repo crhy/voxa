@@ -285,6 +285,7 @@ def test_registry_lists_all_tools():
             "switch_to",
                 "system_volume",
                 "take_note",
+                "take_screenshot",
         "tell_date",
                 "tell_time",
                 "trash_file",
