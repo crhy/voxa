@@ -14,7 +14,7 @@ log = logging.getLogger("voxa.agent.tools.files")
 # dialogs with the same key combos the app itself uses.
 _SAVE_AS = "ctrl+shift+s"
 _OPEN_FILE = "ctrl+o"
-_CLOSE_FILE = "ctrl+q"
+_CLOSE_FILE = "ctrl+w"
 _NEW_DOCUMENT = "ctrl+n"
 
 

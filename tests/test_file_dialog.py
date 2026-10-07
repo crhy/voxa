@@ -46,7 +46,7 @@ def test_load_argv(monkeypatch):
 def test_close_argv(monkeypatch):
     calls = _record(monkeypatch)
     result = file_dialog({"action": "close"})
-    assert calls == [["xdotool", "key", "--clearmodifiers", "ctrl+q"]]
+    assert calls == [["xdotool", "key", "--clearmodifiers", "ctrl+w"]]
     assert result.ok
 
 
