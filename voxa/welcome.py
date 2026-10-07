@@ -1,5 +1,7 @@
 """First-boot welcome copy: greeting, the one missing piece, and what to say."""
 
+import time
+
 SMALLEST_MODEL = "qwen2.5:0.5b"
 TUTORIAL_URL = ""  # filled in when the tutorial video exists; empty hides the link
 
@@ -49,3 +51,32 @@ def step_text(step: str) -> tuple[str, str, str]:
 
 def spoken(step: str, name: str) -> str:
     return greeting(name) + " " + step_text(step)[1]
+
+
+def real_models(models: list[str]) -> list[str]:
+    """The entries that are real model names: names never contain spaces, status sentences always do."""
+    return [model for model in models if " " not in model]
+
+
+def probe(
+    backend: str,
+    installed,
+    list_models,
+    attempts: int = 8,
+    delay: float = 1.0,
+    sleep=time.sleep,
+) -> str:
+    """The step to show, decided from the real state."""
+    if backend != "ollama":
+        return "ready"
+    if not installed():
+        return "install"
+    for attempt in range(attempts):
+        try:
+            models = list_models()
+        except Exception:
+            if attempt + 1 < attempts:
+                sleep(delay)
+            continue
+        return "ready" if models else "model"
+    return "model"

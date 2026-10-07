@@ -8,6 +8,8 @@ import urllib.request
 from collections.abc import Callable
 from pathlib import Path
 
+from .agent.host import host_command  # noqa: E402
+
 INSTALL_SCRIPT_URL = "https://ollama.com/install.sh"
 
 
@@ -17,6 +19,21 @@ class InstallerError(RuntimeError):
 
 def is_flatpak() -> bool:
     return Path("/.flatpak-info").exists()
+
+
+def ollama_installed(runner=subprocess.run) -> bool:
+    """True when the `ollama` program exists on the host."""
+    try:
+        result = runner(
+            host_command(["sh", "-c", "command -v ollama"]),
+            capture_output=True,
+            text=True,
+            timeout=6,
+            check=False,
+        )
+    except Exception:
+        return False
+    return result.returncode == 0
 
 
 def _fetch_install_script(timeout: float = 15.0) -> str:

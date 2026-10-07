@@ -50,7 +50,7 @@ from .hardware import (  # noqa: E402
     sample_gpu_usage,
     suggest_models,
 )
-from .installer import InstallerError, install_ollama  # noqa: E402
+from .installer import InstallerError, install_ollama, ollama_installed  # noqa: E402
 from .llamacpp import LlamaCppClient, StrataClient  # noqa: E402
 from .modelwait import wait_for_models  # noqa: E402
 from .ollama import OllamaClient, OllamaError, strip_reasoning  # noqa: E402
@@ -300,6 +300,7 @@ class MainWindow(Adw.ApplicationWindow):
         # of the model, until the user says "stop dictating".
         self._external_dictation = False
         self._issue_flow: issueflow.IssueFlow | None = None
+        self._welcome_followup = False
         self._last_dictated = ""
         # The single source of truth for what the assistant is doing; the shell renders it.
         self.assistant_model = AssistantModel()
@@ -1122,6 +1123,9 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def _apply_ollama_models(self, models: list[str]) -> bool:
+        if self._welcome_followup and welcome.real_models(models):
+            self._welcome_followup = False
+            self._say_welcome_how_to()
         self.ollama_models = models
         if models and self.settings.ollama_model not in models:
             self.settings.ollama_model = models[0]
@@ -1244,6 +1248,8 @@ class MainWindow(Adw.ApplicationWindow):
         self._toast(message)
         if success:
             self._refresh_ollama_models()
+            if self._welcome_followup:
+                self._show_model_manager()
         return False
 
     def _show_model_manager(self) -> None:
@@ -1523,12 +1529,37 @@ class MainWindow(Adw.ApplicationWindow):
             return
         self.settings.welcomed = True
         self.config_store.save(self.settings)
-        models = [m for m in self.ollama_models if ":" in m or "/" in m or "-" in m]
-        step = welcome.next_step(self.settings.ai_backend, bool(models), len(models))
+
+        def worker() -> None:
+            step = welcome.probe(
+                self.settings.ai_backend,
+                ollama_installed,
+                OllamaClient(self.settings.ollama_url).list_models,
+            )
+            idle(self._show_welcome, step)
+
+        threading.Thread(target=worker, name="welcome-probe", daemon=True).start()
+
+    def _show_welcome(self, step: str) -> bool:
+        if self._closing:
+            return False
+        self._welcome_followup = step != "ready"
         name = self._character_name()
         WelcomeDialog(name, step, self._on_welcome_primary, self._on_welcome_tutorial).present(self)
         self.speech.speak(
             welcome.spoken(step, name),
+            self.settings.tts_rate,
+            self._reply_voice(),
+            on_started=lambda: None,
+            on_done=lambda: None,
+            on_error=lambda error: None,
+        )
+        return False
+
+    def _say_welcome_how_to(self) -> None:
+        self._toast("You're all set. " + welcome.HOW_TO)
+        self.speech.speak(
+            "You're all set. " + welcome.HOW_TO,
             self.settings.tts_rate,
             self._reply_voice(),
             on_started=lambda: None,
