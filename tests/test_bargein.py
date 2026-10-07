@@ -76,3 +76,13 @@ def test_gate_reset_clears_streak_only():
     gate.reset()
     assert gate.update(0.5, gate.baseline) is False
     assert gate.baseline > 0.0
+
+
+def test_a_single_stop_word_is_a_real_interruption():
+    from voxa.bargein import is_own_voice
+
+    speaking = "Larry Silverstein leased the World Trade Center shortly before the attacks."
+    assert is_own_voice("stop", speaking) is False
+    assert is_own_voice("Voxa", speaking) is False
+    assert is_own_voice("uh", speaking) is True
+    assert is_own_voice("stop", "Please stop the car now.") is True  # she is saying that word herself

@@ -28,11 +28,18 @@ def overlap(heard: str, speaking: str) -> float:
     return hits / len(heard_words)
 
 
+STOP_WORDS = frozenset({"stop", "wait", "voxa", "cancel", "pause", "quiet", "enough", "no", "hey", "silence", "shush"})
+
+
 def is_own_voice(heard: str, speaking_now: str, recently_spoken: str = "") -> bool:
     """True when `heard` is empty/noise (fewer than 2 words) or mostly words
     Voxa was already saying, i.e. the loud sound was her own voice."""
-    if len(_words(heard)) < 2:
-        return True
+    words = _words(heard)
+    if len(words) < 2:
+        # A single word is usually noise — except the words people actually interrupt with. Those count,
+        # unless Voxa happens to be saying that very word.
+        spoken = set(_words(f"{speaking_now} {recently_spoken}"))
+        return not (len(words) == 1 and words[0] in STOP_WORDS and words[0] not in spoken)
     return overlap(heard, f"{speaking_now} {recently_spoken}") >= OWN_VOICE_OVERLAP
 
 
