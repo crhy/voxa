@@ -106,10 +106,13 @@ def _play_latest_handler(args: dict[str, str]) -> ToolResult:
             handle = os.environ.get("VOXA_YOUTUBE_CHANNEL", "")
         if not handle:
             return ToolResult.failure("I don't know your channel yet. Say: my YouTube channel is, and then its name.")
-        if not (handle.startswith("@") or handle.startswith("http") or handle.startswith("UC")):
-            handle = "@" + handle
         channel = handle
-    urls = latest_from_channel(channel)
+    # latest_from_channel adds the "@" itself; spaces are not allowed in a handle.
+    channel = channel.strip().lstrip("@").replace(" ", "")
+    try:
+        urls = latest_from_channel(channel)
+    except ResolveError:
+        return ToolResult.failure(f"I could not find the YouTube channel {channel}.")
     if not urls:
         return ToolResult.failure("That channel has no recent uploads.")
     media = resolve(urls[0])

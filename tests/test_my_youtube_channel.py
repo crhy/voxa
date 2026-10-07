@@ -65,7 +65,7 @@ def test_play_latest_with_saved_channel(monkeypatch):
     monkeypatch.setattr(media, "resolve", lambda url: FakeMedia())
     monkeypatch.setattr(media, "VlcPlayer", lambda: FakePlayer())
     result = _play_latest_handler({"channel": "my channel"})
-    assert calls == ["@rhykhanz"]
+    assert calls == ["rhykhanz"]  # latest_from_channel adds the "@" itself
     assert result.ok
     assert "New Upload" in result.speech
 
@@ -103,3 +103,16 @@ def test_router_play_latest_my_channel():
     assert call is not None
     assert call.tool == "play_latest"
     assert is_my_channel(call.args["channel"])
+
+
+def test_unknown_channel_is_a_spoken_failure_not_a_crash(monkeypatch):
+    from voxa.agent.tools import media
+    from voxa.agent.ytdlp import ResolveError
+
+    def missing(channel):
+        raise ResolveError("HTTP Error 404")
+
+    monkeypatch.setattr(media, "latest_from_channel", missing)
+    result = media._play_latest_handler({"channel": "No Such Channel"})
+    assert result.ok is False
+    assert "NoSuchChannel" in result.speech
