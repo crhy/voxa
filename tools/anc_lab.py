@@ -157,11 +157,18 @@ def source_files() -> list[Path]:
     return sorted(p for p in SRC_DIR.glob("*.wav") if not p.name.startswith("_"))
 
 
-def play_and_record(wav_path: Path | None, volume: float, monitor: str):
+def play_and_record(wav_path: Path | None, volume: float, monitor: str, wake: Path | None = None):
+    wake_p = None
+    if wake is not None:
+        wake_p = subprocess.Popen(["paplay", "--volume", "1", str(wake)])
+        time.sleep(0.2)
     args = ["parec", "--rate", str(SR), "--channels", "1", "--format", "s16le", "--raw"]
     mic_p = subprocess.Popen(args + ["--device", DEFAULT_SOURCE], stdout=subprocess.PIPE)
     ref_p = subprocess.Popen(args + ["--device", monitor], stdout=subprocess.PIPE)
-    time.sleep(0.5)
+    if wake_p is not None:
+        wake_p.wait()
+    else:
+        time.sleep(0.5)
     if wav_path is not None:
         vol = max(1, min(65536, int(round(volume * 65536))))
         subprocess.run(["paplay", "--volume", str(vol), str(wav_path)], check=False)
@@ -185,6 +192,11 @@ def record(volumes: tuple[float, ...]) -> bool:
     monitor = f"{sink}.monitor"
     REC_DIR.mkdir(parents=True, exist_ok=True)
     manifest = []
+    # Wake the sink before every capture: while idle it is suspended and the monitor stream dies
+    # a second after it is opened, which truncates every recording. A tiny paplay resumes it.
+    wake = REC_DIR / "wake.wav"
+    wake_t = np.arange(5 * SR, dtype=np.float64) / SR
+    write_wav(wake, np.sin(2.0 * np.pi * 100.0 * wake_t) * 1e-3)
 
     def entry(key, name, vol):
         manifest.append({"key": key, "source": name, "volume": vol,
@@ -194,7 +206,7 @@ def record(volumes: tuple[float, ...]) -> bool:
     for wav in source_files():
         name = wav.name.removesuffix(".wav")
         for vol in volumes:
-            mic, ref = play_and_record(wav, vol, monitor)
+            mic, ref = play_and_record(wav, vol, monitor, wake)
             if dbfs(mic) < -70.0:
                 print(f"ABORT: microphone silent ({dbfs(mic):.1f} dBFS) for {name}; not writing bogus numbers")
                 return False
@@ -206,7 +218,7 @@ def record(volumes: tuple[float, ...]) -> bool:
             np.save(REC_DIR / f"{key}.ref.npy", ref)
             entry(key, name, vol)
             print(f"recorded {name} @ {vol} ({len(mic) / SR:.1f} s)")
-    mic, ref = play_and_record(None, 1.0, monitor)
+    mic, ref = play_and_record(None, 1.0, monitor, wake)
     np.save(REC_DIR / "silence.mic.npy", mic)
     np.save(REC_DIR / "silence.ref.npy", ref)
     entry("silence", "silence", 1.0)
