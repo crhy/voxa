@@ -2343,7 +2343,8 @@ class MainWindow(Adw.ApplicationWindow):
         self._log_action(heard, "issue", detail=f"start {project}")
 
         def worker() -> None:
-            repo = issueflow.find_repo(project)
+            owner = self.settings.github_owner or issueflow.detect_owner()
+            repo = issueflow.find_repo(project, owner=owner)
             idle(self._begin_issue_flow, project, repo)
 
         threading.Thread(target=worker, name="issue-repo", daemon=True).start()

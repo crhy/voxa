@@ -2,8 +2,11 @@
 
 import json
 import re
+import subprocess
 import urllib.parse
 import urllib.request
+
+from voxa.agent.host import host_command
 
 KNOWN_REPOS = {"voxa": "crhy/voxa"}
 ASK_TITLE = "What should we title the issue?"
@@ -37,14 +40,55 @@ def parse_post_issue(text: str) -> str | None:
     return project
 
 
-def find_repo(project: str, known: dict[str, str] | None = None, fetch=None) -> str | None:
+def detect_owner(runner=subprocess.run) -> str:
+    """The GitHub account of this computer's user, or ""."""
+    for command in (
+        ["gh", "api", "user", "--jq", ".login"],
+        ["git", "config", "--global", "github.user"],
+    ):
+        try:
+            proc = runner(host_command(command), capture_output=True, text=True, timeout=8, check=False)
+            if proc.returncode == 0:
+                out = proc.stdout.strip()
+                if out and re.fullmatch(r"[A-Za-z0-9-]{1,39}", out):
+                    return out
+        except Exception:
+            return ""
+    return ""
+
+
+def norm(s: str | None) -> str:
+    return re.sub(r"[^a-z0-9]+", "", (s or "").lower())
+
+
+def pick_repo(project: str, repos: list[dict]) -> str | None:
+    """The full_name of the owner's repo the user most likely meant, or None."""
+    np = norm(project)
+    for r in repos:
+        if norm(r.get("name")) == np:
+            return r["full_name"]
+    for r in repos:
+        if norm(r.get("description")) == np:
+            return r["full_name"]
+    words = project.lower().split()
+    matches = [
+        r
+        for r in repos
+        if all(w in ((r.get("name") or "") + " " + (r.get("description") or "")).lower() for w in words)
+    ]
+    if matches:
+        return min(matches, key=lambda r: len(norm(r.get("name"))))["full_name"]
+    cands = [r for r in repos if len(norm(r.get("name"))) >= 4 and (np.startswith(norm(r.get("name"))) or norm(r.get("name")).startswith(np))]
+    if cands:
+        return min(cands, key=lambda r: len(norm(r.get("name"))))["full_name"]
+    return None
+
+
+def find_repo(project: str, known: dict[str, str] | None = None, fetch=None, owner: str = "") -> str | None:
     if known is None:
         known = KNOWN_REPOS
     if project == "":
         return known["voxa"]
-
-    def norm(s: str) -> str:
-        return re.sub(r"[\s\-]", "", s).lower()
 
     np = norm(project)
     for key, val in known.items():
@@ -58,10 +102,22 @@ def find_repo(project: str, known: dict[str, str] | None = None, fetch=None) -> 
             req = urllib.request.Request(url, headers={"User-Agent": "Voxa"})
             return urllib.request.urlopen(req, timeout=6).read().decode()
 
+    if owner:
+        try:
+            repos = json.loads(fetch(f"https://api.github.com/users/{owner}/repos?per_page=100&sort=pushed"))
+            found = pick_repo(project, repos)
+            if found:
+                return found
+        except Exception:
+            return None
+
     url = "https://api.github.com/search/repositories?q=" + urllib.parse.quote(project) + "+in:name&per_page=1"
     try:
         data = json.loads(fetch(url))
-        return data["items"][0]["full_name"]
+        hit = data["items"][0]
+        if norm(hit["name"]) == np:
+            return hit["full_name"]
+        return None
     except Exception:
         return None
 

@@ -34,7 +34,7 @@ def test_find_repo_fetch():
 
     def fake(url):
         seen.append(url)
-        return '{"items": [{"full_name": "spacedlinux/spaced"}]}'
+        return '{"items": [{"full_name": "spacedlinux/spaced", "name": "spaced linux"}]}'
 
     assert F.find_repo("spaced linux", fetch=fake) == "spacedlinux/spaced"
     assert "spaced%20linux" in seen[0]
