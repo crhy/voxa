@@ -16,7 +16,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
 from . import apps, documents, mail, websearch  # noqa: E402
-from .agent import hearing, intents, planner  # noqa: E402
+from .agent import hearing, host, intents, issueflow, planner  # noqa: E402
 from .agent.actionlog import ActionLog, ActionRecord  # noqa: E402
 from .agent.claims import claims_action, first_sentences  # noqa: E402
 from .agent.host import host_command  # noqa: E402
@@ -298,6 +298,7 @@ class MainWindow(Adw.ApplicationWindow):
         # Dictation mode: utterances go straight into the focused window instead
         # of the model, until the user says "stop dictating".
         self._external_dictation = False
+        self._issue_flow: issueflow.IssueFlow | None = None
         self._last_dictated = ""
         # The single source of truth for what the assistant is doing; the shell renders it.
         self.assistant_model = AssistantModel()
@@ -2271,6 +2272,43 @@ class MainWindow(Adw.ApplicationWindow):
         if self.conversation is not None:
             self.conversation.release_prompt()
 
+    def _start_issue_flow(self, project: str, heard: str) -> None:
+        """Find the project off the GTK thread, then ask for the title."""
+        self._log_action(heard, "issue", detail=f"start {project}")
+
+        def worker() -> None:
+            repo = issueflow.find_repo(project)
+            idle(self._begin_issue_flow, project, repo)
+
+        threading.Thread(target=worker, name="issue-repo", daemon=True).start()
+
+    def _begin_issue_flow(self, project: str, repo: str | None) -> bool:
+        if repo is None:
+            self._on_tool_finished(ToolResult.failure(f"I could not find a GitHub project called {project}."))
+            return False
+        self._issue_flow = issueflow.IssueFlow(repo)
+        self.assistant_model.set_state(AssistantState.DICTATING, self._issue_flow.caption)
+        if self.conversation is not None:
+            self.conversation.hold_prompt()
+        self._on_tool_finished(ToolResult.success(issueflow.ASK_TITLE))
+        return False
+
+    def _feed_issue_flow(self, text: str) -> None:
+        flow = self._issue_flow
+        speech, url = flow.feed(text, parse_dictation_control(text))
+        if url is not None:
+            host.spawn(["xdg-open", url])
+        if not flow.active:
+            self._issue_flow = None
+            if self.assistant_model.state is AssistantState.DICTATING:
+                self.assistant_model.set_state(AssistantState.READY, "")
+            if self.conversation is not None:
+                self.conversation.release_prompt()
+        else:
+            self.assistant_model.set_state(AssistantState.DICTATING, flow.caption)
+        if speech:
+            self._on_tool_finished(ToolResult.success(speech))
+
     def _dictate_external(self, text: str) -> None:
         """Handle one utterance while dictating: type it, undo it, send it, or stop."""
         action = parse_dictation_control(text)
@@ -2325,6 +2363,13 @@ class MainWindow(Adw.ApplicationWindow):
             return
         original = prompt
         prompt = hearing.normalize(prompt) or prompt
+        if self._issue_flow is not None:
+            self._feed_issue_flow(original)
+            return
+        project = issueflow.parse_post_issue(prompt)
+        if project is not None:
+            self._start_issue_flow(project, original)
+            return
         if self._external_dictation:
             self._dictate_external(original)
             return
@@ -3110,6 +3155,7 @@ class MainWindow(Adw.ApplicationWindow):
         # speech and the running request, cancels tasks, and makes late callbacks stale.
         self.assistant.go_offline()
         self._stop_external_dictation()
+        self._issue_flow = None
         self._stop_ai_server_async()
         if self._installing:
             self._install_cancel.set()

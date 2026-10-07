@@ -112,6 +112,7 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | “Empty trash” | Empties the trash | 🧪 |
 | “Find the file called budget” | Locates the file by name | 🧪 |
 | “Find files bigger than 2 gigabytes” | Lists the oversized files | 🧪 |
+| “Post an issue to GitHub for Voxa” | Asks for a title, then a description (say “stop dictation” to finish), then opens GitHub's new-issue page filled in for you to submit | 🧪 |
 
 ## Time and routines
 
@@ -152,5 +153,5 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 ## Not built yet
 
 Tracked as issues: adaptive noise cancellation (#72), installing the High face from inside the app (#73), first-boot
-welcome (#76), posting a GitHub issue by voice (#83), slimming the
+welcome (#76), slimming the
 download (#75), messages, email triage, calendar, phone calls, purchases and the other assistant plans (#41–#67).
