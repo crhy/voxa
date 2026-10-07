@@ -123,6 +123,7 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | “Post an issue to GitHub for Voxa” | Asks for a title, then a description (say “stop dictation” to finish), then opens GitHub's new-issue page filled in for you to submit | 🧪 |
 | “Send an email to my mom” | Asks for her address the first time (and remembers it), then the subject, then you dictate the message; opens the draft in your mail program for you to press Send | 🧪 |
 | “Email Bob about the meeting” | Voxa writes a draft about that topic and opens it for you to review | 🧪 |
+| “Mom's email is mom at example dot com” / “what is Mom's email?” | Remembers and reads back email addresses | 🧪 |
 
 ## Time and routines
 

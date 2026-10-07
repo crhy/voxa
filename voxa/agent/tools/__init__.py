@@ -4,6 +4,7 @@ from voxa.agent.registry import ToolRegistry
 from voxa.agent.tools.applications import application_tools
 from voxa.agent.tools.browser import browser_tools
 from voxa.agent.tools.compiz import compiz_tools
+from voxa.agent.tools.contacts import contact_tools
 from voxa.agent.tools.deals import deal_tools
 from voxa.agent.tools.filemanage import file_manage_tools
 from voxa.agent.tools.files import file_dialog_tools
@@ -22,6 +23,7 @@ def default_registry() -> ToolRegistry:
         *browser_tools(),
         *deal_tools(),
         *application_tools(),
+        *contact_tools(),
         *media_tools(),
         *typing_tools(),
         *window_tools(),

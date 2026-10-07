@@ -7,6 +7,7 @@ from datetime import date
 from voxa.agent.deals import parse_request
 from voxa.agent.filematch import folder_key
 from voxa.agent.hearing import normalize
+from voxa.agent.mailflow import spoken_address
 from voxa.agent.tools.browser import site_url
 
 __all__ = ["ToolCall", "route", "is_compound", "ROUTED_TOOLS"]
@@ -37,6 +38,9 @@ _COMPOSE = re.compile(
 _PLAY_YT_MUSIC = re.compile(r"play\s+(.+?)\s+on\s+youtube\s+music", re.IGNORECASE)
 _PLAY_LATEST = re.compile(r"play\s+(?:the\s+)?latest\s+(?:video\s+)?from\s+(.+)", re.IGNORECASE)
 _SET_CHANNEL = re.compile(r"my (?:you ?tube )?channel(?: name)? is (?:called )?(.+)", re.IGNORECASE)
+_SET_EMAIL = re.compile(r"(?:my )?(.+?)(?:'s|s')? e-?mail(?: address)? is (.+)", re.IGNORECASE)
+_GET_EMAIL = re.compile(r"what(?:'s| is) (?:my )?(.+?)(?:'s|s')? e-?mail(?: address)?", re.IGNORECASE)
+_FORGET_EMAIL = re.compile(r"forget (?:my )?(.+?)(?:'s|s')? e-?mail(?: address)?", re.IGNORECASE)
 _PLAY_YT_ON = re.compile(r"(?:play|watch|put on)\s+(.+?)\s+on\s+youtube", re.IGNORECASE)
 _PLAY_MUSIC_QUERY = re.compile(r"play\s+music\s+(.+)", re.IGNORECASE)
 _PLAY_SOME_MUSIC = re.compile(r"play\s+(?:some\s+)?music", re.IGNORECASE)
@@ -309,6 +313,9 @@ ROUTED_TOOLS = frozenset(
         "play_music",
         "play_latest",
         "set_youtube_channel",
+        "set_contact_email",
+        "get_contact_email",
+        "forget_contact_email",
         "media_control",
         "system_volume",
         "compiz_control",
@@ -508,6 +515,16 @@ def route(text: str) -> ToolCall | None:
     where_file_match = _FIND_FILE.fullmatch(s)
     if where_file_match and re.match(r"where(?:'s| is)\s+(?:the |my |a )file\b", s, re.IGNORECASE):
         return call("find_file", name=where_file_match.group(1))
+
+    set_email_match = _SET_EMAIL.fullmatch(s)
+    if set_email_match and spoken_address(set_email_match.group(2)):
+        return call("set_contact_email", name=set_email_match.group(1), address=set_email_match.group(2))
+    get_email_match = _GET_EMAIL.fullmatch(s)
+    if get_email_match:
+        return call("get_contact_email", name=get_email_match.group(1))
+    forget_email_match = _FORGET_EMAIL.fullmatch(s)
+    if forget_email_match:
+        return call("forget_contact_email", name=forget_email_match.group(1))
 
     if _QUESTION.match(s):
         return None
