@@ -22,15 +22,15 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 
 | Try saying | What should happen | Status |
 | --- | --- | --- |
-| “Voxa” … then a question | Caption goes **Ready → Listening → Thinking → Speaking → Ready** | 🧪 |
-| Ask anything while she is answering | She stops and listens (barge-in) | 🧪 |
-| “Voxa, pause” / press **PAUSE** | Caption **Paused**; everything is ignored until you say “Voxa” | 🧪 |
-| “Voxa” (while paused) | Back to **Ready/Listening** | 🧪 |
-| “Pause the music” | Pauses the player, not Voxa | 🧪 |
+| “Voxa” … then a question | Caption goes **Ready → Listening → Thinking → Speaking → Ready** | ✅ |
+| Ask anything while she is answering | She stops and listens (barge-in) | ✅ |
+| “Voxa, pause” / press **PAUSE** | Caption **Paused**; everything is ignored until you say “Voxa” | ✅ |
+| “Voxa” (while paused) | Back to **Ready/Listening** | ✅ |
+| “Pause the music” | Pauses the player, not Voxa | ✅ |
 | Press **OFFLINE** | Microphone off, nothing is heard | ✅ |
-| “Can I get that in German?” | Repeats the last answer in German with a German voice (12 languages) | 🧪 |
-| “Back to English” | Returns to the character's own language | 🧪 |
-| A short reply | She starts speaking while the answer is still being written | 🧪 |
+| “Can I get that in German?” | Repeats the last answer in German with a German voice (12 languages) | ✅ |
+| “Back to English” | Returns to the character's own language | ✅ |
+| A short reply | She starts speaking while the answer is still being written | ✅ |
 
 ## The face
 
