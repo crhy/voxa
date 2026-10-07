@@ -79,6 +79,74 @@ def cleanup_text(args: dict[str, str]) -> ToolResult:
     return ToolResult.success("I was not sure about my edit, so I left your text as it was.")
 
 
+SUMMARY_PROMPT = "Summarise the user's text in at most three short spoken sentences. Plain words, no lists, no preamble."
+
+
+def _selected_text() -> str:
+    saved = read_clipboard()
+    write_clipboard("")
+    _run(["xdotool", "key", "--clearmodifiers", "ctrl+c"])
+    time.sleep(0.25)
+    text = read_clipboard()
+    write_clipboard(saved)
+    return text.strip()
+
+
+def speakable(text: str, limit: int = 900) -> str:
+    collapsed = " ".join(text.split())
+    if len(collapsed) <= limit:
+        return collapsed
+    window = collapsed[:limit]
+    cut = -1
+    for marker in (". ", "! ", "? "):
+        pos = window.rfind(marker)
+        if pos != -1 and pos + 1 > cut:
+            cut = pos + 1
+    if cut == -1:
+        space = window.rfind(" ")
+        cut = space if space != -1 else limit
+    return collapsed[:cut].rstrip() + " … That is the first part."
+
+
+def read_selection(args: dict[str, str]) -> ToolResult:
+    if read_clipboard is None or write_clipboard is None:
+        return ToolResult.failure("I cannot reach the clipboard here.")
+    text = _selected_text()
+    if not text:
+        return ToolResult.failure("Select some text first, then ask me to read it.")
+    return ToolResult.success(speakable(text))
+
+
+def read_clipboard_aloud(args: dict[str, str]) -> ToolResult:
+    if read_clipboard is None:
+        return ToolResult.failure("I cannot reach the clipboard here.")
+    text = read_clipboard().strip()
+    if not text:
+        return ToolResult.failure("The clipboard is empty.")
+    return ToolResult.success("The clipboard says: " + speakable(text, 600))
+
+
+def summarize_selection(args: dict[str, str]) -> ToolResult:
+    if read_clipboard is None or write_clipboard is None:
+        return ToolResult.failure("I cannot reach the clipboard here.")
+    text = _selected_text()
+    if not text:
+        return ToolResult.failure("Select some text first, then ask me to read it.")
+    if len(text) > 20000:
+        return ToolResult.failure("That is too much text for me to summarise in one go.")
+    if ask_model is None:
+        return ToolResult.failure("I cannot reach the clipboard here.")
+    summary = ask_model(
+        [
+            {"role": "system", "content": SUMMARY_PROMPT},
+            {"role": "user", "content": text},
+        ]
+    )
+    if not summary.strip():
+        return ToolResult.failure("I could not summarise that.")
+    return ToolResult.success(speakable(summary.strip(), 600))
+
+
 def textedit_tools() -> list[Tool]:
     return [
         Tool(
@@ -87,6 +155,30 @@ def textedit_tools() -> list[Tool]:
             parameters={},
             risk=RiskLevel.REVERSIBLE,
             handler=cleanup_text,
+            required=(),
+        ),
+        Tool(
+            name="read_selection",
+            description="Read the selected text in the focused window aloud.",
+            parameters={},
+            risk=RiskLevel.READ_ONLY,
+            handler=read_selection,
+            required=(),
+        ),
+        Tool(
+            name="read_clipboard_aloud",
+            description="Read what is on the clipboard aloud.",
+            parameters={},
+            risk=RiskLevel.READ_ONLY,
+            handler=read_clipboard_aloud,
+            required=(),
+        ),
+        Tool(
+            name="summarize_selection",
+            description="Summarise the selected text in the focused window in three short sentences.",
+            parameters={},
+            risk=RiskLevel.READ_ONLY,
+            handler=summarize_selection,
             required=(),
         ),
     ]

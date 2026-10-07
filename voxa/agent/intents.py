@@ -133,6 +133,19 @@ _FIX_SELECTION = re.compile(
     r"fix\s+(?:this|the|my)\s+(?:selection|paragraph|sentence)", re.IGNORECASE
 )
 _CLEAN_IT_UP = re.compile(r"clean\s+(?:this|it)\s+up", re.IGNORECASE)
+_READ_SELECTION = re.compile(
+    r"read (?:that|this|it|the selection|the selected text|what i selected)(?: to me| out loud| aloud)?",
+    re.IGNORECASE,
+)
+_READ_CLIPBOARD = re.compile(
+    r"(?:what(?:'s| is) (?:on|in) (?:my |the )?clipboard|read (?:my |the )?clipboard(?: to me)?)",
+    re.IGNORECASE,
+)
+_SUMMARIZE_SELECTION = re.compile(
+    r"(?:summari[sz]e|sum up) (?:that|this|it|the selection|the selected text)(?: for me)?"
+    r"|give me (?:a|the) summary of (?:that|this|the selection)",
+    re.IGNORECASE,
+)
 _COPY_FILE = re.compile(r"copy (?:the )?(?:file )?(.+?) from (.+?) to (.+)", re.IGNORECASE)
 _MOVE_FILE = re.compile(r"move (?:the )?(?:file )?(.+?) from (.+?) to (.+)", re.IGNORECASE)
 _TRASH_FILE = re.compile(
@@ -484,6 +497,8 @@ def route(text: str) -> ToolCall | None:
         return call("browse", url=browse_match.group(1))
     if _READ_PAGE.fullmatch(s):
         return call("read_page")
+    if _READ_CLIPBOARD.fullmatch(s):
+        return call("read_clipboard_aloud")
     click_match = _CLICK.fullmatch(s)
     if click_match:
         text_value = next(g for g in click_match.groups() if g is not None)
@@ -791,6 +806,11 @@ def route(text: str) -> ToolCall | None:
         or _CLEAN_IT_UP.fullmatch(s)
     ):
         return call("cleanup_text")
+
+    if _READ_SELECTION.fullmatch(s):
+        return call("read_selection")
+    if _SUMMARIZE_SELECTION.fullmatch(s):
+        return call("summarize_selection")
 
     type_match = _TYPE.fullmatch(s)
     if type_match and not _DOCUMENT.match(type_match.group(1)):

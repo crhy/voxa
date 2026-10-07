@@ -110,6 +110,9 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | “New line”, “comma”, “period” while dictating | Punctuation | ✅ |
 | “Save file” / “load file” / “close file” / “new document” | Sends the app's own shortcuts and asks for a file name | 🧪 |
 | “Clean up the text” | Fixes spelling, grammar and clarity in the selected text, or in the whole text of the foreground window when nothing is selected | 🧪 |
+| “Read the selection to me” | Speaks the text you have selected in the focused window | 🧪 |
+| “What's on my clipboard?” | Reads the clipboard aloud | 🧪 |
+| “Summarize this” (select the text first) | Answers in three short sentences | 🧪 |
 | “Copy report from Downloads to Documents” | Copies the file, no confirmation | 🧪 |
 | “Move holiday video from Downloads to Videos” | Moves the file, no confirmation | 🧪 |
 | “Delete old notes from Documents” | Goes to the trash, no confirmation | 🧪 |
