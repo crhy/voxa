@@ -156,6 +156,16 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | “How much memory is free?” | Answered instantly from the computer, not by the AI model | 🧪 |
 | “How much battery is left?” | Answered instantly from the computer, not by the AI model | 🧪 |
 
+## Pressing buttons in other programs
+
+| Try saying | What should happen | Status |
+| --- | --- | --- |
+| "Press Update System in Spaced Update" | Presses the named button in that program's window | 🧪 |
+| "Click the Install button" | Presses the named button in the window in front | 🧪 |
+| "What buttons are there?" | Lists the buttons you can press in the window in front | 🧪 |
+| "Read this window" | Reads the text shown in the window in front | 🧪 |
+| Deleting, formatting, paying and buying are never pressed by voice. | Refused by safety rule | 🧪 |
+
 ## Hearing
 
 | Situation | What should happen | Status |

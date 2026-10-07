@@ -16,7 +16,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
 from . import apps, documents, mail, websearch, welcome  # noqa: E402
-from .agent import hearing, host, intents, issueflow, mailflow, planner, repeat  # noqa: E402
+from .agent import hearing, host, intents, issueflow, mailflow, planner, repeat, ui  # noqa: E402
 from .agent.actionlog import ActionLog, ActionRecord  # noqa: E402
 from .agent.claims import claims_action, first_sentences  # noqa: E402
 from .agent.host import host_command  # noqa: E402
@@ -278,6 +278,7 @@ class MainWindow(Adw.ApplicationWindow):
         media.get_my_channel = lambda: self.settings.youtube_channel
         media.set_my_channel = self._save_youtube_channel
         github.set_owner = self._save_github_owner
+        ui.say = lambda text: idle(self._say_notice, text)
         contacts.get_contacts = lambda: self.settings.contacts
         contacts.save_contacts = self._save_contacts
         textedit.read_clipboard = clipboard.read_text
@@ -1584,6 +1585,19 @@ class MainWindow(Adw.ApplicationWindow):
             on_done=lambda: None,
             on_error=lambda error: None,
         )
+
+    def _say_notice(self, text: str) -> bool:
+        """Speak a short notice in the middle of a running command (for example: please enter your password)."""
+        self._toast(text)
+        self.speech.speak(
+            text,
+            self.settings.tts_rate,
+            self._reply_voice(),
+            on_started=lambda: None,
+            on_done=lambda: None,
+            on_error=lambda error: None,
+        )
+        return False
 
     def _download_welcome_model(self) -> None:
         """Fetch the smallest model with no further click; the model list refresh then finishes the welcome."""

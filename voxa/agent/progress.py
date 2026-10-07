@@ -96,6 +96,8 @@ _TEMPLATES: dict[str, str] = {
     "cleanup_text": "Cleaning up the text…",
     "read_page": "Reading the page…",
     "click_on": "Clicking {text}…",
+    "press_button": "Pressing {label}…",
+    "read_window": "Reading the window…",
     "search_site": "Searching for {query}…",
 }
 

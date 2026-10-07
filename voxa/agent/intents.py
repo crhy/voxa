@@ -396,6 +396,22 @@ _READ_PAGE = re.compile(
 _CLICK = re.compile(
     r"click (?:on )?(.+)|press the (.+) button|follow the (.+) link", re.IGNORECASE
 )
+_UI_PRESS_IN = re.compile(
+    r"(?:press|click|push|hit|tap)(?: on)?(?: the)? (.+?) in (?:the )?(.+?)(?: window| app| program)?",
+    re.IGNORECASE,
+)
+_UI_PRESS_BUTTON = re.compile(
+    r"(?:press|click|push|hit|tap)(?: on)?(?: the)? (.+?) button", re.IGNORECASE
+)
+_UI_LIST_BUTTONS = re.compile(
+    r"(?:what|which) buttons (?:are there|can i press|do you see|are on (?:the |this )?screen)(?: in (.+))?"
+    r"|list (?:the )?buttons(?: in (.+))?",
+    re.IGNORECASE,
+)
+_UI_READ_WINDOW = re.compile(
+    r"read (?:this|the) window(?: to me)?|what does (?:this|the) window say|what(?:'s| is) on (?:the|my) screen",
+    re.IGNORECASE,
+)
 _SEARCH_SITE = re.compile(
     r"search (?:this site|here|this page) for (.+)", re.IGNORECASE
 )
@@ -457,6 +473,9 @@ ROUTED_TOOLS = frozenset(
         "search_site",
         "scroll",
         "go_back",
+        "press_button",
+        "list_buttons",
+        "read_window",
         "set_timer",
         "set_reminder",
         "list_reminders",
@@ -603,6 +622,20 @@ def route(text: str) -> ToolCall | None:
         return call("read_page")
     if _READ_CLIPBOARD.fullmatch(s):
         return call("read_clipboard_aloud")
+    ui_in_match = _UI_PRESS_IN.fullmatch(s)
+    if ui_in_match:
+        return call("press_button", label=ui_in_match.group(1), app=ui_in_match.group(2))
+    click_probe = _CLICK.fullmatch(s)
+    if not (click_probe and click_probe.group(2)):
+        ui_button_match = _UI_PRESS_BUTTON.fullmatch(s)
+        if ui_button_match:
+            return call("press_button", label=ui_button_match.group(1))
+    ui_list_match = _UI_LIST_BUTTONS.fullmatch(s)
+    if ui_list_match:
+        app = next((g for g in ui_list_match.groups() if g), "")
+        return call("list_buttons", app=app)
+    if _UI_READ_WINDOW.fullmatch(s):
+        return call("read_window")
     click_match = _CLICK.fullmatch(s)
     if click_match:
         text_value = next(g for g in click_match.groups() if g is not None)
