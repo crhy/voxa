@@ -97,6 +97,14 @@ _PLAY_PAUSE = re.compile(
 _NEXT = re.compile(
     r"(?:next|skip)(?:\s+(?:the\s+)?(?:song|track|video))?", re.IGNORECASE
 )
+_CLEANUP_TEXT = re.compile(
+    r"clean\s+up\s+(?:the\s+|this\s+|my\s+)?text", re.IGNORECASE
+)
+_FIX_TEXT = re.compile(
+    r"fix\s+(?:the\s+|this\s+|my\s+)?(?:text|writing|grammar|spelling)", re.IGNORECASE
+)
+_PROOFREAD = re.compile(r"proofread\s+(?:this|it)", re.IGNORECASE)
+_EDIT_CLARITY = re.compile(r"edit\s+(?:this|it)\s+for\s+clarity", re.IGNORECASE)
 _PREVIOUS = re.compile(
     r"previous\s+(?:song|track|video)|go\s+back\s+a\s+song", re.IGNORECASE
 )
@@ -542,6 +550,9 @@ def route(text: str) -> ToolCall | None:
     restore_match = _RESTORE_APP.fullmatch(s)
     if restore_match:
         return call("restore_app", name=restore_match.group(1))
+
+    if _CLEANUP_TEXT.fullmatch(s) or _FIX_TEXT.fullmatch(s) or _PROOFREAD.fullmatch(s) or _EDIT_CLARITY.fullmatch(s):
+        return call("cleanup_text")
 
     type_match = _TYPE.fullmatch(s)
     if type_match and not _DOCUMENT.match(type_match.group(1)):

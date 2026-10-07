@@ -28,7 +28,7 @@ from .agent.result import ToolResult  # noqa: E402
 from .agent.routines import Routine, RoutineStore, parse_create, parse_delete, parse_list  # noqa: E402
 from .agent.spoken_text import format_dictation, parse_dictation_control  # noqa: E402
 from .agent.suggest import Suggestion, SuggestionState, suggest  # noqa: E402
-from .agent.tools import default_registry, typing, windows  # noqa: E402
+from .agent.tools import default_registry, textedit, typing, windows  # noqa: E402
 from .agent.tools.web import get_session  # noqa: E402
 from .audio import AudioCapture, AudioDevice  # noqa: E402
 from .catalog import CatalogUnavailable, load_catalog, refresh_and_cache, refresh_due  # noqa: E402
@@ -262,7 +262,10 @@ class MainWindow(Adw.ApplicationWindow):
         self._app_cache: list[apps.DesktopApp] | None = None
         # Tools the router can call directly, without ever asking the model.
         self.tools = default_registry()
+        for tool in textedit.textedit_tools():
+            self.tools.register(tool)
         windows.ON_LOCK = self._pause_now
+        textedit.ask_model = lambda messages: self._ai_client().generate_stream(model=self.settings.ollama_model, prompt=messages[-1]["content"], cancel_event=threading.Event(), on_chunk=lambda chunk: None, messages=messages)
         # Every command Voxa hears is logged here, so we can see what works.
         self.action_log = ActionLog()
         # True once a tool or app has run for the request being answered; the
