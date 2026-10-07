@@ -267,7 +267,7 @@ def test_a_hands_free_turn_flows_through_the_states_and_the_task_list(window, mo
     window._on_conversation_prompt("what time is it")
     assert _state(window) is AssistantState.THINKING
     (task,) = window.assistant_model.active_tasks()
-    assert task.title.startswith("Answering: what time is it")
+    assert task.title.startswith("Tell time")
 
     assert _wait_for(lambda: _state(window) is AssistantState.SPEAKING)
     assert window.assistant_model.tasks[task.id].state is TaskState.DONE

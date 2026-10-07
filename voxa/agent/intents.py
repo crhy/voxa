@@ -49,6 +49,30 @@ _HELP_TOPIC = re.compile(
     r"|(.+) help",
     re.IGNORECASE,
 )
+_TELL_TIME = re.compile(
+    r"(?:what(?:'s| is) the time|what time is it(?: now| right now)?|do you (?:have|know) the time"
+    r"|tell me the time|time please)",
+    re.IGNORECASE,
+)
+_TELL_DATE = re.compile(
+    r"(?:what(?:'s| is) (?:the|today's) date(?: today)?|what day is it(?: today)?"
+    r"|what(?:'s| is) today(?:'s date)?|what day of the week is it)",
+    re.IGNORECASE,
+)
+_DISK_SPACE = re.compile(
+    r"how much (?:disk |drive |hard drive |storage )?space (?:do i have|is (?:left|free)|have i got)"
+    r"(?: left| free)?(?: on (?:my|the|this) (?:computer|disk|drive))?",
+    re.IGNORECASE,
+)
+_MEMORY_FREE = re.compile(
+    r"how much (?:memory|ram) (?:is (?:free|left|available)|do i have(?: free| left)?)",
+    re.IGNORECASE,
+)
+_BATTERY_LEVEL = re.compile(
+    r"(?:how much battery (?:is left|do i have(?: left)?)|what(?:'s| is) (?:the|my) battery"
+    r"(?: level| percentage)?|battery (?:level|status))",
+    re.IGNORECASE,
+)
 _SET_GITHUB_OWNER = re.compile(
     r"my (?:git ?hub|get hub) (?:user ?name|name|account|handle)(?: is)? (?:called )?(.+)",
     re.IGNORECASE,
@@ -407,6 +431,11 @@ ROUTED_TOOLS = frozenset(
         "home_status",
         "find_deal",
         "set_location",
+        "tell_time",
+        "tell_date",
+        "disk_space",
+        "memory_free",
+        "battery_level",
     }
 )
 
@@ -581,6 +610,17 @@ def route(text: str) -> ToolCall | None:
         topic = help_topic.group(1) or help_topic.group(2)
         if topic_for(topic) is not None:
             return call("voxa_help", topic=topic)
+
+    if _TELL_TIME.fullmatch(s):
+        return call("tell_time")
+    if _TELL_DATE.fullmatch(s):
+        return call("tell_date")
+    if _DISK_SPACE.fullmatch(s):
+        return call("disk_space")
+    if _MEMORY_FREE.fullmatch(s):
+        return call("memory_free")
+    if _BATTERY_LEVEL.fullmatch(s):
+        return call("battery_level")
 
     if _WHICH_WINDOW.fullmatch(s):
         return call("active_window_name")

@@ -139,6 +139,16 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | “Cancel my reminders” | Reminders cleared | 🧪 |
 | “Good morning” (a routine you defined) | Runs its steps | 🧪 |
 
+## The computer
+
+| Try saying | What should happen | Status |
+| --- | --- | --- |
+| “What time is it?” | Answered instantly from the computer, not by the AI model | 🧪 |
+| “What's the date?” | Answered instantly from the computer, not by the AI model | 🧪 |
+| “How much disk space do I have?” | Answered instantly from the computer, not by the AI model | 🧪 |
+| “How much memory is free?” | Answered instantly from the computer, not by the AI model | 🧪 |
+| “How much battery is left?” | Answered instantly from the computer, not by the AI model | 🧪 |
+
 ## Hearing
 
 | Situation | What should happen | Status |

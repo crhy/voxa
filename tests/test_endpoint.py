@@ -25,6 +25,7 @@ COMPLETE = [
     "go offline",
     "stop",
     "take dictation",
+    "what time is it",
 ]
 
 NOT_COMPLETE = [
@@ -34,7 +35,6 @@ NOT_COMPLETE = [
     "play some",
     "open",
     "what is the",
-    "what time is it",
     "open gmail and then",
     "tell me a joke",
     "close brutal chess and open gmail",
