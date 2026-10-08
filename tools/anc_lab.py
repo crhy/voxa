@@ -283,7 +283,7 @@ def wav_seconds(path: Path) -> float:
 
 
 def play_and_record(wav_path: Path | None, volume: float, monitor: str, wake: Path | None = None,
-                    latency: int = 20, fix_rate: bool = False):
+                    latency: int = 20, fix_rate: bool = False, hold: float = 10.0):
     wake_p = None
     if wake is not None:
         wake_p = subprocess.Popen(["paplay", "--volume", "1", str(wake)])
@@ -302,7 +302,7 @@ def play_and_record(wav_path: Path | None, volume: float, monitor: str, wake: Pa
             vol = max(1, min(65536, int(round(volume * 65536))))
             subprocess.run(["paplay", "--volume", str(vol), str(wav_path)], check=False)
         else:
-            time.sleep(10.0)
+            time.sleep(hold)
         time.sleep(0.5)
         mic_p.terminate()
         ref_p.terminate()
@@ -330,8 +330,10 @@ def record(volumes: tuple[float, ...]) -> bool:
     REC_DIR.mkdir(parents=True, exist_ok=True)
     manifest: list = []
 
-    def entry(key, name, vol, mic, ref, level):
+    def entry(key, name, vol, mic, ref, level, floor_db):
         manifest.append({"key": key, "source": name, "volume": vol, "test_level": level,
+                         "floor_dbfs": round(floor_db, 1),
+                         "echo_to_noise_db": round(dbfs(mic) - floor_db, 1),
                          "date": time.strftime("%Y-%m-%dT%H:%M:%S"),
                          "sink": sink, "source_device": DEFAULT_SOURCE, "monitor": monitor,
                          "mic_dbfs": round(dbfs(mic), 1), "ref_dbfs": round(dbfs(ref), 1)})
@@ -343,26 +345,23 @@ def record(volumes: tuple[float, ...]) -> bool:
     write_wav(wake, np.sin(2.0 * np.pi * 100.0 * wake_t) * 0.3)
 
     try:
-        # Pick a test level: start 55% unmuted, probe with a full-scale clip and step by 10%
-        # until the mic peak sits in [-35, -3] dBFS.
+        # FACTS: measure the noise floor first (2 s of silence), then raise the PC output volume
+        # in steps (55, 70, 85, 100%, never above 100%) with a pink probe until the echo is
+        # at least 20 dB above the floor (or 100% is reached).
+        set_sink_volume(sink, 55.0)
+        set_sink_mute(sink, False)
+        floor_mic, _floor_ref = play_and_record(None, 1.0, monitor, wake, hold=2.0)
+        floor_db = dbfs(floor_mic)
         test_level = 55.0
         probe = SRC_DIR / "pink.wav"
         if probe.is_file():
-            for _ in range(4):
-                set_sink_volume(sink, test_level)
+            for lvl in (55.0, 70.0, 85.0, 100.0):
+                set_sink_volume(sink, lvl)
                 set_sink_mute(sink, False)
-                mic, ref = play_and_record(probe, 1.0, monitor, wake)
-                peak_db = dbfs(mic)
-                if peak_db > -3.0:
-                    test_level -= 10.0
-                    if test_level < 10.0:
-                        test_level = 10.0
-                        break
-                    continue
-                if peak_db < -35.0:
-                    test_level += 10.0
-                    continue
-                break
+                mic, ref = play_and_record(probe, 1.0, monitor, wake, hold=2.0)
+                test_level = lvl
+                if dbfs(mic) - floor_db >= 20.0:
+                    break
         set_sink_volume(sink, test_level)
         set_sink_mute(sink, False)
 
@@ -393,12 +392,12 @@ def record(volumes: tuple[float, ...]) -> bool:
                 key = f"{safe(name)}_v{vol}"
                 np.save(REC_DIR / f"{key}.mic.npy", mic)
                 np.save(REC_DIR / f"{key}.ref.npy", ref)
-                entry(key, name, vol, mic, ref, test_level)
+                entry(key, name, vol, mic, ref, test_level, floor_db)
                 print(f"recorded {name} @ {vol} ({len(mic) / SR:.1f} s)")
         mic, ref = play_and_record(None, 1.0, monitor, wake)
         np.save(REC_DIR / "silence.mic.npy", mic)
         np.save(REC_DIR / "silence.ref.npy", ref)
-        entry("silence", "silence", 1.0, mic, ref, test_level)
+        entry("silence", "silence", 1.0, mic, ref, test_level, floor_db)
         (REC_DIR / "manifest.json").write_text(json.dumps(manifest, indent=1))
     finally:
         if orig_vol is not None:
@@ -445,20 +444,75 @@ def removed_percent(mic, ref, cleaned) -> float:
     return 100.0 * max(0.0, min(1.0, float(np.mean(removed)))) if removed else 0.0
 
 
-def evaluate_pair(mic, ref):
+def oracle_erle_db(mic, ref, delay, taps: int = 4096) -> float:
+    """Upper-bound ERLE from a fixed least-squares echo filter trained on the first 60%.
+
+    The filter predicts the echo in the mic from the (delay-shifted) reference using `taps`
+    taps, fit on the first 60% of the clip, then applied to the rest. This is the best a
+    static predictor could remove, so it bounds what the adaptive canceller can hope for.
+    """
+    n = min(len(mic), len(ref))
+    if n <= 0:
+        return 0.0
+    mic = np.asarray(mic, dtype=np.float64)[:n]
+    ref = np.asarray(ref, dtype=np.float64)[:n]
+    ref_e = shift_forward(ref, int(delay))
+    train_end = int(0.6 * n)
+    if train_end < 2:
+        return 0.0
+    T = min(int(taps), train_end)
+    a = ref_e[:train_end]
+    y = mic[:train_end]
+    size = 1
+    while size < 2 * train_end:
+        size <<= 1
+    fa = np.fft.rfft(a, size)
+    ac = np.fft.irfft(fa * np.conj(fa), size)
+    cc = np.fft.irfft(np.conj(fa) * np.fft.rfft(y, size), size)
+    idx = np.arange(T)
+    diff = idx[:, None] - idx[None, :]
+    G = ac[diff % size]
+    b = cc[:T]
+    try:
+        w = np.linalg.solve(G + 1e-9 * np.eye(T), b)
+    except np.linalg.LinAlgError:
+        return 0.0
+    test = mic[train_end:]
+    pred = np.zeros(len(test))
+    for k in range(T):
+        if w[k] == 0.0:
+            continue
+        pred += w[k] * ref_e[train_end - k:n - k]
+    resid = test - pred
+    pm = float(np.mean(test ** 2))
+    pr = float(np.mean(resid ** 2))
+    if pr <= 1e-20 or pm <= 1e-20:
+        return 0.0
+    return 10.0 * float(np.log10(pm / pr))
+
+
+def evaluate_pair(mic, ref, floor_db=None):
     al = align_pair(mic, ref)
     coh = band_coherence(mic, al)
     delay = estimate_delay(mic, al)
     cleaned, converged = feed(EchoCanceller(delay=delay), mic, al)
     tail = len(mic) // 4
-    return {
+    erle = erle_db(mic[tail:], cleaned[tail:])
+    oracle = oracle_erle_db(mic, al, delay)
+    out = {
         "delay": int(delay),
-        "erle_db": erle_db(mic[tail:], cleaned[tail:]),
+        "erle_db": erle,
         "residual_dbfs": dbfs(cleaned[tail:]),
         "convergence_s": converged,
         "removed_percent": removed_percent(mic, ref, cleaned),
         "coherence": coh,
+        "oracle_erle_db": oracle,
+        "gap_to_oracle_db": oracle - erle,
     }
+    if floor_db is not None:
+        out["echo_to_noise_db"] = dbfs(mic) - float(floor_db)
+        out["residual_vs_floor_db"] = dbfs(cleaned[tail:]) - float(floor_db)
+    return out
 
 
 def mix_command(mic, cmd, offset: int, echo_rms: float, rel_db: float):
@@ -520,6 +574,11 @@ def double_talk(pairs: dict[float, tuple], commands: list[Path]) -> dict:
     return out
 
 
+def _mean_present(ms: list, key: str) -> float:
+    vals = [m[key] for m in ms if m.get(key) is not None]
+    return float(np.mean(vals)) if vals else float("nan")
+
+
 def evaluate(tag: str) -> bool:
     manifest_path = REC_DIR / "manifest.json"
     if not manifest_path.is_file():
@@ -532,7 +591,8 @@ def evaluate(tag: str) -> bool:
             continue
         mic = np.load(REC_DIR / f"{entry['key']}.mic.npy")
         ref = np.load(REC_DIR / f"{entry['key']}.ref.npy")
-        per_volume.setdefault(entry["volume"], []).append(evaluate_pair(mic, ref))
+        per_volume.setdefault(entry["volume"], []).append(
+            evaluate_pair(mic, ref, entry.get("floor_dbfs")))
     summary: dict[str, dict] = {}
     for vol, ms in sorted(per_volume.items()):
         conv = [m["convergence_s"] for m in ms if m["convergence_s"] is not None]
@@ -542,6 +602,10 @@ def evaluate(tag: str) -> bool:
             "convergence_s": float(np.mean(conv)) if conv else float("nan"),
             "removed_percent": float(np.mean([m["removed_percent"] for m in ms])),
             "coherence": float(np.mean([m["coherence"] for m in ms])),
+            "oracle_erle_db": _mean_present(ms, "oracle_erle_db"),
+            "gap_to_oracle_db": _mean_present(ms, "gap_to_oracle_db"),
+            "echo_to_noise_db": _mean_present(ms, "echo_to_noise_db"),
+            "residual_vs_floor_db": _mean_present(ms, "residual_vs_floor_db"),
         }
     pairs = {}
     for vol in per_volume:
@@ -553,8 +617,14 @@ def evaluate(tag: str) -> bool:
     commit = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True,
                             text=True, check=False).stdout.strip()
     levels = [e.get("test_level") for e in manifest if e.get("test_level") is not None]
-    means = {k: float(np.mean([v[k] for v in summary.values()]))
-             for k in ("erle_db", "residual_dbfs", "removed_percent", "coherence")}
+    def gmean(key):
+        vals = [v[key] for v in summary.values() if v.get(key) is not None
+                and not np.isnan(v[key])]
+        return float(np.mean(vals)) if vals else float("nan")
+
+    means = {k: gmean(k) for k in ("erle_db", "residual_dbfs", "removed_percent", "coherence",
+                                   "oracle_erle_db", "gap_to_oracle_db",
+                                   "echo_to_noise_db", "residual_vs_floor_db")}
     line = {
         "time": time.strftime("%Y-%m-%dT%H:%M:%S"),
         "tag": tag,
@@ -570,6 +640,9 @@ def evaluate(tag: str) -> bool:
         f.write(json.dumps(line) + "\n")
     print(f"history appended for tag {tag}: ERLE mean {means['erle_db']:.1f} dB, "
           f"removed {means['removed_percent']:.1f}%")
+    print(f"relative: gap to oracle {means['gap_to_oracle_db']:.1f} dB, "
+          f"residual vs floor {means['residual_vs_floor_db']:.1f} dB, "
+          f"echo to noise {means['echo_to_noise_db']:.1f} dB")
     return True
 
 

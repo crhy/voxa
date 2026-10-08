@@ -14,7 +14,7 @@ def erle_db(mic, cleaned) -> float:
     return 10.0 * float(np.log10(mic_ms / cleaned_ms))
 
 
-def estimate_delay(mic, ref, max_delay: int = 8000) -> int:
+def estimate_delay(mic, ref, max_delay: int = 4800) -> int:
     """Samples the reference must be delayed to line up with its echo in the mic."""
     n = min(len(mic), len(ref), 5 * 16000)
     if n <= 0:
@@ -100,6 +100,8 @@ class EchoCanceller:
         self._blocks_adapted = 0
         self._converged = 0.0
         self._speaking_left = 0
+        self._floor_pow = None
+        self._floor_known = False
 
     def _delayed_ref(self, length: int) -> np.ndarray:
         start = self._pos - self._delay
@@ -133,6 +135,17 @@ class EchoCanceller:
         if silent:
             # The speakers are off: hand the microphone through untouched, bit for bit, keep the
             # learned filter, and still advance the reference history so alignment is not lost.
+            self._floor_pow = p_mic if self._floor_pow is None else (
+                0.5 * self._floor_pow + 0.5 * p_mic if p_mic < self._floor_pow
+                else 0.98 * self._floor_pow + 0.02 * p_mic)
+            self._floor_known = True
+            self.weights = w1
+            self.history = h1
+            self._pos += length
+            return np.asarray(mic_b, dtype=np.float32)
+        if self._floor_known and p_mic < 2.0 * self._floor_pow:
+            # The speakers are playing but the microphone does not hear them above its own noise
+            # floor: there is nothing to cancel, so leave the microphone alone and do not adapt.
             self.weights = w1
             self.history = h1
             self._pos += length
