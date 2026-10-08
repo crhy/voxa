@@ -103,3 +103,16 @@ def test_two_stray_words_are_her_own_voice_but_a_stop_word_always_counts():
     assert is_own_voice("box a stop", speaking) is False
     assert is_own_voice("what about his wife", speaking) is False
     assert is_own_voice("stop", "Say stop dictating when you are done.") is True
+
+
+def test_wake_word_said_in_one_breath_with_a_soft_first_consonant():
+    from voxa.conversation import strip_wake_word
+
+    assert strip_wake_word("Box open Pluma", "voxa") == "open Pluma"
+    assert strip_wake_word("Laksa, what's the weather tomorrow?", "voxa") == "what's the weather tomorrow"
+    assert strip_wake_word("Locks a open the calculator", "voxa") == "open the calculator"
+    assert strip_wake_word("Voxa open Pluma", "voxa") == "open Pluma"
+    # Ordinary speech and other names must not wake her.
+    for text in ("Lots of people came", "Comment, what time is it?", "Jasper, stop.", "Cosmo, open the calculator.",
+                 "Boxing making note", "The box is open", "Open Pluma"):
+        assert strip_wake_word(text, "voxa") is None, text

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 import queue
 import re
@@ -47,9 +48,34 @@ def _fuzzy_strip(text: str, wake: str) -> str | None:
         if len(window) < count:
             continue
         candidate = "".join(m.group().casefold() for m in window)
-        if len(candidate) >= 3 and SequenceMatcher(None, candidate, wake).ratio() >= 0.65:
-            return text[window[-1].end() :].strip(" ,.!?—-\t\n")
+        if len(candidate) < 3:
+            continue
+        matched = SequenceMatcher(None, candidate, wake).ratio() >= 0.65
+        if not matched and candidate[0] in _SOFT_ONSETS and wake[0] in _SOFT_ONSETS:
+            # Said in one breath with the command, the first consonant is what Whisper gets wrong
+            # ("Box open Pluma", "Laksa, what's the weather" for "Voxa"). Soft first consonants are
+            # treated as the same sound, and "ks"/"cks" as "x".
+            sounded = _sound(wake[0] + candidate[1:])
+            matched = SequenceMatcher(None, sounded, _sound(wake)).ratio() >= 0.65
+        if matched:
+            end = window[-1].end()
+            trailing = words[count] if len(words) > count else None
+            if (
+                trailing is not None
+                and trailing.group().casefold() in ("a", "ah", "uh")
+                and wake.endswith("a")
+                and not candidate.endswith("a")
+            ):
+                end = trailing.end()  # "Locks a open …": the wake word's last syllable written apart
+            return text[end:].strip(" ,.!?—-\t\n")
     return None
+
+
+_SOFT_ONSETS = frozenset("bvflwp")
+
+
+def _sound(word: str) -> str:
+    return re.sub(r"cks|ks|cs", "x", word)
 
 
 # Utterances that end a conversation turn, matched exactly (whitespace and
@@ -220,6 +246,7 @@ class ConversationController:
         # already removed her own voice), so the UI can transcribe what a
         # level-based barge-in heard before stopping her reply (candidate_text).
         self.last_candidate_raw = ""
+        self.on_ignored = None
         self._barge_buf: list[bytes] = []
         self._barge_bytes = 0
         self._barge_max_bytes = 160_000  # ~5 s of 16 kHz 16-bit mono
@@ -494,6 +521,10 @@ class ConversationController:
                         if self.stop_event.is_set():
                             break
                         self.on_prompt(text)
+                    elif self.on_ignored is not None:
+                        # Heard, but no wake word found: reported so a missed "Voxa, …" can be explained.
+                        with contextlib.suppress(Exception):
+                            self.on_ignored(text)
                     continue
                 if self.stop_event.is_set():
                     break

@@ -1939,6 +1939,9 @@ class MainWindow(Adw.ApplicationWindow):
             ),
         )
         self.conversation.own_speech = self.own_speech
+        # Test builds: what was heard without a wake word goes to barge.log (local only), so a missed
+        # "Voxa, …" can be explained. Remove or make optional before a release.
+        self.conversation.on_ignored = lambda text: self._barge_trace("no-wake", heard=text[:120])
         self.conversation.start()
         try:
             self._prepare_microphone()
