@@ -459,8 +459,12 @@ def frame_vlc_window() -> None:
     voxa_geom = _voxa_geometry() or (0, 0, 1200, 760)
     screen = _screen_geometry() or (0, 0)
     x, y, w, h = vlc_geometry(voxa_geom, screen)
-    _run(["wmctrl", "-i", "-r", window.id, "-b", "remove,maximized_vert,maximized_horz"], check=False)
-    _run(["wmctrl", "-i", "-r", window.id, "-e", f"0,{x},{y},{w},{h}"], check=False)
+    # The window is placed again once the stream has started: VLC and the window manager both
+    # move it when the first picture arrives.
+    for wait in (0.0, 1.5, 3.0):
+        time.sleep(wait)
+        _run(["wmctrl", "-i", "-r", window.id, "-b", "remove,maximized_vert,maximized_horz,fullscreen"], check=False)
+        _run(["wmctrl", "-i", "-r", window.id, "-e", f"0,{x},{y},{w},{h}"], check=False)
 
 
 def minimize_self(args: dict[str, str]) -> ToolResult:

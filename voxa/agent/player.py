@@ -193,6 +193,9 @@ class VlcPlayer(MprisPlayer):
             "--control",
             "dbus",
             "--no-fullscreen",
+            # Without this VLC resizes its own window to the video's size the moment the picture
+            # starts (1920x1080 = almost the whole screen), undoing any size given to the window.
+            "--no-qt-video-autoresize",
             "--meta-title",
             media.title,
             main,

@@ -7,6 +7,7 @@ works from sound levels alone before any transcription exists.
 from __future__ import annotations
 
 import re
+from difflib import SequenceMatcher
 
 OWN_VOICE_OVERLAP = 0.6
 BASELINE_ALPHA = 0.05
@@ -33,18 +34,52 @@ def overlap(heard: str, speaking: str) -> float:
 STOP_WORDS = frozenset({"stop", "wait", "voxa", "cancel", "pause", "quiet", "enough", "no", "hey", "silence", "shush"})
 
 
-def is_own_voice(heard: str, speaking_now: str, recently_spoken: str = "") -> bool:
-    """True when `heard` is empty/noise (fewer than 2 words) or mostly words
-    Voxa was already saying, i.e. the loud sound was her own voice."""
+def _letters(text: str) -> str:
+    return "".join(ch for ch in text.casefold() if ch.isalnum())
+
+
+def sounds_like(heard: str, spoken: str) -> float:
+    """How closely `heard` matches some stretch of `spoken`, letter by letter (0..1).
+
+    Whisper often mishears Voxa's own voice into different WORDS that keep most of the LETTERS
+    ("BLC doesn't seem to be open" came back as "Bmc, done, themes"), so words alone cannot tell
+    her voice from a person's.
+    """
+    h, s = _letters(heard), _letters(spoken)
+    if not h or not s:
+        return 0.0
+    if len(s) <= len(h):
+        return SequenceMatcher(None, h, s).ratio()
+    best = 0.0
+    step = max(1, len(h) // 4)
+    for width in (len(h), int(len(h) * 1.3) + 1):
+        for start in range(0, max(1, len(s) - width + 1), step):
+            best = max(best, SequenceMatcher(None, h, s[start:start + width]).ratio())
+    return best
+
+
+OWN_VOICE_SOUND = 0.5
+
+
+def is_own_voice(heard: str, speaking_now: str, recently_spoken: str = "", raw: str = "") -> bool:
+    """True when what was heard is (a mishearing of) what Voxa is saying, or too little to be a person.
+
+    `heard` is the transcript after her own words were stripped; `raw` is the transcript before that.
+    """
+    spoken_text = f"{speaking_now} {recently_spoken}"
     words = _words(heard)
-    spoken = set(_words(f"{speaking_now} {recently_spoken}"))
-    if any(word in STOP_WORDS and word not in spoken for word in words):
-        # The words people actually interrupt with always count, unless she is saying them herself.
+    spoken = set(_words(spoken_text))
+    stop = [w for w in words if w in STOP_WORDS and w not in spoken and not any(s.startswith(w) for s in spoken)]
+    if stop and (len(words) <= 3 or sounds_like(raw or heard, spoken_text) < OWN_VOICE_SOUND):
+        # The words people actually interrupt with count — unless she is saying them herself
+        # ("Stopping dictation"), or they sit inside a long mishearing of her own sentence.
         return False
     if len(words) < 3:
         # One or two stray words are usually her own voice misheard ("a celibate"), not a person.
         return True
-    return overlap(heard, f"{speaking_now} {recently_spoken}") >= OWN_VOICE_OVERLAP
+    if sounds_like(raw or heard, spoken_text) >= OWN_VOICE_SOUND:
+        return True
+    return overlap(heard, spoken_text) >= OWN_VOICE_OVERLAP
 
 
 class BargeInGate:

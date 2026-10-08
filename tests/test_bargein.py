@@ -116,3 +116,17 @@ def test_wake_word_said_in_one_breath_with_a_soft_first_consonant():
     for text in ("Lots of people came", "Comment, what time is it?", "Jasper, stop.", "Cosmo, open the calculator.",
                  "Boxing making note", "The box is open", "Open Pluma"):
         assert strip_wake_word(text, "voxa") is None, text
+
+
+def test_her_own_voice_misheard_into_other_words_is_not_a_person():
+    from voxa.bargein import is_own_voice, sounds_like
+
+    # Traced on the real desktop: she said the first, Whisper wrote the second, and she stopped herself.
+    assert sounds_like("Bmc, done, themes,", "BLC doesn't seem to be open.") >= 0.5
+    assert is_own_voice("Bmc, done, themes,", "BLC doesn't seem to be open.", raw="Bmc, done, themes,") is True
+    assert is_own_voice("stop", "Stopping dictation.", raw="Stop indictation.") is True
+    # A person still gets through.
+    spoken = "Edgar Allan Poe was a celebrated American author."
+    assert is_own_voice("voxa stop", spoken, raw="was a celebrated American Voxa stop") is False
+    assert is_own_voice("what about his wife", spoken, raw="what about his wife") is False
+    assert is_own_voice("stop", spoken, raw="stop") is False

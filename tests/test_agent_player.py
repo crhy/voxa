@@ -15,7 +15,7 @@ def captured(monkeypatch):
 
 def _vlc_argv(media):
     main = media.video_url or media.audio_url
-    argv = ["flatpak", "run", "org.videolan.VLC", "--one-instance", "--control", "dbus", "--no-fullscreen", "--meta-title", media.title, main]
+    argv = ["flatpak", "run", "org.videolan.VLC", "--one-instance", "--control", "dbus", "--no-fullscreen", "--no-qt-video-autoresize", "--meta-title", media.title, main]
     if media.video_url and media.audio_url:
         argv += ["--input-slave", media.audio_url]
     return argv
