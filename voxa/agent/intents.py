@@ -394,7 +394,13 @@ _MINIMIZE_ALL = re.compile(
     r"(?:minimi[sz]e|hide)\s+(?:everything|all(?:\s+(?:of\s+)?(?:the|my))?(?:\s+open)?"
     r"\s+(?:windows|apps|applications|programs))"
     r"|show\s+(?:me\s+)?(?:the\s+|my\s+)?desktop",
-    re.IGNORECASE
+    re.IGNORECASE,
+)
+_RESTORE_ALL = re.compile(
+    r"(?:restore|unminimi[sz]e)\s+(?:everything|all(?:\s+(?:of\s+)?(?:the|my))?(?:\s+open)?"
+    r"\s+(?:windows|apps|applications|programs))"
+    r"|bring\s+(?:everything|all)\s+back",
+    re.IGNORECASE,
 )
 _MINIMIZE_APP = re.compile(
     r"(?:minimi[sz]e|hide)\s+(\w+(?:\s+\w+){0,4})", re.IGNORECASE
@@ -1116,6 +1122,8 @@ def route(text: str) -> ToolCall | None:
         return call("list_characters")
     if _MINIMIZE_ALL.fullmatch(s):
         return call("minimize_all")
+    if _RESTORE_ALL.fullmatch(s):
+        return call("restore_all")
     if _MINIMIZE_ACTIVE.fullmatch(s):
         return call("minimize_app", name="")
     if _MINIMIZE_SELF.fullmatch(s):

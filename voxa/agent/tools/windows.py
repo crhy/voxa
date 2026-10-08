@@ -366,9 +366,26 @@ def restore_app(args: dict[str, str]) -> ToolResult:
     return ToolResult.success(f"Restored {name}.")
 
 
+_MINIMIZED_IDS: list[str] = []
+
+
 def minimize_all(args: dict[str, str]) -> ToolResult:
-    _run(["wmctrl", "-k", "on"], check=False)
+    windows = list_windows()
+    ordinary = [w for w in windows if not any(marker in w.wm_class.casefold() for marker in _DESKTOP_MARKERS)]
+    own = [w for w in ordinary if w.title.strip() == "Voxa"]
+    ordered = [w for w in ordinary if w.title.strip() != "Voxa"] + own
+    _MINIMIZED_IDS.clear()
+    for window in ordered:
+        _run(["xdotool", "windowminimize", window.id], check=False)
+        _MINIMIZED_IDS.append(window.id)
     return ToolResult.success("Minimized everything.")
+
+
+def restore_all(args: dict[str, str]) -> ToolResult:
+    for window_id in reversed(_MINIMIZED_IDS):
+        _run(["wmctrl", "-i", "-a", window_id], check=False)
+    _MINIMIZED_IDS.clear()
+    return ToolResult.success("Restored everything.")
 
 
 def minimize_self(args: dict[str, str]) -> ToolResult:
@@ -504,6 +521,14 @@ def window_tools() -> list[Tool]:
             parameters={},
             risk=RiskLevel.REVERSIBLE,
             handler=minimize_all,
+            required=(),
+        ),
+        Tool(
+            name="restore_all",
+            description="Restore every window minimized by minimize_all.",
+            parameters={},
+            risk=RiskLevel.REVERSIBLE,
+            handler=restore_all,
             required=(),
         ),
         Tool(

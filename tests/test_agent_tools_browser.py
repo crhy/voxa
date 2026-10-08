@@ -282,6 +282,7 @@ def test_registry_lists_all_tools():
             "read_window",
             "rename_file",
             "repeat_last",
+            "restore_all",
             "restore_app",
             "say_in_language",
             "say_text",
