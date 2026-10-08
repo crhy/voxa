@@ -20,6 +20,7 @@ from pathlib import Path
 import numpy as np
 
 from voxa.anc import EchoCanceller, erle_db, estimate_delay
+from voxa.refmask import ReferenceMask, user_present
 from voxa.sync import band_coherence, band_coherence_segments, fit_drift_fine_info, follow_drift, predictable_share
 
 SR = 16000
@@ -1156,12 +1157,132 @@ def cmd_drift(mic_path: str, ref_path: str) -> bool:
     return True
 
 
+def cmd_mask(tag: str) -> bool:
+    manifest_path = REC_DIR / "manifest.json"
+    if not manifest_path.is_file():
+        print("no recordings; run record first")
+        return False
+    manifest = json.loads(manifest_path.read_text())
+    twod = OUT / "twomic" / "placed-normal"
+
+    def kind(source: str) -> str:
+        return source.split("_")[0]
+
+    def mask_clean(mic, ref):
+        m = ReferenceMask()
+        return m.process(mic, ref), m
+
+    rows = []
+    for entry in manifest:
+        key = entry["key"]
+        micp = REC_DIR / f"{key}.mic.npy"
+        refp = REC_DIR / f"{key}.ref.npy"
+        if not (micp.is_file() and refp.is_file()):
+            continue
+        mic, ref = np.load(micp), np.load(refp)
+        mic_a, ref_a, _ = follow_drift(mic, ref)
+        cleaned, m = mask_clean(mic_a, ref_a)
+        tail = len(mic_a) // 4
+        erle = erle_db(mic_a[tail:], cleaned[tail:])
+        rows.append({
+            "key": key,
+            "kind": kind(entry["source"]),
+            "erle_db": erle,
+            "user_present": user_present(m),
+        })
+
+    for micname in ("blue", "camera"):
+        for vol in (55, 70, 100):
+            micp = twod / f"v{vol}_{micname}.npy"
+            refp = twod / f"v{vol}_ref.npy"
+            if not (micp.is_file() and refp.is_file()):
+                continue
+            mic, ref = np.load(micp), np.load(refp)
+            mic_a, ref_a, _ = follow_drift(mic, ref)
+            cleaned, m = mask_clean(mic_a, ref_a)
+            tail = len(mic_a) // 4
+            rows.append({
+                "key": f"twomic_{micname}_v{vol}",
+                "kind": "twomic",
+                "erle_db": erle_db(mic_a[tail:], cleaned[tail:]),
+                "user_present": user_present(m),
+            })
+
+    from faster_whisper import WhisperModel
+
+    model = WhisperModel("base", device="cpu", compute_type="int8", cpu_threads=4)
+
+    dt_rows = []
+    cmds = sorted(SRC_DIR.glob("cmd_*.wav"))[:6]
+    for clip, vol in (("music_01", 0.7), ("speech_01", 1.0)):
+        key = f"{clip}_v{vol}"
+        micp, refp = REC_DIR / f"{key}.mic.npy", REC_DIR / f"{key}.ref.npy"
+        if not (micp.is_file() and refp.is_file()):
+            continue
+        mic, ref = np.load(micp), np.load(refp)
+        mic_a, ref_a, _ = follow_drift(mic, ref)
+        echo_rms = rms(ref)
+        for ci, wav in enumerate(cmds):
+            cmd = read_wav(wav)
+            words = COMMANDS[ci].lower().split()
+            offset = int(0.15 * len(mic_a))
+            for rel in LEVELS:
+                mic2, off = mix_command(mic_a, cmd, offset, echo_rms, rel)
+                cleaned, m = mask_clean(mic2, ref_a)
+                lo = max(0, off - SR // 2)
+                hi = min(len(mic2), off + len(cmd) + SR // 2)
+                dt_rows.append({
+                    "clip": key,
+                    "cmd": ci,
+                    "rel": rel,
+                    "distortion_db": distortion_db(cmd, cleaned[lo:hi]),
+                    "acc_cleaned": word_accuracy(transcribe(model, cleaned[lo:hi]), words),
+                    "acc_raw": word_accuracy(transcribe(model, mic2[lo:hi]), words),
+                    "user_present": user_present(m),
+                })
+
+    false_words = []
+    for clip in ("speech_01", "speech_02"):
+        for vol in VOLUMES:
+            key = f"{clip}_v{vol}"
+            micp, refp = REC_DIR / f"{key}.mic.npy", REC_DIR / f"{key}.ref.npy"
+            if not (micp.is_file() and refp.is_file()):
+                continue
+            mic, ref = np.load(micp), np.load(refp)
+            mic_a, ref_a, _ = follow_drift(mic, ref)
+            cleaned, _ = mask_clean(mic_a, ref_a)
+            text = transcribe(model, cleaned)
+            false_words.append({"key": key, "words": len(text.split())})
+
+    md = OUT / "MASK.md"
+    lines = [f"# reference mask results ({tag})", ""]
+    lines += ["## echo-only pairs", "", "| key | kind | erle_db | user_present |", "|---|---|---|---|"]
+    for r in rows:
+        lines.append(f"| {r['key']} | {r['kind']} | {r['erle_db']:.2f} | {r['user_present']} |")
+    lines += ["", "## double talk", "",
+              "| clip | cmd | rel_db | distortion_db | acc_cleaned | acc_raw | user_present |",
+              "|---|---|---|---|---|---|---|"]
+    for r in dt_rows:
+        lines.append(
+            f"| {r['clip']} | {r['cmd']} | {r['rel']:+.0f} | {r['distortion_db']:.2f} "
+            f"| {r['acc_cleaned']:.2f} | {r['acc_raw']:.2f} | {r['user_present']} |"
+        )
+    lines += ["", "## false words (words Whisper hears in cleaned echo-only speech)", "",
+              "| key | words |", "|---|---|"]
+    for r in false_words:
+        lines.append(f"| {r['key']} | {r['words']} |")
+    md.write_text("\n".join(lines) + "\n")
+    print(f"wrote {md}: {len(rows)} echo pairs, {len(dt_rows)} double-talk rows, "
+          f"{len(false_words)} false-word rows")
+    return True
+
+
 def main(argv: list[str]) -> int:
     import argparse
 
     ap = argparse.ArgumentParser(prog="anc_lab")
     ap.add_argument("command", choices=["make-sources", "record", "evaluate", "plot", "diagnose", "all", "drift",
-                                       "webrtc-compare"])
+                                       "webrtc-compare", "mask"])
     ap.add_argument("--volumes", default=",".join(str(v) for v in VOLUMES))
     ap.add_argument("--tag", default="run")
     ap.add_argument("--quick", action="store_true")
@@ -1170,6 +1291,8 @@ def main(argv: list[str]) -> int:
     ap.add_argument("paths", nargs="*")
     a = ap.parse_args(argv)
     vols = tuple(float(v) for v in a.volumes.split(","))
+    if a.command == "mask":
+        return 0 if cmd_mask(a.tag) else 2
     if a.command == "drift":
         if len(a.paths) != 2:
             print("usage: anc_lab drift <mic.npy> <ref.npy>")
