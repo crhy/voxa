@@ -20,13 +20,15 @@ from pathlib import Path
 import numpy as np
 
 from voxa.anc import EchoCanceller, erle_db, estimate_delay
-from voxa.sync import align_pair, band_coherence
+from voxa.sync import band_coherence, band_coherence_segments, fit_drift_fine, follow_drift
 
 SR = 16000
 OUT = Path(".voxa-spec/out/anclab")
 SRC_DIR = OUT / "sources"
 REC_DIR = OUT / "recordings"
 HISTORY = OUT / "history.jsonl"
+
+BANDS = ((100, 300), (300, 1000), (1000, 2000), (2000, 3000), (3000, 6000))
 
 DEFAULT_SOURCE = "@DEFAULT_SOURCE@"
 VOLUMES = (0.2, 0.4, 0.7, 1.0)
@@ -492,25 +494,31 @@ def oracle_erle_db(mic, ref, delay, taps: int = 4096) -> float:
 
 
 def evaluate_pair(mic, ref, floor_db=None):
-    al = align_pair(mic, ref)
-    coh = band_coherence(mic, al)
-    delay = estimate_delay(mic, al)
-    cleaned, converged = feed(EchoCanceller(delay=delay), mic, al)
-    tail = len(mic) // 4
-    erle = erle_db(mic[tail:], cleaned[tail:])
-    oracle = oracle_erle_db(mic, al, delay)
+    mic_a, al, dinfo = follow_drift(mic, ref)
+    coh = band_coherence(mic_a, al)
+    delay = estimate_delay(mic_a, al)
+    cleaned, converged = feed(EchoCanceller(delay=delay), mic_a, al)
+    tail = len(mic_a) // 4
+    erle = erle_db(mic_a[tail:], cleaned[tail:])
+    oracle = oracle_erle_db(mic_a, al, delay)
+    band_coh = {f"{lo}-{hi}": band_coherence_segments([(mic_a, al)], lo, hi)
+                for lo, hi in BANDS}
     out = {
         "delay": int(delay),
         "erle_db": erle,
         "residual_dbfs": dbfs(cleaned[tail:]),
         "convergence_s": converged,
-        "removed_percent": removed_percent(mic, ref, cleaned),
+        "removed_percent": removed_percent(mic_a, al, cleaned),
         "coherence": coh,
         "oracle_erle_db": oracle,
         "gap_to_oracle_db": oracle - erle,
+        "drift_ppm": dinfo["ppm"],
+        "lag_ms": dinfo["lag"] / SR * 1000.0,
+        "drift_residual": dinfo["residual"],
+        "band_coherence": band_coh,
     }
     if floor_db is not None:
-        out["echo_to_noise_db"] = dbfs(mic) - float(floor_db)
+        out["echo_to_noise_db"] = dbfs(mic_a) - float(floor_db)
         out["residual_vs_floor_db"] = dbfs(cleaned[tail:]) - float(floor_db)
     return out
 
@@ -579,7 +587,7 @@ def _mean_present(ms: list, key: str) -> float:
     return float(np.mean(vals)) if vals else float("nan")
 
 
-def evaluate(tag: str) -> bool:
+def evaluate(tag: str, quick: bool = False) -> bool:
     manifest_path = REC_DIR / "manifest.json"
     if not manifest_path.is_file():
         print("no recordings; run record first")
@@ -613,7 +621,12 @@ def evaluate(tag: str) -> bool:
         mic = np.load(REC_DIR / f"{e['key']}.mic.npy")
         ref = np.load(REC_DIR / f"{e['key']}.ref.npy")
         pairs[vol] = (mic, ref, estimate_delay(mic, ref))
-    dt = double_talk(pairs, sorted(SRC_DIR.glob("cmd_*.wav")))
+    cmds = sorted(SRC_DIR.glob("cmd_*.wav"))
+    pairs_use = pairs
+    if quick:
+        cmds = cmds[:6]
+        pairs_use = dict(list(pairs.items())[:2])
+    dt = double_talk(pairs_use, cmds)
     commit = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True,
                             text=True, check=False).stdout.strip()
     levels = [e.get("test_level") for e in manifest if e.get("test_level") is not None]
@@ -756,11 +769,13 @@ def diagnose(seconds: float = 20.0) -> bool:
             slope, intercept, jumps = fit_drift(times, lags)
             med_lag = int(np.median(lags))
             coh_const = band_coherence(mic, shift_forward(ref, med_lag))
-            al = align_pair(mic, ref)
-            coh_slope = band_coherence(mic, al)
+            mic_a, ref_a, dinfo = follow_drift(mic, ref)
+            coh_slope = band_coherence(mic_a, ref_a)
             report.append({"variant": name, "clicks": int(k), "slope_ppm": slope,
                            "offset": intercept, "dropouts": len(jumps),
-                           "coh_const": coh_const, "coh_slope": coh_slope})
+                           "coh_const": coh_const, "coh_slope": coh_slope,
+                           "drift_ppm": dinfo["ppm"], "lag_ms": dinfo["lag"] / SR * 1000.0,
+                           "drift_residual": dinfo["residual"]})
             fig, ax = plt.subplots()
             ax.plot(times, lags, marker="o")
             tt = np.linspace(times[0], times[-1], 50)
@@ -801,22 +816,54 @@ def diagnose(seconds: float = 20.0) -> bool:
     return True
 
 
+def cmd_drift(mic_path: str, ref_path: str) -> bool:
+    mic = np.asarray(np.load(mic_path), dtype=np.float64)
+    ref = np.asarray(np.load(ref_path), dtype=np.float64)
+    n = min(len(mic), len(ref))
+    mic, ref = mic[:n], ref[:n]
+    thr = 10.0 ** (-50.0 / 20.0)
+    nz = np.flatnonzero(np.abs(ref) > thr)
+    on = (int(nz[0]) + SR // 2) if nz.size else 0
+    mic, ref = mic[on:], ref[on:]
+    lag0, drift, resid = fit_drift_fine(mic, ref)
+    print(f"fitted drift: {drift:.3f} samples/s = {drift / SR * 1e6:.1f} ppm, "
+          f"residual rms {resid:.2f} samples")
+    N = len(mic) - 800
+    mean_lag = lag0 + drift * ((len(mic) / 2.0) / SR)
+    k = int(round(mean_lag))
+    fixed = [(mic[k:k + N], ref[:N])]
+    mic_a, ref_a, _info = follow_drift(mic, ref)
+    followed = [(mic_a, ref_a)]
+    print("one fixed delay for the whole clip:   ",
+          " | ".join(f"{lo}-{hi}: {band_coherence_segments(fixed, lo, hi):.2f}" for lo, hi in BANDS))
+    print("delay following the fitted drift:     ",
+          " | ".join(f"{lo}-{hi}: {band_coherence_segments(followed, lo, hi):.2f}" for lo, hi in BANDS))
+    return True
+
+
 def main(argv: list[str]) -> int:
     import argparse
 
     ap = argparse.ArgumentParser(prog="anc_lab")
-    ap.add_argument("command", choices=["make-sources", "record", "evaluate", "plot", "diagnose", "all"])
+    ap.add_argument("command", choices=["make-sources", "record", "evaluate", "plot", "diagnose", "all", "drift"])
     ap.add_argument("--volumes", default=",".join(str(v) for v in VOLUMES))
     ap.add_argument("--tag", default="run")
+    ap.add_argument("--quick", action="store_true")
+    ap.add_argument("paths", nargs="*")
     a = ap.parse_args(argv)
     vols = tuple(float(v) for v in a.volumes.split(","))
+    if a.command == "drift":
+        if len(a.paths) != 2:
+            print("usage: anc_lab drift <mic.npy> <ref.npy>")
+            return 2
+        return 0 if cmd_drift(a.paths[0], a.paths[1]) else 2
     if a.command == "make-sources":
         make_sources()
         return 0
     if a.command == "record":
         return 0 if record(vols) else 2
     if a.command == "evaluate":
-        return 0 if evaluate(a.tag) else 2
+        return 0 if evaluate(a.tag, a.quick) else 2
     if a.command == "plot":
         plot()
         return 0

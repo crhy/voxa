@@ -207,3 +207,147 @@ def align_pair(mic, ref, probe_every: int = 4000, window: int = 4096) -> np.ndar
     hi = int(min(n, np.ceil(ratio * (n - 1) - d_0) + 1))
     span = ref[lo:hi]
     return resample_to(span, len(mic), ratio, frac=float(-d_0 - lo))
+
+
+def _band_limit(x, fmin: float, fmax: float, rate: int) -> np.ndarray:
+    """Zero the FFT of ``x`` outside [fmin, fmax) Hz and return the inverse transform."""
+    x = np.asarray(x, dtype=np.float64)
+    if len(x) < 2:
+        return x.copy()
+    X = np.fft.rfft(x)
+    f = np.fft.rfftfreq(len(x), 1.0 / rate)
+    X[(f < fmin) | (f >= fmax)] = 0.0
+    return np.fft.irfft(X, len(x))
+
+
+def fine_lag(mic, ref, lo: int, hi: int, fmin: float = 300.0, fmax: float = 3000.0,
+             rate: int = SR) -> float:
+    """Band-limited cross-correlation peak in [lo, hi) samples with parabolic (sub-sample) refinement.
+
+    Returns the delay in samples by which the echo in ``mic`` trails ``ref`` (mic = ref delayed by
+    the returned amount). The streams are band-limited to [fmin, fmax) Hz before correlating so
+    quiet bands cannot steal the peak.
+    """
+    n = min(len(mic), len(ref))
+    if n < 4 or hi <= lo:
+        return float(max(0, lo))
+    a = _band_limit(np.asarray(mic[:n], dtype=np.float64), fmin, fmax, rate)
+    b = _band_limit(np.asarray(ref[:n], dtype=np.float64), fmin, fmax, rate)
+    size = 1
+    while size < 2 * n:
+        size <<= 1
+    corr = np.fft.irfft(np.fft.rfft(a, size) * np.conj(np.fft.rfft(b, size)), size)
+    hi = min(hi, len(corr))
+    if hi <= lo:
+        return float(max(0, lo))
+    window = corr[lo:hi]
+    k = int(np.argmax(window)) + lo
+    if 0 < k < len(corr) - 1:
+        y0, y1, y2 = corr[k - 1], corr[k], corr[k + 1]
+        denom = y0 - 2.0 * y1 + y2
+        if denom != 0.0:
+            return float(k + 0.5 * (y0 - y2) / denom)
+    return float(k)
+
+
+def fit_drift_fine(mic, ref, rate: int = SR, block_s: float = 2.0, hop_s: float = 1.0,
+                   search: tuple[int, int] = (0, 4800)) -> tuple[float, float, float]:
+    """Fit the mic/ref delay as a line using sub-sample per-block lags.
+
+    One coarse lag is measured on the whole clip, then each ``block_s`` block (stepped by
+    ``hop_s``) is measured with :func:`fine_lag` within +-40 samples of that coarse lag. A
+    least-squares line through the (block-centre time, lag) points gives the drift.
+
+    Returns ``(lag_at_t0_samples, drift_samples_per_second, residual_rms_samples)``.
+    """
+    n = min(len(mic), len(ref))
+    if n < 4:
+        return 0.0, 0.0, 0.0
+    coarse = fine_lag(mic, ref, search[0], search[1], 300.0, 3000.0, rate)
+    block = max(1024, int(round(block_s * rate)))
+    hop = max(1, int(round(hop_s * rate)))
+    ts: list[float] = []
+    ls: list[float] = []
+    lo_c = max(search[0], int(coarse) - 40)
+    hi_c = min(search[1], int(coarse) + 41)
+    for i in range(0, n - block + 1, hop):
+        lag = fine_lag(mic[i:i + block], ref[i:i + block], lo_c, hi_c, 300.0, 3000.0, rate)
+        ts.append((i + block / 2.0) / rate)
+        ls.append(lag)
+    if len(ts) < 2:
+        return coarse, 0.0, 0.0
+    t = np.asarray(ts, dtype=np.float64)
+    lags = np.asarray(ls, dtype=np.float64)
+    slope, intercept = np.polyfit(t, lags, 1)
+    resid = float(np.std(lags - np.polyval([slope, intercept], t)))
+    return float(intercept), float(slope), resid
+
+
+def fractional_delay(x, d: float, rate: int = SR) -> np.ndarray:
+    """Delay ``x`` by ``d`` samples (fractional) via an FFT phase ramp; same length out."""
+    x = np.asarray(x, dtype=np.float64)
+    if len(x) < 2:
+        return x.copy()
+    X = np.fft.rfft(x)
+    f = np.fft.rfftfreq(len(x))
+    return np.fft.irfft(X * np.exp(-2j * np.pi * f * d), len(x))
+
+
+def follow_drift(mic, ref, rate: int = SR, block_s: float = 2.0) -> tuple[np.ndarray, np.ndarray, dict]:
+    """Align the reference to the microphone by following the fitted clock drift block by block.
+
+    The reference is delayed block by block along the fitted drift line (with a 10 ms crossfade
+    between blocks so there are no clicks). Returns ``(mic_aligned, ref_aligned, info)`` of equal
+    length where ``info = {"lag", "ppm", "residual"}``.
+    """
+    n = min(len(mic), len(ref))
+    lag0, drift, resid = fit_drift_fine(mic, ref, rate, block_s)
+    mic_a = np.zeros(n, dtype=np.float64)
+    ref_a = np.zeros(n, dtype=np.float64)
+    if n > 0:
+        mic_a[:] = np.asarray(mic[:n], dtype=np.float64)
+    block = max(1024, int(round(block_s * rate)))
+    fade = max(1, int(round(0.010 * rate)))
+    prev_tail: np.ndarray | None = None
+    for i in range(0, n, block):
+        seg = np.asarray(ref[i:min(i + block, n)], dtype=np.float64)
+        t = (i + len(seg) / 2.0) / rate
+        d = lag0 + drift * t
+        shifted = fractional_delay(seg, d, rate)
+        if prev_tail is not None:
+            a = min(fade, len(prev_tail), len(shifted))
+            if a > 0:
+                ramp = np.linspace(0.0, 1.0, a)
+                shifted[:a] = (1.0 - ramp) * prev_tail[:a] + ramp * shifted[:a]
+        ref_a[i:i + len(shifted)] = shifted
+        prev_tail = shifted[-fade:].copy() if len(shifted) >= fade else shifted.copy()
+    info = {"lag": lag0, "ppm": drift / rate * 1e6, "residual": resid}
+    return mic_a, ref_a, info
+
+
+def band_coherence_segments(pairs, lo: float, hi: float, nseg: int = 8192,
+                            rate: int = SR) -> float:
+    """Mean magnitude-squared coherence over ``pairs`` in [lo, hi) Hz using Hann windows.
+
+    Windows are ``nseg`` samples long, stepped by ``nseg // 2`` (half overlap); the per-frequency
+    power and cross terms are accumulated across all windows before the coherence is formed.
+    """
+    w = np.hanning(nseg)
+    f = np.fft.rfftfreq(nseg, 1.0 / rate)
+    band = (f >= lo) & (f < hi)
+    pxx = np.zeros(nseg // 2 + 1)
+    pyy = np.zeros(nseg // 2 + 1)
+    pxy = np.zeros(nseg // 2 + 1, dtype=np.complex128)
+    for x, y in pairs:
+        x = np.asarray(x, dtype=np.float64)
+        y = np.asarray(y, dtype=np.float64)
+        m = min(len(x), len(y))
+        for i in range(0, m - nseg + 1, nseg // 2):
+            X = np.fft.rfft(x[i:i + nseg] * w)
+            Y = np.fft.rfft(y[i:i + nseg] * w)
+            pxx += np.abs(X) ** 2
+            pyy += np.abs(Y) ** 2
+            pxy += X * np.conj(Y)
+    den = pxx[band] * pyy[band]
+    num = np.abs(pxy[band]) ** 2
+    return float(np.mean(num / (den + 1e-30)))
