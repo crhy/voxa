@@ -168,6 +168,7 @@ class ConversationController:
         on_error: Callable[[str], None],
         on_exit: Callable[[str], None] | None = None,
         on_timing: Callable[[str], None] | None = None,
+        on_transcribe_timing: Callable[[str, float, float], None] | None = None,
     ) -> None:
         # The wake phase runs constantly in the background, so it uses a small,
         # dedicated model (see WAKE_WHISPER_MODEL in window.py) instead of
@@ -188,6 +189,9 @@ class ConversationController:
         self.on_error = on_error
         self.on_exit = on_exit or (lambda _kind: None)
         self.on_timing = on_timing or (lambda _stage: None)
+        # Optional hook: (model name, audio seconds, processing seconds) after every
+        # real prompt transcription, so the UI can watch the true dictation speed.
+        self.on_transcribe_timing = on_transcribe_timing
         self.queue: queue.Queue[tuple[bytes, float] | None] = queue.Queue(maxsize=80)
         self.stop_event = threading.Event()
         self.thread: threading.Thread | None = None
@@ -354,7 +358,11 @@ class ConversationController:
             return ""
         try:
             self.on_status("Transcribing…")
+            prompt_model = whisper is self.prompt_whisper
+            start = time.perf_counter() if prompt_model else 0.0
             text = whisper.transcribe(segment, self.language, hint) if hint else whisper.transcribe(segment, self.language)
+            if prompt_model:
+                self._report_timing(whisper, len(segment) / 32000.0, time.perf_counter() - start)
         except Exception as exc:  # noqa: BLE001 - worker boundary
             if not self.stop_event.is_set():
                 self.on_error(str(exc))
@@ -362,6 +370,15 @@ class ConversationController:
         # A stop pressed while the transcription was in flight must not
         # deliver its result to the UI.
         return "" if self.stop_event.is_set() else text
+
+    def _report_timing(self, whisper: WhisperService, audio_seconds: float, processing_seconds: float) -> None:
+        """Hand one real prompt transcription's speed to the UI guard; a raising hook is swallowed."""
+        if self.on_transcribe_timing is None:
+            return
+        try:
+            self.on_transcribe_timing(whisper.model_name(), audio_seconds, processing_seconds)
+        except Exception:  # noqa: BLE001 - optional hook boundary
+            pass
 
     def candidate_text(self) -> str:
         """Transcribe the mic window captured while muted, as a prompt would be.

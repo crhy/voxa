@@ -108,3 +108,52 @@ def summary(model: str, rtf: float) -> str:
     seconds = 10.0 * rtf
     text = f"{seconds:.1f}".rstrip("0").rstrip(".")
     return f"{_display(model)} transcribes 10 seconds of speech in about {text} seconds on this computer."
+
+
+SLOW_RTF = 0.7
+
+LIGHTER = {"large-v3": "small", "turbo": "small", "medium": "small", "small": "base", "base": "tiny", "tiny": None}
+
+
+def lighter(model: str) -> str | None:
+    """Next lighter model down the ladder: turbo/medium/large-v3 -> small -> base -> tiny -> None."""
+    return LIGHTER.get(model)
+
+
+class RtfGuard:
+    """Watches the real-time factor of actual transcriptions and flags a model that cannot keep up."""
+
+    def __init__(self, window: int = 5, slow: float = SLOW_RTF, min_seconds: float = 1.0) -> None:
+        self.window = window
+        self.slow = slow
+        self.min_seconds = min_seconds
+        self.samples: dict[str, list[float]] = {}
+
+    def add(self, model: str, audio_seconds: float, processing_seconds: float) -> None:
+        """Record one real transcription's RTF; clips shorter than min_seconds are ignored."""
+        if audio_seconds < self.min_seconds:
+            return
+        clips = self.samples.setdefault(model, [])
+        clips.append(processing_seconds / audio_seconds)
+        if len(clips) > self.window:
+            del clips[: -self.window]
+
+    def median(self, model: str) -> float | None:
+        """Median RTF of the last `window` clips for that model, None when there are none."""
+        clips = self.samples.get(model)
+        if not clips:
+            return None
+        ordered = sorted(clips)
+        mid = len(ordered) // 2
+        if len(ordered) % 2:
+            return ordered[mid]
+        return (ordered[mid - 1] + ordered[mid]) / 2
+
+    def should_step_down(self, model: str) -> bool:
+        """True once `window` clips are in and their median RTF is slower than `slow`."""
+        clips = self.samples.get(model, [])
+        return len(clips) >= self.window and self.median(model) > self.slow
+
+    def reset(self, model: str) -> None:
+        """Forget this model's samples, e.g. after offering to switch away from it."""
+        self.samples.pop(model, None)

@@ -279,6 +279,10 @@ class MainWindow(Adw.ApplicationWindow):
         self._installing = False
         self._has_gpu = False
         self._gpu_poll_stop: threading.Event | None = None
+        # Watches real transcription speeds and offers a lighter model when dictation lags.
+        self._rtf_guard = speechfit.RtfGuard()
+        self._rtf_asked: set[str] = set()
+        self._rtf_saved_at = 0.0
         self._model_combo_updating = False
         # Set when the window starts closing, so callbacks that arrive afterwards do nothing.
         self._closing = False
@@ -924,6 +928,30 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _toast(self, text: str) -> None:
         self.shell.show_notice(text)
+
+    def _on_transcribe_timing(self, model: str, audio_seconds: float, processing_seconds: float) -> None:
+        """Record one real prompt transcription's speed; offer a lighter model when this one lags."""
+        self._rtf_guard.add(model, audio_seconds, processing_seconds)
+        median = self._rtf_guard.median(model)
+        if median is not None:
+            self.settings.whisper_rtf[model] = median
+            now = time.monotonic()
+            if now - self._rtf_saved_at >= 60.0:
+                self._rtf_saved_at = now
+                self.config_store.save(self.settings)
+        if not self._rtf_guard.should_step_down(model) or self._has_gpu or model in self._rtf_asked:
+            return
+        lighter = speechfit.lighter(model)
+        if lighter is None:
+            return
+        self._rtf_asked.add(model)
+        self._rtf_guard.reset(model)
+        toast = Adw.Toast.new(
+            f"Dictation is running behind on this computer. Switch to {speechfit._display(lighter)}?"
+        )
+        toast.set_button_label("Switch")
+        toast.connect("clicked", lambda *_: self._load_whisper(lighter))
+        self.toast_overlay.add_toast(toast)
 
     def _reminders_tick(self) -> bool:
         """Deliver reminders whose time has come, then reschedule. Returns True to keep the timer."""
@@ -1880,6 +1908,9 @@ class MainWindow(Adw.ApplicationWindow):
             on_status=lambda text: idle(session(self._set_status), text, True),
             on_error=lambda text: idle(session(self._toast), text),
             on_exit=lambda kind: idle(session(self._on_conversation_exit), kind),
+            on_transcribe_timing=lambda model, audio, took: idle(
+                session(self._on_transcribe_timing), model, audio, took
+            ),
         )
         self.conversation.start()
         try:

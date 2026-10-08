@@ -10,6 +10,9 @@ checking by ear and eye on a real desktop; `docs/CAPABILITIES.md` is the checkli
 - **Voxa picks a Whisper model that fits this computer** at the first-run welcome and in Preferences: Turbo only when
   a graphics card is usable, otherwise Base (Tiny on small machines); a heavy manual choice still loads but warns.
   (`voxa/speechfit.py`) (#94)
+- **Voxa watches how fast dictation really runs** and, when a Whisper model can't keep up on a machine with no
+  usable graphics card, offers a lighter model with a "Switch" toast; the median real-time factor is remembered
+  per model and saved at most once a minute. (`voxa/speechfit.py`, `voxa/conversation.py`, `voxa/window.py`) (#94) 🧪
 - **Voxa no longer interrupts herself.** A barge-in now needs two things: the microphone must be clearly louder
   than Voxa's own voice for six frames in a row (the level is learned while she speaks), and the words that were
   heard must not be her own sentence. The first 400 ms of every spoken piece ignore barge-in altogether, because
