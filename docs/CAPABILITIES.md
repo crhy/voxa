@@ -33,6 +33,9 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | “Volume up” … “again” … “do that again” | Repeats the last command (never a delete, a send or a lock) | 🧪 |
 | A short reply | She starts speaking while the answer is still being written | ✅ |
 | “What can you do?” / “What can you do with files?” | A short spoken list, with phrases to try | 🧪 |
+| “How do I say where is the station in Japanese?” | Translates and says it in that language's voice | 🧪 |
+| “Good morning” / “brief me” | Date, weather and today's reminders in one short summary | 🧪 |
+| Change the wake word in Preferences | Every hint and tip names your word instead of “Voxa” | 🧪 |
 
 ## The face
 
@@ -73,6 +76,8 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | “Take a screenshot” | Saves a picture of the screen to Pictures | 🧪 |
 | “Install the most popular SNES emulator” / “Install GIMP” | Finds it on Flathub, opens it in Spaced Bazaar, presses Install there, and checks it is really installed before saying so | 🧪 |
 | “Uninstall Snes9x” | Removes an installed Flatpak app | 🧪 |
+| “Spin cube” … “stop” | The cube keeps turning until you say stop or give any command, then returns to where it started | 🧪 |
+| “Take a picture” / “show me the picture” | A webcam photo saved to Pictures | 🧪 |
 
 ## Music and video
 
@@ -86,6 +91,8 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | “Set the volume to 40 percent” | Computer volume set exactly | 🧪 |
 | “My YouTube channel is …” | Remembers your channel | 🧪 |
 | “Play the latest video from my channel” | Plays your newest upload in VLC | 🧪 |
+| “Play Groove Salad” / “play some ska radio” / “put on the radio” | Internet radio in VLC: SomaFM's ten most listened stations, Bob's Ska Radio, Cowpoke Radio | 🧪 |
+| “What stations do you have?” / “what station is this?” | Names the stations; says the one playing and its genre | 🧪 |
 
 ## Finding and buying
 
@@ -188,6 +195,7 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | Backend → Strata | Shows Strata's model when Strata is running | 🧪 |
 | Backend → llama.cpp | Lists model files even before the server starts | 🧪 |
 | High selected with a large model | Warns when the two will not fit on the graphics card | 🧪 |
+| Look beside the backend selector | A dot and a word: Online, Starting… or Offline | 🧪 |
 
 ## On the screen
 

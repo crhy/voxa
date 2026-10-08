@@ -34,6 +34,16 @@ checking by ear and eye on a real desktop; `docs/CAPABILITIES.md` is the checkli
 - **Read-back**: "read the selection to me", "what's on my clipboard?", "summarize this" (three sentences, from the
   text you selected), "what's open?", "what window is this?". (#68) 🧪
 
+### New commands (quick wins)
+
+- Internet radio by name or genre: "play Groove Salad", "play some ska radio", "what stations do you have?". (#91) 🧪
+- "Spin cube" keeps the desktop cube turning until you stop it, then returns to the starting desktop. (#90) 🧪
+- "Take a picture" with the webcam; "show me the picture". (#92) 🧪
+- "How do I say … in Japanese?" — translated and spoken in that language's voice. (#66) 🧪
+- "Good morning" / "brief me": date, weather and today's reminders. (#57) 🧪
+- The hints, tips, welcome and help text name your own wake word after you change it. (#93) 🧪
+- A status indicator beside the backend selector: Online, Starting… or Offline. (#27) 🧪
+
 ### Sound devices
 
 - **Voxa no longer adds a sound device or changes your audio output.** Through 0.1.5, the "system" echo

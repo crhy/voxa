@@ -83,6 +83,11 @@ _SET_EMAIL = re.compile(r"(?:my )?(.+?)(?:'s|s')? e-?mail(?: address)? is (.+)",
 _GET_EMAIL = re.compile(r"what(?:'s| is) (?:my )?(.+?)(?:'s|s')? e-?mail(?: address)?", re.IGNORECASE)
 _FORGET_EMAIL = re.compile(r"forget (?:my )?(.+?)(?:'s|s')? e-?mail(?: address)?", re.IGNORECASE)
 _PLAY_YT_ON = re.compile(r"(?:play|watch|put on)\s+(.+?)\s+on\s+youtube", re.IGNORECASE)
+_BRIEFING = re.compile(
+    r"good\s+(?:morning|afternoon|evening)|brief\s+me|(?:give\s+me\s+)?(?:my\s+|the\s+)?(?:daily\s+|morning\s+)?briefing"
+    r"|what\s+does\s+my\s+day\s+look\s+like|what(?:'s|\s+is)\s+on\s+(?:for\s+)?today",
+    re.IGNORECASE,
+)
 _SAY_IN = re.compile(
     r"(?:how\s+(?:do\s+(?:i|you)|would\s+(?:i|you))\s+say|say|translate|what(?:'s|\s+is))\s+(.+?)\s+(?:in|into|to)\s+([a-z]+)",
     re.IGNORECASE,
@@ -558,6 +563,7 @@ ROUTED_TOOLS = frozenset(
         "take_screenshot",
         "take_picture",
         "say_in_language",
+        "daily_briefing",
         "play_radio",
         "list_radio",
         "radio_genre",
@@ -646,6 +652,8 @@ def route(text: str) -> ToolCall | None:
 
     if is_start_dictation(s):
         return None
+    if _BRIEFING.fullmatch(s):
+        return call("daily_briefing")
     if is_compound(s):
         type_match = _TYPE.fullmatch(s)
         if type_match and not _DOCUMENT.match(type_match.group(1)):

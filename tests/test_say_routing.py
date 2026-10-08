@@ -25,8 +25,11 @@ def test_say_hello_speaks():
     assert call.args == {"text": "hello to everyone"}
 
 
-def test_how_do_you_say_goes_to_model():
-    assert route("how do you say thank you in Japanese") is None
+def test_how_do_you_say_is_translated_and_spoken():
+    call = route("how do you say thank you in Japanese")
+    assert call is not None and call.tool == "say_in_language"
+    assert call.args == {"phrase": "thank you", "language": "Japanese"}
+    assert route("how do you say thank you in Klingon") is None
 
 
 def test_repeat_last_without_previous_reply():

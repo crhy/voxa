@@ -29,6 +29,7 @@ from .agent.result import ToolResult  # noqa: E402
 from .agent.routines import Routine, RoutineStore, parse_create, parse_delete, parse_list  # noqa: E402
 from .agent.spoken_text import format_dictation, parse_dictation_control  # noqa: E402
 from .agent.suggest import Suggestion, SuggestionState, suggest  # noqa: E402
+from .agent.tools import briefing as briefing_tool  # noqa: E402
 from .agent.tools import (  # noqa: E402
     compiz,
     contacts,
@@ -295,6 +296,7 @@ class MainWindow(Adw.ApplicationWindow):
         textedit.read_clipboard = clipboard.read_text
         translate.ask_model = lambda messages: textedit.ask_model(messages)
         translate.speak_in = self._speak_next_reply_in
+        briefing_tool.get_location = lambda: self.settings.home_location
         textedit.write_clipboard = clipboard.write_text
         # Every command Voxa hears is logged here, so we can see what works.
         self.action_log = ActionLog()

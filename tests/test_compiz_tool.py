@@ -53,4 +53,4 @@ def test_failure_is_reported_not_claimed(monkeypatch) -> None:
     monkeypatch.setattr(compiz, "_run", lambda command: False)
     result = compiz.compiz_control({"action": "zoom_in"})
     assert not result.ok and "could not" in result.speech
-    assert not compiz.compiz_control({"action": "spin"}).ok
+    assert not compiz.compiz_control({"action": "wobble"}).ok
