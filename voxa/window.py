@@ -29,7 +29,17 @@ from .agent.result import ToolResult  # noqa: E402
 from .agent.routines import Routine, RoutineStore, parse_create, parse_delete, parse_list  # noqa: E402
 from .agent.spoken_text import format_dictation, parse_dictation_control  # noqa: E402
 from .agent.suggest import Suggestion, SuggestionState, suggest  # noqa: E402
-from .agent.tools import compiz, contacts, default_registry, github, media, textedit, typing, windows  # noqa: E402
+from .agent.tools import (  # noqa: E402
+    compiz,
+    contacts,
+    default_registry,
+    github,
+    media,
+    textedit,
+    translate,
+    typing,
+    windows,
+)
 from .agent.tools.web import get_session  # noqa: E402
 from .anc import EchoCanceller as AncCanceller  # noqa: E402
 from .audio import AudioCapture, AudioDevice  # noqa: E402
@@ -283,6 +293,8 @@ class MainWindow(Adw.ApplicationWindow):
         contacts.get_contacts = lambda: self.settings.contacts
         contacts.save_contacts = self._save_contacts
         textedit.read_clipboard = clipboard.read_text
+        translate.ask_model = lambda messages: textedit.ask_model(messages)
+        translate.speak_in = self._speak_next_reply_in
         textedit.write_clipboard = clipboard.write_text
         # Every command Voxa hears is logged here, so we can see what works.
         self.action_log = ActionLog()
@@ -2012,6 +2024,7 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _run_tool(self, call: intents.ToolCall, prompt: str) -> None:
         """A recognised command goes straight to its tool, never to the model."""
+        self._restore_reply_language()
         if call.args.get("action") != "spin":
             compiz.stop_spin()  # any new command ends a spinning cube (it turns back home)
         if repeat.repeatable(call.tool):
@@ -2530,8 +2543,20 @@ class MainWindow(Adw.ApplicationWindow):
 
         threading.Thread(target=worker, name="external-dictation", daemon=True).start()
 
+    def _speak_next_reply_in(self, language: str) -> None:
+        """One reply in another language's voice ("how do I say … in Japanese"), then back to normal."""
+        if not hasattr(self, "_language_before_once"):
+            self._language_before_once = self._reply_language
+        self._reply_language = language
+
+    def _restore_reply_language(self) -> None:
+        if hasattr(self, "_language_before_once"):
+            self._reply_language = self._language_before_once
+            del self._language_before_once
+
     def ask_ai(self, prompt: str | None = None) -> None:
         self._follow_up_token = None
+        self._restore_reply_language()
         self._stop_dictation_for_action()
         if prompt is None:
             prompt = self._get_text(self.transcript_view)

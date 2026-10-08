@@ -10,6 +10,7 @@ from voxa.agent.filematch import folder_key
 from voxa.agent.hearing import normalize
 from voxa.agent.helptext import topic_for
 from voxa.agent.mailflow import spoken_address
+from voxa.agent.tools import translate
 from voxa.agent.tools.browser import site_url
 
 __all__ = ["ToolCall", "route", "is_compound", "ROUTED_TOOLS"]
@@ -82,6 +83,10 @@ _SET_EMAIL = re.compile(r"(?:my )?(.+?)(?:'s|s')? e-?mail(?: address)? is (.+)",
 _GET_EMAIL = re.compile(r"what(?:'s| is) (?:my )?(.+?)(?:'s|s')? e-?mail(?: address)?", re.IGNORECASE)
 _FORGET_EMAIL = re.compile(r"forget (?:my )?(.+?)(?:'s|s')? e-?mail(?: address)?", re.IGNORECASE)
 _PLAY_YT_ON = re.compile(r"(?:play|watch|put on)\s+(.+?)\s+on\s+youtube", re.IGNORECASE)
+_SAY_IN = re.compile(
+    r"(?:how\s+(?:do\s+(?:i|you)|would\s+(?:i|you))\s+say|say|translate|what(?:'s|\s+is))\s+(.+?)\s+(?:in|into|to)\s+([a-z]+)",
+    re.IGNORECASE,
+)
 _RADIO_PLAY = re.compile(
     r"(?:play|put\s+on|turn\s+on|listen\s+to|tune\s+(?:in\s+)?to)\s+(?:the\s+|some\s+|me\s+some\s+)?"
     r"(?:(.+?)\s+)?(?:internet\s+)?radio(?:\s+station)?",
@@ -552,6 +557,7 @@ ROUTED_TOOLS = frozenset(
         "open_notes",
         "take_screenshot",
         "take_picture",
+        "say_in_language",
         "play_radio",
         "list_radio",
         "radio_genre",
@@ -648,6 +654,9 @@ def route(text: str) -> ToolCall | None:
 
     if _REPEAT_LAST.fullmatch(s):
         return call("repeat_last")
+    say_in_match = _SAY_IN.fullmatch(s)
+    if say_in_match and translate.language_name(say_in_match.group(2)) is not None:
+        return call("say_in_language", phrase=say_in_match.group(1).strip("\"'“”"), language=say_in_match.group(2))
     after_me_match = _REPEAT_AFTER_ME.fullmatch(s)
     if after_me_match:
         return call("say_text", text=after_me_match.group(1))

@@ -22,6 +22,7 @@ from voxa.agent.tools.screenshot import screenshot_tools
 from voxa.agent.tools.system import system_tools
 from voxa.agent.tools.sysupdate import sysupdate_tools
 from voxa.agent.tools.textedit import textedit_tools
+from voxa.agent.tools.translate import translate_tools
 from voxa.agent.tools.typing import typing_tools
 from voxa.agent.tools.uicontrol import uicontrol_tools
 from voxa.agent.tools.volume import volume_tools
@@ -48,6 +49,7 @@ def default_registry() -> ToolRegistry:
         *screenshot_tools(),
         *camera_tools(),
         *radio_tools(),
+        *translate_tools(),
         *home_tools(),
         *volume_tools(),
         *compiz_tools(),
