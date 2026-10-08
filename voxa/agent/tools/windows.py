@@ -231,24 +231,60 @@ def _close_own_browser(name: str) -> ToolResult | None:
     return ToolResult.failure("My browser isn't open. Say the browser's name, like “close Brave”, to close yours.")
 
 
+_BROWSER_NAMES = frozenset({
+    "brave", "brave browser", "firefox", "chrome", "google chrome", "chromium", "edge", "vivaldi", "opera", "librewolf",
+})
+
+
+def _close_named_browser(name: str) -> ToolResult | None:
+    """"Close Brave" closes the browser window Voxa opened and never the user's own windows.
+
+    Voxa's controlled browser is the same program as the user's, so closing every matching window
+    (or killing the app) took the user's windows and tabs with it. Returns None for other programs.
+    """
+    if name.lower() not in _BROWSER_NAMES:
+        return None
+    try:
+        from ..browser_session import browser_socket
+        from .web import get_session
+
+        session = get_session()
+        if browser_socket(session._port) is not None:
+            session.close_browser()
+            return ToolResult.success("Closing my browser window. Yours are untouched.")
+    except Exception as exc:  # noqa: BLE001 - fall through to the honest answer below
+        log.debug("could not close the controlled browser: %s", exc)
+    count = len(match_windows(name, list_windows()))
+    if count:
+        plural = "window" if count == 1 else "windows"
+        return ToolResult.failure(
+            f"I only close the browser I opened. {name.capitalize()} has {count} {plural} of yours open; "
+            "say “close this window” to close the one in front."
+        )
+    return ToolResult.failure(f"{name} doesn't seem to be open.")
+
+
 def close_app(args: dict[str, str]) -> ToolResult:
     name = _THE_PREFIX.sub("", args["name"].strip())
     own = _close_own_browser(name)
     if own is not None:
         return own
+    browser = _close_named_browser(name)
+    if browser is not None:
+        return browser
     windows = match_windows(name, list_windows())
     app = apps.match_app(name, apps.list_apps())
     app_id = flatpak_app_id(app.path) if app is not None else None
 
     if windows:
+        # Ask each window to close and stop there: the program may need to ask about unsaved work,
+        # and killing it afterwards threw that work away.
         for window in windows:
             _run(["wmctrl", "-i", "-c", window.id])
-        # A Flatpak app can linger behind a "save changes?" prompt, so kill it too.
-        if app_id is not None:
-            _run(["flatpak", "kill", app_id], check=False)
         return ToolResult.success(f"Closing {name}.")
 
     if app_id is not None:
+        # No window at all: a background program, which only a kill can stop.
         result = _run(["flatpak", "kill", app_id], check=False)
         if result.returncode == 0:
             return ToolResult.success(f"Closing {app.name}.")
