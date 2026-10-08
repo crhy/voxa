@@ -74,7 +74,7 @@ from .speech import SpeechService  # noqa: E402
 from .theme import host_theme_is_dark  # noqa: E402
 from .transcription import WhisperService  # noqa: E402
 from .ui import clipboard  # noqa: E402
-from .ui.avatars import character_choices, get_avatar  # noqa: E402
+from .ui.avatars import character_choices, describe_characters, find_character, get_avatar  # noqa: E402
 from .ui.focus_window import overlay_supported  # noqa: E402
 from .ui.legacy_view import LegacyCallbacks, LegacyView  # noqa: E402
 from .ui.live_face import LiveFaceClient, decode_audio_to_pcm16k  # noqa: E402
@@ -2024,6 +2024,19 @@ class MainWindow(Adw.ApplicationWindow):
             )
         )
 
+    def _tool_result(self, call: intents.ToolCall) -> ToolResult:
+        """Resolve a tool call, special-casing the character tools that touch the UI."""
+        if call.tool == "change_character":
+            character_id = find_character(call.args.get("name", ""))
+            if character_id is None:
+                return ToolResult.failure("I don't know that character.")
+            self._on_shell_character_selected(character_id)
+            return ToolResult.success(f"Switched to {character_id.title()}.")
+        if call.tool == "list_characters":
+            lines = describe_characters()
+            return ToolResult.success(" ".join(lines) if lines else "No characters to choose from.")
+        return self.tools.call(call.tool, call.args)
+
     def _run_tool(self, call: intents.ToolCall, prompt: str) -> None:
         """A recognised command goes straight to its tool, never to the model."""
         self._restore_reply_language()
@@ -2053,7 +2066,7 @@ class MainWindow(Adw.ApplicationWindow):
         def worker() -> None:
             started = time.monotonic()
             try:
-                result = self.tools.call(call.tool, call.args)
+                result = self._tool_result(call)
                 self._log_action(
                     prompt,
                     "tool",

@@ -744,18 +744,18 @@
       "id": "key-16",
       "category": "keys",
       "say": "fullscreen",
-      "tool": "press_key",
+      "tool": "maximize_app",
       "args": {
-        "key": "fullscreen"
+        "name": ""
       }
     },
     {
       "id": "key-17",
       "category": "keys",
       "say": "full screen",
-      "tool": "press_key",
+      "tool": "maximize_app",
       "args": {
-        "key": "full screen"
+        "name": ""
       }
     },
     {

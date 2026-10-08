@@ -85,6 +85,37 @@ def format_dictation(text: str) -> str:
     return result
 
 
+def _trailing_control(text: str) -> tuple[str | None, list[str]]:
+    """Split off trailing control phrases; return (action, remaining_tokens)."""
+    tokens = _tokens(normalize(text))
+    action: str | None = None
+    while True:
+        removed = False
+        for size in (3, 2, 1):
+            if len(tokens) >= size:
+                tail = " ".join(tokens[-size:]).lower().strip(".,!?;:\"'")
+                if tail in _STOP:
+                    action = "stop"
+                elif tail in _UNDO:
+                    action = "undo"
+                elif tail in _SEND:
+                    action = "send"
+                else:
+                    continue
+                tokens = tokens[:-size]
+                removed = True
+                break
+        if not removed:
+            break
+    return action, tokens
+
+
+def dictation_prefix(text: str) -> str:
+    """Text to type when an utterance ends with a control phrase (the part before it)."""
+    _action, tokens = _trailing_control(text)
+    return format_dictation(" ".join(tokens))
+
+
 def parse_dictation_control(text: str) -> str | None:
     """Return a dictation control action, or None for ordinary speech."""
     if text.strip() and not strip_wake(text):
@@ -96,4 +127,5 @@ def parse_dictation_control(text: str) -> str | None:
         return "undo"
     if key in _SEND:
         return "send"
-    return None
+    action, _remaining = _trailing_control(text)
+    return action

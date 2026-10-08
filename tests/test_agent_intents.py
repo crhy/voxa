@@ -62,7 +62,7 @@ CASES: list[tuple[str, ToolCall | None]] = [
     ("save", ToolCall("press_key", {"key": "save"})),
     ("new tab", ToolCall("press_key", {"key": "new tab"})),
     ("close tab", ToolCall("press_key", {"key": "close tab"})),
-    ("full screen", ToolCall("press_key", {"key": "full screen"})),
+    ("full screen", ToolCall("maximize_app", {"name": ""})),
     ("type Hello there", ToolCall("type_text", {"text": "Hello there"})),
     ("write Thanks for the gift", ToolCall("type_text", {"text": "Thanks for the gift"})),
     ("write a report about sales", None),

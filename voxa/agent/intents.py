@@ -12,6 +12,7 @@ from voxa.agent.helptext import topic_for
 from voxa.agent.mailflow import spoken_address
 from voxa.agent.tools import translate
 from voxa.agent.tools.browser import site_url
+from voxa.ui.avatars import find_character
 
 __all__ = ["ToolCall", "route", "is_compound", "ROUTED_TOOLS"]
 
@@ -23,7 +24,7 @@ class ToolCall:
 
 
 _LEADING = re.compile(
-    r"^(?:please|can you|could you|would you|hey|hi|ok|okay)\s*[,:]?\s*",
+    r"^(?:please|can you|could you|would you|hey|hi|ok|okay)\b\s*[,:]?\s*",
     re.IGNORECASE,
 )
 _TRAILING = re.compile(r"\s+(?:please|for me|thanks|thank you)$", re.IGNORECASE)
@@ -178,20 +179,25 @@ _NEXT = re.compile(
     r"(?:next|skip)(?:\s+(?:the\s+)?(?:song|track|video))?", re.IGNORECASE
 )
 _CLEANUP_TEXT = re.compile(
-    r"clean\s+up\s+(?:the\s+|this\s+|my\s+)?text", re.IGNORECASE
+    r"clean\s+up\s+(?:the|this|that|my|it)(?:\s+(?:text|writing|paragraph|sentence|selection|document|email))?",
+    re.IGNORECASE,
 )
 _FIX_TEXT = re.compile(
-    r"fix\s+(?:the\s+|this\s+|my\s+)?(?:text|writing|grammar|spelling)", re.IGNORECASE
+    r"fix\s+(?:the|this|that|my|it)(?:\s+(?:text|writing|grammar|spelling|paragraph|sentence|selection|document|email))?",
+    re.IGNORECASE,
 )
-_PROOFREAD = re.compile(r"proofread\s+(?:this|it)", re.IGNORECASE)
+_PROOFREAD = re.compile(
+    r"proofread\s+(?:this|it|that|(?:the\s+)?(?:text|writing|paragraph|sentence|selection|document|email))",
+    re.IGNORECASE,
+)
 _EDIT_CLARITY = re.compile(r"edit\s+(?:this|it)\s+for\s+clarity", re.IGNORECASE)
 _CLEANUP_SELECTION = re.compile(
-    r"clean\s+up\s+(?:this|the|my)\s+(?:selection|paragraph|sentence)", re.IGNORECASE
+    r"clean\s+up\s+(?:this|the|my|that)\s+(?:selection|paragraph|sentence)", re.IGNORECASE
 )
 _FIX_SELECTION = re.compile(
-    r"fix\s+(?:this|the|my)\s+(?:selection|paragraph|sentence)", re.IGNORECASE
+    r"fix\s+(?:this|the|my|that)\s+(?:selection|paragraph|sentence)", re.IGNORECASE
 )
-_CLEAN_IT_UP = re.compile(r"clean\s+(?:this|it)\s+up", re.IGNORECASE)
+_CLEAN_IT_UP = re.compile(r"clean\s+(?:this|it|that)\s+up", re.IGNORECASE)
 _READ_SELECTION = re.compile(
     r"read (?:that|this|it|the selection|the selected text|what i selected)(?: to me| out loud| aloud)?",
     re.IGNORECASE,
@@ -282,8 +288,6 @@ _BARE_KEYS = {
     "save",
     "new tab",
     "close tab",
-    "full screen",
-    "fullscreen",
 }
 _TYPE = re.compile(r"(?:type|write|dictate|enter)\s+(.+)", re.IGNORECASE)
 _SAY_TEXT = re.compile(r"say\s+(.+)", re.IGNORECASE)
@@ -355,6 +359,16 @@ _SWITCH_TO = re.compile(
     r"(\w+(?:\s+\w+){0,2})",
     re.IGNORECASE,
 )
+_CHARACTER_CHANGE = re.compile(
+    r"(?:change\s+(?:the\s+)?characters?\s*(?:to\s+)?|be\s+)([a-z][\w'-]*)",
+    re.IGNORECASE,
+)
+_LIST_CHARACTERS = re.compile(
+    r"(?:list|show)\s+(?:the\s+)?(?:available\s+)?characters?"
+    r"|who can you be"
+    r"|what characters (?:can|do) you (?:be|have)",
+    re.IGNORECASE,
+)
 
 _MINIMIZE_ALL = re.compile(
     r"(?:minimi[sz]e)\s+(?:everything|all windows)|show the desktop", re.IGNORECASE
@@ -372,6 +386,9 @@ _RESTORE_APP = re.compile(
 _MINIMIZE_ACTIVE = re.compile(
     r"(?:minimi[sz]e|hide)\s+(?:this|it|that|the window|the app|window|app)", re.IGNORECASE
 )
+_MINIMIZE_SELF = re.compile(
+    r"(?:minimi[sz]e|hide)\s+(?:yourself|your\s+window|voxa|the\s+voxa\s+window)", re.IGNORECASE
+)
 _WHATS_OPEN = re.compile(
     r"(?:what(?:'s| is) open"
     r"|what(?: programs| apps| windows)? (?:do i have|are) open"
@@ -388,7 +405,8 @@ _WHICH_WINDOW = re.compile(
 )
 _MAXIMIZE_ACTIVE = re.compile(
     r"(?:maximi[sz]e)\s+(?:this|it|that|the window|the app|window|app)"
-    r"|make\s+(?:this|it|that|the window|the app|window|app)\s+(?:bigger|full size)",
+    r"|make\s+(?:this|it|that|the window|the app|window|app)\s+(?:bigger|full\s+(?:size|screen))"
+    r"|full\s*screen",
     re.IGNORECASE,
 )
 _RESTORE_ACTIVE = re.compile(
@@ -541,6 +559,9 @@ ROUTED_TOOLS = frozenset(
         "maximize_app",
         "restore_app",
         "minimize_all",
+        "minimize_self",
+        "change_character",
+        "list_characters",
         "list_open_windows",
         "active_window_name",
         "browse",
@@ -827,6 +848,9 @@ def route(text: str) -> ToolCall | None:
     if _CHECK_VERSION.fullmatch(s):
         return call("check_system_version")
 
+    if _LIST_CHARACTERS.fullmatch(s):
+        return call("list_characters")
+
     if _QUESTION.match(s):
         return None
 
@@ -1030,13 +1054,25 @@ def route(text: str) -> ToolCall | None:
     switch_match = _SWITCH_TO.fullmatch(s)
     if switch_match:
         name = switch_match.group(1) or switch_match.group(2)
+        character = find_character(name)
+        if character is not None:
+            return call("change_character", name=character)
         if site_url(name) is not None and "." not in name:
             return call("open_site", name=name.casefold())
         return call("switch_to", name=name)
+    character_match = _CHARACTER_CHANGE.fullmatch(s)
+    if character_match:
+        character = find_character(character_match.group(1))
+        if character is not None:
+            return call("change_character", name=character)
+    if _LIST_CHARACTERS.fullmatch(s):
+        return call("list_characters")
     if _MINIMIZE_ALL.fullmatch(s):
         return call("minimize_all")
     if _MINIMIZE_ACTIVE.fullmatch(s):
         return call("minimize_app", name="")
+    if _MINIMIZE_SELF.fullmatch(s):
+        return call("minimize_self")
     minimize_match = _MINIMIZE_APP.fullmatch(s)
     if minimize_match:
         return call("minimize_app", name=minimize_match.group(1))

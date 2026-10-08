@@ -12,6 +12,7 @@ from voxa.agent.policy import RiskLevel
 from voxa.agent.registry import Tool
 from voxa.agent.result import ToolResult
 from voxa.agent.tools.applications import open_app
+from voxa.ui.avatars import describe_characters, find_character
 
 log = logging.getLogger("voxa.agent.tools.windows")
 
@@ -297,6 +298,10 @@ def maximize_app(args: dict[str, str]) -> ToolResult:
         window_id = _active_window_id()
         if not window_id:
             return ToolResult.failure("Nothing seems to be open.")
+        title = _run(["xdotool", "getactivewindow", "getwindowname"], check=False).stdout.strip().lower()
+        if "vlc" in title:
+            _run(["xdotool", "getactivewindow", "key", "f"], check=False)
+            return ToolResult.success("Maximized.")
         _run(["wmctrl", "-i", "-r", window_id, "-b", "add,maximized_vert,maximized_horz"], check=False)
         return ToolResult.success("Maximized.")
     windows = match_windows(name, list_windows())
@@ -328,6 +333,27 @@ def restore_app(args: dict[str, str]) -> ToolResult:
 def minimize_all(args: dict[str, str]) -> ToolResult:
     _run(["wmctrl", "-k", "on"], check=False)
     return ToolResult.success("Minimized everything.")
+
+
+def minimize_self(args: dict[str, str]) -> ToolResult:
+    windows = match_windows("voxa", list_windows())
+    if not windows:
+        return ToolResult.failure("I can't find my own window to minimize.")
+    for window in windows:
+        _run(["xdotool", "windowminimize", window.id], check=False)
+    return ToolResult.success("Minimized myself.")
+
+
+def list_characters(args: dict[str, str]) -> ToolResult:
+    lines = describe_characters()
+    return ToolResult.success(" ".join(lines) if lines else "No characters to choose from.")
+
+
+def change_character(args: dict[str, str]) -> ToolResult:
+    name = (args.get("name") or "").strip()
+    if find_character(name) is None:
+        return ToolResult.failure("I don't know that character.")
+    return ToolResult.success(f"Switched to {name.title()}.")
 
 
 def lock_screen(args: dict[str, str]) -> ToolResult:
@@ -432,6 +458,30 @@ def window_tools() -> list[Tool]:
             parameters={},
             risk=RiskLevel.REVERSIBLE,
             handler=minimize_all,
+            required=(),
+        ),
+        Tool(
+            name="minimize_self",
+            description="Minimize Voxa's own window.",
+            parameters={},
+            risk=RiskLevel.REVERSIBLE,
+            handler=minimize_self,
+            required=(),
+        ),
+        Tool(
+            name="change_character",
+            description="Change the assistant's character to a named avatar.",
+            parameters={"name": "the character name"},
+            risk=RiskLevel.REVERSIBLE,
+            handler=change_character,
+            required=("name",),
+        ),
+        Tool(
+            name="list_characters",
+            description="Say which characters can be chosen.",
+            parameters={},
+            risk=RiskLevel.READ_ONLY,
+            handler=list_characters,
             required=(),
         ),
         Tool(

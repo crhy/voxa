@@ -388,3 +388,26 @@ def model_is_downloaded(avatar: AvatarDescriptor) -> bool:
     if avatar in AVATARS:
         return (Path(AVATAR_DIRECTORY) / f"{avatar.id}.glb").exists()
     return Path(avatar.model_path).exists()
+
+
+def find_character(name: str) -> str | None:
+    """Roster id for a spoken character name, matched case-insensitively.
+
+    Returns None when the name matches no roster character.
+    """
+    target = name.strip().casefold()
+    for avatar in AVATARS:
+        if avatar.display_name.casefold() == target or avatar.id.casefold() == target:
+            return avatar.id
+    return None
+
+
+def describe_characters() -> list[str]:
+    """One short sentence per roster character, naming accent and language."""
+    lines: list[str] = []
+    for avatar in AVATARS:
+        language = _LOCALE_NAMES.get(avatar.locale, avatar.locale)
+        lines.append(
+            f"{avatar.display_name} is a {avatar.gender.lower()} voice in {language} from {avatar.culture}."
+        )
+    return lines

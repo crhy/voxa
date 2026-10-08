@@ -19,17 +19,28 @@ CANCEL_WORDS = {"cancel", "cancel that", "never mind", "forget it"}
 def parse_post_issue(text: str) -> str | None:
     t = text.lower().strip()
     t = re.sub(r"^[.!?]+|[.!?]+$", "", t).strip()
+    t = re.sub(r"\bget[\s-]*hub\b", "github", t)
+    t = re.sub(
+        r"^(?:i (?:need|want|would like) to |let(?:'s| us) |please |can you |could you )",
+        "",
+        t,
+    ).strip()
+    if re.match(r"(what|how|why|when|where|who)\b", t):
+        return None
     head = re.match(
-        r"(post|file|open|create|make|submit|report)\s+"
-        r"(?:(?:a|an|new)\s+)?"
+        r"(?:(post|file|open|create|make|submit|report)\s+)?"
+        r"(?:(?:a|an|new|the)\s+)?"
         r"(?:github\s+)?"
-        r"(issue|bug report|bug)\b(.*)",
+        r"(issue|issues|bug report|bug)\b(.*)",
         t,
     )
     if not head:
         return None
     tail = head.group(3).strip()
     tail = re.sub(r"(?:^|\s)(?:to|on|in)\s+github\b", "", tail).strip()
+    tail = re.sub(r"\s+(?:for|in|on|about)$", "", tail).strip()
+    if tail in {"for", "in", "on", "about"}:
+        tail = ""
     if tail == "":
         return ""
     m = re.fullmatch(r"(for|in|on|about)\s+(.+)", tail)
