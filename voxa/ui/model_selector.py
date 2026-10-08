@@ -15,6 +15,18 @@ BACKENDS = ["llama.cpp", "Ollama", "Strata"]
 BACKEND_VALUES = ["llamacpp", "ollama", "strata"]
 MAX_BUTTON_CHARS = 24
 
+AI_STATUS = {"online": "● Online", "starting": "● Starting…", "offline": "● Offline"}
+AI_STATUS_HINTS = {
+    "online": "The AI engine is running and has a model ready",
+    "starting": "The AI engine is starting up",
+    "offline": "The AI engine is not running, or has no model",
+}
+
+
+def ai_status_for(models: list[str]) -> str:
+    """"online" when the list holds real model names (they never contain spaces), else "offline"."""
+    return "online" if any(name and " " not in name for name in models) else "offline"
+
 
 class ModelSelector(Gtk.Box):
     """Dropdowns over the available local models and the AI backend.
@@ -61,6 +73,27 @@ class ModelSelector(Gtk.Box):
         self.append(label)
         self.append(self._dropdown)
         self.append(self._backend_dropdown)
+        # Whether the chosen AI engine is answering: a coloured dot and one word.
+        self._status = Gtk.Label(label="")
+        self._status.add_css_class("voxa-ai-status")
+        self._status.set_visible(False)
+        self.append(self._status)
+        self._status_state = ""
+
+    def set_status(self, state: str) -> None:
+        """Show "online", "starting" or "offline"; anything else hides the indicator."""
+        text = AI_STATUS.get(state, "")
+        for name in AI_STATUS:
+            self._status.remove_css_class(f"voxa-ai-{name}")
+        self._status_state = state if text else ""
+        self._status.set_text(text)
+        self._status.set_visible(bool(text))
+        if text:
+            self._status.add_css_class(f"voxa-ai-{state}")
+            self._status.set_tooltip_text(AI_STATUS_HINTS[state])
+
+    def get_status(self) -> str:
+        return self._status_state
 
     def _setup_button_label(self, _factory, list_item: Gtk.ListItem) -> None:
         lbl = Gtk.Label(xalign=0)

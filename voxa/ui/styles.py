@@ -113,6 +113,11 @@ VOXA_CSS = """
 }
 
 .voxa-section,
+.voxa-ai-status { font-size: 11px; font-weight: 600; margin-left: 6px; }
+.voxa-ai-online { color: #2ec27e; }
+.voxa-ai-starting { color: #e5a50a; }
+.voxa-ai-offline { color: #e01b24; }
+
 .voxa-control-caption {
     font-size: 11px;
     font-weight: 600;

@@ -67,6 +67,7 @@ from .ui.avatars import character_choices, get_avatar  # noqa: E402
 from .ui.focus_window import overlay_supported  # noqa: E402
 from .ui.legacy_view import LegacyCallbacks, LegacyView  # noqa: E402
 from .ui.live_face import LiveFaceClient, decode_audio_to_pcm16k  # noqa: E402
+from .ui.model_selector import ai_status_for  # noqa: E402
 from .ui.shell import AssistantShell, build_header  # noqa: E402
 from .ui.state import AssistantModel, AssistantState  # noqa: E402
 from .ui.styles import install_styles  # noqa: E402
@@ -1025,11 +1026,13 @@ class MainWindow(Adw.ApplicationWindow):
     def _show_models_starting(self, label: str) -> bool:
         """The server is still coming up: say so instead of "No models available"."""
         self._set_status(f"Starting {label}…")
+        self.shell.model_selector.set_status("starting")
         return False
 
     def _show_no_models(self) -> bool:
         self.ollama_models = []
         self._apply_model_combo([])
+        self.shell.model_selector.set_status("offline")
         return False
 
     def _show_backend_offline(self, label: str) -> bool:
@@ -1037,6 +1040,7 @@ class MainWindow(Adw.ApplicationWindow):
         message = f"{label} is not running"
         self.ollama_models = [message]
         self._apply_model_combo([message])
+        self.shell.model_selector.set_status("offline")
         return False
 
     def _detect_hardware_async(self) -> None:
@@ -1143,6 +1147,7 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def _apply_ollama_models(self, models: list[str]) -> bool:
+        self.shell.model_selector.set_status(ai_status_for(models))
         if self._welcome_followup and welcome.real_models(models):
             self._welcome_followup = False
             self._say_welcome_how_to()
