@@ -99,7 +99,7 @@ def find(spoken: str, stations: list[Station]) -> Station | None:
     return None
 
 
-def is_station(spoken: str, stations: list[Station] = list(BUILTIN)) -> bool:
+def is_station(spoken: str, stations: tuple[Station, ...] = BUILTIN) -> bool:
     """True when the words name one of the built-in stations exactly (so "play groove salad" is radio)."""
     wanted = clean_request(spoken)
     return any(wanted and wanted in (norm(s.name), clean_request(s.name)) for s in stations)
