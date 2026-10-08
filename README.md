@@ -11,38 +11,52 @@ Voxa combines on-device speech recognition, selectable local AI backends, spoken
 
 **Website:** [voxaai.me](https://voxaai.me)
 
-![Voxa main window](docs/screenshots/new-layout-preview.png)
+![Voxa with Grace, the default character](docs/screenshots/voxa-grace.png)
 
 ## Highlights
 
-- **Voice-first interaction** with wake-word conversation.
-- **On-device transcription** with Faster Whisper.
-- **Local AI** through supported **llama.cpp** and **Ollama** backends.
-- **Local model selection** from the assistant interface.
-- **Bounded conversation memory** for useful follow-up context without unlimited prompt growth.
-- **Spoken replies** with Edge TTS and an offline eSpeak NG fallback.
-- **Barge-in** so speaking can interrupt Voxa's reply.
-- **Real assistant state** coordinated through `AssistantModel` and `AssistantController`.
-- **Task-oriented UI** rather than a conventional permanent chat interface.
-- **Desktop capabilities** for applications, documents, mail and web-oriented workflows as the capability system develops.
-- **[What Voxa can do](docs/CAPABILITIES.md)** — the full, living list of things to ask for, with a phrase to try for each and its current status. Use it as the test checklist.
-- **A face**: 22 photoreal characters with word-timed lip movement, a Low / Medium / High facial-quality switch, and an optional neural face on a graphics card.
-- **Hardware-aware model suggestions** based on available VRAM/RAM.
-- **Flatpak-first distribution** with CI validation and an update repository.
+- **Talk to your computer.** Say the wake word (yours to choose) and ask. Voxa answers aloud through one of 22
+  characters whose lips follow the words.
+- **She hears you over your own speakers.** Music and video sound is removed before she listens, so commands get
+  through with something playing; saying “Voxa, stop” interrupts her, and her own voice does not.
+- **Commands run instantly.** Opening apps, playing music, dictation, timers and system questions are handled by
+  rules, with no model in the loop. Longer requests are planned by the local model.
+- **Answers come from the web, with the source.** Anything current is looked up first and answered from the results.
+- **Works in other programs.** Dictates into the window in front, cleans up text, saves files by voice, and presses
+  real buttons in other applications.
+- **Local AI** through **Ollama**, **llama.cpp** or **Strata**, chosen from the interface, with a model suggested
+  for your hardware and a speech model picked to fit the machine on first run.
+- **On-device transcription** with Faster Whisper; spoken replies with Edge TTS and an offline eSpeak NG fallback.
+- **Honest state.** Ready, Listening, Thinking, Speaking or Paused is always on screen, with explicit
+  **ACTIVE / PAUSE / OFFLINE** controls.
+- **Part of Spaced Linux.** “Update Spaced Linux” and “Install GIMP” drive Spaced Update and Spaced Bazaar.
+- **[What Voxa can do](docs/CAPABILITIES.md)** is the full, living list: a phrase to try for every feature and its
+  current status. It doubles as the test checklist.
+- **Flatpak-first distribution** with CI validation; on Spaced Linux, updates arrive through Spaced Bazaar and
+  Spaced Update.
 
 ## Voice commands
 
-Voxa carries out everyday desktop tasks from speech. Single commands run
-instantly without a model; chained requests are planned by the local model.
+Single commands run instantly without a model; chained requests are planned by the local model.
 
-- "open gmail" — opens Gmail in your browser
-- "play lo-fi beats on YouTube" — searches and plays on YouTube
-- "open spotify" — launches an application
-- "close this window" — closes the focused window
-- "type hello there" — types into the focused field
-- "press enter" — presses any key you name
+| Say | What happens |
+|---|---|
+| “Open LibreOffice” / “Close Brutal Chess” | Opens or closes the app; names are matched by sound |
+| “Minimize all apps” / “Maximize yourself” | Shows the desktop; maximizes Voxa's own window |
+| “Play Dirty Old Town by the Pogues” / “Play Bob's Ska Radio” | Plays in VLC, or tunes an internet radio station |
+| “Start dictation” … “stop dictation” | Types what you say into the window in front |
+| “Clean up the text” | Fixes spelling, grammar and clarity in the text or selection |
+| “Save file” | Asks “What should I save the file as?”, types the name and saves |
+| “What is the price of Bitcoin?” | Looks it up and answers from the results, with the source |
+| “Walking directions to the library” / “Nearest pharmacy” | Opens maps for it |
+| “Open air ships dot com” / “Open my email” | Opens the website |
+| “Set a timer for five minutes” / “Remind me at three to call Bob” | Spoken when it fires |
+| “Update Spaced Linux” / “Install GIMP” | Drives Spaced Update or Spaced Bazaar, then checks the result |
+| “Press Install in Spaced Bazaar” / “Read this window” | Presses real buttons and reads other programs' windows |
+| “Voxa, stop” / “Voxa, pause” | Interrupts her reply; pauses listening until you say her name |
 
-See [docs/VOICE_COMMANDS.md](docs/VOICE_COMMANDS.md) for the full reference.
+See [docs/CAPABILITIES.md](docs/CAPABILITIES.md) for everything, and
+[docs/VOICE_COMMANDS.md](docs/VOICE_COMMANDS.md) for the command reference.
 
 ## Local-first, not local-only
 

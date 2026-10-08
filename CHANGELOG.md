@@ -5,9 +5,47 @@
 Everything below is on `main` after the 0.1.5 release. Items marked 🧪 pass their automated tests and still need
 checking by ear and eye on a real desktop; `docs/CAPABILITIES.md` is the checklist with a phrase to try for each.
 
+### Changes from the first hands-on test round (8 October)
+
+Found by using a local build on a real desktop, each traced to a cause before it was changed.
+
+- **WebRTC echo cancellation is now the default echo setting** (it was opt-in). With music playing, Voxa's own
+  canceller left so much sound that the end of a sentence was never detected. The mode's pipeline was rebuilt with
+  the correct GStreamer calls and checked inside the Flatpak; a missing loopback falls back to the plain microphone.
+- **A real voice detector finds pauses** instead of loudness alone, with the loudness rule as the fallback. On a
+  recording of speech over music the loudness rule marked 36% of the non-speech time as voice; the detector, 0%.
+- **Interrupting her works again, and she no longer interrupts herself.** The check now waits for a word or two
+  before judging (it used to look after a third of a second, when there was nothing to read); the loudness gate
+  tolerates the dips between syllables; a lone “stop” is no longer thrown away as echo; and her own voice misheard
+  into different words (“BLC doesn't seem” heard as “Bmc, done, themes”) is recognised by its letters.
+- **Wake word in one breath.** “Voxa open Pluma” said without a pause is matched when Whisper gets the first
+  consonant wrong (“Box open Pluma”). On 59 recorded lines: 55 woke her before, 57 now, no false wake on 43 others.
+- **“Close Brave” closes only the browser window Voxa opened.** It used to close every matching window and then
+  kill the whole app, taking the user's own windows with it. No program is force-killed after being asked to
+  close any more, so unsaved work is not thrown away.
+- **Save by voice.** “Save file” on a new document asks “What should I save the file as?”, types the answer into
+  the save window and saves; an existing name asks before replacing; “never mind” cancels. New documents go to
+  Documents. She no longer says “Saved the file” after merely opening the save window.
+- **“Clean up the text” works on long documents.** Text is edited in pieces of up to 500 characters; a piece whose
+  edit looks wrong is left as it was. (Sent whole, a 7,000-character document made the small model return 110,000.)
+- **Honest “Listening”.** The caption also covers the follow-up window, which has one length (the setting, default
+  now 10 s) instead of two timers. After the wake word alone she waits 12 s.
+- **Smaller fixes:** the dictation reminder is spoken only the first two times and dictation ends with “Stopping
+  dictation”; a character change answers “Jack here!”; turning the cube is silent; “maximize yourself”,
+  “minimize all apps”, “show desktop” and “restore everything”; folders open in the file manager; a web address
+  said as words (“open air ships dot com”) opens; walking, biking and transit directions; “open the website” after a
+  search; “open CNN” opens the site when no app matches, and a weak match no longer opens the wrong app; answers
+  after a web search are taken from the results; VLC keeps a window smaller than Voxa's; the main window no longer
+  changes size on ACTIVE; the keyboard goes to a new document so dictation types into it; a slow cube spin.
+- **Start-up noise removed:** the GTK theme warning about `overflow`, and the “Unclosed client session” messages
+  when the app closed during a voice download.
+- **Per-stage timings** (hearing, routing, acting, first audio) are written to the action log, to find lag.
+- 🧪 Not yet confirmed on a desktop: the voice detector in daily use, the slow cube spin (needs Compiz), new-document
+  focus in LibreOffice, and save-by-voice in LibreOffice.
+
 ### Hearing and turn-taking
 
-- **WebRTC echo cancellation as a new echo mode "webrtc"** (opt-in, not the default yet): one capture pipeline
+- **WebRTC echo cancellation as a new echo mode "webrtc"** (now the default; see above): one capture pipeline
   where the loopback monitor of the default output feeds a `webrtcechoprobe` and the microphone branch runs
   `webrtcdsp` inside the app; falls back to the plain capture pipeline if the monitor or pipeline fails, and to
   "off" when the elements are missing. (`voxa/audio.py`, `voxa/config.py`, `voxa/window.py`) (#88) 🧪
