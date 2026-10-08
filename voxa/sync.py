@@ -220,17 +220,19 @@ def _band_limit(x, fmin: float, fmax: float, rate: int) -> np.ndarray:
     return np.fft.irfft(X, len(x))
 
 
-def fine_lag(mic, ref, lo: int, hi: int, fmin: float = 300.0, fmax: float = 3000.0,
-             rate: int = SR) -> float:
+def fine_lag_q(mic, ref, lo: int, hi: int, fmin: float = 300.0, fmax: float = 3000.0,
+               rate: int = SR) -> tuple[float, float]:
     """Band-limited cross-correlation peak in [lo, hi) samples with parabolic (sub-sample) refinement.
 
-    Returns the delay in samples by which the echo in ``mic`` trails ``ref`` (mic = ref delayed by
-    the returned amount). The streams are band-limited to [fmin, fmax) Hz before correlating so
-    quiet bands cannot steal the peak.
+    Returns ``(lag, quality)``: the delay in samples by which the echo in ``mic`` trails ``ref``
+    (mic = ref delayed by the returned amount), and the peak height normalised by the geometric
+    mean of the two band-limited stream energies (0..1; near 1 for a clean echo, near 0 for a
+    random peak from a silent or band-starved block). The streams are band-limited to
+    [fmin, fmax) Hz before correlating so quiet bands cannot steal the peak.
     """
     n = min(len(mic), len(ref))
     if n < 4 or hi <= lo:
-        return float(max(0, lo))
+        return float(max(0, lo)), 0.0
     a = _band_limit(np.asarray(mic[:n], dtype=np.float64), fmin, fmax, rate)
     b = _band_limit(np.asarray(ref[:n], dtype=np.float64), fmin, fmax, rate)
     size = 1
@@ -239,15 +241,102 @@ def fine_lag(mic, ref, lo: int, hi: int, fmin: float = 300.0, fmax: float = 3000
     corr = np.fft.irfft(np.fft.rfft(a, size) * np.conj(np.fft.rfft(b, size)), size)
     hi = min(hi, len(corr))
     if hi <= lo:
-        return float(max(0, lo))
+        return float(max(0, lo)), 0.0
     window = corr[lo:hi]
     k = int(np.argmax(window)) + lo
+    lag = float(k)
     if 0 < k < len(corr) - 1:
         y0, y1, y2 = corr[k - 1], corr[k], corr[k + 1]
         denom = y0 - 2.0 * y1 + y2
         if denom != 0.0:
-            return float(k + 0.5 * (y0 - y2) / denom)
-    return float(k)
+            lag = float(k + 0.5 * (y0 - y2) / denom)
+    den = np.sqrt(float(np.dot(a, a)) * float(np.dot(b, b)))
+    q = abs(float(corr[k])) / den if den > 0.0 else 0.0
+    return lag, float(min(1.0, q))
+
+
+def fine_lag(mic, ref, lo: int, hi: int, fmin: float = 300.0, fmax: float = 3000.0,
+             rate: int = SR) -> float:
+    """Band-limited cross-correlation lag only; see :func:`fine_lag_q` for the quality too."""
+    return fine_lag_q(mic, ref, lo, hi, fmin, fmax, rate)[0]
+
+
+_ANALYSIS_BANDS = ((300.0, 3000.0), (1000.0, 6000.0), (100.0, 1000.0))
+_BAND_POWER_FLOOR = 10.0 ** (-50.0 / 10.0)  # -50 dBFS as mean-square power
+
+
+def fit_drift_fine_info(mic, ref, rate: int = SR, block_s: float = 2.0, hop_s: float = 1.0,
+                        search: tuple[int, int] = (0, 4800)) -> tuple[float, float, float, dict]:
+    """Robust drift fit; same as :func:`fit_drift_fine` but also returns block counts.
+
+    Returns ``(lag_at_t0, drift_samples_per_second, residual_rms, info)`` with
+    ``info = {"blocks_kept", "blocks_total"}``.
+    """
+    n = min(len(mic), len(ref))
+    if n < 4:
+        return 0.0, 0.0, 0.0, {"blocks_kept": 0, "blocks_total": 0}
+    block = max(1024, int(round(block_s * rate)))
+    hop = max(1, int(round(hop_s * rate)))
+    coarse_lag, coarse_q = fine_lag_q(mic, ref, search[0], search[1], 300.0, 3000.0, rate)
+    if coarse_q < 0.1:
+        for fmin, fmax in _ANALYSIS_BANDS[1:]:
+            lag, q = fine_lag_q(mic, ref, search[0], search[1], fmin, fmax, rate)
+            if q > coarse_q:
+                coarse_q, coarse_lag = q, lag
+    lo_c = max(search[0], int(coarse_lag) - 40)
+    hi_c = min(search[1], int(coarse_lag) + 41)
+    ts: list[float] = []
+    ls: list[float] = []
+    qs: list[float] = []
+    total = 0
+    for i in range(0, n - block + 1, hop):
+        total += 1
+        seg_r = np.asarray(ref[i:i + block], dtype=np.float64)
+        chosen = None
+        for fmin, fmax in _ANALYSIS_BANDS:
+            bl = _band_limit(seg_r, fmin, fmax, rate)
+            if float(np.mean(bl * bl)) >= _BAND_POWER_FLOOR:
+                chosen = (fmin, fmax)
+                break
+        if chosen is None:
+            continue
+        lag, q = fine_lag_q(mic[i:i + block], ref[i:i + block], lo_c, hi_c,
+                            chosen[0], chosen[1], rate)
+        if q < 0.1:
+            continue
+        ts.append((i + block / 2.0) / rate)
+        ls.append(lag)
+        qs.append(q)
+    info = {"blocks_kept": len(ts), "blocks_total": total}
+    kept = len(ts)
+    if kept < 4:
+        med = float(np.median(ls)) if kept else 0.0
+        return med, 0.0, 0.0, info
+    t = np.asarray(ts, dtype=np.float64)
+    lags = np.asarray(ls, dtype=np.float64)
+    qual = np.asarray(qs, dtype=np.float64)
+    if t[-1] - t[0] + block_s < 6.0:
+        return float(np.median(lags)), 0.0, 0.0, info
+    # Robust slope: median of adjacent-block slopes (a gap-safe Theil-Sen variant;
+    # all-pairs medians are corrupted by region jumps and silence gaps).
+    adj = [(lags[j] - lags[i]) / (t[j] - t[i])
+           for i, j in zip(range(kept - 1), range(1, kept), strict=True) if t[j] > t[i]]
+    if not adj:
+        return float(np.median(lags)), 0.0, 0.0, info
+    slope_ts = float(np.median(adj))
+    resid0 = lags - (slope_ts * t + float(np.median(lags - slope_ts * t)))
+    keep = np.abs(resid0) <= 1.5
+    if int(keep.sum()) < 4:
+        return float(np.median(lags)), 0.0, 0.0, info
+    tk, lk, qk = t[keep], lags[keep], qual[keep]
+    w = qk / float(qk.sum())
+    slope = slope_ts
+    max_slope = 300e-6 * rate
+    if abs(slope) > max_slope:
+        return float(np.median(lags)), 0.0, 0.0, info
+    intercept = float(np.dot(w, lk - slope * tk))
+    resid = float(np.sqrt(np.dot(w, (lk - (slope * tk + intercept)) ** 2)))
+    return float(intercept), float(slope), resid, info
 
 
 def fit_drift_fine(mic, ref, rate: int = SR, block_s: float = 2.0, hop_s: float = 1.0,
@@ -255,32 +344,16 @@ def fit_drift_fine(mic, ref, rate: int = SR, block_s: float = 2.0, hop_s: float 
     """Fit the mic/ref delay as a line using sub-sample per-block lags.
 
     One coarse lag is measured on the whole clip, then each ``block_s`` block (stepped by
-    ``hop_s``) is measured with :func:`fine_lag` within +-40 samples of that coarse lag. A
-    least-squares line through the (block-centre time, lag) points gives the drift.
+    ``hop_s``) is measured with :func:`fine_lag_q` within +-40 samples of that coarse lag, in
+    the analysis band where the reference has energy. Blocks that are silent or band-starved
+    (quality below 0.1) are dropped; the slope is the median of adjacent-block slopes (a gap-safe
+    Theil-Sen variant), blocks more than 1.5 samples from that line are dropped, and the intercept
+    is refit by quality-weighted least squares.
 
     Returns ``(lag_at_t0_samples, drift_samples_per_second, residual_rms_samples)``.
     """
-    n = min(len(mic), len(ref))
-    if n < 4:
-        return 0.0, 0.0, 0.0
-    coarse = fine_lag(mic, ref, search[0], search[1], 300.0, 3000.0, rate)
-    block = max(1024, int(round(block_s * rate)))
-    hop = max(1, int(round(hop_s * rate)))
-    ts: list[float] = []
-    ls: list[float] = []
-    lo_c = max(search[0], int(coarse) - 40)
-    hi_c = min(search[1], int(coarse) + 41)
-    for i in range(0, n - block + 1, hop):
-        lag = fine_lag(mic[i:i + block], ref[i:i + block], lo_c, hi_c, 300.0, 3000.0, rate)
-        ts.append((i + block / 2.0) / rate)
-        ls.append(lag)
-    if len(ts) < 2:
-        return coarse, 0.0, 0.0
-    t = np.asarray(ts, dtype=np.float64)
-    lags = np.asarray(ls, dtype=np.float64)
-    slope, intercept = np.polyfit(t, lags, 1)
-    resid = float(np.std(lags - np.polyval([slope, intercept], t)))
-    return float(intercept), float(slope), resid
+    lag0, drift, resid, _info = fit_drift_fine_info(mic, ref, rate, block_s, hop_s, search)
+    return lag0, drift, resid
 
 
 def fractional_delay(x, d: float, rate: int = SR) -> np.ndarray:
@@ -293,15 +366,28 @@ def fractional_delay(x, d: float, rate: int = SR) -> np.ndarray:
     return np.fft.irfft(X * np.exp(-2j * np.pi * f * d), len(x))
 
 
+def _analysis_band(ref, rate: int) -> tuple[float, float]:
+    """The analysis band where the reference has energy: 300-3000, else 1000-6000, else 100-1000."""
+    for fmin, fmax in _ANALYSIS_BANDS:
+        bl = _band_limit(np.asarray(ref, dtype=np.float64), fmin, fmax, rate)
+        if float(np.mean(bl * bl)) >= _BAND_POWER_FLOOR:
+            return fmin, fmax
+    return _ANALYSIS_BANDS[0]
+
+
 def follow_drift(mic, ref, rate: int = SR, block_s: float = 2.0) -> tuple[np.ndarray, np.ndarray, dict]:
     """Align the reference to the microphone by following the fitted clock drift block by block.
 
     The reference is delayed block by block along the fitted drift line (with a 10 ms crossfade
-    between blocks so there are no clicks). Returns ``(mic_aligned, ref_aligned, info)`` of equal
-    length where ``info = {"lag", "ppm", "residual"}``.
+    between blocks so there are no clicks). Band coherence in the band where the reference has
+    energy is measured for both the fixed-delay pair and the drift-followed pair, and whichever
+    is higher is returned, so following a bad fit can never make things worse. Returns
+    ``(mic_aligned, ref_aligned, info)`` of equal length where
+    ``info = {"lag", "ppm", "residual", "used", "blocks_kept", "blocks_total"}`` and ``used``
+    is ``"drift"`` or ``"fixed"``.
     """
     n = min(len(mic), len(ref))
-    lag0, drift, resid = fit_drift_fine(mic, ref, rate, block_s)
+    lag0, drift, resid, binfo = fit_drift_fine_info(mic, ref, rate, block_s)
     mic_a = np.zeros(n, dtype=np.float64)
     ref_a = np.zeros(n, dtype=np.float64)
     if n > 0:
@@ -321,7 +407,17 @@ def follow_drift(mic, ref, rate: int = SR, block_s: float = 2.0) -> tuple[np.nda
                 shifted[:a] = (1.0 - ramp) * prev_tail[:a] + ramp * shifted[:a]
         ref_a[i:i + len(shifted)] = shifted
         prev_tail = shifted[-fade:].copy() if len(shifted) >= fade else shifted.copy()
-    info = {"lag": lag0, "ppm": drift / rate * 1e6, "residual": resid}
+    fmin, fmax = _analysis_band(ref[:n] if n else ref, rate)
+    d_fixed = lag0 + drift * ((n / 2.0) / rate)
+    ref_fixed = fractional_delay(np.asarray(ref[:n], dtype=np.float64), d_fixed, rate)
+    coh_fixed = band_coherence(mic_a, ref_fixed, fmin, fmax)
+    coh_drift = band_coherence(mic_a, ref_a, fmin, fmax)
+    used = "drift"
+    if coh_fixed > coh_drift:
+        used = "fixed"
+        ref_a = ref_fixed
+    info = {"lag": lag0, "ppm": drift / rate * 1e6, "residual": resid,
+            "used": used, "blocks_kept": binfo["blocks_kept"], "blocks_total": binfo["blocks_total"]}
     return mic_a, ref_a, info
 
 

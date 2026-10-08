@@ -20,7 +20,7 @@ from pathlib import Path
 import numpy as np
 
 from voxa.anc import EchoCanceller, erle_db, estimate_delay
-from voxa.sync import band_coherence, band_coherence_segments, fit_drift_fine, follow_drift
+from voxa.sync import band_coherence, band_coherence_segments, fit_drift_fine_info, follow_drift
 
 SR = 16000
 OUT = Path(".voxa-spec/out/anclab")
@@ -515,6 +515,9 @@ def evaluate_pair(mic, ref, floor_db=None):
         "drift_ppm": dinfo["ppm"],
         "lag_ms": dinfo["lag"] / SR * 1000.0,
         "drift_residual": dinfo["residual"],
+        "drift_used": dinfo["used"],
+        "blocks_kept": dinfo["blocks_kept"],
+        "blocks_total": dinfo["blocks_total"],
         "band_coherence": band_coh,
     }
     if floor_db is not None:
@@ -594,13 +597,18 @@ def evaluate(tag: str, quick: bool = False) -> bool:
         return False
     manifest = json.loads(manifest_path.read_text())
     per_volume: dict[float, list] = {}
+    clips: list[dict] = []
     for entry in manifest:
         if entry["source"] == "silence":
             continue
         mic = np.load(REC_DIR / f"{entry['key']}.mic.npy")
         ref = np.load(REC_DIR / f"{entry['key']}.ref.npy")
-        per_volume.setdefault(entry["volume"], []).append(
-            evaluate_pair(mic, ref, entry.get("floor_dbfs")))
+        m = evaluate_pair(mic, ref, entry.get("floor_dbfs"))
+        per_volume.setdefault(entry["volume"], []).append(m)
+        clips.append({"key": entry["key"], "volume": entry["volume"],
+                      "drift_ppm": m["drift_ppm"], "lag_ms": m["lag_ms"],
+                      "drift_residual": m["drift_residual"], "drift_used": m["drift_used"],
+                      "band_coherence": m["band_coherence"]})
     summary: dict[str, dict] = {}
     for vol, ms in sorted(per_volume.items()):
         conv = [m["convergence_s"] for m in ms if m["convergence_s"] is not None]
@@ -647,6 +655,7 @@ def evaluate(tag: str, quick: bool = False) -> bool:
         "means": means,
         "double_talk": dt,
         "removed_percent": means["removed_percent"],
+        "clips": clips,
     }
     HISTORY.parent.mkdir(parents=True, exist_ok=True)
     with HISTORY.open("a") as f:
@@ -825,15 +834,16 @@ def cmd_drift(mic_path: str, ref_path: str) -> bool:
     nz = np.flatnonzero(np.abs(ref) > thr)
     on = (int(nz[0]) + SR // 2) if nz.size else 0
     mic, ref = mic[on:], ref[on:]
-    lag0, drift, resid = fit_drift_fine(mic, ref)
+    lag0, drift, resid, binfo = fit_drift_fine_info(mic, ref)
     print(f"fitted drift: {drift:.3f} samples/s = {drift / SR * 1e6:.1f} ppm, "
-          f"residual rms {resid:.2f} samples")
+          f"residual rms {resid:.2f} samples, blocks kept {binfo['blocks_kept']}/{binfo['blocks_total']}")
     N = len(mic) - 800
     mean_lag = lag0 + drift * ((len(mic) / 2.0) / SR)
     k = int(round(mean_lag))
     fixed = [(mic[k:k + N], ref[:N])]
-    mic_a, ref_a, _info = follow_drift(mic, ref)
+    mic_a, ref_a, dinfo = follow_drift(mic, ref)
     followed = [(mic_a, ref_a)]
+    print(f"alignment used by follow_drift:       {dinfo['used']}")
     print("one fixed delay for the whole clip:   ",
           " | ".join(f"{lo}-{hi}: {band_coherence_segments(fixed, lo, hi):.2f}" for lo, hi in BANDS))
     print("delay following the fitted drift:     ",
