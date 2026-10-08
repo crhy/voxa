@@ -26,6 +26,7 @@ SR = 16000
 OUT = Path(".voxa-spec/out/anclab")
 SRC_DIR = OUT / "sources"
 REC_DIR = OUT / "recordings"
+WEBRTC_DIR = OUT / "webrtc"
 HISTORY = OUT / "history.jsonl"
 
 BANDS = ((100, 300), (300, 1000), (1000, 2000), (2000, 3000), (3000, 6000))
@@ -714,6 +715,264 @@ def evaluate(tag: str, quick: bool = False) -> bool:
     return True
 
 
+def webrtc_compare(tag: str, prepare: bool, score: bool) -> bool:
+    """Compare the WebRTC echo canceller with ours. Two phases: --prepare writes the mixes and
+    the jobs files into ``webrtc/`` (the batches run inside the Flatpak); --score reads the
+    outputs and writes ``WEBRTC.md``. Echo-only clips, double-talk accuracy, false words and
+    WebRTC property variants are all covered."""
+    ECHO_CLIPS = ["pink", "music_01", "music_02", "speech_01", "speech_02", "cmd_01"]
+    ECHO_VOLS = (0.4, 0.7, 1.0)
+    TWO_MIC = ("blue", "camera")
+    TWO_VOLS = (55, 70, 100)
+    DT_BASE = [("music_01", 0.7), ("music_01", 1.0), ("speech_01", 0.7), ("speech_01", 1.0)]
+    DT_LEVELS = (-6.0, 0.0, 6.0)
+    VARIANTS = [
+        {"echo-suppression-level": 0}, {"echo-suppression-level": 1},
+        {"echo-suppression-level": 2}, {"extended-filter": True},
+        {"delay-agnostic": True}, {"noise-suppression": True},
+    ]
+    twod = OUT / "twomic" / "placed-normal"
+
+    def absp(p: Path) -> str:
+        return str(p.absolute())
+
+    def tail60(mic, cleaned) -> float:
+        n = min(len(mic), len(cleaned))
+        a = int(n * 0.4)
+        return erle_db(mic[a:n], cleaned[a:n])
+
+    def our_cancel(mic, ref, delay):
+        m, r = align_ends(mic, ref)
+        cleaned, _ = feed(EchoCanceller(delay=delay), m, r)
+        return cleaned
+
+    if prepare:
+        WEBRTC_DIR.mkdir(parents=True, exist_ok=True)
+        jobs: list[dict] = []
+        meta: dict = {"echo": {}, "dt": [], "false_words": [], "variants": {}}
+
+        def add_job(micp, refp, outp, props, est_s):
+            jobs.append({"mic": absp(micp), "ref": absp(refp), "out": absp(outp), "props": props})
+            return est_s
+
+        # a. echo-only pairs (stored clips + two-microphone recordings)
+        pairs: dict[str, tuple[Path, Path]] = {}
+        for clip in ECHO_CLIPS:
+            for vol in ECHO_VOLS:
+                key = f"{clip}_v{vol}"
+                pairs[key] = (REC_DIR / f"{key}.mic.npy", REC_DIR / f"{key}.ref.npy")
+        for micname in TWO_MIC:
+            for vol in TWO_VOLS:
+                key = f"twomic_{micname}_v{vol}"
+                pairs[key] = (twod / f"v{vol}_{micname}.npy", twod / f"v{vol}_ref.npy")
+        for key, (micp, refp) in pairs.items():
+            if not (micp.is_file() and refp.is_file()):
+                continue
+            mic, ref = np.load(micp), np.load(refp)
+            mic_a, ref_a, _ = follow_drift(mic, ref)
+            np.save(WEBRTC_DIR / f"{key}.mic_followed.npy", mic_a.astype(np.float32))
+            np.save(WEBRTC_DIR / f"{key}.ref_followed.npy", ref_a.astype(np.float32))
+            share = predictable_share(mic_a, ref_a)
+            ceiling = (-10.0 * float(np.log10(1.0 - share))) if share < 1.0 else float("inf")
+            delay = estimate_delay(mic, ref)
+            est = len(mic) / SR
+            add_job(micp, refp, WEBRTC_DIR / f"{key}.webrtc_raw.npy", {}, est)
+            add_job(WEBRTC_DIR / f"{key}.mic_followed.npy", WEBRTC_DIR / f"{key}.ref_followed.npy",
+                    WEBRTC_DIR / f"{key}.webrtc_followed.npy", {}, est)
+            meta["echo"][key] = {
+                "ceiling_db": ceiling,
+                "our_raw_db": tail60(mic, our_cancel(mic, ref, delay)),
+                "our_followed_db": tail60(mic_a, our_cancel(mic_a, ref_a, 0)),
+                "est_s": est,
+            }
+
+        # b. double talk (6 commands over music_01 / speech_01 at 0.7 and 1.0)
+        cmds = sorted(SRC_DIR.glob("cmd_*.wav"))[:6]
+        for clip, vol in DT_BASE:
+            key = f"{clip}_v{vol}"
+            micp, refp = REC_DIR / f"{key}.mic.npy", REC_DIR / f"{key}.ref.npy"
+            if not (micp.is_file() and refp.is_file()):
+                continue
+            mic, ref = np.load(micp), np.load(refp)
+            delay = estimate_delay(mic, ref)
+            echo_rms = rms(ref)
+            for ci, wav in enumerate(cmds):
+                cmd = read_wav(wav)
+                words = COMMANDS[ci].lower().split()
+                offset = int(0.15 * len(mic))
+                for rel in DT_LEVELS:
+                    mic2, off = mix_command(mic, cmd, offset, echo_rms, rel)
+                    mixp = WEBRTC_DIR / f"dt_{clip}_v{vol}_c{ci}_{'m' if rel < 0 else ''}{abs(rel):g}.mic.npy"
+                    np.save(mixp, mic2.astype(np.float32))
+                    add_job(mixp, refp, WEBRTC_DIR / f"dt_{clip}_v{vol}_c{ci}_{rel:+.0f}.webrtc.npy", {}, len(mic) / SR)
+                    meta["dt"].append({"clip": clip, "vol": vol, "cmd": ci, "rel": rel,
+                                       "words": words, "off": off, "len": len(cmd),
+                                       "delay": delay, "est_s": len(mic) / SR})
+
+        # c. false words: echo-only speech clips (Whisper on cleaned echo, count words)
+        for clip in ("speech_01", "speech_02"):
+            for vol in ECHO_VOLS:
+                key = f"{clip}_v{vol}"
+                if key in meta["echo"]:
+                    meta["false_words"].append(key)
+
+        # d. WebRTC variants on music_01_v0.7 (echo-only + double talk at level 0)
+        vkey = "music_01_v0.7"
+        if vkey in meta["echo"]:
+            micp, refp = REC_DIR / f"{vkey}.mic.npy", REC_DIR / f"{vkey}.ref.npy"
+            mic, ref = np.load(micp), np.load(refp)
+            mic_a, ref_a, _ = follow_drift(mic, ref)
+            delay = estimate_delay(mic, ref)
+            echo_rms = rms(ref)
+            for vi, props in enumerate(VARIANTS):
+                add_job(micp, refp, WEBRTC_DIR / f"var{vi}_echo_raw.npy", props, len(mic) / SR)
+                add_job(WEBRTC_DIR / f"{vkey}.mic_followed.npy", WEBRTC_DIR / f"{vkey}.ref_followed.npy",
+                        WEBRTC_DIR / f"var{vi}_echo_followed.npy", props, len(mic) / SR)
+                for ci, wav in enumerate(cmds):
+                    cmd = read_wav(wav)
+                    offset = int(0.15 * len(mic))
+                    mic2, off = mix_command(mic, cmd, offset, echo_rms, 0.0)
+                    mixp = WEBRTC_DIR / f"var{vi}_dt_c{ci}.mic.npy"
+                    np.save(mixp, mic2.astype(np.float32))
+                    add_job(mixp, refp, WEBRTC_DIR / f"var{vi}_dt_c{ci}.webrtc.npy", props, len(mic) / SR)
+                    meta["variants"][f"var{vi}"] = {"props": props}
+
+        # write jobs split into <=200 s pieces so no single batch command exceeds ~4 min
+        size = 12
+        for i in range(0, len(jobs), size):
+            (WEBRTC_DIR / f"jobs_{i // size:02d}.json").write_text(json.dumps(jobs[i:i + size], indent=1))
+        (WEBRTC_DIR / "jobs.json").write_text(json.dumps(jobs, indent=1))
+        (WEBRTC_DIR / "meta.json").write_text(json.dumps(meta, indent=1))
+        print(f"prepared {len(jobs)} WebRTC jobs in {WEBRTC_DIR}; run jobs_XX.json batches "
+              f"(timeout 300 flatpak run ... batch jobs_XX.json) then --score")
+        return True
+
+    if score:
+        if not (WEBRTC_DIR / "meta.json").is_file():
+            print("no prepared jobs; run --prepare first")
+            return False
+        meta = json.loads((WEBRTC_DIR / "meta.json").read_text())
+
+        def load_out(name: str) -> np.ndarray | None:
+            p = WEBRTC_DIR / name
+            return np.load(p) if p.is_file() else None
+
+        def tail_webrtc(micp, outp) -> float:
+            mic = np.load(micp)
+            out = load_out(outp)
+            if out is None:
+                return float("nan")
+            return tail60(mic, out)
+
+        # echo-only table
+        rows = []
+        for key, m in meta["echo"].items():
+            micp = REC_DIR / f"{key}.mic.npy" if not key.startswith("twomic") else None
+            if key.startswith("twomic"):
+                micname = key.split("_")[1]
+                vol = key.split("_v")[1]
+                micp = twod / f"v{vol}_{micname}.npy"
+            wr = tail_webrtc(micp, f"{key}.webrtc_raw.npy")
+            wf = tail_webrtc(WEBRTC_DIR / f"{key}.mic_followed.npy", f"{key}.webrtc_followed.npy")
+            rows.append((key, m["ceiling_db"], m["our_raw_db"], m["our_followed_db"], wr, wf))
+
+        # double talk + false words need Whisper (loaded once)
+        from faster_whisper import WhisperModel
+        model = WhisperModel("base", device="cpu", compute_type="int8", cpu_threads=4)
+
+        def acc(audio, words) -> float:
+            return word_accuracy(transcribe(model, audio), words)
+
+        dt_rows: dict[float, dict] = {}
+        for d in meta["dt"]:
+            clip, vol, ci, rel = d["clip"], d["vol"], d["cmd"], d["rel"]
+            key = f"{clip}_v{vol}"
+            micp, refp = REC_DIR / f"{key}.mic.npy", REC_DIR / f"{key}.ref.npy"
+            mic, ref = np.load(micp), np.load(refp)
+            cmd = read_wav(sorted(SRC_DIR.glob("cmd_*.wav"))[ci])
+            off, ln = d["off"], d["len"]
+            lo = max(0, off - SR // 2)
+            hi = min(len(mic), off + ln + SR // 2)
+            mic2, _ = mix_command(mic, cmd, off, rms(ref), rel)
+            cleaned_our = our_cancel(mic2, ref, d["delay"])
+            wr_out = load_out(f"dt_{clip}_v{vol}_c{ci}_{rel:+.0f}.webrtc.npy")
+            entry = dt_rows.setdefault(rel, {"acc_raw": [], "acc_our": [], "acc_webrtc": [],
+                                             "lvl_raw": [], "lvl_our": [], "lvl_webrtc": []})
+            entry["acc_raw"].append(acc(mic2[lo:hi], d["words"]))
+            entry["acc_our"].append(acc(cleaned_our[lo:hi], d["words"]))
+            entry["lvl_raw"].append(distortion_db(cmd, mic2[lo:hi]))
+            entry["lvl_our"].append(distortion_db(cmd, cleaned_our[lo:hi]))
+            if wr_out is not None:
+                entry["acc_webrtc"].append(acc(wr_out[lo:hi], d["words"]))
+                entry["lvl_webrtc"].append(distortion_db(cmd, wr_out[lo:hi]))
+
+        false_rows = []
+        for key in meta["false_words"]:
+            micp = REC_DIR / f"{key}.mic.npy"
+            mic, ref = np.load(micp), np.load(REC_DIR / f"{key}.ref.npy")
+            delay = estimate_delay(mic, ref)
+            our_clean = our_cancel(mic, ref, delay)
+            wr = load_out(f"{key}.webrtc_raw.npy")
+            n_our = len(transcribe(model, our_clean).split())
+            n_wr = len(transcribe(model, wr).split()) if wr is not None else float("nan")
+            false_rows.append((key, n_our, n_wr))
+
+        # variants on music_01_v0.7
+        var_rows = []
+        vkey = "music_01_v0.7"
+        if vkey in meta["echo"]:
+            micp, refp = REC_DIR / f"{vkey}.mic.npy", REC_DIR / f"{vkey}.ref.npy"
+            mic, ref = np.load(micp), np.load(refp)
+            echo_rms = rms(ref)
+            cmds = sorted(SRC_DIR.glob("cmd_*.wav"))[:6]
+            for vi in range(len(meta["variants"])):
+                props = meta["variants"][f"var{vi}"]["props"]
+                er = tail_webrtc(micp, f"var{vi}_echo_raw.npy")
+                ef = tail_webrtc(WEBRTC_DIR / f"{vkey}.mic_followed.npy", f"var{vi}_echo_followed.npy")
+                accs = []
+                for ci in range(len(cmds)):
+                    out = load_out(f"var{vi}_dt_c{ci}.webrtc.npy")
+                    if out is None:
+                        continue
+                    cmd = read_wav(cmds[ci])
+                    off = int(0.15 * len(mic))
+                    lo = max(0, off - SR // 2)
+                    hi = min(len(mic), off + len(cmd) + SR // 2)
+                    accs.append(acc(out[lo:hi], COMMANDS[ci].lower().split()))
+                var_rows.append((f"var{vi}", props, er, ef, float(np.mean(accs)) if accs else float("nan")))
+
+        # cpu seconds per second of audio (from batch progress is not stored; estimate from est_s)
+        total_est = sum(m["est_s"] for m in meta["echo"].values())
+
+        lines = [f"# WebRTC vs ours (tag {tag})\n"]
+        lines.append("## Echo-only (ceiling | our raw | our followed | WebRTC raw | WebRTC followed, dB)\n")
+        for key, ce, ow, of, wr, wf in rows:
+            lines.append(f"| {key} | {ce:.1f} | {ow:.1f} | {of:.1f} | {wr:.1f} | {wf:.1f} |")
+        lines.append("\n## Double-talk word accuracy and command level change (dB)\n")
+        for rel in sorted(dt_rows, reverse=True):
+            e = dt_rows[rel]
+            lines.append(f"| {rel:+.0f} dB | raw {np.mean(e['acc_raw']):.2f} | our {np.mean(e['acc_our']):.2f} "
+                         f"| WebRTC {np.mean(e['acc_webrtc']):.2f} | lvl raw {np.mean(e['lvl_raw']):.1f} "
+                         f"| lvl our {np.mean(e['lvl_our']):.1f} | lvl WebRTC {np.mean(e['lvl_webrtc']):.1f} |")
+        lines.append("\n## False words (echo speech heard as user)\n")
+        for key, n_our, n_wr in false_rows:
+            lines.append(f"| {key} | our {n_our} | WebRTC {n_wr} |")
+        lines.append("\n## WebRTC variants on music_01_v0.7\n")
+        for name, props, er, ef, a in var_rows:
+            lines.append(f"| {name} {json.dumps(props)} | echo raw {er:.1f} | echo followed {ef:.1f} | dt acc {a:.2f} |")
+        lines.append(f"\nCPU estimate: {total_est:.0f} s of audio prepared.\n")
+        lines.append("\n## Conclusion\n")
+        lines.append("Numbers only: echo removed per volume for each canceller, command word accuracy "
+                     "for each, false words for each, best WebRTC settings, CPU seconds per second of audio. "
+                     "Fill from the rows above once the Flatpak batches have run.\n")
+        (OUT / "WEBRTC.md").write_text("\n".join(lines))
+        print(f"wrote {OUT / 'WEBRTC.md'}")
+        return True
+
+    print("webrtc-compare needs --prepare and/or --score")
+    return False
+
+
 def read_history() -> list[dict]:
     if not HISTORY.is_file():
         return []
@@ -901,10 +1160,13 @@ def main(argv: list[str]) -> int:
     import argparse
 
     ap = argparse.ArgumentParser(prog="anc_lab")
-    ap.add_argument("command", choices=["make-sources", "record", "evaluate", "plot", "diagnose", "all", "drift"])
+    ap.add_argument("command", choices=["make-sources", "record", "evaluate", "plot", "diagnose", "all", "drift",
+                                       "webrtc-compare"])
     ap.add_argument("--volumes", default=",".join(str(v) for v in VOLUMES))
     ap.add_argument("--tag", default="run")
     ap.add_argument("--quick", action="store_true")
+    ap.add_argument("--prepare", action="store_true")
+    ap.add_argument("--score", action="store_true")
     ap.add_argument("paths", nargs="*")
     a = ap.parse_args(argv)
     vols = tuple(float(v) for v in a.volumes.split(","))
@@ -913,6 +1175,8 @@ def main(argv: list[str]) -> int:
             print("usage: anc_lab drift <mic.npy> <ref.npy>")
             return 2
         return 0 if cmd_drift(a.paths[0], a.paths[1]) else 2
+    if a.command == "webrtc-compare":
+        return 0 if webrtc_compare(a.tag, a.prepare, a.score) else 2
     if a.command == "make-sources":
         make_sources()
         return 0
