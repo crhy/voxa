@@ -375,7 +375,8 @@ def _analysis_band(ref, rate: int) -> tuple[float, float]:
     return _ANALYSIS_BANDS[0]
 
 
-def follow_drift(mic, ref, rate: int = SR, block_s: float = 2.0) -> tuple[np.ndarray, np.ndarray, dict]:
+def follow_drift(mic, ref, rate: int = SR, block_s: float = 2.0,
+                 ppm: float | None = None) -> tuple[np.ndarray, np.ndarray, dict]:
     """Align the reference to the microphone by following the fitted clock drift block by block.
 
     The reference is delayed block by block along the fitted drift line (with a 10 ms crossfade
@@ -385,9 +386,18 @@ def follow_drift(mic, ref, rate: int = SR, block_s: float = 2.0) -> tuple[np.nda
     ``(mic_aligned, ref_aligned, info)`` of equal length where
     ``info = {"lag", "ppm", "residual", "used", "blocks_kept", "blocks_total"}`` and ``used``
     is ``"drift"`` or ``"fixed"``.
+
+    When ``ppm`` is given the slope is fixed to that drift (parts per million) and only the lag
+    is fitted: the fitted mid-clip delay is re-anchored onto the fixed slope. This lets a session
+    drift measured on long clips be applied to short clips or clips whose own fit failed.
     """
     n = min(len(mic), len(ref))
     lag0, drift, resid, binfo = fit_drift_fine_info(mic, ref, rate, block_s)
+    if ppm is not None:
+        t_mid = (n / 2.0) / rate
+        mid_delay = lag0 + drift * t_mid
+        drift = ppm * 1e-6 * rate
+        lag0 = mid_delay - drift * t_mid
     mic_a = np.zeros(n, dtype=np.float64)
     ref_a = np.zeros(n, dtype=np.float64)
     if n > 0:
@@ -421,6 +431,41 @@ def follow_drift(mic, ref, rate: int = SR, block_s: float = 2.0) -> tuple[np.nda
     info = {"lag": lag0, "ppm": drift / rate * 1e6, "residual": resid,
             "used": used, "blocks_kept": binfo["blocks_kept"], "blocks_total": binfo["blocks_total"]}
     return mic_a, ref_a, info
+
+
+def predictable_share(mic, ref, rate: int = SR, fmin: float = 100.0, fmax: float = 7000.0,
+                      nseg: int = 8192) -> float:
+    """Power-weighted share of the microphone's power that the reference can predict.
+
+    Welch (segment-accumulated) estimate: Hann windows of ``nseg`` samples stepped by
+    ``nseg // 2`` (half overlap); the per-frequency power and cross terms are summed across
+    all windows before the ratio is formed. With x = reference and y = microphone, the share
+    is ``sum over bins [fmin, fmax] of |Pxy|^2 / Pxx`` divided by ``sum of Pyy`` over the same
+    bins, i.e. the fraction of microphone power explainable by the reference. Returns 0.0 for
+    clips shorter than ``nseg``. Achievable ERLE is ``-10*log10(1 - share)``.
+    """
+    x = np.asarray(ref, dtype=np.float64)
+    y = np.asarray(mic, dtype=np.float64)
+    m = min(len(x), len(y))
+    if m < nseg:
+        return 0.0
+    w = np.hanning(nseg)
+    f = np.fft.rfftfreq(nseg, 1.0 / rate)
+    band = (f >= fmin) & (f < fmax)
+    pxx = np.zeros(nseg // 2 + 1)
+    pyy = np.zeros(nseg // 2 + 1)
+    pxy = np.zeros(nseg // 2 + 1, dtype=np.complex128)
+    for i in range(0, m - nseg + 1, nseg // 2):
+        X = np.fft.rfft(x[i:i + nseg] * w)
+        Y = np.fft.rfft(y[i:i + nseg] * w)
+        pxx += np.abs(X) ** 2
+        pyy += np.abs(Y) ** 2
+        pxy += X * np.conj(Y)
+    den = float(pyy[band].sum())
+    if den <= 0.0:
+        return 0.0
+    num = float(np.sum(np.abs(pxy[band]) ** 2 / (pxx[band] + 1e-30)))
+    return float(min(1.0, max(0.0, num / den)))
 
 
 def band_coherence_segments(pairs, lo: float, hi: float, nseg: int = 8192,

@@ -20,7 +20,7 @@ from pathlib import Path
 import numpy as np
 
 from voxa.anc import EchoCanceller, erle_db, estimate_delay
-from voxa.sync import band_coherence, band_coherence_segments, fit_drift_fine_info, follow_drift
+from voxa.sync import band_coherence, band_coherence_segments, fit_drift_fine_info, follow_drift, predictable_share
 
 SR = 16000
 OUT = Path(".voxa-spec/out/anclab")
@@ -493,10 +493,14 @@ def oracle_erle_db(mic, ref, delay, taps: int = 4096) -> float:
     return 10.0 * float(np.log10(pm / pr))
 
 
-def evaluate_pair(mic, ref, floor_db=None):
-    mic_a, al, dinfo = follow_drift(mic, ref)
-    coh = band_coherence(mic_a, al)
-    delay = estimate_delay(mic_a, al)
+def evaluate_pair(mic, ref, floor_db=None, ppm=None):
+    mic_a, al, dinfo = follow_drift(mic, ref, ppm=ppm)
+    share = predictable_share(mic_a, al)
+    achievable = (-10.0 * float(np.log10(1.0 - share))) if share < 1.0 else float("inf")
+    # The pair is already drift-followed, so the echo sits at zero residual delay:
+    # estimating a delay here (estimate_delay) returns a spurious peak and the oracle
+    # would shift the reference a second time, collapsing the measured ERLE.
+    delay = 0
     cleaned, converged = feed(EchoCanceller(delay=delay), mic_a, al)
     tail = len(mic_a) // 4
     erle = erle_db(mic_a[tail:], cleaned[tail:])
@@ -509,10 +513,12 @@ def evaluate_pair(mic, ref, floor_db=None):
         "residual_dbfs": dbfs(cleaned[tail:]),
         "convergence_s": converged,
         "removed_percent": removed_percent(mic_a, al, cleaned),
-        "coherence": coh,
+        "predictable_share": share,
+        "achievable_erle_db": achievable,
         "oracle_erle_db": oracle,
         "gap_to_oracle_db": oracle - erle,
         "drift_ppm": dinfo["ppm"],
+        "drift_source": "session" if ppm is not None else "fit",
         "lag_ms": dinfo["lag"] / SR * 1000.0,
         "drift_residual": dinfo["residual"],
         "drift_used": dinfo["used"],
@@ -596,6 +602,27 @@ def evaluate(tag: str, quick: bool = False) -> bool:
         print("no recordings; run record first")
         return False
     manifest = json.loads(manifest_path.read_text())
+    LONG = {"pink", "music", "sweep"}
+
+    def kind(source: str) -> str:
+        return source.split("_")[0]
+
+    # Session-drift pre-pass: fit drift on the long clips of each volume and take the
+    # median ppm of the good fits (residual < 0.5 samples) as a fallback for short
+    # clips and clips whose own fit failed.
+    session_ppm: dict[float, float] = {}
+    own_fit: dict[str, dict] = {}
+    for entry in manifest:
+        if entry["source"] == "silence" or kind(entry["source"]) not in LONG:
+            continue
+        mic = np.load(REC_DIR / f"{entry['key']}.mic.npy")
+        ref = np.load(REC_DIR / f"{entry['key']}.ref.npy")
+        _, _, dinfo = follow_drift(mic, ref)
+        own_fit[entry["key"]] = dinfo
+        if dinfo["residual"] < 0.5 and dinfo["ppm"] != 0.0:
+            session_ppm.setdefault(entry["volume"], []).append(dinfo["ppm"])
+    session_ppm = {v: float(np.median(vals)) for v, vals in session_ppm.items()}
+
     per_volume: dict[float, list] = {}
     clips: list[dict] = []
     for entry in manifest:
@@ -603,7 +630,11 @@ def evaluate(tag: str, quick: bool = False) -> bool:
             continue
         mic = np.load(REC_DIR / f"{entry['key']}.mic.npy")
         ref = np.load(REC_DIR / f"{entry['key']}.ref.npy")
-        m = evaluate_pair(mic, ref, entry.get("floor_dbfs"))
+        is_long = kind(entry["source"]) in LONG
+        good_fit = is_long and own_fit.get(entry["key"], {}).get("residual", 9e9) < 0.5
+        ppm = None if good_fit else session_ppm.get(entry["volume"])
+        m = evaluate_pair(mic, ref, entry.get("floor_dbfs"), ppm=ppm)
+        m["kind"] = kind(entry["source"])
         per_volume.setdefault(entry["volume"], []).append(m)
         clips.append({"key": entry["key"], "volume": entry["volume"],
                       "drift_ppm": m["drift_ppm"], "lag_ms": m["lag_ms"],
@@ -612,16 +643,23 @@ def evaluate(tag: str, quick: bool = False) -> bool:
     summary: dict[str, dict] = {}
     for vol, ms in sorted(per_volume.items()):
         conv = [m["convergence_s"] for m in ms if m["convergence_s"] is not None]
+        band_coh = {}
+        for band in BANDS:
+            key = f"{band[0]}-{band[1]}"
+            vals = [m["band_coherence"][key] for m in ms if m.get("band_coherence", {}).get(key) is not None]
+            band_coh[key] = float(np.mean(vals)) if vals else float("nan")
         summary[str(vol)] = {
             "erle_db": float(np.mean([m["erle_db"] for m in ms])),
             "residual_dbfs": float(np.mean([m["residual_dbfs"] for m in ms])),
             "convergence_s": float(np.mean(conv)) if conv else float("nan"),
             "removed_percent": float(np.mean([m["removed_percent"] for m in ms])),
-            "coherence": float(np.mean([m["coherence"] for m in ms])),
+            "predictable_share": float(np.mean([m["predictable_share"] for m in ms])),
+            "achievable_erle_db": _mean_present(ms, "achievable_erle_db"),
             "oracle_erle_db": _mean_present(ms, "oracle_erle_db"),
             "gap_to_oracle_db": _mean_present(ms, "gap_to_oracle_db"),
             "echo_to_noise_db": _mean_present(ms, "echo_to_noise_db"),
             "residual_vs_floor_db": _mean_present(ms, "residual_vs_floor_db"),
+            "band_coherence": band_coh,
         }
     pairs = {}
     for vol in per_volume:
@@ -643,7 +681,8 @@ def evaluate(tag: str, quick: bool = False) -> bool:
                 and not np.isnan(v[key])]
         return float(np.mean(vals)) if vals else float("nan")
 
-    means = {k: gmean(k) for k in ("erle_db", "residual_dbfs", "removed_percent", "coherence",
+    means = {k: gmean(k) for k in ("erle_db", "residual_dbfs", "removed_percent",
+                                   "predictable_share", "achievable_erle_db",
                                    "oracle_erle_db", "gap_to_oracle_db",
                                    "echo_to_noise_db", "residual_vs_floor_db")}
     line = {
@@ -660,6 +699,13 @@ def evaluate(tag: str, quick: bool = False) -> bool:
     HISTORY.parent.mkdir(parents=True, exist_ok=True)
     with HISTORY.open("a") as f:
         f.write(json.dumps(line) + "\n")
+    for vol, ms in sorted(per_volume.items()):
+        print(f"\nvolume {vol}:")
+        print(f"{'clip':<10} {'ppm':>8} {'share':>7} {'achv':>7} {'oracle':>7} {'canc':>7} {'gap':>7}")
+        for m in ms:
+            print(f"{m['kind']:<10} {m['drift_ppm']:>8.1f} {m['predictable_share']:>7.3f} "
+                  f"{m['achievable_erle_db']:>7.2f} {m['oracle_erle_db']:>7.2f} "
+                  f"{m['erle_db']:>7.2f} {m['gap_to_oracle_db']:>7.2f}")
     print(f"history appended for tag {tag}: ERLE mean {means['erle_db']:.1f} dB, "
           f"removed {means['removed_percent']:.1f}%")
     print(f"relative: gap to oracle {means['gap_to_oracle_db']:.1f} dB, "

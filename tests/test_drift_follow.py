@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 
-from voxa.sync import band_coherence_segments, fit_drift_fine, follow_drift, fractional_delay
+from voxa.sync import band_coherence_segments, fit_drift_fine, follow_drift, fractional_delay, predictable_share
 
 SR = 16000
 
@@ -137,3 +137,37 @@ def test_no_drift_pair():
     mic_a, ref_a, _info = follow_drift(mic, ref)
     followed = band_coherence_segments([(mic_a, ref_a)], 2000.0, 3000.0)
     assert followed >= fixed - 0.02
+
+
+def test_predictable_share_echo_high():
+    n = 12 * SR
+    ref = np.random.default_rng(1).standard_normal(n)
+    mic = build_mic(ref, 300.0, 0.4, 200, 20.0)
+    mic_a, ref_a, _info = follow_drift(mic, ref)
+    share = predictable_share(mic_a, ref_a)
+    assert share > 0.8
+
+
+def test_predictable_share_noise_low():
+    n = 12 * SR
+    ref = np.random.default_rng(1).standard_normal(n)
+    rng = np.random.default_rng(99)
+    noise = rng.standard_normal(n)
+    share = predictable_share(noise, ref)
+    assert share < 0.1
+
+
+def test_predictable_share_short_zero():
+    ref = np.random.default_rng(1).standard_normal(4000)
+    mic = np.random.default_rng(2).standard_normal(4000)
+    assert predictable_share(mic, ref) == 0.0
+
+
+def test_follow_drift_session_ppm():
+    n = 12 * SR
+    ref = np.random.default_rng(1).standard_normal(n)
+    mic = build_mic(ref, 300.0, 0.4, 200, 20.0)
+    true_ppm = 0.4 / SR * 1e6
+    mic_a, ref_a, info = follow_drift(mic, ref, ppm=true_ppm)
+    assert abs(info["ppm"] - true_ppm) < 0.5
+    assert band_coherence_segments([(mic_a, ref_a)], 2000.0, 3000.0) > 0.85
