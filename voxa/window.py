@@ -1970,6 +1970,7 @@ class MainWindow(Adw.ApplicationWindow):
             threshold=self.settings.voice_threshold,
             silence_ms=self.settings.silence_ms,
             max_segment_seconds=self.settings.max_segment_seconds,
+            voice_detector=self.settings.voice_detector,
             on_woken=lambda: idle(session(self._on_conversation_woken)),
             on_prompt=lambda text: idle(session(self._on_conversation_prompt), text),
             on_status=lambda text: idle(session(self._set_status), text, True),

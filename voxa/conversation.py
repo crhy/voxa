@@ -188,6 +188,7 @@ class ConversationController:
         max_segment_seconds: float,
         early_silence_ms: int = 300,
         early_final_pass: bool = False,
+        voice_detector: bool = True,
         on_woken: Callable[[], None],
         on_prompt: Callable[[str], None],
         on_status: Callable[[str], None],
@@ -209,6 +210,20 @@ class ConversationController:
         self.early_silence_seconds = early_silence_ms / 1000.0
         self.early_final_pass = early_final_pass
         self.max_segment_seconds = max_segment_seconds
+        # Streaming voice detector: when it loads it replaces the loudness rule in
+        # segment_stream, so background music no longer blocks pause detection.
+        # Created once per session; a detector that raises falls back to the loudness
+        # rule for the rest of the session (see _voice_check).
+        self._voice_detector: VoiceDetector | None = None
+        self._voice_fell_back = False
+        if voice_detector:
+            try:
+                from .voicedetect import VoiceDetector
+
+                self._voice_detector = VoiceDetector()
+            except Exception as exc:  # noqa: BLE001 - optional detector
+                logging.debug("voice detector unavailable: %s", exc)
+                self._voice_detector = None
         self.on_woken = on_woken
         self.on_prompt = on_prompt
         self.on_status = on_status
@@ -362,9 +377,25 @@ class ConversationController:
             idle_timeout_seconds=idle_timeout_seconds,
             early_silence_seconds=self.early_silence_seconds if early else None,
             early_check=self._early_check if early else None,
+            is_voice=self._voice_check if self._voice_detector is not None else None,
         ):
             return segment
         return None
+
+    def _voice_check(self, pcm: bytes, level: float) -> bool:
+        """Detector verdict for one chunk; falls back to the loudness rule on error.
+
+        Once the detector has raised, the fallback stays for the rest of the
+        session and the failure is logged once.
+        """
+        if self._voice_detector is None or self._voice_fell_back:
+            return level >= self.threshold
+        try:
+            return self._voice_detector.feed(pcm)
+        except Exception as exc:  # noqa: BLE001 - detector boundary
+            self._voice_fell_back = True
+            logging.debug("voice detector failed; using the loudness rule: %s", exc)
+            return level >= self.threshold
 
     def _filter_own_speech(self, text: str) -> str | None:
         """Strip echoes of Voxa's own voice from a transcript.

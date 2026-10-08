@@ -22,6 +22,7 @@ def segment_stream(
     trailing_silence_seconds: float | None = None,
     early_silence_seconds: float | None = None,
     early_check: Callable[[bytes], bool] | None = None,
+    is_voice: Callable[[bytes, float], bool] | None = None,
 ) -> Iterator[bytes]:
     """Yield PCM segments split at speech pauses from a live audio queue.
 
@@ -41,6 +42,10 @@ def segment_stream(
     boundary) ``early_check`` is called once for that pause with the audio heard
     so far; if it returns True the segment is yielded immediately. The check
     runs at most once per pause, and a new burst of voice arms it again.
+
+    If ``is_voice`` is given it replaces the ``level >= threshold`` loudness rule:
+    a chunk counts as voice only when ``level >= threshold / 2`` (so pure silence
+    stays cheap) and ``is_voice(pcm, level)`` returns True.
     """
     segment = bytearray()
     heard_voice = False
@@ -62,7 +67,11 @@ def segment_stream(
         else:
             pcm, level = item
             segment.extend(pcm)
-            if level >= threshold:
+            if is_voice is not None:
+                voiced = level >= threshold / 2 and is_voice(pcm, level)
+            else:
+                voiced = level >= threshold
+            if voiced:
                 heard_voice = True
                 heard_any_voice = True
                 last_voice = now

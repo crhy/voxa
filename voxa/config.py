@@ -49,6 +49,9 @@ class Settings:
     web_search: str = "auto"
     silence_ms: int = 700
     voice_threshold: int = 450
+    # Use the streaming voice detector (Silero VAD) to find pauses instead of the
+    # loudness rule; falls back to the rule when the detector is unavailable.
+    voice_detector: bool = True
     # The longest single request Voxa will listen to. 6 s (the old default) cut people off mid-sentence.
     max_segment_seconds: float = 20.0
     wake_word: str = "voxa"
