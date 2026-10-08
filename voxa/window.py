@@ -1937,6 +1937,7 @@ class MainWindow(Adw.ApplicationWindow):
             on_transcribe_timing=lambda model, audio, took: idle(
                 session(self._on_transcribe_timing), model, audio, took
             ),
+            on_timing=lambda stage: idle(session(self._on_stage_timing), stage, time.monotonic()),
         )
         self.conversation.own_speech = self.own_speech
         # Test builds: what was heard without a wake word goes to barge.log (local only), so a missed
@@ -2014,6 +2015,9 @@ class MainWindow(Adw.ApplicationWindow):
     def _on_conversation_prompt(self, text: str) -> bool:
         if not text:
             return False
+        marks = getattr(self, "_cmd_marks", None) or {}
+        marks["prompt"] = time.monotonic()
+        self._cmd_marks = marks
         heard = self.conversation.last_heard if self.conversation is not None else text
         if self.assistant.is_paused:
             resumed, rest = resume_request(heard, self.settings.wake_word)
@@ -2138,6 +2142,7 @@ class MainWindow(Adw.ApplicationWindow):
         speech: str = "",
         detail: str = "",
         ms: int = 0,
+        timings: dict[str, int] | None = None,
     ) -> None:
         """Record one command in the action log; logging never breaks a command."""
         self.action_log.append(
@@ -2151,8 +2156,29 @@ class MainWindow(Adw.ApplicationWindow):
                 speech=speech,
                 detail=detail,
                 ms=ms,
+                timings=timings or None,
             )
         )
+
+    def _cmd_timings(self, acted: float | None = None) -> dict[str, int]:
+        """Per-stage milliseconds for the command in flight, from monotonic marks."""
+        marks = getattr(self, "_cmd_marks", None) or {}
+        out: dict[str, int] = {}
+        if "speech_end" in marks and "transcribed" in marks:
+            out["hear_ms"] = int((marks["transcribed"] - marks["speech_end"]) * 1000)
+        if "prompt" in marks and "routed" in marks:
+            out["route_ms"] = int((marks["routed"] - marks["prompt"]) * 1000)
+        if acted is not None and "routed" in marks:
+            out["act_ms"] = int((acted - marks["routed"]) * 1000)
+        return out
+
+    def _on_stage_timing(self, stage: str, when: float) -> None:
+        """Store a monotonic mark for a conversation stage; a new turn clears the slate."""
+        marks = getattr(self, "_cmd_marks", None) or {}
+        if stage == "speech_end":
+            marks = {}
+        marks[stage] = when
+        self._cmd_marks = marks
 
     def _tool_result(self, call: intents.ToolCall) -> ToolResult:
         """Resolve a tool call, special-casing the character tools that touch the UI."""
@@ -2169,6 +2195,9 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _run_tool(self, call: intents.ToolCall, prompt: str) -> None:
         """A recognised command goes straight to its tool, never to the model."""
+        marks = getattr(self, "_cmd_marks", None) or {}
+        marks["routed"] = time.monotonic()
+        self._cmd_marks = marks
         self._restore_reply_language()
         if call.args.get("action") != "spin":
             compiz.stop_spin()  # any new command ends a spinning cube (it turns back home)
@@ -2197,6 +2226,7 @@ class MainWindow(Adw.ApplicationWindow):
             started = time.monotonic()
             try:
                 result = self._tool_result(call)
+                acted = time.monotonic()
                 self._log_action(
                     prompt,
                     "tool",
@@ -2205,10 +2235,12 @@ class MainWindow(Adw.ApplicationWindow):
                     ok=result.ok,
                     speech=result.speech,
                     detail=result.detail,
-                    ms=int((time.monotonic() - started) * 1000),
+                    ms=int((acted - started) * 1000),
+                    timings=self._cmd_timings(acted),
                 )
                 idle(guard(self._on_tool_finished), result)
             except ToolError as exc:
+                acted = time.monotonic()
                 self._log_action(
                     prompt,
                     "tool",
@@ -2216,10 +2248,12 @@ class MainWindow(Adw.ApplicationWindow):
                     args=dict(call.args),
                     ok=False,
                     detail=str(exc),
-                    ms=int((time.monotonic() - started) * 1000),
+                    ms=int((acted - started) * 1000),
+                    timings=self._cmd_timings(acted),
                 )
                 idle(guard(self._on_tool_failed), str(exc))
             except Exception as exc:  # noqa: BLE001 - tool handlers touch the host
+                acted = time.monotonic()
                 self._log_action(
                     prompt,
                     "tool",
@@ -2227,7 +2261,8 @@ class MainWindow(Adw.ApplicationWindow):
                     args=dict(call.args),
                     ok=False,
                     detail=str(exc),
-                    ms=int((time.monotonic() - started) * 1000),
+                    ms=int((acted - started) * 1000),
+                    timings=self._cmd_timings(acted),
                 )
                 idle(guard(self._on_tool_failed), str(exc))
 
@@ -2849,6 +2884,11 @@ class MainWindow(Adw.ApplicationWindow):
             del self._language_before_once
 
     def ask_ai(self, prompt: str | None = None) -> None:
+        marks = getattr(self, "_cmd_marks", None) or {}
+        if "prompt" not in marks:
+            marks = {}
+        marks["routed"] = time.monotonic()
+        self._cmd_marks = marks
         self._follow_up_token = None
         self._restore_reply_language()
         self._stop_dictation_for_action()
@@ -3039,9 +3079,9 @@ class MainWindow(Adw.ApplicationWindow):
                             prompt = f"{context}\n\nQuestion: {prompt}"
                 rec = self._search_record
                 if rec is not None:
-                    self._log_action(heard, rec["route"], args=rec["args"], detail=rec["detail"])
+                    self._log_action(heard, rec["route"], args=rec["args"], detail=rec["detail"], timings=self._cmd_timings(None))
                 else:
-                    self._log_action(heard, "model")
+                    self._log_action(heard, "model", timings=self._cmd_timings(None))
                 if isinstance(client, LlamaCppClient) and client.is_busy():
                     idle(self._on_server_busy, generation, cancel_event)
                 if hasattr(client, "is_model_loaded") and client.is_model_loaded(model) is False:
