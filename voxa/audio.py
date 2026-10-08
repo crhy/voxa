@@ -424,3 +424,41 @@ class AudioCapture:
             pipeline.set_state(gst.State.NULL)
         if ref_pipeline is not None:
             ref_pipeline.set_state(gst.State.NULL)
+
+    def set_echo_mode(self, enabled: bool, reference_source: str | None = None) -> None:
+        """Switch echo cancellation on or off, applying immediately if capture is running."""
+        if not enabled:
+            self.pulse_source = None
+            self.reference_source = None
+            self.canceller = None
+            self._canceller_enabled = False
+            self._delay_done = True
+            self._delay_mic = []
+            self._delay_ref = []
+            self._ref_ring = None
+            self._ref_anchor = None
+            if self._ref_pipeline is not None:
+                gst = _ensure_gstreamer()
+                self._ref_pipeline.set_state(gst.State.NULL)
+                self._ref_pipeline = None
+            return
+        self.pulse_source = None
+        self.reference_source = reference_source
+        if self.canceller is None:
+            self.canceller = EchoCanceller()
+        self._canceller_enabled = True
+        self._canceller_logged = False
+        if not self.is_active:
+            self._delay_done = False
+            self._delay_mic = []
+            self._delay_ref = []
+            self._ref_ring = None
+            return
+        if self._ref_ring is None:
+            self._ref_ring = ReferenceRing(REFERENCE_SECONDS * REFERENCE_RATE)
+        if self._ref_pipeline is None and reference_source:
+            gst = _ensure_gstreamer()
+            self._start_reference(gst)
+        self._delay_done = False
+        self._delay_mic = []
+        self._delay_ref = []

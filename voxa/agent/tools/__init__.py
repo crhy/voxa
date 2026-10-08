@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from voxa.agent.registry import ToolRegistry
+from voxa.agent.tools.anc import anc_tools
 from voxa.agent.tools.applications import application_tools
 from voxa.agent.tools.appstore import appstore_tools
 from voxa.agent.tools.briefing import briefing_tools
@@ -62,6 +63,7 @@ def default_registry() -> ToolRegistry:
         *sysupdate_tools(),
         *appstore_tools(),
         *uicontrol_tools(),
+        *anc_tools(),
     ]:
         registry.register(tool)
     return registry

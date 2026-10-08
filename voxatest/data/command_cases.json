@@ -3230,6 +3230,49 @@
       "say": "proofread this",
       "tool": "cleanup_text",
       "args": {}
+    },
+    {
+      "id": "anc-1",
+      "category": "settings",
+      "say": "turn noise cancellation on",
+      "tool": "set_noise_cancellation",
+      "args": {
+        "state": "on"
+      }
+    },
+    {
+      "id": "anc-2",
+      "category": "settings",
+      "say": "turn noise cancellation off",
+      "tool": "set_noise_cancellation",
+      "args": {
+        "state": "off"
+      }
+    },
+    {
+      "id": "anc-3",
+      "category": "settings",
+      "say": "enable adaptive noise cancellation",
+      "tool": "set_noise_cancellation",
+      "args": {
+        "state": "on"
+      }
+    },
+    {
+      "id": "anc-4",
+      "category": "settings",
+      "say": "disable adaptive noise cancellation",
+      "tool": "set_noise_cancellation",
+      "args": {
+        "state": "off"
+      }
+    },
+    {
+      "id": "anc-5",
+      "category": "settings",
+      "say": "is noise cancellation on",
+      "tool": "get_noise_cancellation",
+      "args": {}
     }
   ],
   "wishlist": []

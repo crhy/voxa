@@ -29,8 +29,8 @@ from .agent.result import ToolResult  # noqa: E402
 from .agent.routines import Routine, RoutineStore, parse_create, parse_delete, parse_list  # noqa: E402
 from .agent.spoken_text import format_dictation, parse_dictation_control  # noqa: E402
 from .agent.suggest import Suggestion, SuggestionState, suggest  # noqa: E402
-from .agent.tools import briefing as briefing_tool  # noqa: E402
 from .agent.tools import (  # noqa: E402
+    anc,
     compiz,
     contacts,
     default_registry,
@@ -41,6 +41,7 @@ from .agent.tools import (  # noqa: E402
     typing,
     windows,
 )
+from .agent.tools import briefing as briefing_tool  # noqa: E402
 from .agent.tools.web import get_session  # noqa: E402
 from .anc import EchoCanceller as AncCanceller  # noqa: E402
 from .audio import AudioCapture, AudioDevice  # noqa: E402
@@ -297,6 +298,8 @@ class MainWindow(Adw.ApplicationWindow):
         translate.ask_model = lambda messages: textedit.ask_model(messages)
         translate.speak_in = self._speak_next_reply_in
         briefing_tool.get_location = lambda: self.settings.home_location
+        anc.get_echo_mode = lambda: getattr(self.settings, "echo_mode", "voxa")
+        anc.set_echo_mode = self._save_echo_mode
         textedit.write_clipboard = clipboard.write_text
         # Every command Voxa hears is logged here, so we can see what works.
         self.action_log = ActionLog()
@@ -363,6 +366,21 @@ class MainWindow(Adw.ApplicationWindow):
     def _save_contacts(self, contacts: dict[str, str]) -> None:
         self.settings.contacts = contacts
         self.config_store.save(self.settings)
+
+    def _save_echo_mode(self, mode: str) -> None:
+        self.settings.echo_mode = mode
+        self.config_store.save(self.settings)
+        self._apply_echo_mode()
+
+    def _on_echo_row_changed(self, row: Adw.SwitchRow, _property) -> None:
+        self._save_echo_mode("voxa" if row.get_active() else "off")
+
+    def _apply_echo_mode(self) -> None:
+        mode = getattr(self.settings, "echo_mode", "voxa")
+        if mode == "voxa":
+            self.audio.set_echo_mode(True, default_monitor_source())
+        else:
+            self.audio.set_echo_mode(False)
 
     def _load_wake_whisper(self) -> None:
         # Runs quietly in the background: conversation mode falls back to the
@@ -3510,6 +3528,14 @@ class MainWindow(Adw.ApplicationWindow):
         mic_row.connect("notify::selected", update_mic_tooltip)
         listening_group.add(mic_row)
 
+        echo_row = Adw.SwitchRow(
+            title="Adaptive noise cancellation",
+            subtitle="Removes the computer's own sound — Voxa's voice, music — from what she hears. Your voice is never altered.",
+        )
+        echo_row.set_active(getattr(self.settings, "echo_mode", "voxa") == "voxa")
+        echo_row.connect("notify::active", self._on_echo_row_changed)
+        listening_group.add(echo_row)
+
         whisper_row = Adw.ComboRow(
             title="Recognition model",
             subtitle="Whisper size: smaller starts faster, larger hears more accurately",
@@ -3637,6 +3663,7 @@ class MainWindow(Adw.ApplicationWindow):
             appearance_row,
             whisper_row,
             mic_row,
+            echo_row,
             backend_row,
             ai_row,
             llamacpp_row,
@@ -3657,6 +3684,7 @@ class MainWindow(Adw.ApplicationWindow):
         appearance_row,
         whisper_row,
         mic_row,
+        echo_row,
         backend_row,
         ai_row,
         llamacpp_row,
@@ -3683,6 +3711,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.settings.ollama_url = endpoint_row.get_text().strip()
         self.settings.strata_url = strata_row.get_text().strip()
         self.settings.auto_speak = auto_speak_row.get_active()
+        self.settings.echo_mode = "voxa" if echo_row.get_active() else "off"
         self.settings.web_search = WEB_SEARCH_VALUES[min(web_search_row.get_selected(), len(WEB_SEARCH_VALUES) - 1)]
         self.settings.wake_word = wake_word_row.get_text().strip()
         wakelabel.set_wake(self.settings.wake_word)

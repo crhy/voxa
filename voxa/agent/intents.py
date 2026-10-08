@@ -80,6 +80,20 @@ _SET_GITHUB_OWNER = re.compile(
     r"my (?:git ?hub|get hub) (?:user ?name|name|account|handle)(?: is)? (?:called )?(.+)",
     re.IGNORECASE,
 )
+_NOISE_ON = re.compile(
+    r"(?:(?:turn|switch|set)\s+(?:the\s+)?(?:adaptive\s+)?noise\s+cancellation\s+on"
+    r"|(?:enable)\s+(?:the\s+)?(?:adaptive\s+)?noise\s+cancellation)",
+    re.IGNORECASE,
+)
+_NOISE_OFF = re.compile(
+    r"(?:(?:turn|switch|set)\s+(?:the\s+)?(?:adaptive\s+)?noise\s+cancellation\s+off"
+    r"|(?:disable)\s+(?:the\s+)?(?:adaptive\s+)?noise\s+cancellation)",
+    re.IGNORECASE,
+)
+_NOISE_GET = re.compile(
+    r"is\s+(?:the\s+)?(?:adaptive\s+)?noise\s+cancellation\s+on",
+    re.IGNORECASE,
+)
 _SET_EMAIL = re.compile(r"(?:my )?(.+?)(?:'s|s')? e-?mail(?: address)? is (.+)", re.IGNORECASE)
 _GET_EMAIL = re.compile(r"what(?:'s| is) (?:my )?(.+?)(?:'s|s')? e-?mail(?: address)?", re.IGNORECASE)
 _FORGET_EMAIL = re.compile(r"forget (?:my )?(.+?)(?:'s|s')? e-?mail(?: address)?", re.IGNORECASE)
@@ -522,6 +536,8 @@ ROUTED_TOOLS = frozenset(
         "set_youtube_channel",
         "voxa_help",
         "set_github_owner",
+        "set_noise_cancellation",
+        "get_noise_cancellation",
         "set_contact_email",
         "get_contact_email",
         "forget_contact_email",
@@ -866,6 +882,13 @@ def route(text: str) -> ToolCall | None:
     set_owner_match = _SET_GITHUB_OWNER.fullmatch(s)
     if set_owner_match:
         return call("set_github_owner", name=set_owner_match.group(1))
+
+    if _NOISE_ON.fullmatch(s):
+        return call("set_noise_cancellation", state="on")
+    if _NOISE_OFF.fullmatch(s):
+        return call("set_noise_cancellation", state="off")
+    if _NOISE_GET.fullmatch(s):
+        return call("get_noise_cancellation")
 
     radio_match = _RADIO_PLAY.fullmatch(s)
     if radio_match:

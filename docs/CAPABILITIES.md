@@ -182,6 +182,7 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | Situation | What should happen | Status |
 | --- | --- | --- |
 | Voxa speaking at normal volume | She does not hear and interrupt herself (system echo cancellation) | ⚠️ still happens at higher volume |
+| Adaptive noise cancellation switch on/off | Saves setting and takes effect immediately on running capture | 🧪 |
 | Loud music playing, you say “Voxa, stop music” | Heard correctly | ❌ adaptive noise cancellation is not built yet (#72) |
 | “Fox, stop music”, “Xa, pause” (mis-heard wake word) | Treated as the command you meant | 🧪 |
 | Background words (“Music”, “As”, “Up”) | Ignored, not sent to the AI | 🧪 |
