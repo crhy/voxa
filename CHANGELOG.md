@@ -7,6 +7,11 @@ checking by ear and eye on a real desktop; `docs/CAPABILITIES.md` is the checkli
 
 ### Hearing and turn-taking
 
+- **WebRTC echo cancellation as a new echo mode "webrtc"** (opt-in, not the default yet): one capture pipeline
+  where the loopback monitor of the default output feeds a `webrtcechoprobe` and the microphone branch runs
+  `webrtcdsp` inside the app; falls back to the plain capture pipeline if the monitor or pipeline fails, and to
+  "off" when the elements are missing. (`voxa/audio.py`, `voxa/config.py`, `voxa/window.py`) (#88) 🧪
+
 - **Voxa picks a Whisper model that fits this computer** at the first-run welcome and in Preferences: Turbo only when
   a graphics card is usable, otherwise Base (Tiny on small machines); a heavy manual choice still loads but warns.
   (`voxa/speechfit.py`) (#94)

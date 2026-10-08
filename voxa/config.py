@@ -11,7 +11,7 @@ from voxa.ui.avatars import get_avatar
 
 FACE_MODES = ("live", "prerendered", "still")
 WEB_SEARCH_MODES = ("auto", "always", "never")
-ECHO_MODES = ("voxa", "off")
+ECHO_MODES = ("voxa", "webrtc", "off")
 
 
 @dataclass(slots=True)
@@ -36,7 +36,8 @@ class Settings:
     # Subtract the computer's own sound (Voxa's voice, music) from the microphone.
     echo_cancel: bool = True
     # How to remove the computer's own sound: "voxa" = Voxa's own canceller (listens to the output's
-    # monitor; adds no device and never changes the audio output), "off" = none.
+    # monitor; adds no device and never changes the audio output), "webrtc" = the WebRTC echo
+    # canceller inside the capture pipeline (experimental), "off" = none.
     # ``echo_cancel`` is a deprecated alias: False maps to "off".
     echo_mode: str = "voxa"
     # Milliseconds the lips run ahead of the reported audio position (compensates sound-card and display delay).

@@ -90,6 +90,7 @@ def test_switch_row_exists_in_preferences(tmp_path, monkeypatch):
     from voxa.window import MainWindow
 
     monkeypatch.setattr(window_module, "install_styles", lambda *args: None)
+    monkeypatch.setattr(window_module, "webrtc_available", lambda: False, raising=False)
 
     def pump(iterations: int = 150) -> None:
         ctx = GLib.MainContext.default()
@@ -148,7 +149,7 @@ def test_switch_row_exists_in_preferences(tmp_path, monkeypatch):
     def find(widget):
         child = widget.get_first_child()
         while child is not None:
-            if isinstance(child, Adw.SwitchRow) and child.get_title() == "Adaptive noise cancellation":
+            if isinstance(child, Adw.ComboRow) and child.get_title() == "Adaptive noise cancellation":
                 return child
             if hasattr(child, "get_first_child"):
                 found = find(child)
@@ -159,10 +160,10 @@ def test_switch_row_exists_in_preferences(tmp_path, monkeypatch):
 
     row = find(win)
     assert row is not None
-    row.set_active(False)
+    row.set_selected(1)
     pump()
     assert win.settings.echo_mode == "off"
-    assert win.audio.calls == [(False, None)]
+    assert win.audio.calls == [("off", None)]
     win._closing = True
     win.assistant.go_offline()
     win.destroy()

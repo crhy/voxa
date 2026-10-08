@@ -184,6 +184,7 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | Voxa speaking at normal volume | She does not hear and interrupt herself (system echo cancellation) | ⚠️ still happens at higher volume |
 | Her own voice leaks into the mic while she speaks | The echoed words are dropped, not heard as the user | 🧪 (#88) |
 | Adaptive noise cancellation switch on/off | Saves setting and takes effect immediately on running capture | 🧪 |
+| Echo mode "WebRTC (recommended test)" | One pipeline with the WebRTC canceller; hidden when unavailable; falls back if it fails | 🧪 experimental (#88) |
 | Loud music playing, you say “Voxa, stop music” | Heard correctly | ❌ adaptive noise cancellation is not built yet (#72) |
 | “Fox, stop music”, “Xa, pause” (mis-heard wake word) | Treated as the command you meant | 🧪 |
 | Background words (“Music”, “As”, “Up”) | Ignored, not sent to the AI | 🧪 |

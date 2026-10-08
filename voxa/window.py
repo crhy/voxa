@@ -44,7 +44,7 @@ from .agent.tools import (  # noqa: E402
 from .agent.tools import briefing as briefing_tool  # noqa: E402
 from .agent.tools.web import get_session  # noqa: E402
 from .anc import EchoCanceller as AncCanceller  # noqa: E402
-from .audio import AudioCapture, AudioDevice  # noqa: E402
+from .audio import AudioCapture, AudioDevice, webrtc_available  # noqa: E402
 from .bargein import BargeInGate, is_own_voice  # noqa: E402
 from .catalog import CatalogUnavailable, load_catalog, refresh_and_cache, refresh_due  # noqa: E402
 from .config import ConfigStore  # noqa: E402
@@ -380,15 +380,20 @@ class MainWindow(Adw.ApplicationWindow):
         self.config_store.save(self.settings)
         self._apply_echo_mode()
 
-    def _on_echo_row_changed(self, row: Adw.SwitchRow, _property) -> None:
-        self._save_echo_mode("voxa" if row.get_active() else "off")
+    def _on_echo_row_changed(self, row: Adw.ComboRow, _property) -> None:
+        modes = ["voxa", "off"]
+        if webrtc_available():
+            modes.insert(1, "webrtc")
+        self._save_echo_mode(modes[min(row.get_selected(), len(modes) - 1)])
 
     def _apply_echo_mode(self) -> None:
         mode = getattr(self.settings, "echo_mode", "voxa")
         if mode == "voxa":
-            self.audio.set_echo_mode(True, default_monitor_source())
+            self.audio.set_echo_mode("voxa", default_monitor_source())
+        elif mode == "webrtc":
+            self.audio.set_echo_mode("webrtc", default_monitor_source())
         else:
-            self.audio.set_echo_mode(False)
+            self.audio.set_echo_mode("off")
 
     def _load_wake_whisper(self) -> None:
         # Runs quietly in the background: conversation mode falls back to the
@@ -822,6 +827,11 @@ class MainWindow(Adw.ApplicationWindow):
             self.audio.reference_source = default_monitor_source()
             self.audio.pulse_source = None
             self.audio.canceller = AncCanceller()
+        elif mode == "webrtc":
+            # One pipeline: the monitor branch feeds the probe, the mic branch runs webrtcdsp.
+            self.audio.reference_source = default_monitor_source()
+            self.audio.pulse_source = None
+            self.audio.canceller = None
         else:
             self.audio.pulse_source = None
             self.audio.reference_source = None
@@ -3619,12 +3629,25 @@ class MainWindow(Adw.ApplicationWindow):
         mic_row.connect("notify::selected", update_mic_tooltip)
         listening_group.add(mic_row)
 
-        echo_row = Adw.SwitchRow(
+        echo_modes = ["voxa", "off"]
+        echo_labels = ["Voxa's canceller", "Off"]
+        if webrtc_available():
+            echo_modes.insert(1, "webrtc")
+            echo_labels.insert(1, "WebRTC (recommended test)")
+        echo_choice = getattr(self.settings, "echo_mode", "voxa")
+        if echo_choice not in echo_modes:
+            echo_choice = "voxa"
+        echo_row = Adw.ComboRow(
             title="Adaptive noise cancellation",
-            subtitle="Removes the computer's own sound — Voxa's voice, music — from what she hears. Your voice is never altered.",
+            subtitle=(
+                "Removes the computer's own sound — Voxa's voice, music — from what she hears. "
+                "Your voice is never altered. WebRTC (recommended test) uses the WebRTC echo "
+                "canceller inside the capture pipeline."
+            ),
         )
-        echo_row.set_active(getattr(self.settings, "echo_mode", "voxa") == "voxa")
-        echo_row.connect("notify::active", self._on_echo_row_changed)
+        echo_row.set_model(Gtk.StringList.new(echo_labels))
+        echo_row.set_selected(echo_modes.index(echo_choice))
+        echo_row.connect("notify::selected", self._on_echo_row_changed)
         listening_group.add(echo_row)
 
         whisper_subtitle = "Whisper size: smaller starts faster, larger hears more accurately"
@@ -3826,7 +3849,10 @@ class MainWindow(Adw.ApplicationWindow):
         self.settings.ollama_url = endpoint_row.get_text().strip()
         self.settings.strata_url = strata_row.get_text().strip()
         self.settings.auto_speak = auto_speak_row.get_active()
-        self.settings.echo_mode = "voxa" if echo_row.get_active() else "off"
+        echo_modes = ["voxa", "off"]
+        if webrtc_available():
+            echo_modes.insert(1, "webrtc")
+        self.settings.echo_mode = echo_modes[min(echo_row.get_selected(), len(echo_modes) - 1)]
         self.settings.web_search = WEB_SEARCH_VALUES[min(web_search_row.get_selected(), len(WEB_SEARCH_VALUES) - 1)]
         self.settings.wake_word = wake_word_row.get_text().strip()
         wakelabel.set_wake(self.settings.wake_word)

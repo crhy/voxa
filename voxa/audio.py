@@ -33,6 +33,16 @@ REFERENCE_SECONDS = 3
 REFERENCE_RATE = 16000
 
 
+def webrtc_available() -> bool:
+    """True when both WebRTC echo cancellation elements exist in this GStreamer runtime."""
+    try:
+        gst = _ensure_gstreamer()
+        factory = gst.ElementFactory
+        return bool(factory.is_available("webrtcdsp") and factory.is_available("webrtcechoprobe"))
+    except Exception:
+        return False
+
+
 class ReferenceRing:
     """Thread-safe ring buffer of the most recent reference samples with a running counter.
 
@@ -166,6 +176,7 @@ class AudioCapture:
         self._delay_done = True
         self._delay_mic: list = []
         self._delay_ref: list = []
+        self._start_args: tuple | None = None
 
     def list_devices(self) -> list[AudioDevice]:
         gst = _ensure_gstreamer()
@@ -211,6 +222,7 @@ class AudioCapture:
 
     def start(self, device_id: str, on_audio, on_level, on_error) -> None:
         self.stop()
+        self._start_args = (device_id, on_audio, on_level, on_error)
         self._on_audio = on_audio
         self._on_error = on_error
 
@@ -220,6 +232,10 @@ class AudioCapture:
         if selected is not None and is_monitor_source(selected.properties, selected.name):
             raise RuntimeError("The selected source is a monitor stream and cannot capture your voice.")
         gst = _ensure_gstreamer()
+        if self.reference_source and self.canceller is None and webrtc_available():
+            # "webrtc" mode: one pipeline with both branches, no numpy canceller.
+            if self._start_webrtc(gst, device_id, on_audio, on_level):
+                return
         source = None
         if self.pulse_source:
             # The echo-cancelled microphone (see voxa/echo.py): the computer's own sound is already removed.
@@ -301,6 +317,110 @@ class AudioCapture:
             return
         pipeline.set_state(gst.State.PLAYING)
         self._ref_pipeline = pipeline
+
+    def _start_webrtc(self, gst, device_id: str, on_audio, on_level) -> bool:
+        """Build ONE pipeline: the monitor branch feeds the probe, the mic branch runs webrtcdsp.
+
+        Returns True when the pipeline is playing; False means the caller must fall back to the
+        plain capture pipeline (never leaving the user without a microphone).
+        """
+        monitor_src = gst.ElementFactory.make("pulsesrc")
+        mic_src = gst.ElementFactory.make("pulsesrc")
+        convert_m = gst.ElementFactory.make("audioconvert")
+        resample_m = gst.ElementFactory.make("audioresample")
+        probe = gst.ElementFactory.make("webrtcechoprobe")
+        dsp = gst.ElementFactory.make("webrtcdsp")
+        convert = gst.ElementFactory.make("audioconvert")
+        resample = gst.ElementFactory.make("audioresample")
+        capsfilter = gst.ElementFactory.make("capsfilter")
+        sink = gst.ElementFactory.make("appsink")
+        if not all((monitor_src, mic_src, convert_m, resample_m, probe, dsp, convert, resample, capsfilter, sink)):
+            log.info("webrtc echo cancellation unavailable: GStreamer elements missing")
+            return False
+        monitor_src.set_property("device", self.reference_source)
+        monitor_src.set_property("latency-time", 20000)
+        monitor_src.set_property("buffer-time", 40000)
+        mic_src.set_property("device", self._mic_pulse_source(gst, device_id))
+        mic_src.set_property("latency-time", 20000)
+        mic_src.set_property("buffer-time", 40000)
+        probe.set_property("name", "probe")
+        dsp.set_property("probe", "probe")
+        dsp.set_property("echo-cancel", True)
+        dsp.set_property("echo-suppression-level", 1)
+        dsp.set_property("noise-suppression", False)
+        dsp.set_property("gain-control", False)
+        dsp.set_property("high-pass-filter", False)
+        dsp.set_property("voice-detection", False)
+        dsp.set_property("limiter", False)
+        capsfilter.set_property(
+            "caps", gst.Caps.from_string("audio/x-raw,format=S16LE,layout=interleaved,channels=1,rate=16000")
+        )
+        sink.set_property("emit-signals", True)
+        sink.set_property("sync", False)
+        sink.set_property("max-buffers", 12)
+        if sink.find_property("drop") is not None:
+            sink.set_property("drop", True)
+        sink.connect("new-sample", self._on_sample, on_level)
+
+        pipeline = gst.Pipeline.new("voxa-webrtc")
+        for element in (monitor_src, convert_m, resample_m, probe, mic_src, convert, resample, dsp, capsfilter, sink):
+            pipeline.add(element)
+        links = (
+            monitor_src.link_full(convert_m, 0, 0, gst.Pad.NEGOTIATE, False)
+            and convert_m.link_full(resample_m, 0, 0, gst.Pad.NEGOTIATE, False)
+            and resample_m.link_full(probe, 0, 0, gst.Pad.NEGOTIATE, False)
+            and mic_src.link_full(convert, 0, 0, gst.Pad.NEGOTIATE, False)
+            and convert.link_full(resample, 0, 0, gst.Pad.NEGOTIATE, False)
+            and resample.link_full(dsp, 0, 0, gst.Pad.NEGOTIATE, False)
+            and dsp.link_full(capsfilter, 0, 0, gst.Pad.NEGOTIATE, False)
+            and capsfilter.link_full(sink, 0, 0, gst.Pad.NEGOTIATE, False)
+        )
+        if not links:
+            pipeline.set_state(gst.State.NULL)
+            log.info("webrtc echo cancellation unavailable: could not connect pipeline")
+            return False
+        bus = pipeline.get_bus()
+        bus.add_signal_watch()
+        bus.connect("message::error", self._on_bus_error)
+        if pipeline.set_state(gst.State.PLAYING) == gst.StateChangeReturn.LATER:
+            deadline = time.monotonic() + 3.0
+            playing = False
+            while time.monotonic() < deadline:
+                if pipeline.get_state() == gst.State.PLAYING:
+                    playing = True
+                    break
+                time.sleep(0.05)
+            if not playing:
+                pipeline.set_state(gst.State.NULL)
+                log.info("webrtc echo cancellation failed: pipeline never reached PLAYING")
+                return False
+        elif pipeline.get_state() != gst.State.PLAYING:
+            pipeline.set_state(gst.State.NULL)
+            log.info("webrtc echo cancellation failed: monitor source could not be opened")
+            return False
+        self._mic_counter = 0
+        self._ref_anchor = None
+        self._canceller_enabled = False
+        self._canceller_logged = False
+        self._delay_done = True
+        self._delay_mic = []
+        self._delay_ref = []
+        self._ref_ring = None
+        self.pipeline = pipeline
+        return True
+
+    def _mic_pulse_source(self, gst, device_id: str) -> str:
+        """The PulseAudio device name for the microphone chosen in Voxa."""
+        if self.pulse_source:
+            return self.pulse_source
+        selected = next((item for item in self._devices if item.identifier == device_id), None)
+        if selected is not None:
+            props = selected.properties
+            for key in ("alsa.device", "device.profile", "object.path", "device.path"):
+                value = _stable_field(props, key) if props is not None else ""
+                if value:
+                    return value
+        return ""
 
     def _on_ref_sample(self, sink, _on_level):
         gst = _ensure_gstreamer()
@@ -425,9 +545,37 @@ class AudioCapture:
         if ref_pipeline is not None:
             ref_pipeline.set_state(gst.State.NULL)
 
-    def set_echo_mode(self, enabled: bool, reference_source: str | None = None) -> None:
-        """Switch echo cancellation on or off, applying immediately if capture is running."""
-        if not enabled:
+    def set_echo_mode(self, mode: str | bool = "voxa", reference_source: str | None = None) -> None:
+        """Switch echo cancellation mode ("voxa", "webrtc" or "off"), applying immediately if capture is running.
+
+        A boolean is accepted for the old call style: ``True`` maps to "voxa", ``False`` to "off".
+        """
+        if isinstance(mode, bool):
+            mode = "voxa" if mode else "off"
+        if mode == "webrtc" and not webrtc_available():
+            log.info("webrtc echo cancellation unavailable: running with echo off")
+            mode = "off"
+        if mode == "webrtc":
+            self.pulse_source = None
+            self.reference_source = reference_source
+            self.canceller = None
+            self._canceller_enabled = False
+            self._canceller_logged = False
+            self._delay_done = True
+            self._delay_mic = []
+            self._delay_ref = []
+            self._ref_ring = None
+            self._ref_anchor = None
+            if self._ref_pipeline is not None:
+                gst = _ensure_gstreamer()
+                self._ref_pipeline.set_state(gst.State.NULL)
+                self._ref_pipeline = None
+            if self.is_active and self._start_args is not None:
+                device_id, on_audio, on_level, on_error = self._start_args
+                self.stop()
+                self.start(device_id, on_audio, on_level, on_error)
+            return
+        if mode != "voxa":
             self.pulse_source = None
             self.reference_source = None
             self.canceller = None
