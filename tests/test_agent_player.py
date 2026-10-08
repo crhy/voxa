@@ -9,16 +9,15 @@ from voxa.agent.player import AudaciousPlayer, AudioPlayer, VlcPlayer, active_pl
 def captured(monkeypatch):
     calls: list[list[str]] = []
     monkeypatch.setattr("voxa.agent.player.spawn", lambda argv: calls.append(list(argv)))
+    monkeypatch.setattr("voxa.agent.tools.windows.frame_vlc_window", lambda: None)
     return calls
 
 
-def _vlc_argv(media, fullscreen=False):
+def _vlc_argv(media):
     main = media.video_url or media.audio_url
-    argv = ["flatpak", "run", "org.videolan.VLC", "--one-instance", "--control", "dbus", "--meta-title", media.title, main]
+    argv = ["flatpak", "run", "org.videolan.VLC", "--one-instance", "--control", "dbus", "--no-fullscreen", "--meta-title", media.title, main]
     if media.video_url and media.audio_url:
         argv += ["--input-slave", media.audio_url]
-    if fullscreen:
-        argv += ["--fullscreen"]
     return argv
 
 
@@ -34,10 +33,11 @@ def test_vlc_argv_without_audio_companion(captured):
     assert captured[0] == _vlc_argv(media)
 
 
-def test_vlc_argv_fullscreen(captured):
+def test_vlc_argv_never_maximizes(captured):
     media = _media("V", "vid", "aud")
-    VlcPlayer().play(media, fullscreen=True)
-    assert captured[0] == _vlc_argv(media, fullscreen=True)
+    VlcPlayer().play(media)
+    assert captured[0] == _vlc_argv(media)
+    assert "--fullscreen" not in captured[0]
 
 
 def test_audacious_argv_flatpak(captured, monkeypatch):

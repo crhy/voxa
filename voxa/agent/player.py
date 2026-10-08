@@ -180,7 +180,7 @@ class VlcPlayer(MprisPlayer):
     def __init__(self) -> None:
         super().__init__("vlc", [["flatpak", "kill", "org.videolan.VLC"]])
 
-    def play(self, media: Media, fullscreen: bool = False) -> None:
+    def play(self, media: Media) -> None:
         # Music has only an audio stream: play that on its own. Video gets the audio as a companion stream.
         main = media.video_url or media.audio_url
         if not main:
@@ -192,17 +192,21 @@ class VlcPlayer(MprisPlayer):
             "--one-instance",
             "--control",
             "dbus",
+            "--no-fullscreen",
             "--meta-title",
             media.title,
             main,
         ]
         if media.video_url and media.audio_url:
             argv += ["--input-slave", media.audio_url]
-        if fullscreen:
-            argv += ["--fullscreen"]
         if not media.video_url:
             argv += ["--no-video"]
         spawn(argv)
+        if media.video_url:
+            # Video: VLC must open smaller than Voxa's own window, not almost full screen.
+            from .tools.windows import frame_vlc_window
+
+            frame_vlc_window()
 
 
 class AudaciousPlayer(MprisPlayer):

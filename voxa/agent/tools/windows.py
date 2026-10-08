@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import re
 import subprocess
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -386,6 +387,80 @@ def restore_all(args: dict[str, str]) -> ToolResult:
         _run(["wmctrl", "-i", "-a", window_id], check=False)
     _MINIMIZED_IDS.clear()
     return ToolResult.success("Restored everything.")
+
+
+def vlc_geometry(voxa_geom: tuple[int, int, int, int], screen: tuple[int, int]) -> tuple[int, int, int, int]:
+    """Pure maths: where to put the VLC window so it stays smaller than Voxa.
+
+    voxa_geom is Voxa's (x, y, w, h); screen is the desktop's (width, height).
+    VLC gets 75% of Voxa's size, placed to the right of Voxa when the screen is wide
+    enough so it does not cover Voxa, otherwise centred on the screen.
+    """
+    vx, vy, vw, vh = voxa_geom
+    sw, sh = screen
+    w = max(1, round(vw * 0.75))
+    h = max(1, round(vh * 0.75))
+    if sw > 0:
+        w = min(w, sw)
+    if sh > 0:
+        h = min(h, sh)
+    if sw >= vx + vw + w:
+        x = vx + vw
+        y = min(max(0, vy), max(0, sh - h))
+    else:
+        x = max(0, (sw - w) // 2)
+        y = max(0, (sh - h) // 2)
+    return (x, y, w, h)
+
+
+def _voxa_geometry() -> tuple[int, int, int, int] | None:
+    """Voxa's window geometry (x, y, w, h) from xdotool, or None when it cannot be read."""
+    windows = match_windows("voxa", list_windows())
+    if not windows:
+        return None
+    result = _run(["xdotool", "getwindowgeometry", "--shell", windows[0].id], check=False)
+    values: dict[str, int] = {}
+    for line in result.stdout.splitlines():
+        key, sep, value = line.partition("=")
+        if sep and value.strip().lstrip("-").isdigit():
+            values[key.strip()] = int(value)
+    try:
+        return (values["X"], values["Y"], values["WIDTH"], values["HEIGHT"])
+    except KeyError:
+        return None
+
+
+def _screen_geometry() -> tuple[int, int] | None:
+    """Desktop size from xdotool getdisplaygeometry, or None when it cannot be read."""
+    result = _run(["xdotool", "getdisplaygeometry"], check=False)
+    parts = result.stdout.split()
+    if len(parts) >= 2 and parts[0].isdigit() and parts[1].isdigit():
+        return (int(parts[0]), int(parts[1]))
+    return None
+
+
+def frame_vlc_window() -> None:
+    """After VLC starts for a video: wait up to 5 s for its window, un-maximise it and
+    resize/move it to 75% of Voxa's window (vlc_geometry), falling back to 900x570.
+    """
+    if simulation.actions_simulated():
+        log.info("simulated action: would frame the VLC window")
+        return
+    window = None
+    deadline = time.monotonic() + 5.0
+    while window is None:
+        matches = match_windows("vlc", list_windows())
+        if matches:
+            window = matches[0]
+            break
+        if time.monotonic() >= deadline:
+            return
+        time.sleep(0.25)
+    voxa_geom = _voxa_geometry() or (0, 0, 1200, 760)
+    screen = _screen_geometry() or (0, 0)
+    x, y, w, h = vlc_geometry(voxa_geom, screen)
+    _run(["wmctrl", "-i", "-r", window.id, "-b", "remove,maximized_vert,maximized_horz"], check=False)
+    _run(["wmctrl", "-i", "-r", window.id, "-e", f"0,{x},{y},{w},{h}"], check=False)
 
 
 def minimize_self(args: dict[str, str]) -> ToolResult:
