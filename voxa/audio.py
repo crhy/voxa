@@ -38,7 +38,7 @@ def webrtc_available() -> bool:
     try:
         gst = _ensure_gstreamer()
         factory = gst.ElementFactory
-        return bool(factory.is_available("webrtcdsp") and factory.is_available("webrtcechoprobe"))
+        return all(factory.find(name) is not None for name in ("webrtcdsp", "webrtcechoprobe"))
     except Exception:
         return False
 
@@ -324,37 +324,38 @@ class AudioCapture:
         Returns True when the pipeline is playing; False means the caller must fall back to the
         plain capture pipeline (never leaving the user without a microphone).
         """
-        monitor_src = gst.ElementFactory.make("pulsesrc")
-        mic_src = gst.ElementFactory.make("pulsesrc")
-        convert_m = gst.ElementFactory.make("audioconvert")
-        resample_m = gst.ElementFactory.make("audioresample")
-        probe = gst.ElementFactory.make("webrtcechoprobe")
-        dsp = gst.ElementFactory.make("webrtcdsp")
-        convert = gst.ElementFactory.make("audioconvert")
-        resample = gst.ElementFactory.make("audioresample")
-        capsfilter = gst.ElementFactory.make("capsfilter")
-        sink = gst.ElementFactory.make("appsink")
-        if not all((monitor_src, mic_src, convert_m, resample_m, probe, dsp, convert, resample, capsfilter, sink)):
+        make = gst.ElementFactory.make
+        monitor_src = make("pulsesrc")
+        # The microphone is opened exactly as the plain capture pipeline opens it.
+        selected = next((item for item in self._devices if item.identifier == device_id), None)
+        mic_src = selected.device.create_element(None) if selected is not None else make("pulsesrc")
+        convert_m, resample_m, caps_m = make("audioconvert"), make("audioresample"), make("capsfilter")
+        probe, probe_sink = make("webrtcechoprobe"), make("fakesink")
+        convert, resample, capsfilter = make("audioconvert"), make("audioresample"), make("capsfilter")
+        dsp, sink = make("webrtcdsp"), make("appsink")
+        monitor_branch = (monitor_src, convert_m, resample_m, caps_m, probe, probe_sink)
+        mic_branch = (mic_src, convert, resample, capsfilter, dsp, sink)
+        if not all(monitor_branch + mic_branch):
             log.info("webrtc echo cancellation unavailable: GStreamer elements missing")
             return False
         monitor_src.set_property("device", self.reference_source)
-        monitor_src.set_property("latency-time", 20000)
-        monitor_src.set_property("buffer-time", 40000)
-        mic_src.set_property("device", self._mic_pulse_source(gst, device_id))
-        mic_src.set_property("latency-time", 20000)
-        mic_src.set_property("buffer-time", 40000)
+        for src in (monitor_src, mic_src):
+            # Default PulseAudio latency delivers huge late chunks; both branches need small ones.
+            for key, value in (("latency-time", 20000), ("buffer-time", 40000)):
+                if src.find_property(key) is not None:
+                    src.set_property(key, value)
+        # The probe and the processor must see the same format (verified live: 16 kHz mono S16LE).
+        caps = gst.Caps.from_string("audio/x-raw,format=S16LE,layout=interleaved,channels=1,rate=16000")
+        caps_m.set_property("caps", caps)
+        capsfilter.set_property("caps", caps)
         probe.set_property("name", "probe")
+        probe_sink.set_property("sync", False)
         dsp.set_property("probe", "probe")
-        dsp.set_property("echo-cancel", True)
-        dsp.set_property("echo-suppression-level", 1)
-        dsp.set_property("noise-suppression", False)
-        dsp.set_property("gain-control", False)
-        dsp.set_property("high-pass-filter", False)
-        dsp.set_property("voice-detection", False)
-        dsp.set_property("limiter", False)
-        capsfilter.set_property(
-            "caps", gst.Caps.from_string("audio/x-raw,format=S16LE,layout=interleaved,channels=1,rate=16000")
-        )
+        for key, value in (("echo-cancel", True), ("echo-suppression-level", 1), ("noise-suppression", False),
+                           ("gain-control", False), ("high-pass-filter", False), ("voice-detection", False),
+                           ("limiter", False)):
+            if dsp.find_property(key) is not None:
+                dsp.set_property(key, value)
         sink.set_property("emit-signals", True)
         sink.set_property("sync", False)
         sink.set_property("max-buffers", 12)
@@ -363,40 +364,23 @@ class AudioCapture:
         sink.connect("new-sample", self._on_sample, on_level)
 
         pipeline = gst.Pipeline.new("voxa-webrtc")
-        for element in (monitor_src, convert_m, resample_m, probe, mic_src, convert, resample, dsp, capsfilter, sink):
+        for element in monitor_branch + mic_branch:
             pipeline.add(element)
-        links = (
-            monitor_src.link_full(convert_m, 0, 0, gst.Pad.NEGOTIATE, False)
-            and convert_m.link_full(resample_m, 0, 0, gst.Pad.NEGOTIATE, False)
-            and resample_m.link_full(probe, 0, 0, gst.Pad.NEGOTIATE, False)
-            and mic_src.link_full(convert, 0, 0, gst.Pad.NEGOTIATE, False)
-            and convert.link_full(resample, 0, 0, gst.Pad.NEGOTIATE, False)
-            and resample.link_full(dsp, 0, 0, gst.Pad.NEGOTIATE, False)
-            and dsp.link_full(capsfilter, 0, 0, gst.Pad.NEGOTIATE, False)
-            and capsfilter.link_full(sink, 0, 0, gst.Pad.NEGOTIATE, False)
-        )
-        if not links:
+        linked = all(a.link(b) for branch in (monitor_branch, mic_branch) for a, b in zip(branch, branch[1:], strict=False))
+        if not linked:
             pipeline.set_state(gst.State.NULL)
             log.info("webrtc echo cancellation unavailable: could not connect pipeline")
             return False
         bus = pipeline.get_bus()
         bus.add_signal_watch()
         bus.connect("message::error", self._on_bus_error)
-        if pipeline.set_state(gst.State.PLAYING) == gst.StateChangeReturn.LATER:
-            deadline = time.monotonic() + 3.0
-            playing = False
-            while time.monotonic() < deadline:
-                if pipeline.get_state() == gst.State.PLAYING:
-                    playing = True
-                    break
-                time.sleep(0.05)
-            if not playing:
-                pipeline.set_state(gst.State.NULL)
-                log.info("webrtc echo cancellation failed: pipeline never reached PLAYING")
-                return False
-        elif pipeline.get_state() != gst.State.PLAYING:
+        result = pipeline.set_state(gst.State.PLAYING)
+        if result == gst.StateChangeReturn.ASYNC:
+            # Live sources report NO_PREROLL; anything else still pending gets 3 s to settle.
+            result = pipeline.get_state(3 * gst.SECOND)[0]
+        if result == gst.StateChangeReturn.FAILURE or result == gst.StateChangeReturn.ASYNC:
             pipeline.set_state(gst.State.NULL)
-            log.info("webrtc echo cancellation failed: monitor source could not be opened")
+            log.info("webrtc echo cancellation failed: pipeline did not start (monitor or microphone unavailable)")
             return False
         self._mic_counter = 0
         self._ref_anchor = None
@@ -408,19 +392,6 @@ class AudioCapture:
         self._ref_ring = None
         self.pipeline = pipeline
         return True
-
-    def _mic_pulse_source(self, gst, device_id: str) -> str:
-        """The PulseAudio device name for the microphone chosen in Voxa."""
-        if self.pulse_source:
-            return self.pulse_source
-        selected = next((item for item in self._devices if item.identifier == device_id), None)
-        if selected is not None:
-            props = selected.properties
-            for key in ("alsa.device", "device.profile", "object.path", "device.path"):
-                value = _stable_field(props, key) if props is not None else ""
-                if value:
-                    return value
-        return ""
 
     def _on_ref_sample(self, sink, _on_level):
         gst = _ensure_gstreamer()

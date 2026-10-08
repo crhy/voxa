@@ -22,7 +22,7 @@ def make_fake_gst(available=True, monitor_fails=False):
             self.props[key] = value
 
         def find_property(self, key):
-            return object() if key == "drop" else None
+            return object()
 
         def connect(self, _name, _handler, _extra=None):
             return True
@@ -30,12 +30,10 @@ def make_fake_gst(available=True, monitor_fails=False):
         def link(self, _other):
             return True
 
-        def link_full(self, other, _a, _b, _pad, _bool_):
-            return True
 
     class Factory:
-        def is_available(self, name):
-            return available
+        def find(self, name):
+            return object() if available else None
 
         def make(self, name):
             return Element(name)
@@ -54,12 +52,12 @@ def make_fake_gst(available=True, monitor_fails=False):
             self.state = state
             if monitor_fails and self.name == "voxa-webrtc":
                 return gst_state_change.FAILURE
-            return gst_state_change.OK
+            return gst_state_change.SUCCESS
 
-        def get_state(self):
+        def get_state(self, _timeout=0):
             if monitor_fails and self.name == "voxa-webrtc":
-                return gst_state.STOPPED
-            return gst_state.PLAYING
+                return (gst_state_change.FAILURE, gst_state.NULL, gst_state.NULL)
+            return (gst_state_change.SUCCESS, gst_state.PLAYING, gst_state.PLAYING)
 
         def get_bus(self):
             return bus
@@ -79,9 +77,9 @@ def make_fake_gst(available=True, monitor_fails=False):
     gst.ElementFactory = Factory()
     gst.Caps = Caps()
     gst.Pipeline = types.SimpleNamespace(new=lambda name: Pipeline(name))
-    gst.Pad = types.SimpleNamespace(NEGOTIATE=0)
     gst.State = types.SimpleNamespace(PLAYING=1, NULL=0, STOPPED=2)
-    gst.StateChangeReturn = types.SimpleNamespace(OK=0, LATER=1, FAILURE=2)
+    gst.StateChangeReturn = types.SimpleNamespace(SUCCESS=1, ASYNC=2, NO_PREROLL=3, FAILURE=0)
+    gst.SECOND = 1_000_000_000
     gst.FlowReturn = types.SimpleNamespace(OK=0, ERROR=1)
     bus = Bus()
     gst_state = gst.State
@@ -103,7 +101,7 @@ def test_webrtc_unavailable_is_false(monkeypatch):
 
 def test_webrtc_available_survives_errors(monkeypatch):
     class BadFactory:
-        def is_available(self, name):
+        def find(self, name):
             raise OSError("no factory")
 
     gst = types.ModuleType("Gst")
