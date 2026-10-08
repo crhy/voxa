@@ -20,6 +20,7 @@ from pathlib import Path
 import numpy as np
 
 from voxa.anc import EchoCanceller, erle_db, estimate_delay
+from voxa.sync import align_pair, band_coherence
 
 SR = 16000
 OUT = Path(".voxa-spec/out/anclab")
@@ -129,6 +130,89 @@ def make_sweep(seconds: float = 10.0) -> np.ndarray:
     return x.astype(np.float32)
 
 
+def make_click_train(seconds: float = 20.0, period_ms: float = 250.0,
+                     click_ms: float = 1.0) -> np.ndarray:
+    """Sharp 1 ms click every 250 ms plus low pink noise, for lag-vs-time diagnosis."""
+    n = int(seconds * SR)
+    x = np.zeros(n, dtype=np.float64)
+    click_len = max(1, int(round(click_ms * SR / 1000.0)))
+    period = max(1, int(round(period_ms * SR / 1000.0)))
+    for at in range(0, n, period):
+        seg = min(click_len, n - at)
+        x[at:at + seg] += 0.6 * np.linspace(1.0, -1.0, seg)
+    pink = make_pink(11, seconds) * 0.01
+    x += pink
+    m = float(np.max(np.abs(x)))
+    return (x * (0.6 / m) if m > 0 else x).astype(np.float32)
+
+
+def find_clicks(x: np.ndarray, threshold: float = 0.3, min_gap: int = 100) -> np.ndarray:
+    """Indices of sharp positive impulses above threshold, at least min_gap apart."""
+    peaks: list[int] = []
+    i = 0
+    n = len(x)
+    while i < n:
+        if x[i] > threshold:
+            j = i
+            best = i
+            while j < n and x[j] > threshold:
+                if x[j] > x[best]:
+                    best = j
+                j += 1
+            peaks.append(best)
+            i = best + min_gap
+        else:
+            i += 1
+    return np.asarray(peaks, dtype=np.int64)
+
+
+def pair_clicks(mic_c: np.ndarray, ref_c: np.ndarray, tol: int = 2000) -> tuple[np.ndarray, np.ndarray]:
+    """Match each mic click to the nearest ref click within tol samples; return (times, lags)."""
+    times: list[float] = []
+    lags: list[int] = []
+    for m in mic_c:
+        if len(ref_c) == 0:
+            break
+        d = np.abs(ref_c - m)
+        j = int(np.argmin(d))
+        if d[j] <= tol:
+            times.append(ref_c[j] / SR)
+            lags.append(int(m - ref_c[j]))
+    return np.asarray(times, dtype=np.float64), np.asarray(lags, dtype=np.int64)
+
+
+def fit_drift(times: np.ndarray, lags: np.ndarray) -> tuple[float, float, list[int]]:
+    """Least-squares slope (ppm) and offset of lag vs time, plus dropout jump indices."""
+    if len(times) < 2:
+        return 0.0, 0.0, []
+    t = times.astype(np.float64)
+    y = lags.astype(np.float64)
+    slope, intercept = np.polyfit(t, y, 1)
+    jumps = [int(k) for k in range(1, len(y)) if abs((y[k] - y[k - 1]) - slope * (t[k] - t[k - 1])) > 40.0]
+    return float(slope), float(intercept), jumps
+
+
+def sink_volume_pct(sink: str) -> float | None:
+    out = subprocess.run(["pactl", "get-sink-volume", sink], capture_output=True,
+                         text=True, check=False).stdout
+    m = re.search(r"(\d+)%", out)
+    return float(m.group(1)) if m else None
+
+
+def sink_mute(sink: str) -> bool:
+    out = subprocess.run(["pactl", "get-sink-mute", sink], capture_output=True,
+                         text=True, check=False).stdout
+    return "yes" in out.lower()
+
+
+def set_sink_volume(sink: str, pct: float) -> None:
+    subprocess.run(["pactl", "set-sink-volume", sink, f"{int(round(pct))}%"], check=False)
+
+
+def set_sink_mute(sink: str, muted: bool) -> None:
+    subprocess.run(["pactl", "set-sink-mute", sink, "1" if muted else "0"], check=False)
+
+
 def espeak_wav(text: str, voice: str, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     subprocess.run(["espeak-ng", "-v", voice, "-w", str(path), text], check=True)
@@ -163,6 +247,16 @@ def align_ends(*arrays: np.ndarray) -> list[np.ndarray]:
     return [a[len(a) - n:] for a in arrays]
 
 
+def shift_forward(x, k: int) -> np.ndarray:
+    """Shift x later by k samples (insert k zeros at the front), same length."""
+    x = np.asarray(x)
+    if k == 0:
+        return x.copy()
+    if k > 0:
+        return np.concatenate([np.zeros(k, dtype=x.dtype), x])[:len(x)]
+    return np.concatenate([x[-k:], np.zeros(-k, dtype=x.dtype)])[:len(x)]
+
+
 def correlation_peak(mic, ref, max_delay: int = 8000) -> tuple[int, float]:
     """Best echo delay in samples and how far the peak stands above correlation noise."""
     n = min(len(mic), len(ref), 5 * SR)
@@ -188,13 +282,16 @@ def wav_seconds(path: Path) -> float:
         return w.getnframes() / w.getframerate()
 
 
-def play_and_record(wav_path: Path | None, volume: float, monitor: str, wake: Path | None = None):
+def play_and_record(wav_path: Path | None, volume: float, monitor: str, wake: Path | None = None,
+                    latency: int = 20, fix_rate: bool = False):
     wake_p = None
     if wake is not None:
         wake_p = subprocess.Popen(["paplay", "--volume", "1", str(wake)])
         time.sleep(0.3)
     args = ["parec", "--rate", str(SR), "--channels", "1", "--format", "s16le", "--raw",
-            "--latency-msec=20"]
+            f"--latency-msec={latency}"]
+    if fix_rate:
+        args.append("--fix-rate")
     mic_raw = REC_DIR / "_mic.raw"
     ref_raw = REC_DIR / "_ref.raw"
     with open(mic_raw, "wb") as mf, open(ref_raw, "wb") as rf:
@@ -228,51 +325,85 @@ def record(volumes: tuple[float, ...]) -> bool:
         print("no default sink; cannot record")
         return False
     monitor = f"{sink}.monitor"
+    orig_vol = sink_volume_pct(sink)
+    orig_mute = sink_mute(sink)
     REC_DIR.mkdir(parents=True, exist_ok=True)
-    manifest = []
+    manifest: list = []
+
+    def entry(key, name, vol, mic, ref, level):
+        manifest.append({"key": key, "source": name, "volume": vol, "test_level": level,
+                         "date": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                         "sink": sink, "source_device": DEFAULT_SOURCE, "monitor": monitor,
+                         "mic_dbfs": round(dbfs(mic), 1), "ref_dbfs": round(dbfs(ref), 1)})
+
     # Wake the sink before every capture: while idle it is suspended and the monitor stream dies
     # a second after it is opened, which truncates every recording. A tiny paplay resumes it.
     wake = REC_DIR / "wake.wav"
     wake_t = np.arange(30 * SR, dtype=np.float64) / SR
     write_wav(wake, np.sin(2.0 * np.pi * 100.0 * wake_t) * 0.3)
 
-    def entry(key, name, vol, mic, ref):
-        manifest.append({"key": key, "source": name, "volume": vol,
-                         "date": time.strftime("%Y-%m-%dT%H:%M:%S"),
-                         "sink": sink, "source_device": DEFAULT_SOURCE, "monitor": monitor,
-                         "mic_dbfs": round(dbfs(mic), 1), "ref_dbfs": round(dbfs(ref), 1)})
+    try:
+        # Pick a test level: start 55% unmuted, probe with a full-scale clip and step by 10%
+        # until the mic peak sits in [-35, -3] dBFS.
+        test_level = 55.0
+        probe = SRC_DIR / "pink.wav"
+        if probe.is_file():
+            for _ in range(4):
+                set_sink_volume(sink, test_level)
+                set_sink_mute(sink, False)
+                mic, ref = play_and_record(probe, 1.0, monitor, wake)
+                peak_db = dbfs(mic)
+                if peak_db > -3.0:
+                    test_level -= 10.0
+                    if test_level < 10.0:
+                        test_level = 10.0
+                        break
+                    continue
+                if peak_db < -35.0:
+                    test_level += 10.0
+                    continue
+                break
+        set_sink_volume(sink, test_level)
+        set_sink_mute(sink, False)
 
-    for wav in source_files():
-        name = wav.name.removesuffix(".wav")
-        clip_s = wav_seconds(wav)
-        for vol in volumes:
-            mic, ref = play_and_record(wav, vol, monitor, wake)
-            if dbfs(mic) < -70.0:
-                print(f"ABORT: microphone silent ({dbfs(mic):.1f} dBFS) for {name}; not writing bogus numbers")
-                return False
-            if dbfs(ref) < -70.0:
-                print(f"ABORT: sink monitor silent for {name}; not writing bogus numbers")
-                return False
-            if len(mic) < 0.8 * clip_s * SR or len(ref) < 0.8 * clip_s * SR:
-                print(f"ABORT: truncated capture for {name} @ {vol} "
-                      f"(mic {len(mic) / SR:.2f} s, ref {len(ref) / SR:.2f} s, clip {clip_s:.2f} s); "
-                      "not writing bogus numbers")
-                return False
-            _peak, ratio = correlation_peak(mic, ref)
-            if ratio < 2.0:
-                print(f"ABORT: no clear echo correlation for {name} @ {vol} "
-                      f"(peak only {ratio:.1f}x noise); not writing bogus numbers")
-                return False
-            key = f"{safe(name)}_v{vol}"
-            np.save(REC_DIR / f"{key}.mic.npy", mic)
-            np.save(REC_DIR / f"{key}.ref.npy", ref)
-            entry(key, name, vol, mic, ref)
-            print(f"recorded {name} @ {vol} ({len(mic) / SR:.1f} s)")
-    mic, ref = play_and_record(None, 1.0, monitor, wake)
-    np.save(REC_DIR / "silence.mic.npy", mic)
-    np.save(REC_DIR / "silence.ref.npy", ref)
-    entry("silence", "silence", 1.0, mic, ref)
-    (REC_DIR / "manifest.json").write_text(json.dumps(manifest, indent=1))
+        for wav in source_files():
+            name = wav.name.removesuffix(".wav")
+            clip_s = wav_seconds(wav)
+            for vol in volumes:
+                if sink_volume_pct(sink) != test_level or sink_mute(sink):
+                    set_sink_volume(sink, test_level)
+                    set_sink_mute(sink, False)
+                mic, ref = play_and_record(wav, vol, monitor, wake)
+                if dbfs(mic) < -70.0:
+                    print(f"ABORT: microphone silent ({dbfs(mic):.1f} dBFS) for {name}; not writing bogus numbers")
+                    return False
+                if dbfs(ref) < -70.0:
+                    print(f"ABORT: sink monitor silent for {name}; not writing bogus numbers")
+                    return False
+                if len(mic) < 0.8 * clip_s * SR or len(ref) < 0.8 * clip_s * SR:
+                    print(f"ABORT: truncated capture for {name} @ {vol} "
+                          f"(mic {len(mic) / SR:.2f} s, ref {len(ref) / SR:.2f} s, clip {clip_s:.2f} s); "
+                          "not writing bogus numbers")
+                    return False
+                _peak, ratio = correlation_peak(mic, ref)
+                if ratio < 2.0:
+                    print(f"ABORT: no clear echo correlation for {name} @ {vol} "
+                          f"(peak only {ratio:.1f}x noise); not writing bogus numbers")
+                    return False
+                key = f"{safe(name)}_v{vol}"
+                np.save(REC_DIR / f"{key}.mic.npy", mic)
+                np.save(REC_DIR / f"{key}.ref.npy", ref)
+                entry(key, name, vol, mic, ref, test_level)
+                print(f"recorded {name} @ {vol} ({len(mic) / SR:.1f} s)")
+        mic, ref = play_and_record(None, 1.0, monitor, wake)
+        np.save(REC_DIR / "silence.mic.npy", mic)
+        np.save(REC_DIR / "silence.ref.npy", ref)
+        entry("silence", "silence", 1.0, mic, ref, test_level)
+        (REC_DIR / "manifest.json").write_text(json.dumps(manifest, indent=1))
+    finally:
+        if orig_vol is not None:
+            set_sink_volume(sink, orig_vol)
+        set_sink_mute(sink, orig_mute)
     print("measured levels per speaker volume:")
     print("volume   mic dBFS   ref dBFS")
     by_vol: dict[float, list] = {}
@@ -315,8 +446,10 @@ def removed_percent(mic, ref, cleaned) -> float:
 
 
 def evaluate_pair(mic, ref):
-    delay = estimate_delay(mic, ref)
-    cleaned, converged = feed(EchoCanceller(delay=delay), mic, ref)
+    al = align_pair(mic, ref)
+    coh = band_coherence(mic, al)
+    delay = estimate_delay(mic, al)
+    cleaned, converged = feed(EchoCanceller(delay=delay), mic, al)
     tail = len(mic) // 4
     return {
         "delay": int(delay),
@@ -324,6 +457,7 @@ def evaluate_pair(mic, ref):
         "residual_dbfs": dbfs(cleaned[tail:]),
         "convergence_s": converged,
         "removed_percent": removed_percent(mic, ref, cleaned),
+        "coherence": coh,
     }
 
 
@@ -407,6 +541,7 @@ def evaluate(tag: str) -> bool:
             "residual_dbfs": float(np.mean([m["residual_dbfs"] for m in ms])),
             "convergence_s": float(np.mean(conv)) if conv else float("nan"),
             "removed_percent": float(np.mean([m["removed_percent"] for m in ms])),
+            "coherence": float(np.mean([m["coherence"] for m in ms])),
         }
     pairs = {}
     for vol in per_volume:
@@ -417,12 +552,14 @@ def evaluate(tag: str) -> bool:
     dt = double_talk(pairs, sorted(SRC_DIR.glob("cmd_*.wav")))
     commit = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True,
                             text=True, check=False).stdout.strip()
+    levels = [e.get("test_level") for e in manifest if e.get("test_level") is not None]
     means = {k: float(np.mean([v[k] for v in summary.values()]))
-             for k in ("erle_db", "residual_dbfs", "removed_percent")}
+             for k in ("erle_db", "residual_dbfs", "removed_percent", "coherence")}
     line = {
         "time": time.strftime("%Y-%m-%dT%H:%M:%S"),
         "tag": tag,
         "git_commit": commit,
+        "test_level": float(np.mean(levels)) if levels else None,
         "per_volume": summary,
         "means": means,
         "double_talk": dt,
@@ -504,11 +641,98 @@ def plot() -> None:
     finish(fig, "removed_percent.png")
 
 
+def diagnose(seconds: float = 20.0) -> bool:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    sink = subprocess.run(["pactl", "get-default-sink"], capture_output=True,
+                          text=True, check=True).stdout.strip()
+    if not sink:
+        print("no default sink; cannot diagnose")
+        return False
+    monitor = f"{sink}.monitor"
+    orig_vol = sink_volume_pct(sink)
+    orig_mute = sink_mute(sink)
+    REC_DIR.mkdir(parents=True, exist_ok=True)
+    OUT.mkdir(parents=True, exist_ok=True)
+    wake = REC_DIR / "wake.wav"
+    wake_t = np.arange(30 * SR, dtype=np.float64) / SR
+    write_wav(wake, np.sin(2.0 * np.pi * 100.0 * wake_t) * 0.3)
+    train = make_click_train(seconds)
+    train_path = REC_DIR / "_diagnose_clicks.wav"
+    write_wav(train_path, train)
+    variants = [("lat20", 20, False), ("lat50", 50, False),
+                ("lat100", 100, False), ("fixrate", 20, True)]
+    report: list[dict] = []
+    try:
+        set_sink_volume(sink, 55.0)
+        set_sink_mute(sink, False)
+        for name, lat, fix in variants:
+            mic, ref = play_and_record(train_path, 1.0, monitor, wake, latency=lat, fix_rate=fix)
+            thr_m = 0.4 * float(np.max(np.abs(mic))) if mic.size else 0.3
+            thr_r = 0.4 * float(np.max(np.abs(ref))) if ref.size else 0.3
+            mic_c, ref_c = find_clicks(mic, max(thr_m, 1e-4)), find_clicks(ref, max(thr_r, 1e-4))
+            times, lags = pair_clicks(mic_c, ref_c)
+            k = len(times)
+            if k < 2:
+                report.append({"variant": name, "clicks": int(k), "note":
+                               f"mic {dbfs(mic):.1f} dBFS, ref {dbfs(ref):.1f} dBFS, too few clicks"})
+                continue
+            slope, intercept, jumps = fit_drift(times, lags)
+            med_lag = int(np.median(lags))
+            coh_const = band_coherence(mic, shift_forward(ref, med_lag))
+            al = align_pair(mic, ref)
+            coh_slope = band_coherence(mic, al)
+            report.append({"variant": name, "clicks": int(k), "slope_ppm": slope,
+                           "offset": intercept, "dropouts": len(jumps),
+                           "coh_const": coh_const, "coh_slope": coh_slope})
+            fig, ax = plt.subplots()
+            ax.plot(times, lags, marker="o")
+            tt = np.linspace(times[0], times[-1], 50)
+            ax.plot(tt, slope * tt + intercept, "--")
+            ax.set_xlabel("time (s)")
+            ax.set_ylabel("lag (samples)")
+            ax.set_title(f"{name}: click lag vs time (slope ppm, jumps=dropouts)")
+            fig.savefig(OUT / f"diagnose_{name}.png")
+            plt.close(fig)
+        good = [r for r in report if "coh_const" in r]
+        if good:
+            fig, ax = plt.subplots()
+            names = [r["variant"] for r in good]
+            cc = [r["coh_const"] for r in good]
+            cs = [r["coh_slope"] for r in good]
+            xs = np.arange(len(names))
+            ax.bar(xs, cc, label="constant-lag")
+            ax.bar(xs + 0.4, cs, label="slope-compensated")
+            ax.set_xticks(xs + 0.2)
+            ax.set_xticklabels(names)
+            ax.set_ylabel("coherence 300-3000 Hz")
+            ax.set_title("diagnose: coherence per recorder variant")
+            fig.savefig(OUT / "diagnose_coherence.png")
+            plt.close(fig)
+        print("diagnose report:")
+        for r in report:
+            if "coh_const" in r:
+                print(f"  {r['variant']}: clicks={r['clicks']} slope={r['slope_ppm']:.0f}ppm "
+                      f"offset={r['offset']:.0f} dropouts={r['dropouts']} "
+                      f"coh_const={r['coh_const']:.3f} coh_slope={r['coh_slope']:.3f}")
+            else:
+                print(f"  {r['variant']}: {r.get('note', '')}")
+    finally:
+        if orig_vol is not None:
+            set_sink_volume(sink, orig_vol)
+        set_sink_mute(sink, orig_mute)
+        train_path.unlink(missing_ok=True)
+    return True
+
+
 def main(argv: list[str]) -> int:
     import argparse
 
     ap = argparse.ArgumentParser(prog="anc_lab")
-    ap.add_argument("command", choices=["make-sources", "record", "evaluate", "plot", "all"])
+    ap.add_argument("command", choices=["make-sources", "record", "evaluate", "plot", "diagnose", "all"])
     ap.add_argument("--volumes", default=",".join(str(v) for v in VOLUMES))
     ap.add_argument("--tag", default="run")
     a = ap.parse_args(argv)
@@ -523,6 +747,8 @@ def main(argv: list[str]) -> int:
     if a.command == "plot":
         plot()
         return 0
+    if a.command == "diagnose":
+        return 0 if diagnose() else 2
     if not (SRC_DIR / "pink.wav").is_file():
         make_sources()
     if not (REC_DIR / "manifest.json").is_file():
