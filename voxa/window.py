@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import subprocess
 import threading
 import time
@@ -188,6 +189,44 @@ def short_model_name(model: str) -> str:
     return name
 
 
+# "Open the website" after a web search: the site of the last searched URL, remembered this long.
+WEBSITE_MEMORY_SECONDS = 600.0
+
+_WEBSITE_REQUEST = re.compile(
+    r"(?P<verb>open|go to|show me)\s+(?P<det>the|that|their)\s+(?P<noun>website|site|page)"
+    r"(?:\s+for\s+(?P<words>.+))?",
+    re.IGNORECASE,
+)
+
+
+def website_request(text: str) -> tuple[str, str | None] | None:
+    """Match an "open the website"-style phrase.
+
+    Returns ("page", words) when the noun is "page" (open the full URL), ("site", words)
+    otherwise (open scheme + host only); words are the trailing "for <words>" search
+    terms, or None when the phrase stands alone. None when the text is not such a phrase.
+    """
+    match = _WEBSITE_REQUEST.fullmatch(text.strip())
+    if match is None:
+        return None
+    kind = "page" if match.group("noun") == "page" else "site"
+    words = match.group("words").strip() if match.group("words") else None
+    return kind, words
+
+
+def site_of_url(url: str) -> str:
+    """Scheme and host only: https://spacedlinux.com/posts/x -> https://spacedlinux.com."""
+    scheme, sep, rest = url.partition("://")
+    if not sep:
+        return url
+    return f"{scheme}{sep}{rest.split('/', 1)[0]}"
+
+
+def website_fresh(stored_at: float, now: float) -> bool:
+    """True while a website URL stored at stored_at is still remembered at now."""
+    return now - stored_at <= WEBSITE_MEMORY_SECONDS
+
+
 def string_item_factory(*, wrap: bool, width_chars: int) -> Gtk.SignalListItemFactory:
     """Create readable labels for long Gtk.StringList entries."""
     factory = Gtk.SignalListItemFactory()
@@ -234,6 +273,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._last_search_at = 0.0
         self._search_record: dict | None = None
         self._search_source = ""
+        self._last_site_url: tuple[float, str] | None = None
         self.style_manager = Adw.StyleManager.get_default()
         self._apply_appearance()
         self.whisper = WhisperService()
@@ -2920,6 +2960,10 @@ class MainWindow(Adw.ApplicationWindow):
         if self._external_dictation:
             self._dictate_external(original)
             return
+        website = website_request(prompt)
+        if website is not None:
+            self._open_the_website(website[0], website[1], original)
+            return
         project = issueflow.parse_post_issue(prompt)
         if project is not None:
             self._start_issue_flow(project, original)
@@ -3345,6 +3389,7 @@ class MainWindow(Adw.ApplicationWindow):
             return ""
         self._search_record = websearch.search_record_fields(query, results, False)
         if results:
+            self._last_site_url = (time.time(), results[0].url)
             self._search_source = websearch.source_line(results)
             return websearch.format_for_prompt(query, results)
         return ""
@@ -3359,6 +3404,36 @@ class MainWindow(Adw.ApplicationWindow):
         if self._query_is_current(generation, cancel_event) and not cancel_event.is_set():
             self._toast("Couldn't reach the web, so Voxa is answering from the model's own knowledge.")
         return False
+
+    def _open_the_website(self, kind: str, words: str | None, original: str) -> None:
+        """Open the site of the last searched URL; with words, search for them first."""
+        if words:
+            threading.Thread(
+                target=self._search_for_website,
+                args=(kind, words, original),
+                name="website-search",
+                daemon=True,
+            ).start()
+            return
+        self._open_stored_website(kind, original)
+
+    def _search_for_website(self, kind: str, words: str, original: str) -> None:
+        query = websearch.search_query_for(words, self.settings.web_search, None) or words
+        try:
+            results = websearch.search(query)
+        except Exception:  # noqa: BLE001 - offline or blocked: fall back to what is stored
+            results = []
+        if results:
+            self._last_site_url = (time.time(), results[0].url)
+        idle(self._open_stored_website, kind, original)
+
+    def _open_stored_website(self, kind: str, original: str) -> None:
+        stored = self._last_site_url
+        if stored is None or not website_fresh(stored[0], time.time()):
+            self._toast("Which website? Tell me its name.")
+            return
+        url = site_of_url(stored[1]) if kind == "site" else stored[1]
+        self._run_tool(intents.ToolCall("open_url", {"url": url}), original)
 
     def _on_server_busy(self, generation: int, cancel_event: threading.Event) -> bool:
         if self._query_is_current(generation, cancel_event) and not cancel_event.is_set():
