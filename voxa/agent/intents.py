@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass
 from datetime import date
 
-from voxa.agent import calc
+from voxa.agent import calc, radio
 from voxa.agent.deals import parse_request
 from voxa.agent.filematch import folder_key
 from voxa.agent.hearing import normalize
@@ -82,6 +82,21 @@ _SET_EMAIL = re.compile(r"(?:my )?(.+?)(?:'s|s')? e-?mail(?: address)? is (.+)",
 _GET_EMAIL = re.compile(r"what(?:'s| is) (?:my )?(.+?)(?:'s|s')? e-?mail(?: address)?", re.IGNORECASE)
 _FORGET_EMAIL = re.compile(r"forget (?:my )?(.+?)(?:'s|s')? e-?mail(?: address)?", re.IGNORECASE)
 _PLAY_YT_ON = re.compile(r"(?:play|watch|put on)\s+(.+?)\s+on\s+youtube", re.IGNORECASE)
+_RADIO_PLAY = re.compile(
+    r"(?:play|put\s+on|turn\s+on|listen\s+to|tune\s+(?:in\s+)?to)\s+(?:the\s+|some\s+|me\s+some\s+)?"
+    r"(?:(.+?)\s+)?(?:internet\s+)?radio(?:\s+station)?",
+    re.IGNORECASE,
+)
+_PLAY_ANY = re.compile(r"(?:play|put\s+on|listen\s+to)\s+(.+)", re.IGNORECASE)
+_RADIO_LIST = re.compile(
+    r"(?:what|which)\s+(?:radio\s+)?stations\s+(?:do\s+you\s+have|are\s+there|can\s+you\s+play)"
+    r"|list\s+(?:the\s+|your\s+)?(?:radio\s+)?stations",
+    re.IGNORECASE,
+)
+_RADIO_WHAT = re.compile(
+    r"(?:what|which)\s+(?:radio\s+)?station\s+is\s+(?:this|playing|that)|what\s+genre\s+is\s+this(?:\s+station)?",
+    re.IGNORECASE,
+)
 _PLAY_MUSIC_QUERY = re.compile(r"play\s+music\s+(.+)", re.IGNORECASE)
 _PLAY_SOME_MUSIC = re.compile(r"play\s+(?:some\s+)?music", re.IGNORECASE)
 _LISTEN_TO = re.compile(r"listen\s+to\s+(.+)", re.IGNORECASE)
@@ -537,6 +552,9 @@ ROUTED_TOOLS = frozenset(
         "open_notes",
         "take_screenshot",
         "take_picture",
+        "play_radio",
+        "list_radio",
+        "radio_genre",
         "show_picture",
         "home_turn",
         "home_set",
@@ -759,6 +777,10 @@ def route(text: str) -> ToolCall | None:
     if forget_email_match:
         return call("forget_contact_email", name=forget_email_match.group(1))
 
+    if _RADIO_LIST.fullmatch(s):
+        return call("list_radio")
+    if _RADIO_WHAT.fullmatch(s):
+        return call("radio_genre")
     if _HELP_ASK.fullmatch(s):
         return call("voxa_help")
     help_topic = _HELP_TOPIC.fullmatch(s)
@@ -803,6 +825,13 @@ def route(text: str) -> ToolCall | None:
     set_owner_match = _SET_GITHUB_OWNER.fullmatch(s)
     if set_owner_match:
         return call("set_github_owner", name=set_owner_match.group(1))
+
+    radio_match = _RADIO_PLAY.fullmatch(s)
+    if radio_match:
+        return call("play_radio", name=radio.clean_request(radio_match.group(1) or ""))
+    station_match = _PLAY_ANY.fullmatch(s)
+    if station_match and radio.is_station(station_match.group(1)):
+        return call("play_radio", name=radio.clean_request(station_match.group(1)))
 
     for pattern, tool in (
         (_PLAY_YT_MUSIC, "play_youtube"),

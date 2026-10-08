@@ -16,6 +16,7 @@ from voxa.agent.tools.help import help_tools
 from voxa.agent.tools.home import home_tools
 from voxa.agent.tools.media import media_tools
 from voxa.agent.tools.notes import notes_tools
+from voxa.agent.tools.radio import radio_tools
 from voxa.agent.tools.reminders import reminders_tools
 from voxa.agent.tools.screenshot import screenshot_tools
 from voxa.agent.tools.system import system_tools
@@ -46,6 +47,7 @@ def default_registry() -> ToolRegistry:
         *notes_tools(),
         *screenshot_tools(),
         *camera_tools(),
+        *radio_tools(),
         *home_tools(),
         *volume_tools(),
         *compiz_tools(),
