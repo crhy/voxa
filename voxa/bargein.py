@@ -12,7 +12,6 @@ OWN_VOICE_OVERLAP = 0.6
 BASELINE_ALPHA = 0.05
 SETTLED_SAMPLES = 20
 WINDOW = 8
-TOWERING_RATIO = 6.0
 
 
 def _words(text: str) -> list[str]:
@@ -38,11 +37,13 @@ def is_own_voice(heard: str, speaking_now: str, recently_spoken: str = "") -> bo
     """True when `heard` is empty/noise (fewer than 2 words) or mostly words
     Voxa was already saying, i.e. the loud sound was her own voice."""
     words = _words(heard)
-    if len(words) < 2:
-        # A single word is usually noise — except the words people actually interrupt with. Those count,
-        # unless Voxa happens to be saying that very word.
-        spoken = set(_words(f"{speaking_now} {recently_spoken}"))
-        return not (len(words) == 1 and words[0] in STOP_WORDS and words[0] not in spoken)
+    spoken = set(_words(f"{speaking_now} {recently_spoken}"))
+    if any(word in STOP_WORDS and word not in spoken for word in words):
+        # The words people actually interrupt with always count, unless she is saying them herself.
+        return False
+    if len(words) < 3:
+        # One or two stray words are usually her own voice misheard ("a celibate"), not a person.
+        return True
     return overlap(heard, f"{speaking_now} {recently_spoken}") >= OWN_VOICE_OVERLAP
 
 
@@ -76,11 +77,6 @@ class BargeInGate:
     def settled(self) -> bool:
         """True once the baseline has heard enough of her own voice to be trusted."""
         return self._samples >= SETTLED_SAMPLES
-
-    def towering(self, mic_level: float) -> bool:
-        """The microphone is so far above her own voice that it cannot be her (measured: a person
-        at the desk is 20-40 times louder at the microphone than the speakers at normal volume)."""
-        return self.settled and mic_level > max(self._min_level * 4, TOWERING_RATIO * self._baseline)
 
     @property
     def baseline(self) -> float:

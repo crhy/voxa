@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import time
 
 from voxa.agent.policy import RiskLevel
@@ -41,13 +42,35 @@ def _wait_for(condition, seconds: float = 2.0) -> bool:
     return condition()
 
 
+def documents_dir() -> str:
+    """The user's Documents folder on the host (created if missing); "" when it cannot be found."""
+    from voxa.agent.tools.windows import _run
+
+    try:
+        home = _run(["sh", "-c", 'printf %s "$HOME"'], check=False).stdout.strip()
+        path = _run(["xdg-user-dir", "DOCUMENTS"], check=False).stdout.strip()
+        if not path or path.rstrip("/") == home.rstrip("/"):
+            path = f"{home}/Documents" if home else ""
+        if path:
+            _run(["mkdir", "-p", path], check=False)
+        return path
+    except Exception:  # noqa: BLE001 - fall back to wherever the dialog already is
+        return ""
+
+
+_NEW_DOCUMENT_TITLE = re.compile(r"unsaved|untitled", re.IGNORECASE)
+
+
 class SaveDialog:
     """Drives one editor's save dialog. The editor's window is remembered so "saved" can be told
     apart from "another question appeared" (the file exists) and "the dialog is still there"."""
 
     def __init__(self) -> None:
-        self.main_id, _title = _active_window()
+        self.main_id, title = _active_window()
         self.dialog_id = ""
+        # A document that has never been saved goes to Documents; one that already lives
+        # somewhere keeps the folder its own save window opens in.
+        self.new_document = bool(_NEW_DOCUMENT_TITLE.search(title))
 
     def open(self, combo: str) -> bool:
         """Press the save keys; True when a dialog appeared (False: the file simply saved)."""
@@ -59,8 +82,9 @@ class SaveDialog:
 
     def type_name(self, name: str) -> str:
         """Put the name in the dialog and press Save: "saved", "exists" or "failed"."""
+        folder = documents_dir() if self.new_document and "/" not in name else ""
         press_keys("ctrl+a")  # the name field has the focus; replace whatever it suggests
-        type_text(name)
+        type_text(f"{folder}/{name}" if folder else name)
         time.sleep(0.15)
         press_keys("Return")
         return self._outcome()

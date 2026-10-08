@@ -2532,25 +2532,23 @@ class MainWindow(Adw.ApplicationWindow):
             stats["gate_opened"] = stats.get("gate_opened", 0) + 1
             self._barge_trace("gate-open", level=level01, baseline=float(self._barge_gate.baseline),
                               settled=self._barge_gate.settled)
-        if not (opened and self._barge_gate.towering(level01)):
-            # Not loud enough to be certain: let the user finish a word or two before checking the
-            # words. Checking at once only ever saw the first third of a second ("Vo…"), which reads
-            # as nothing, so her reply was never stopped.
-            if now - self._barge_pending_since < BARGE_IN_LISTEN_SECONDS:
-                return
-            started = time.monotonic()
-            heard = self.conversation.candidate_text()
-            own = is_own_voice(heard, self._speaking_text, self._recent_spoken)
-            self._barge_trace("words", heard=heard, raw=getattr(self.conversation, "last_candidate_raw", ""),
-                              own_voice=own, seconds=time.monotonic() - started,
-                              speaking=self._speaking_text[:60])
-            if own:
-                # The loud sound was Voxa's own voice: carry on speaking.
-                self._barge_gate.reset()
-                self._barge_pending_since = 0.0
-                return
-        else:
-            self._barge_trace("towering", level=level01, baseline=float(self._barge_gate.baseline))
+        # Always judge the words. A loudness shortcut was tried and interrupted her on her own
+        # loudest syllables (traced: her peaks reach six times her average level).
+        # Let the user finish a word or two first: checking at once only ever saw the first third
+        # of a second ("Vo…"), which reads as nothing.
+        if now - self._barge_pending_since < BARGE_IN_LISTEN_SECONDS:
+            return
+        started = time.monotonic()
+        heard = self.conversation.candidate_text()
+        own = is_own_voice(heard, self._speaking_text, self._recent_spoken)
+        self._barge_trace("words", heard=heard, raw=getattr(self.conversation, "last_candidate_raw", ""),
+                          own_voice=own, seconds=time.monotonic() - started,
+                          speaking=self._speaking_text[:60])
+        if own:
+            # The loud sound was Voxa's own voice: carry on speaking.
+            self._barge_gate.reset()
+            self._barge_pending_since = 0.0
+            return
         self._barge_trace("INTERRUPT")
         self._barge_gate.reset()
         self._barge_pending_since = 0.0

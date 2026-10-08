@@ -94,13 +94,12 @@ def test_a_single_stop_word_is_a_real_interruption():
     assert is_own_voice("stop", "Please stop the car now.") is True  # she is saying that word herself
 
 
-def test_gate_settles_and_recognises_a_towering_voice():
-    from voxa.bargein import BargeInGate
+def test_two_stray_words_are_her_own_voice_but_a_stop_word_always_counts():
+    from voxa.bargein import is_own_voice
 
-    gate = BargeInGate()
-    assert not gate.towering(1.0)  # no baseline yet: never certain
-    for _ in range(25):
-        gate.note_speaking_level(0.03)  # her own voice at the microphone
-    assert gate.settled
-    assert not gate.towering(0.1)  # louder than her, but not beyond doubt
-    assert gate.towering(0.8)  # a person at the desk (measured level)
+    speaking = "Edgar Allan Poe was a celebrated American author."
+    assert is_own_voice("a celibate", speaking) is True
+    assert is_own_voice("voxa stop", speaking) is False
+    assert is_own_voice("box a stop", speaking) is False
+    assert is_own_voice("what about his wife", speaking) is False
+    assert is_own_voice("stop", "Say stop dictating when you are done.") is True
