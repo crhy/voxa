@@ -125,7 +125,7 @@ class EchoCanceller:
         p_now = float(np.mean(ref_b ** 2))  # power of the reference block itself (what the speakers play now)
         speaking = (p_ref < 1e-7 and p_mic > 1e-6) or (
             self._blocks_adapted > 100
-            and p_res / max(p_mic, 1e-12) > max(8.0 * self._floor, 0.05)
+            and p_res / max(p_mic, 1e-12) > 8.0 * self._floor
             and p_res > 1e-6)
         if speaking:
             self._speaking_left = 25
