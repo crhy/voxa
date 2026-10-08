@@ -119,3 +119,14 @@ def test_controller_path_drops_echo_and_strips_mixed():
     assert mixed is not None
     assert "weather" not in mixed
     assert "what time is it" in mixed
+
+
+def test_a_lone_stop_word_after_her_sentence_is_not_echo():
+    from voxa.ownspeech import OwnSpeech
+
+    own = OwnSpeech()
+    own.started("and horror novelist. He is best known for his works The Raven and The Tell-Tale Heart.")
+    heard = "and horror novelist he is best known stop"
+    assert own.is_echo(heard, protect=["voxa"]) is False
+    assert own.strip(heard, protect=["voxa"])[0] == "stop"
+    assert own.is_echo("and horror novelist he is best known for his works", protect=["voxa"]) is True

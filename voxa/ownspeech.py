@@ -116,5 +116,8 @@ class OwnSpeech:
         protect_set = self._protected(protect)
         removed = self._removed(heard_words, protect_set)
         share = sum(removed) / len(heard_words)
-        remaining = sum(1 for gone in removed if not gone)
-        return share >= threshold and remaining < 2
+        left = [word for word, gone in zip(heard_words, removed, strict=False) if not gone]
+        if any(word in protect_set for word in left):
+            # "…her own sentence… stop": the one word left is the user interrupting, not echo.
+            return False
+        return share >= threshold and len(left) < 2

@@ -29,22 +29,28 @@ def test_is_own_voice_noise():
     assert is_own_voice("hmm", sentence)
 
 
-def test_gate_opens_after_six_loud_frames():
+def test_gate_opens_after_four_loud_ticks():
     gate = BargeInGate()
     assert gate.baseline == 0.0
-    for _ in range(5):
+    for _ in range(3):
         assert gate.update(0.5, gate.baseline) is False
     assert gate.update(0.5, gate.baseline) is True
 
 
-def test_gate_resets_on_quiet_frame():
+def test_gate_tolerates_dips_between_syllables():
+    # "Voxa, stop": loud, dip, loud, loud, dip, loud — four loud ticks among the last eight.
     gate = BargeInGate()
-    for _ in range(5):
+    results = [gate.update(level, gate.baseline) for level in (0.5, 0.01, 0.5, 0.5, 0.01, 0.5)]
+    assert results[-1] is True and not any(results[:-1])
+
+
+def test_gate_closes_again_after_quiet():
+    gate = BargeInGate()
+    for _ in range(4):
         gate.update(0.5, gate.baseline)
-    assert gate.update(0.01, gate.baseline) is False
-    for _ in range(5):
-        assert gate.update(0.5, gate.baseline) is False
-    assert gate.update(0.5, gate.baseline) is True
+    for _ in range(8):
+        last = gate.update(0.01, gate.baseline)
+    assert last is False
 
 
 def test_gate_follows_rising_baseline():
@@ -52,9 +58,9 @@ def test_gate_follows_rising_baseline():
     for _ in range(60):
         gate.note_speaking_level(0.1)
     assert 0.09 < gate.baseline < 0.1
-    for _ in range(6):
-        assert gate.update(0.2, gate.baseline) is False
-    for _ in range(5):
+    for _ in range(8):
+        assert gate.update(0.15, gate.baseline) is False  # louder than her, but under twice her level
+    for _ in range(3):
         assert gate.update(0.5, gate.baseline) is False
     assert gate.update(0.5, gate.baseline) is True
 

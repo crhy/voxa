@@ -2532,7 +2532,8 @@ class MainWindow(Adw.ApplicationWindow):
             started = time.monotonic()
             heard = self.conversation.candidate_text()
             own = is_own_voice(heard, self._speaking_text, self._recent_spoken)
-            self._barge_trace("words", heard=heard, own_voice=own, seconds=time.monotonic() - started,
+            self._barge_trace("words", heard=heard, raw=getattr(self.conversation, "last_candidate_raw", ""),
+                              own_voice=own, seconds=time.monotonic() - started,
                               speaking=self._speaking_text[:60])
             if own:
                 # The loud sound was Voxa's own voice: carry on speaking.

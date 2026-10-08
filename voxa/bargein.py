@@ -11,6 +11,7 @@ import re
 OWN_VOICE_OVERLAP = 0.6
 BASELINE_ALPHA = 0.05
 SETTLED_SAMPLES = 20
+WINDOW = 8
 TOWERING_RATIO = 6.0
 
 
@@ -49,19 +50,22 @@ class BargeInGate:
     """Opens only after `needed` consecutive calls whose mic level towers
     over the level heard while Voxa speaks; one quieter frame resets."""
 
-    def __init__(self, ratio: float = 2.5, min_level: float = 0.02, needed: int = 6):
+    def __init__(self, ratio: float = 2.0, min_level: float = 0.02, needed: int = 4):
         self._ratio = ratio
         self._min_level = min_level
         self._needed = needed
         self._count = 0
+        self._recent: list[bool] = []
         self._baseline = 0.0
         self._samples = 0
 
     def update(self, mic_level: float, baseline: float) -> bool:
-        if mic_level > max(self._min_level, self._ratio * baseline):
-            self._count += 1
-        else:
-            self._count = 0
+        # Speech dips between syllables, so "six loud ticks in a row" almost never happened for a
+        # short "Voxa, stop" (traced: 374 ticks at full level, gate never opened). Count the loud
+        # ticks among the last WINDOW instead.
+        self._recent.append(mic_level > max(self._min_level, self._ratio * baseline))
+        del self._recent[:-WINDOW]
+        self._count = sum(self._recent)
         return self._count >= self._needed
 
     def note_speaking_level(self, mic_level: float) -> None:
@@ -84,3 +88,4 @@ class BargeInGate:
 
     def reset(self) -> None:
         self._count = 0
+        self._recent = []

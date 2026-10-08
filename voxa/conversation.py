@@ -219,6 +219,7 @@ class ConversationController:
         # Rolling window of the mic kept while muted (echo cancellation has
         # already removed her own voice), so the UI can transcribe what a
         # level-based barge-in heard before stopping her reply (candidate_text).
+        self.last_candidate_raw = ""
         self._barge_buf: list[bytes] = []
         self._barge_bytes = 0
         self._barge_max_bytes = 160_000  # ~5 s of 16 kHz 16-bit mono
@@ -418,7 +419,9 @@ class ConversationController:
         segment = b"".join(self._barge_buf)
         self._barge_buf = []
         self._barge_bytes = 0
-        return self._filter_own_speech(self._transcribe(segment, self.prompt_whisper, hint=self._prompt_hint)) or ""
+        raw = self._transcribe(segment, self.prompt_whisper, hint=self._prompt_hint)
+        self.last_candidate_raw = raw or ""
+        return self._filter_own_speech(raw) or ""
 
     def _run(self) -> None:
         while not self.stop_event.is_set():
