@@ -2352,6 +2352,9 @@ class MainWindow(Adw.ApplicationWindow):
             self.conversation.mute()
         self._speaking_since = time.monotonic()
         self._barge_gate.reset()
+        self._barge_trace("speak-start", path="whole-reply", conversation=self.conversation_active,
+                          muted=bool(self.conversation is not None and self.conversation.muted),
+                          level_timer=bool(self._level_source), text=text[:50])
         token = self.assistant.token()
         self.assistant.reply_started(token)
         # Tie the completion notification to this reply: after a barge-in the old speech's
@@ -2480,11 +2483,15 @@ class MainWindow(Adw.ApplicationWindow):
         stats = self._barge_stats
         speaking = self._speaking_since > 0.0
         if speaking != stats.get("speaking", False):
-            if not speaking and stats.get("ticks"):
+            if not speaking:
                 self._barge_trace("reply-end", **{k: v for k, v in stats.items() if k != "speaking"})
             stats.clear()
             stats["speaking"] = speaking
+        if speaking:
+            stats["calls"] = stats.get("calls", 0) + 1
         if self.assistant.is_paused:
+            if speaking:
+                stats["paused_ticks"] = stats.get("paused_ticks", 0) + 1
             self._barge_gate.reset()
             self._barge_pending_since = 0.0
             return
@@ -3404,6 +3411,9 @@ class MainWindow(Adw.ApplicationWindow):
         # Grace period per piece: speaker onset is the loudest moment.
         self._speaking_since = time.monotonic()
         self._barge_gate.reset()
+        self._barge_trace("speak-start", path="piece", conversation=self.conversation_active,
+                          muted=bool(self.conversation is not None and self.conversation.muted),
+                          level_timer=bool(self._level_source), live=bool(live), text=(piece or "")[:50])
         if not state["started"]:
             state["started"] = True
             if self.conversation is not None:
