@@ -18,22 +18,20 @@ def _record(monkeypatch):
     return calls
 
 
-def test_save_argv(monkeypatch):
+def test_save_tries_a_plain_save_first(monkeypatch):
+    # No dialog appears in this fake desktop: a document that already has a name simply saves.
     calls = _record(monkeypatch)
     result = file_dialog({"action": "save"})
-    assert calls == [["xdotool", "key", "--clearmodifiers", "ctrl+shift+s"]]
-    assert result.ok
+    assert ["xdotool", "key", "--clearmodifiers", "ctrl+s"] in calls
+    assert result.ok and result.speech == "Saved."
 
 
-def test_save_as_argv(monkeypatch):
+def test_save_as_reports_when_no_dialog_opens(monkeypatch):
+    # The dialog conversation itself is covered in tests/test_saveflow.py.
     calls = _record(monkeypatch)
     result = file_dialog({"action": "save", "name": "notes.txt"})
-    assert calls == [
-        ["xdotool", "key", "--clearmodifiers", "ctrl+shift+s"],
-        ["xdotool", "type", "--clearmodifiers", "--delay", "12", "--", "notes.txt"],
-        ["xdotool", "key", "--clearmodifiers", "Return"],
-    ]
-    assert result.ok
+    assert ["xdotool", "key", "--clearmodifiers", "ctrl+shift+s"] in calls
+    assert not result.ok
 
 
 def test_load_argv(monkeypatch):

@@ -16,7 +16,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
 from . import apps, documents, mail, speechfit, wakelabel, websearch, welcome  # noqa: E402
-from .agent import hearing, host, intents, issueflow, mailflow, planner, repeat, ui  # noqa: E402
+from .agent import hearing, host, intents, issueflow, mailflow, planner, repeat, saveflow, ui  # noqa: E402
 from .agent.actionlog import ActionLog, ActionRecord  # noqa: E402
 from .agent.claims import claims_action, first_sentences  # noqa: E402
 from .agent.host import host_command  # noqa: E402
@@ -336,6 +336,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._external_dictation = False
         self._issue_flow: issueflow.IssueFlow | None = None
         self._mail_flow: mailflow.MailFlow | None = None
+        self._save_flow: saveflow.SaveFlow | None = None
         self._last_tool_call = None
         self._welcome_followup = False
         self._last_dictated = ""
@@ -2256,6 +2257,14 @@ class MainWindow(Adw.ApplicationWindow):
             self._run_routine_step()
             return False
         speech = result.speech
+        detail = getattr(result, "detail", "") or ""
+        if detail == saveflow.ASK_NAME or detail.startswith(saveflow.ASK_REPLACE):
+            # A save window is open and needs an answer: the next thing the user says belongs to it.
+            name = detail[len(saveflow.ASK_REPLACE):] if detail.startswith(saveflow.ASK_REPLACE) else ""
+            self._save_flow = saveflow.SaveFlow(name, replacing=bool(name))
+            self.assistant_model.set_state(AssistantState.DICTATING, self._save_flow.caption)
+            if self.conversation is not None:
+                self.conversation.hold_prompt()
         self._end_query_task("done" if result.ok else "cancelled")
         if speech:
             self.shell.exchange_panel.show_answer(speech)
@@ -2716,6 +2725,55 @@ class MainWindow(Adw.ApplicationWindow):
         if speech:
             self._on_tool_finished(ToolResult.success(speech))
 
+    def _feed_save_flow(self, text: str) -> None:
+        """One answer in a save conversation: the file name, or yes/no to replacing a file."""
+        flow = self._save_flow
+        speech, action = flow.feed(text)
+        self._log_action(text, "save", detail=f"{action or 'ask'}: {flow.name}")
+        if action is None:
+            self._save_flow_step(speech)
+            return
+
+        def work() -> None:
+            from .agent.tools import files
+
+            dialog = files.CURRENT_SAVE
+            said = speech
+            try:
+                if dialog is None:
+                    said = flow.failed()
+                elif action == "type":
+                    outcome = dialog.type_name(flow.name)
+                    said = flow.saved() if outcome == "saved" else flow.exists() if outcome == "exists" else flow.failed()
+                elif action == "replace":
+                    said = flow.saved() if dialog.replace() == "saved" else flow.failed()
+                elif action == "rename":
+                    dialog.dismiss_question()
+                elif action == "cancel":
+                    dialog.cancel()
+            except Exception as exc:  # noqa: BLE001 - the dialog is another program's; never crash on it
+                logging.warning("save dialog step failed: %s", exc)
+                said = flow.failed()
+            idle(self._save_flow_step, said)
+
+        threading.Thread(target=work, name="save-dialog", daemon=True).start()
+
+    def _save_flow_step(self, speech: str) -> bool:
+        flow = self._save_flow
+        if flow is None:
+            return False
+        if not flow.active:
+            self._save_flow = None
+            if self.assistant_model.state is AssistantState.DICTATING:
+                self.assistant_model.set_state(AssistantState.READY, "")
+            if self.conversation is not None:
+                self.conversation.release_prompt()
+        else:
+            self.assistant_model.set_state(AssistantState.DICTATING, flow.caption)
+        if speech:
+            self._on_tool_finished(ToolResult.success(speech))
+        return False
+
     def _dictate_external(self, text: str) -> None:
         """Handle one utterance while dictating: type it, undo it, send it, or stop."""
         action = parse_dictation_control(text)
@@ -2782,6 +2840,9 @@ class MainWindow(Adw.ApplicationWindow):
             return
         original = prompt
         prompt = hearing.normalize(prompt) or prompt
+        if self._save_flow is not None:
+            self._feed_save_flow(original)
+            return
         if self._mail_flow is not None:
             self._feed_mail_flow(original)
             return
@@ -3594,6 +3655,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.assistant.go_offline()
         self._stop_external_dictation()
         self._issue_flow = None
+        self._save_flow = None
         self._mail_flow = None
         self._stop_ai_server_async()
         if self._installing:
