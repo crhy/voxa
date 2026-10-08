@@ -15,7 +15,7 @@ gi.require_version("Adw", "1")
 gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
-from . import apps, documents, mail, websearch, welcome  # noqa: E402
+from . import apps, documents, mail, wakelabel, websearch, welcome  # noqa: E402
 from .agent import hearing, host, intents, issueflow, mailflow, planner, repeat, ui  # noqa: E402
 from .agent.actionlog import ActionLog, ActionRecord  # noqa: E402
 from .agent.claims import claims_action, first_sentences  # noqa: E402
@@ -371,6 +371,7 @@ class MainWindow(Adw.ApplicationWindow):
         menu.append("About Voxa", "app.about")
         # The assistant shell is the production interface. Everything it shows is
         # rendered from self.assistant_model; the window only wires callbacks.
+        wakelabel.set_wake(self.settings.wake_word)
         self.shell = AssistantShell(self.assistant_model, self.settings)
         self.shell.on_active = self._on_shell_active
         self.shell.on_offline = self._on_shell_offline
@@ -1576,9 +1577,9 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def _say_welcome_how_to(self) -> None:
-        self._toast("You're all set. " + welcome.HOW_TO)
+        self._toast("You're all set. " + welcome.how_to())
         self.speech.speak(
-            "You're all set. " + welcome.HOW_TO,
+            "You're all set. " + welcome.how_to(),
             self.settings.tts_rate,
             self._reply_voice(),
             on_started=lambda: None,
@@ -3636,6 +3637,8 @@ class MainWindow(Adw.ApplicationWindow):
         self.settings.auto_speak = auto_speak_row.get_active()
         self.settings.web_search = WEB_SEARCH_VALUES[min(web_search_row.get_selected(), len(WEB_SEARCH_VALUES) - 1)]
         self.settings.wake_word = wake_word_row.get_text().strip()
+        wakelabel.set_wake(self.settings.wake_word)
+        self.shell._apply_state(self.assistant_model.state, self.assistant_model.detail)
         self.settings.appearance = APPEARANCE_VALUES[appearance_row.get_selected()]
         self.settings.character_id = self._character_ids[
             min(character_row.get_selected(), len(self._character_ids) - 1)

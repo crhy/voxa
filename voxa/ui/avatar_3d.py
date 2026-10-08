@@ -29,6 +29,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf, GLib, Gtk  # noqa: E402
 
+from .. import wakelabel  # noqa: E402
 from .assistant_view import AVATAR_SIZE, STATE_CAPTIONS, STATE_HINTS  # noqa: E402
 from .avatars import AvatarDescriptor, default_avatar, get_avatar, model_is_downloaded  # noqa: E402
 from .face_motion import FaceMotion  # noqa: E402
@@ -1392,7 +1393,7 @@ class Gl3DFaceRenderer:
             self.hint.set_visible(False)
         else:
             self.caption.set_text(STATE_CAPTIONS.get(state, ""))
-            hint = STATE_HINTS.get(state, "")
+            hint = wakelabel.apply(STATE_HINTS.get(state, ""))
             self.hint.set_text(hint)
             self.hint.set_visible(bool(hint))
         for other in AssistantState:

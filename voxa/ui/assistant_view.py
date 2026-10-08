@@ -19,6 +19,7 @@ gi.require_version("Gdk", "4.0")
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, Gtk  # noqa: E402
 
+from .. import wakelabel  # noqa: E402
 from .avatars import get_avatar, portrait_is_available  # noqa: E402
 from .state import AssistantState  # noqa: E402
 
@@ -164,7 +165,7 @@ class StaticAssistantRenderer(AvatarRendererBase):
             self.hint.set_visible(False)
         else:
             self.caption.set_text(STATE_CAPTIONS.get(state, ""))
-            hint = STATE_HINTS.get(state, "")
+            hint = wakelabel.apply(STATE_HINTS.get(state, ""))
             self.hint.set_text(hint)
             self.hint.set_visible(bool(hint))
         for other in AssistantState:
