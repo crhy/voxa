@@ -25,6 +25,8 @@ from .state import AssistantState  # noqa: E402
 
 BADGE_PATH = Path(__file__).resolve().parent / "assets" / "voxa-badge.png"
 AVATAR_SIZE = 320
+CAPTION_MAX_CHARS = 31
+LABEL_ELLIPSIS_END = 1
 
 STATE_CAPTIONS = {
     AssistantState.OFFLINE: "Offline",
@@ -146,10 +148,14 @@ class StaticAssistantRenderer(AvatarRendererBase):
         self._avatar = avatar
         self.caption = Gtk.Label(label="Offline")
         self.caption.set_xalign(0.5)
+        self.caption.set_ellipsize(LABEL_ELLIPSIS_END)
+        self.caption.set_max_width_chars(CAPTION_MAX_CHARS)
         self.caption.add_css_class("voxa-state")
 
         self.hint = Gtk.Label(label=STATE_HINTS[AssistantState.OFFLINE])
         self.hint.set_xalign(0.5)
+        self.hint.set_ellipsize(LABEL_ELLIPSIS_END)
+        self.hint.set_max_width_chars(CAPTION_MAX_CHARS)
         self.hint.add_css_class("voxa-state-hint")
 
         self.widget = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
