@@ -138,23 +138,42 @@ def match_app(query: str, apps: list[DesktopApp]) -> DesktopApp | None:
     for app in apps:
         if _normalize(app.name) == wanted or wanted in app.aliases:
             return app
+
+    def word_match(candidate: str) -> bool:
+        norm = _normalize(candidate)
+        if wanted in norm or norm in wanted:
+            return True
+        wwords, nwords = set(wanted.split()), set(norm.split())
+        return bool(wwords) and (wwords <= nwords or nwords <= wwords)
+
+    def sound_spelling_ok(candidate: str) -> bool:
+        # A sound-alike match still has to be spelled close enough; "google" vs "gigolo"
+        # sounds alike but is not a spelling match, so it must not be accepted.
+        return word_match(candidate) or SequenceMatcher(None, wanted, _normalize(candidate)).ratio() >= 0.6
+
     best: tuple[float, DesktopApp] | None = None
     for app in apps:
         name = _normalize(app.name)
         score = SequenceMatcher(None, wanted, name).ratio()
-        wwords, nwords = set(wanted.split()), set(name.split())
-        if wwords <= nwords or nwords <= wwords:
+        if word_match(name):
             score = max(score, 0.8)
-        if score >= 0.75 and (best is None or score > best[0] or (score == best[0] and len(app.name) < len(best[1].name))):
+        if score >= 0.8 and (best is None or score > best[0] or (score == best[0] and len(app.name) < len(best[1].name))):
             best = (score, app)
     if best is not None:
         return best[1]
-    exact = [app for app in apps if qkey == phonetic_key(app.name) or any(qkey == phonetic_key(a) for a in app.aliases)]
+    exact = [
+        app
+        for app in apps
+        if (qkey == phonetic_key(app.name) or any(qkey == phonetic_key(a) for a in app.aliases))
+        and (sound_spelling_ok(app.name) or any(sound_spelling_ok(a) for a in app.aliases))
+    ]
     if exact:
         return min(exact, key=lambda app: len(app.name))
     if len(qkey) >= 3:
         best = None
         for app in apps:
+            if not (sound_spelling_ok(app.name) or any(sound_spelling_ok(a) for a in app.aliases)):
+                continue
             for candidate in (app.name, *app.aliases):
                 score = SequenceMatcher(None, qkey, phonetic_key(candidate)).ratio()
                 if score >= 0.82 and (best is None or score > best[0] or (score == best[0] and len(app.name) < len(best[1].name))):
