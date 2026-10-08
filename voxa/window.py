@@ -1606,7 +1606,9 @@ class MainWindow(Adw.ApplicationWindow):
         try:
             gpu, threads, ram = speechfit.detect()
             old_model = self.settings.whisper_model
-            if speechfit.is_too_heavy(old_model, gpu):
+            if not gpu and not self.settings.whisper_benchmarked and self.wake_whisper.ready:
+                self._start_whisper_benchmark(old_model, gpu, threads, ram)
+            elif speechfit.is_too_heavy(old_model, gpu):
                 new_model = speechfit.recommend_whisper(gpu, threads, ram)
                 self._load_whisper(new_model)
                 note = speechfit.spoken_note(old_model, new_model)
@@ -1623,6 +1625,43 @@ class MainWindow(Adw.ApplicationWindow):
             on_done=lambda: None,
             on_error=lambda error: None,
         )
+        return False
+
+    def _start_whisper_benchmark(self, old_model: str, gpu: bool, threads: int, ram: float | None) -> None:
+        """Time the wake model on the bundled clip off the GTK thread, then pick from the measured speed."""
+
+        def worker() -> None:
+            try:
+                pcm, seconds = speechfit.clip_pcm()
+                tiny_rtf = speechfit.measure_rtf(self.wake_whisper.transcribe, pcm, seconds)
+                self.settings.whisper_rtf["tiny"] = tiny_rtf
+                chosen = speechfit.choose(tiny_rtf, self.settings.whisper_rtf, gpu)
+                self.settings.whisper_benchmarked = True
+                self.config_store.save(self.settings)
+            except Exception as exc:
+                logging.warning("whisper benchmark failed: %s", exc)
+                idle(self._welcome_threshold_fit, old_model, gpu, threads, ram)
+                return
+            if chosen != old_model:
+                rtf = speechfit.predicted_rtf(tiny_rtf, self.settings.whisper_rtf)[chosen]
+                idle(self._on_benchmark_choice, chosen, rtf)
+
+        threading.Thread(target=worker, name="whisper-benchmark", daemon=True).start()
+
+    def _welcome_threshold_fit(self, old_model: str, gpu: bool, threads: int, ram: float | None) -> None:
+        try:
+            if speechfit.is_too_heavy(old_model, gpu):
+                new_model = speechfit.recommend_whisper(gpu, threads, ram)
+                self._load_whisper(new_model)
+                self._toast(speechfit.spoken_note(old_model, new_model))
+        except Exception as exc:
+            logging.warning("speechfit welcome fit failed: %s", exc)
+
+    def _on_benchmark_choice(self, chosen: str, rtf: float) -> bool:
+        if self._closing:
+            return False
+        self._load_whisper(chosen)
+        self._toast(speechfit.summary(chosen, rtf))
         return False
 
     def _say_welcome_how_to(self) -> None:
@@ -3551,7 +3590,10 @@ class MainWindow(Adw.ApplicationWindow):
         whisper_subtitle = "Whisper size: smaller starts faster, larger hears more accurately"
         try:
             gpu, threads, ram = speechfit.detect()
-            recommended = speechfit.recommend_whisper(gpu, threads, ram)
+            if "tiny" in self.settings.whisper_rtf:
+                recommended = speechfit.choose(self.settings.whisper_rtf["tiny"], self.settings.whisper_rtf, gpu)
+            else:
+                recommended = speechfit.recommend_whisper(gpu, threads, ram)
             recommended_name = recommended[:1].upper() + recommended[1:]
             whisper_subtitle = f"Recommended for this computer: {recommended_name}. " + speechfit.explain(
                 recommended, gpu, threads

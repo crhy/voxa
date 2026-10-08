@@ -393,25 +393,27 @@ def follow_drift(mic, ref, rate: int = SR, block_s: float = 2.0) -> tuple[np.nda
     if n > 0:
         mic_a[:] = np.asarray(mic[:n], dtype=np.float64)
     block = max(1024, int(round(block_s * rate)))
-    fade = max(1, int(round(0.010 * rate)))
-    prev_tail: np.ndarray | None = None
+    src = np.asarray(ref[:n], dtype=np.float64)
+
+    def delayed(start: int, length: int, d: float) -> np.ndarray:
+        # Whole samples by indexing (no wrap-around), only the fraction by phase ramp.
+        whole = int(np.floor(d))
+        seg = np.zeros(length, dtype=np.float64)
+        lo, hi = start - whole, start - whole + length
+        a, b = max(lo, 0), min(hi, n)
+        if b > a:
+            seg[a - lo:b - lo] = src[a:b]
+        return fractional_delay(seg, d - whole, rate)
+
     for i in range(0, n, block):
-        seg = np.asarray(ref[i:min(i + block, n)], dtype=np.float64)
-        t = (i + len(seg) / 2.0) / rate
-        d = lag0 + drift * t
-        shifted = fractional_delay(seg, d, rate)
-        if prev_tail is not None:
-            a = min(fade, len(prev_tail), len(shifted))
-            if a > 0:
-                ramp = np.linspace(0.0, 1.0, a)
-                shifted[:a] = (1.0 - ramp) * prev_tail[:a] + ramp * shifted[:a]
-        ref_a[i:i + len(shifted)] = shifted
-        prev_tail = shifted[-fade:].copy() if len(shifted) >= fade else shifted.copy()
+        length = min(block, n - i)
+        ref_a[i:i + length] = delayed(i, length, lag0 + drift * ((i + length / 2.0) / rate))
     fmin, fmax = _analysis_band(ref[:n] if n else ref, rate)
-    d_fixed = lag0 + drift * ((n / 2.0) / rate)
-    ref_fixed = fractional_delay(np.asarray(ref[:n], dtype=np.float64), d_fixed, rate)
-    coh_fixed = band_coherence(mic_a, ref_fixed, fmin, fmax)
-    coh_drift = band_coherence(mic_a, ref_a, fmin, fmax)
+    ref_fixed = delayed(0, n, lag0 + drift * ((n / 2.0) / rate)) if n else ref_a.copy()
+    # The segment-averaged estimate is the trustworthy one on real recordings; band_coherence
+    # reads about 0.1 on pairs whose true coherence is 0.9.
+    coh_fixed = band_coherence_segments([(mic_a, ref_fixed)], fmin, fmax) if n >= 8192 else 0.0
+    coh_drift = band_coherence_segments([(mic_a, ref_a)], fmin, fmax) if n >= 8192 else 0.0
     used = "drift"
     if coh_fixed > coh_drift:
         used = "fixed"

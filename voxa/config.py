@@ -19,6 +19,9 @@ class Settings:
     microphone_id: str = ""
     microphone_name: str = ""
     whisper_model: str = "base"
+    # Measured real-time factors (seconds of processing per second of speech) per model on this computer.
+    whisper_rtf: dict[str, float] = field(default_factory=dict)
+    whisper_benchmarked: bool = False
     ollama_model: str = ""
     ollama_url: str = "http://127.0.0.1:11434"
     ai_backend: str = "llamacpp"
