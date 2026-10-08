@@ -154,7 +154,7 @@ _IMAGE_LOOK_LIKE = re.compile(r"what\s+does\s+(.+?)\s+look\s+like", re.IGNORECAS
 # "Give me directions to X", "how do I get to X", "navigate to X", "take me to X" -> Google Maps directions.
 _DIRECTIONS = re.compile(
     r"(?:(?:can you |could you |please )?(?:give me|get me|get|show me|show|find|i need|i want)\s+)?"
-    r"(?:driving |walking |the )?directions?\s+(?:to|for)\s+(.+)"
+    r"(?:driving |walking |biking |cycling |transit |bus |the )?directions?\s+(?:to|for)\s+(.+)"
     r"|how do i get to\s+(?:the\s+)?(.+)|navigate (?:me )?to\s+(.+)|take me to\s+(.+)",
     re.IGNORECASE,
 )
@@ -185,6 +185,12 @@ _LOCATION_SET = re.compile(
 _LOCATION_USE = re.compile(r"use\s+(.+?)\s+as\s+my\s+location", re.IGNORECASE)
 _LOCATION_FORGET = re.compile(r"forget\s+my\s+location", re.IGNORECASE)
 _URL = re.compile(r"(?:open|go to|visit|navigate to)\s+([^\s]+)", re.IGNORECASE)
+# "Open open air ships dot com", "go to spaced linux .org": a spoken web address, words run together.
+_SPOKEN_URL = re.compile(
+    r"(?:open|go to|visit|navigate to|bring up|show me)\s+(?:the\s+website\s+)?(.+?)\s*(?:\s+dot\s+|\.)\s*"
+    r"(com|org|net|io|edu|gov|co|us|uk|ca|de|info|tv|app|dev|ai|me|xyz)",
+    re.IGNORECASE,
+)
 _SITE = re.compile(r"(?:open|go to|visit)\s+(.+)", re.IGNORECASE)
 _PLAY_PAUSE = re.compile(
     r"(?:pause|resume)(?:\s+(?:the\s+)?(?:music|video|song|playback))?", re.IGNORECASE
@@ -385,7 +391,10 @@ _LIST_CHARACTERS = re.compile(
 )
 
 _MINIMIZE_ALL = re.compile(
-    r"(?:minimi[sz]e)\s+(?:everything|all windows)|show the desktop", re.IGNORECASE
+    r"(?:minimi[sz]e|hide)\s+(?:everything|all(?:\s+(?:of\s+)?(?:the|my))?(?:\s+open)?"
+    r"\s+(?:windows|apps|applications|programs))"
+    r"|show\s+(?:me\s+)?(?:the\s+|my\s+)?desktop",
+    re.IGNORECASE
 )
 _MINIMIZE_APP = re.compile(
     r"(?:minimi[sz]e|hide)\s+(\w+(?:\s+\w+){0,4})", re.IGNORECASE
@@ -402,6 +411,11 @@ _MINIMIZE_ACTIVE = re.compile(
 )
 _MINIMIZE_SELF = re.compile(
     r"(?:minimi[sz]e|hide)\s+(?:yourself|your\s+window|voxa|the\s+voxa\s+window)", re.IGNORECASE
+)
+_MAXIMIZE_SELF = re.compile(
+    r"(?:maximi[sz]es?)\s+(?:yourself|your\s+window|voxa|the\s+voxa\s+window)"
+    r"|make\s+(?:yourself|your\s+window)\s+(?:bigger|full\s+(?:size|screen))",
+    re.IGNORECASE,
 )
 _WHATS_OPEN = re.compile(
     r"(?:what(?:'s| is) open"
@@ -576,6 +590,7 @@ ROUTED_TOOLS = frozenset(
         "restore_app",
         "minimize_all",
         "minimize_self",
+        "maximize_self",
         "change_character",
         "list_characters",
         "list_open_windows",
@@ -784,6 +799,9 @@ def route(text: str) -> ToolCall | None:
         destination = next(g for g in directions_match.groups() if g).strip()
         # "navigate to github.com" is a web address, not a place: leave it to the URL rules below.
         if not re.fullmatch(r"[\w-]+(?:\.[\w-]+)+(?:/\S*)?", destination):
+            mode = re.search(r"\b(walking|walk|on foot|biking|bike|cycling|transit|bus|train)\b", s, re.IGNORECASE)
+            if mode:
+                return call("directions", destination=destination, mode=mode.group(1).casefold())
             return call("directions", destination=destination)
     nearby_match = _NEAREST.fullmatch(s) or _NEAR_ME.fullmatch(s)
     if nearby_match:
@@ -967,6 +985,12 @@ def route(text: str) -> ToolCall | None:
     ):
         return call("open_file", name=open_file_match.group(1), folder="")
 
+    spoken_url = _SPOKEN_URL.fullmatch(s)
+    # Only for an address said as words ("open air ships dot com"); a typed one is left to the rules below.
+    if spoken_url and (" " in spoken_url.group(1).strip() or re.search(r"\sdot\s", s, re.IGNORECASE)):
+        site = re.sub(r"[^a-z0-9-]", "", spoken_url.group(1).casefold())
+        if site:
+            return call("open_url", url=f"{site}.{spoken_url.group(2).casefold()}")
     url_match = _URL.fullmatch(s)
     if url_match and "." in url_match.group(1):
         return call("open_url", url=url_match.group(1))
@@ -1096,6 +1120,8 @@ def route(text: str) -> ToolCall | None:
         return call("minimize_app", name="")
     if _MINIMIZE_SELF.fullmatch(s):
         return call("minimize_self")
+    if _MAXIMIZE_SELF.fullmatch(s):
+        return call("maximize_self")
     minimize_match = _MINIMIZE_APP.fullmatch(s)
     if minimize_match:
         return call("minimize_app", name=minimize_match.group(1))

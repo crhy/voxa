@@ -188,8 +188,8 @@ def compiz_control(args: dict[str, str]) -> ToolResult:
         return ToolResult.success("Stopping." if stop_spin() else "The cube is not spinning.")
     keys = bindings()
     plan: dict[str, tuple[str, int, str]] = {
-        "cube_right": ("cube_right", 1, "Rotating right."),
-        "cube_left": ("cube_left", 1, "Rotating left."),
+        "cube_right": ("cube_right", 1, ""),  # the cube turning is the answer
+        "cube_left": ("cube_left", 1, ""),
         "zoom_in": ("zoom_in", 1, "Zooming in."),
         "zoom_in_more": ("zoom_in", 2, "Zooming in more."),
         "zoom_out": ("zoom_out", 1, "Zooming out."),

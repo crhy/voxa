@@ -7,6 +7,8 @@ from collections.abc import Callable, Iterator
 
 from .transcription import WhisperService
 
+PRE_ROLL_BYTES = int(0.6 * 16000) * 2  # 0.6 s of 16 kHz 16-bit audio kept before the first loud moment
+
 
 def segment_stream(
     input_queue: queue.Queue[tuple[bytes, float] | None],
@@ -96,7 +98,9 @@ def segment_stream(
             last_voice = now
 
         if not heard_voice and duration > 2.0:
-            segment = bytearray()
+            # Keep the last moments instead of emptying the buffer: a soft first syllable ("Vo…")
+            # that arrived just before the buffer was emptied was lost with it.
+            del segment[:-PRE_ROLL_BYTES]
 
         if (
             trailing_silence_seconds is not None

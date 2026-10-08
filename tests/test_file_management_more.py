@@ -45,7 +45,8 @@ def test_open_folder_argv_and_sentence(monkeypatch):
     result = filemanage.open_folder({"folder": "my downloads"})
     assert result.ok
     assert result.speech == "Opening my downloads."
-    assert calls[-1] == ["gio", "open", "/home/u/Downloads"]
+    # A folder is opened in the file manager (the first one found), not by whichever program claims folders.
+    assert calls[-1][:2] == ["sh", "-c"] and "caja" in calls[-1][2] and calls[-1][-1] == "/home/u/Downloads"
 
 
 def test_list_folder_names_and_sentence(monkeypatch):

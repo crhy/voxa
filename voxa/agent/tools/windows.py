@@ -380,6 +380,16 @@ def minimize_self(args: dict[str, str]) -> ToolResult:
     return ToolResult.success("Minimized myself.")
 
 
+def maximize_self(args: dict[str, str]) -> ToolResult:
+    windows = match_windows("voxa", list_windows())
+    if not windows:
+        return ToolResult.failure("I can't find my own window to maximize.")
+    for window in windows:
+        _run(["wmctrl", "-i", "-r", window.id, "-b", "add,maximized_vert,maximized_horz"], check=False)
+        _run(["wmctrl", "-i", "-a", window.id], check=False)
+    return ToolResult.success("Maximized.")
+
+
 def list_characters(args: dict[str, str]) -> ToolResult:
     lines = describe_characters()
     return ToolResult.success(" ".join(lines) if lines else "No characters to choose from.")
@@ -389,7 +399,7 @@ def change_character(args: dict[str, str]) -> ToolResult:
     name = (args.get("name") or "").strip()
     if find_character(name) is None:
         return ToolResult.failure("I don't know that character.")
-    return ToolResult.success(f"Switched to {name.title()}.")
+    return ToolResult.success(f"{name.title()} here!")
 
 
 def lock_screen(args: dict[str, str]) -> ToolResult:
@@ -502,6 +512,14 @@ def window_tools() -> list[Tool]:
             parameters={},
             risk=RiskLevel.REVERSIBLE,
             handler=minimize_self,
+            required=(),
+        ),
+        Tool(
+            name="maximize_self",
+            description="Maximize Voxa's own window.",
+            parameters={},
+            risk=RiskLevel.REVERSIBLE,
+            handler=maximize_self,
             required=(),
         ),
         Tool(

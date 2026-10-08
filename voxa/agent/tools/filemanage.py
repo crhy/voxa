@@ -221,7 +221,16 @@ def open_folder(args: dict[str, str]) -> ToolResult:
         path = _folder(args["folder"])
         if path is None:
             return ToolResult.failure(f"I do not know the folder {args['folder']}.")
-        _run(["gio", "open", path])
+        # "gio open" hands a folder to whichever program claims folders, which can be a code
+        # editor; a folder belongs in the file manager.
+        opened = False
+        for manager in ("caja", "nemo", "nautilus", "thunar", "pcmanfm"):
+            if _run(["sh", "-c", f"command -v {manager}"], check=False).returncode == 0:
+                _run(["sh", "-c", f'setsid {manager} "$1" >/dev/null 2>&1 &', "sh", path], check=False)
+                opened = True
+                break
+        if not opened:
+            _run(["gio", "open", path])
         return ToolResult.success(f"Opening {args['folder']}.")
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as error:
         return ToolResult.failure(f"That did not work: {_error_text(error)}")

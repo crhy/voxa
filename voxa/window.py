@@ -1941,7 +1941,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.conversation.own_speech = self.own_speech
         # Test builds: what was heard without a wake word goes to barge.log (local only), so a missed
         # "Voxa, …" can be explained. Remove or make optional before a release.
-        self.conversation.on_ignored = lambda text: self._barge_trace("no-wake", heard=text[:120])
+        self.conversation.on_ignored = self._trace_ignored
         self.conversation.start()
         try:
             self._prepare_microphone()
@@ -2161,7 +2161,7 @@ class MainWindow(Adw.ApplicationWindow):
             if character_id is None:
                 return ToolResult.failure("I don't know that character.")
             self._on_shell_character_selected(character_id)
-            return ToolResult.success(f"Switched to {character_id.title()}.")
+            return ToolResult.success(f"{character_id.title()} here!")
         if call.tool == "list_characters":
             lines = describe_characters()
             return ToolResult.success(" ".join(lines) if lines else "No characters to choose from.")
@@ -2482,6 +2482,25 @@ class MainWindow(Adw.ApplicationWindow):
         except Exception:  # noqa: BLE001 - tracing must never disturb the conversation
             pass
 
+    def _trace_ignored(self, text: str, segment: bytes = b"") -> None:
+        """Test builds: note speech that had no wake word and keep the last eight clips of it."""
+        try:
+            import wave
+
+            from .agent.actionlog import default_path
+
+            self._ignored_count = getattr(self, "_ignored_count", 0) + 1
+            slot = self._ignored_count % 8
+            self._barge_trace("no-wake", heard=text[:120], seconds=len(segment) / 32000.0, clip=slot)
+            if segment:
+                with wave.open(str(default_path().with_name(f"ignored-{slot}.wav")), "wb") as out:
+                    out.setnchannels(1)
+                    out.setsampwidth(2)
+                    out.setframerate(16000)
+                    out.writeframes(segment)
+        except Exception:  # noqa: BLE001 - tracing must never disturb the conversation
+            pass
+
     def _maybe_barge_in(self) -> None:
         """Interrupt a spoken reply when the user talks over it.
 
@@ -2649,7 +2668,14 @@ class MainWindow(Adw.ApplicationWindow):
         self.assistant_model.set_state(AssistantState.DICTATING, "")
         if self.conversation is not None:
             self.conversation.hold_prompt()
-        self._on_tool_finished(ToolResult.success("Dictating. Say stop dictating when you're done."))
+        # The reminder of how to stop is only useful the first couple of times.
+        given = int(getattr(self.settings, "dictation_hints_given", 0) or 0)
+        if given < 2:
+            self.settings.dictation_hints_given = given + 1
+            self.config_store.save(self.settings)
+            self._on_tool_finished(ToolResult.success("Dictating. Say stop dictating when you're done."))
+        else:
+            self._on_tool_finished(ToolResult.success("Dictating."))
 
     def _stop_external_dictation(self) -> None:
         self._external_dictation = False
@@ -2780,7 +2806,7 @@ class MainWindow(Adw.ApplicationWindow):
         action = parse_dictation_control(text)
         if action == "stop":
             self._stop_external_dictation()
-            self._on_tool_finished(ToolResult.success("Done dictating."))
+            self._on_tool_finished(ToolResult.success("Stopping dictation."))
             return
         if action == "undo":
             erased = len(self._last_dictated)

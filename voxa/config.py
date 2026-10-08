@@ -39,7 +39,7 @@ class Settings:
     # monitor; adds no device and never changes the audio output), "webrtc" = the WebRTC echo
     # canceller inside the capture pipeline (experimental), "off" = none.
     # ``echo_cancel`` is a deprecated alias: False maps to "off".
-    echo_mode: str = "voxa"
+    echo_mode: str = "webrtc"  # removes music and video sound before she listens; off when unavailable
     # Milliseconds the lips run ahead of the reported audio position (compensates sound-card and display delay).
     lip_sync_lead_ms: int = 160
     tts_rate: int = 180
@@ -56,6 +56,7 @@ class Settings:
     early_final_pass: bool = False
     suggestions_enabled: bool = True
     followup_seconds: float = 10.0
+    dictation_hints_given: int = 0
     welcomed: bool = False
     github_owner: str = ""
     youtube_channel: str = ""

@@ -524,7 +524,7 @@ class ConversationController:
                     elif self.on_ignored is not None:
                         # Heard, but no wake word found: reported so a missed "Voxa, …" can be explained.
                         with contextlib.suppress(Exception):
-                            self.on_ignored(text)
+                            self.on_ignored(text, segment)
                     continue
                 if self.stop_event.is_set():
                     break
