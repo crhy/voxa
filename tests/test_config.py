@@ -158,8 +158,8 @@ def test_unknown_backend_falls_back_to_llamacpp(tmp_path: Path) -> None:
 
 def test_followup_seconds_defaults_and_clamps(tmp_path: Path) -> None:
     store = ConfigStore(tmp_path / "config.json")
-    assert store.load().followup_seconds == 6.0
-    assert Settings().followup_seconds == 6.0
+    assert store.load().followup_seconds == 10.0
+    assert Settings().followup_seconds == 10.0
 
     store.save(Settings(followup_seconds=-5.0))
     assert store.load().followup_seconds == 0.0

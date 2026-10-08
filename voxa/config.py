@@ -55,7 +55,7 @@ class Settings:
     early_silence_ms: int = 300
     early_final_pass: bool = False
     suggestions_enabled: bool = True
-    followup_seconds: float = 6.0
+    followup_seconds: float = 10.0
     welcomed: bool = False
     github_owner: str = ""
     youtube_channel: str = ""

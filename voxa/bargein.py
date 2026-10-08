@@ -10,6 +10,8 @@ import re
 
 OWN_VOICE_OVERLAP = 0.6
 BASELINE_ALPHA = 0.05
+SETTLED_SAMPLES = 20
+TOWERING_RATIO = 6.0
 
 
 def _words(text: str) -> list[str]:
@@ -53,6 +55,7 @@ class BargeInGate:
         self._needed = needed
         self._count = 0
         self._baseline = 0.0
+        self._samples = 0
 
     def update(self, mic_level: float, baseline: float) -> bool:
         if mic_level > max(self._min_level, self._ratio * baseline):
@@ -63,6 +66,17 @@ class BargeInGate:
 
     def note_speaking_level(self, mic_level: float) -> None:
         self._baseline += BASELINE_ALPHA * (mic_level - self._baseline)
+        self._samples += 1
+
+    @property
+    def settled(self) -> bool:
+        """True once the baseline has heard enough of her own voice to be trusted."""
+        return self._samples >= SETTLED_SAMPLES
+
+    def towering(self, mic_level: float) -> bool:
+        """The microphone is so far above her own voice that it cannot be her (measured: a person
+        at the desk is 20-40 times louder at the microphone than the speakers at normal volume)."""
+        return self.settled and mic_level > max(self._min_level * 4, TOWERING_RATIO * self._baseline)
 
     @property
     def baseline(self) -> float:

@@ -6,7 +6,7 @@ import time
 from collections.abc import Callable
 
 from voxa import simulation
-from voxa.agent.cleanup import CLEANUP_PROMPT, sane_result
+from voxa.agent.cleanup import CLEANUP_PROMPT, clean_in_pieces
 from voxa.agent.host import host_command
 from voxa.agent.policy import RiskLevel
 from voxa.agent.registry import Tool
@@ -59,19 +59,24 @@ def cleanup_text(args: dict[str, str]) -> ToolResult:
         if whole:
             _run(["xdotool", "key", "Right"])
         return ToolResult.failure("That is too much text for me to clean up in one go.")
-    edited = ask_model(
-        [
-            {"role": "system", "content": CLEANUP_PROMPT},
-            {"role": "user", "content": copied},
-        ]
+    edited, done, total = clean_in_pieces(
+        copied,
+        lambda piece: ask_model(
+            [
+                {"role": "system", "content": CLEANUP_PROMPT},
+                {"role": "user", "content": piece},
+            ]
+        ),
     )
-    if sane_result(copied, edited):
+    if done and edited != copied:
         write_clipboard(edited)
         time.sleep(0.1)
         _run(["xdotool", "key", "--clearmodifiers", "ctrl+v"])
         time.sleep(0.4)
         write_clipboard(saved)
         speech = "Text edited for clarity." if whole else "Selection edited for clarity."
+        if done < total:
+            speech += f" I left {total - done} of {total} parts as they were."
         return ToolResult.success(speech)
     write_clipboard(saved)
     if whole:

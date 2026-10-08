@@ -132,6 +132,8 @@ FALSE_CLAIM_REPLY = (
 # loudest moment); the level gate in .bargein decides when the mic is loud
 # enough, and the words heard decide whether it was really the user.
 BARGE_IN_GRACE_SECONDS = 0.4
+# After the level gate opens, how long to keep listening before judging the words.
+BARGE_IN_LISTEN_SECONDS = 0.9
 # How long the high-resolution face server may take to load its model before Voxa gives up on it.
 FACE_SERVER_START_SECONDS = 90.0
 
@@ -252,6 +254,7 @@ class MainWindow(Adw.ApplicationWindow):
         # and the text being spoken now / the piece before it (own-voice check).
         self._speaking_since = 0.0
         self._barge_gate = BargeInGate()
+        self._barge_pending_since = 0.0
         self._speaking_text = ""
         self._recent_spoken = ""
         # Echo filter: remembers what Voxa is saying so a mic transcript that is
@@ -541,7 +544,14 @@ class MainWindow(Adw.ApplicationWindow):
         state = self.assistant_model.state
         if conversation is None or state not in (AssistantState.READY, AssistantState.LISTENING):
             return True
-        capturing = bool(conversation.waiting_for_prompt or getattr(conversation, "keep_prompt", False))
+        # The follow-up window counts: an utterance in it is acted on without the wake word, so
+        # showing "Ready" there was the "it said Ready and still acted" report.
+        followup = getattr(conversation, "_followup_open", None)
+        capturing = bool(
+            conversation.waiting_for_prompt
+            or getattr(conversation, "keep_prompt", False)
+            or (callable(followup) and followup())
+        )
         truly_listening = capturing and not conversation.muted
         wanted = AssistantState.LISTENING if truly_listening else AssistantState.READY
         if wanted is not state:
@@ -2376,7 +2386,9 @@ class MainWindow(Adw.ApplicationWindow):
             self.conversation.arm_prompt()
             self.conversation.open_followup(self.settings.followup_seconds)
             self._follow_up_token = self.assistant.token()
-            GLib.timeout_add_seconds(self.FOLLOW_UP_SECONDS, self._follow_up_expired, self._follow_up_token)
+            # One length for the whole window: the setting, not a second hard-coded timer.
+            seconds = max(1, int(round(self.settings.followup_seconds)))
+            GLib.timeout_add_seconds(seconds, self._follow_up_expired, self._follow_up_token)
         waiting = self.conversation is not None and self.conversation.waiting_for_prompt
         self.own_speech.finished()
         if self.conversation is not None:
@@ -2449,26 +2461,41 @@ class MainWindow(Adw.ApplicationWindow):
         """
         if self.assistant.is_paused:
             self._barge_gate.reset()
+            self._barge_pending_since = 0.0
             return
         if not self.conversation_active or self.conversation is None or not self.conversation.muted:
             self._barge_gate.reset()
+            self._barge_pending_since = 0.0
             return
         if self._speaking_since <= 0.0:
             return
         if time.monotonic() - self._speaking_since < BARGE_IN_GRACE_SECONDS:
             self._barge_gate.reset()
+            self._barge_pending_since = 0.0
             return
         level01 = self._latest_level / 4000.0
-        if not self._barge_gate.update(level01, self._barge_gate.baseline):
-            # Still her voice (or noise): teach the gate what "normal" is.
-            self._barge_gate.note_speaking_level(level01)
-            return
-        heard = self.conversation.candidate_text()
-        if is_own_voice(heard, self._speaking_text, self._recent_spoken):
-            # The loud sound was Voxa's own voice: carry on speaking.
-            self._barge_gate.reset()
-            return
+        opened = self._barge_gate.update(level01, self._barge_gate.baseline)
+        now = time.monotonic()
+        if self._barge_pending_since <= 0.0:
+            if not opened:
+                # Still her voice (or noise): teach the gate what "normal" is.
+                self._barge_gate.note_speaking_level(level01)
+                return
+            self._barge_pending_since = now
+        if not (opened and self._barge_gate.towering(level01)):
+            # Not loud enough to be certain: let the user finish a word or two before checking the
+            # words. Checking at once only ever saw the first third of a second ("Vo…"), which reads
+            # as nothing, so her reply was never stopped.
+            if now - self._barge_pending_since < BARGE_IN_LISTEN_SECONDS:
+                return
+            heard = self.conversation.candidate_text()
+            if is_own_voice(heard, self._speaking_text, self._recent_spoken):
+                # The loud sound was Voxa's own voice: carry on speaking.
+                self._barge_gate.reset()
+                self._barge_pending_since = 0.0
+                return
         self._barge_gate.reset()
+        self._barge_pending_since = 0.0
         self._speaking_since = 0.0
         self.own_speech.finished()
         self.speech.stop()

@@ -148,7 +148,7 @@ class ConversationController:
     ``start``/``stop`` plus the four callbacks).
     """
 
-    PROMPT_TIMEOUT_SECONDS = 8.0
+    PROMPT_TIMEOUT_SECONDS = 12.0  # longer than the follow-up window, so silence never cuts that short
 
     def __init__(
         self,
