@@ -255,6 +255,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._speaking_since = 0.0
         self._barge_gate = BargeInGate()
         self._barge_pending_since = 0.0
+        self._barge_stats: dict = {}
         self._speaking_text = ""
         self._recent_spoken = ""
         # Echo filter: remembers what Voxa is saying so a mic transcript that is
@@ -2450,30 +2451,60 @@ class MainWindow(Adw.ApplicationWindow):
         self._maybe_barge_in()
         return True
 
+    def _barge_trace(self, event: str, **fields) -> None:
+        """Append one line to barge.log beside the action log, so a failed interruption can be explained."""
+        try:
+            from .agent.actionlog import default_path
+
+            path = default_path().with_name("barge.log")
+            path.parent.mkdir(parents=True, exist_ok=True)
+            if path.exists() and path.stat().st_size > 300_000:
+                path.write_text("")
+            detail = " ".join(f"{key}={value!r}" if isinstance(value, str) else f"{key}={value:.3f}"
+                              if isinstance(value, float) else f"{key}={value}" for key, value in fields.items())
+            with path.open("a", encoding="utf-8") as handle:
+                handle.write(f"{time.strftime('%H:%M:%S')} {event} {detail}\n")
+        except Exception:  # noqa: BLE001 - tracing must never disturb the conversation
+            pass
+
     def _maybe_barge_in(self) -> None:
         """Interrupt a spoken reply when the user talks over it.
 
         The mic keeps reporting levels while muted, so sustained loud speech
         here means the user interrupted: stop the reply, unmute, and let the
         very next utterance become a prompt without the wake word. A level
-        alone is not enough — the captured window is transcribed first and
-        the reply is stopped only when the words are not her own.
+        alone is not enough — unless the voice towers over her own, the
+        captured window is transcribed first and the reply is stopped only
+        when the words are not her own.
         """
+        stats = self._barge_stats
+        speaking = self._speaking_since > 0.0
+        if speaking != stats.get("speaking", False):
+            if not speaking and stats.get("ticks"):
+                self._barge_trace("reply-end", **{k: v for k, v in stats.items() if k != "speaking"})
+            stats.clear()
+            stats["speaking"] = speaking
         if self.assistant.is_paused:
             self._barge_gate.reset()
             self._barge_pending_since = 0.0
             return
         if not self.conversation_active or self.conversation is None or not self.conversation.muted:
+            if speaking:
+                stats["not_muted_ticks"] = stats.get("not_muted_ticks", 0) + 1
             self._barge_gate.reset()
             self._barge_pending_since = 0.0
             return
-        if self._speaking_since <= 0.0:
+        if not speaking:
             return
         if time.monotonic() - self._speaking_since < BARGE_IN_GRACE_SECONDS:
+            stats["grace_ticks"] = stats.get("grace_ticks", 0) + 1
             self._barge_gate.reset()
             self._barge_pending_since = 0.0
             return
         level01 = self._latest_level / 4000.0
+        stats["ticks"] = stats.get("ticks", 0) + 1
+        stats["max_level"] = max(stats.get("max_level", 0.0), level01)
+        stats["baseline"] = float(self._barge_gate.baseline)
         opened = self._barge_gate.update(level01, self._barge_gate.baseline)
         now = time.monotonic()
         if self._barge_pending_since <= 0.0:
@@ -2482,18 +2513,28 @@ class MainWindow(Adw.ApplicationWindow):
                 self._barge_gate.note_speaking_level(level01)
                 return
             self._barge_pending_since = now
+            stats["gate_opened"] = stats.get("gate_opened", 0) + 1
+            self._barge_trace("gate-open", level=level01, baseline=float(self._barge_gate.baseline),
+                              settled=self._barge_gate.settled)
         if not (opened and self._barge_gate.towering(level01)):
             # Not loud enough to be certain: let the user finish a word or two before checking the
             # words. Checking at once only ever saw the first third of a second ("Vo…"), which reads
             # as nothing, so her reply was never stopped.
             if now - self._barge_pending_since < BARGE_IN_LISTEN_SECONDS:
                 return
+            started = time.monotonic()
             heard = self.conversation.candidate_text()
-            if is_own_voice(heard, self._speaking_text, self._recent_spoken):
+            own = is_own_voice(heard, self._speaking_text, self._recent_spoken)
+            self._barge_trace("words", heard=heard, own_voice=own, seconds=time.monotonic() - started,
+                              speaking=self._speaking_text[:60])
+            if own:
                 # The loud sound was Voxa's own voice: carry on speaking.
                 self._barge_gate.reset()
                 self._barge_pending_since = 0.0
                 return
+        else:
+            self._barge_trace("towering", level=level01, baseline=float(self._barge_gate.baseline))
+        self._barge_trace("INTERRUPT")
         self._barge_gate.reset()
         self._barge_pending_since = 0.0
         self._speaking_since = 0.0
@@ -3946,4 +3987,10 @@ class MainWindow(Adw.ApplicationWindow):
         self._stop_gpu_monitor()
         self.audio.stop()
         self.config_store.save(self.settings)
+        # Give a voice download in flight a moment to close its network session; a thread killed
+        # mid-stream at exit printed "Unclosed client session" and "Task was destroyed".
+        deadline = time.monotonic() + 1.0
+        for thread in threading.enumerate():
+            if thread.name.startswith("natural-speech") and thread is not threading.current_thread():
+                thread.join(max(0.0, deadline - time.monotonic()))
         return False

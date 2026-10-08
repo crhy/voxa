@@ -331,7 +331,6 @@ VOXA_CSS = """
 
 .voxa-focus-circle {
     border-radius: 999px;
-    overflow: hidden;
 }
 
 .voxa-focus-caption {

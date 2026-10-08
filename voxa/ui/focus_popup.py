@@ -30,6 +30,8 @@ class FocusPopup(Gtk.Box):
 
         circle = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         circle.add_css_class("voxa-focus-circle")
+        # GTK has no CSS "overflow"; clipping to the rounded shape is a widget property.
+        circle.set_overflow(Gtk.Overflow.HIDDEN)
         circle.set_size_request(POPUP_SIZE, POPUP_SIZE)
         try:
             texture = Gdk.Texture.new_from_filename(str(BADGE_PATH))
