@@ -67,6 +67,7 @@ from .installer import InstallerError, install_ollama, ollama_installed  # noqa:
 from .llamacpp import LlamaCppClient, StrataClient  # noqa: E402
 from .modelwait import wait_for_models  # noqa: E402
 from .ollama import OllamaClient, OllamaError, strip_reasoning  # noqa: E402
+from .ownspeech import OwnSpeech  # noqa: E402
 from .pausewords import is_pause_request, resume_request  # noqa: E402
 from .replylang import LANGUAGES, is_only_a_language_request, requested_language  # noqa: E402
 from .server import SERVER_FAILED, SERVER_STARTING, SERVER_UNAVAILABLE, AiServerManager  # noqa: E402
@@ -253,6 +254,9 @@ class MainWindow(Adw.ApplicationWindow):
         self._barge_gate = BargeInGate()
         self._speaking_text = ""
         self._recent_spoken = ""
+        # Echo filter: remembers what Voxa is saying so a mic transcript that is
+        # (part of) her own sentence is dropped, not heard as the user (issue #88).
+        self.own_speech = OwnSpeech()
         # The conversation turn whose user message was just pushed, so a stale
         # finish/error callback can't untangle history built by a newer turn.
         self._pending_user_generation: int | None = None
@@ -1912,6 +1916,7 @@ class MainWindow(Adw.ApplicationWindow):
                 session(self._on_transcribe_timing), model, audio, took
             ),
         )
+        self.conversation.own_speech = self.own_speech
         self.conversation.start()
         try:
             self._prepare_microphone()
@@ -2321,6 +2326,7 @@ class MainWindow(Adw.ApplicationWindow):
         typing.LAST_REPLY = text
         self._recent_spoken = self._speaking_text
         self._speaking_text = text
+        self.own_speech.started(text)
         if self.conversation is not None:
             self.conversation.mute()
         self._speaking_since = time.monotonic()
@@ -2362,6 +2368,7 @@ class MainWindow(Adw.ApplicationWindow):
             self._follow_up_token = self.assistant.token()
             GLib.timeout_add_seconds(self.FOLLOW_UP_SECONDS, self._follow_up_expired, self._follow_up_token)
         waiting = self.conversation is not None and self.conversation.waiting_for_prompt
+        self.own_speech.finished()
         if self.conversation is not None:
             self.conversation.unmute()
         self._speaking_since = 0.0
@@ -2453,6 +2460,7 @@ class MainWindow(Adw.ApplicationWindow):
             return
         self._barge_gate.reset()
         self._speaking_since = 0.0
+        self.own_speech.finished()
         self.speech.stop()
         self._live_reset()
         self.conversation.unmute()
@@ -3314,6 +3322,7 @@ class MainWindow(Adw.ApplicationWindow):
         if piece:
             self._recent_spoken = self._speaking_text
             self._speaking_text = piece
+            self.own_speech.started(piece)
         # Grace period per piece: speaker onset is the loudest moment.
         self._speaking_since = time.monotonic()
         self._barge_gate.reset()

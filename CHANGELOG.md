@@ -19,6 +19,9 @@ checking by ear and eye on a real desktop; `docs/CAPABILITIES.md` is the checkli
   the speaker onset is the loudest moment. (`voxa/bargein.py`)
 - **A single "stop", "wait" or "Voxa" always counts as you interrupting**, unless she is saying that very word
   herself.
+- **Voxa throws away echoes of her own voice** (`voxa/ownspeech.py`): she knows the sentence she is saying, so a
+  mic transcript that is (part of) that sentence is dropped before it reaches the wake check, a prompt or a barge-in
+  candidate; a real sentence spoken over her voice keeps its own words. (#88) 🧪
 - **"Say …" is no longer typed into the focused window.** "Say hello to Bob" is spoken; only "type …", "write …",
   "dictate …" and "enter …" type.
 - **Voxa's own echo canceller** (`voxa/anc.py`): estimates the delay between what the computer plays and what the

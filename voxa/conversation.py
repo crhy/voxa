@@ -222,6 +222,10 @@ class ConversationController:
         self._barge_buf: list[bytes] = []
         self._barge_bytes = 0
         self._barge_max_bytes = 160_000  # ~5 s of 16 kHz 16-bit mono
+        # Optional echo filter (see voxa/ownspeech.py): set by the window so a
+        # transcript that is (part of) what Voxa was saying is dropped, not fed
+        # to the wake check, the prompt or a barge-in candidate. None = off.
+        self.own_speech = None
 
     @property
     def muted(self) -> bool:
@@ -334,6 +338,25 @@ class ConversationController:
             return segment
         return None
 
+    def _filter_own_speech(self, text: str) -> str | None:
+        """Strip echoes of Voxa's own voice from a transcript.
+
+        Returns the text to use, or ``None`` when the whole utterance is her own
+        voice (drop it). Never raises: a filter bug must not lose the user's
+        speech, so the original text is returned and the failure logged.
+        """
+        if self.own_speech is None or not self.own_speech.active():
+            return text
+        try:
+            if self.own_speech.is_echo(text, protect=[self.wake_word]):
+                logging.debug("ignored her own words: %s", text)
+                return None
+            stripped, _share = self.own_speech.strip(text, protect=[self.wake_word])
+            return stripped
+        except Exception as exc:  # noqa: BLE001 - echo filter must never lose speech
+            logging.debug("own-speech filter failed: %s", exc)
+            return text
+
     def _early_check(self, segment: bytes) -> bool:
         """Quick look at the audio so far with the small wake model.
 
@@ -347,6 +370,9 @@ class ConversationController:
             text = self.wake_whisper.transcribe(segment, self.language, hint)
         except Exception as exc:  # noqa: BLE001 - early-check boundary
             logging.debug("early completion check failed: %s", exc)
+            return False
+        text = self._filter_own_speech(text)
+        if text is None:
             return False
         if is_complete(text, self.wake_word):
             self._early_text = text
@@ -392,7 +418,7 @@ class ConversationController:
         segment = b"".join(self._barge_buf)
         self._barge_buf = []
         self._barge_bytes = 0
-        return self._transcribe(segment, self.prompt_whisper, hint=self._prompt_hint)
+        return self._filter_own_speech(self._transcribe(segment, self.prompt_whisper, hint=self._prompt_hint)) or ""
 
     def _run(self) -> None:
         while not self.stop_event.is_set():
@@ -426,6 +452,12 @@ class ConversationController:
                 continue
             self.on_timing("transcribed")
             self.last_heard = text
+            filtered = self._filter_own_speech(text)
+            if filtered is None:
+                continue
+            text = filtered
+            if not text:
+                continue
             if self.stop_event.is_set():
                 break
 
