@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 import re
 import subprocess
+import threading
 from pathlib import Path
 
 from voxa import simulation
@@ -108,8 +109,83 @@ def _press(combo: str, times: int = 1) -> bool:
     return ok
 
 
+SPIN_SECONDS = 1.2   # one face of the cube every 1.2 s: a medium rate
+SPIN_MAX_FACES = 200
+_spin_stop = threading.Event()
+_spin_thread: threading.Thread | None = None
+
+
+def faces_from_wmctrl(listing: str) -> int:
+    """How many faces the cube has, from ``wmctrl -d`` ("DG: 7680x1080 ... WA: 0,0 1920x1080" -> 4)."""
+    match = re.search(r"DG:\s*(\d+)x\d+.*?WA:\s*\S+\s+(\d+)x\d+", listing)
+    if match and int(match.group(2)) > 0:
+        faces = round(int(match.group(1)) / int(match.group(2)))
+        if faces >= 2:
+            return faces
+    lines = [line for line in listing.splitlines() if line.strip()]
+    return len(lines) if len(lines) >= 2 else 4
+
+
+def way_back(turned: int, faces: int) -> tuple[str, int]:
+    """The shortest way home after ``turned`` right turns on a cube of ``faces``: (direction, presses)."""
+    offset = turned % max(faces, 1)
+    if offset == 0:
+        return ("cube_left", 0)
+    return ("cube_left", offset) if offset <= faces - offset else ("cube_right", faces - offset)
+
+
+def spinning() -> bool:
+    return _spin_thread is not None and _spin_thread.is_alive()
+
+
+def stop_spin(wait: float = 0.0) -> bool:
+    """Stop a running spin (it turns back to where it started). True when one was running."""
+    if not spinning():
+        return False
+    _spin_stop.set()
+    if wait:
+        _spin_thread.join(wait)
+    return True
+
+
+def _spin(keys: dict[str, str], faces: int, sleep=None) -> None:
+    turned = 0
+    while turned < SPIN_MAX_FACES and not _spin_stop.is_set():
+        if not _press(keys["cube_right"]):
+            break
+        turned += 1
+        if _spin_stop.wait(SPIN_SECONDS):
+            break
+    direction, presses = way_back(turned, faces)
+    if presses:
+        _press(keys[direction], presses)
+
+
+def start_spin() -> ToolResult:
+    global _spin_thread
+    if spinning():
+        return ToolResult.success("Already spinning. Say stop to finish.")
+    keys = bindings()
+    try:
+        listing = subprocess.run(
+            host_command(["wmctrl", "-d"]), capture_output=True, text=True, timeout=5, check=False
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        listing = ""
+    _spin_stop.clear()
+    _spin_thread = threading.Thread(
+        target=_spin, args=(keys, faces_from_wmctrl(listing)), name="cube-spin", daemon=True
+    )
+    _spin_thread.start()
+    return ToolResult.success("Spinning. Say stop when you have had enough.")
+
+
 def compiz_control(args: dict[str, str]) -> ToolResult:
     action = args["action"]
+    if action == "spin":
+        return start_spin()
+    if action == "spin_stop":
+        return ToolResult.success("Stopping." if stop_spin() else "The cube is not spinning.")
     keys = bindings()
     plan: dict[str, tuple[str, int, str]] = {
         "cube_right": ("cube_right", 1, "Rotating right."),

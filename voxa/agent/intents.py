@@ -228,8 +228,10 @@ _VOLUME_NUM = re.compile(r"volume\s+(\d{1,3})(?:\s*(?:percent|%))?", re.IGNORECA
 _MAX_VOLUME = re.compile(r"max(?:imum)?\s+volume", re.IGNORECASE)
 _HALF_VOLUME = re.compile(r"half\s+volume", re.IGNORECASE)
 _GET_VOLUME = re.compile(r"what(?:'s| is)?\s+the\s+volume|current\s+volume", re.IGNORECASE)
-_CUBE_RIGHT = re.compile(r"rotate\s+(?:the\s+)?cube\s+right", re.IGNORECASE)
-_CUBE_LEFT = re.compile(r"rotate\s+(?:the\s+)?cube\s+left", re.IGNORECASE)
+_CUBE_RIGHT = re.compile(r"(?:rotate|spin|turn)\s+(?:the\s+)?cube\s+(?:to\s+the\s+)?right", re.IGNORECASE)
+_CUBE_LEFT = re.compile(r"(?:rotate|spin|turn)\s+(?:the\s+)?cube\s+(?:to\s+the\s+)?left", re.IGNORECASE)
+_CUBE_SPIN = re.compile(r"(?:spin|start\s+spinning|keep\s+spinning)\s+(?:the\s+)?cube", re.IGNORECASE)
+_CUBE_SPIN_STOP = re.compile(r"stop\s+(?:spinning|the\s+cube|spinning\s+the\s+cube)", re.IGNORECASE)
 _ZOOM_IN_MORE = re.compile(r"zoom\s+in\s+more", re.IGNORECASE)
 _ZOOM_IN = re.compile(r"zoom\s+in", re.IGNORECASE)
 _ZOOM_LEFT = re.compile(r"zoom\s+left", re.IGNORECASE)
@@ -911,6 +913,10 @@ def route(text: str) -> ToolCall | None:
         return call("system_volume", action="get")
     if _VOLUME_NUM.fullmatch(s):
         return call("system_volume", action="set", percent=_VOLUME_NUM.fullmatch(s).group(1))
+    if _CUBE_SPIN.fullmatch(s):
+        return call("compiz_control", action="spin")
+    if _CUBE_SPIN_STOP.fullmatch(s):
+        return call("compiz_control", action="spin_stop")
     if _CUBE_RIGHT.fullmatch(s):
         return call("compiz_control", action="cube_right")
     if _CUBE_LEFT.fullmatch(s):

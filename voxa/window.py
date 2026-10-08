@@ -29,7 +29,7 @@ from .agent.result import ToolResult  # noqa: E402
 from .agent.routines import Routine, RoutineStore, parse_create, parse_delete, parse_list  # noqa: E402
 from .agent.spoken_text import format_dictation, parse_dictation_control  # noqa: E402
 from .agent.suggest import Suggestion, SuggestionState, suggest  # noqa: E402
-from .agent.tools import contacts, default_registry, github, media, textedit, typing, windows  # noqa: E402
+from .agent.tools import compiz, contacts, default_registry, github, media, textedit, typing, windows  # noqa: E402
 from .agent.tools.web import get_session  # noqa: E402
 from .anc import EchoCanceller as AncCanceller  # noqa: E402
 from .audio import AudioCapture, AudioDevice  # noqa: E402
@@ -2012,6 +2012,8 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _run_tool(self, call: intents.ToolCall, prompt: str) -> None:
         """A recognised command goes straight to its tool, never to the model."""
+        if call.args.get("action") != "spin":
+            compiz.stop_spin()  # any new command ends a spinning cube (it turns back home)
         if repeat.repeatable(call.tool):
             self._last_tool_call = call
         self._tool_ran_for_request = True
@@ -3350,6 +3352,7 @@ class MainWindow(Adw.ApplicationWindow):
     def stop_current_work(self) -> None:
         # The OFFLINE kill switch: stops the microphone, wake-word monitoring, dictation,
         # speech and the running request, cancels tasks, and makes late callbacks stale.
+        compiz.stop_spin()
         self.assistant.go_offline()
         self._stop_external_dictation()
         self._issue_flow = None
