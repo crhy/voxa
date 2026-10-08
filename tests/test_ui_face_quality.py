@@ -27,14 +27,14 @@ def _pump(iterations: int = 150) -> None:
 
 def test_quality_label_table() -> None:
     assert quality_label("still") == "Low"
-    assert quality_label("prerendered") == "Medium"
+    assert quality_label("prerendered") == "Med"
     assert quality_label("live") == "High"
-    assert quality_label("bogus") == "Medium"
+    assert quality_label("bogus") == "Med"
 
 
 def test_mode_for_label_table() -> None:
     assert mode_for_label("Low") == "still"
-    assert mode_for_label("Medium") == "prerendered"
+    assert mode_for_label("Med") == "prerendered"
     assert mode_for_label("High") == "live"
     assert mode_for_label("bogus") == "prerendered"
 

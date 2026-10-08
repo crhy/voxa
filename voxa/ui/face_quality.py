@@ -1,4 +1,4 @@
-"""A clearly labelled "Facial Quality" switch: Low / Medium / High.
+"""A clearly labelled "Facial Quality" switch: Low / Med / High.
 
 Low = a still portrait, Medium = pre-rendered lip movement, High = the full
 neural face. The three levels are toggle buttons kept mutually exclusive by
@@ -17,7 +17,7 @@ from gi.repository import Gtk  # noqa: E402
 
 QUALITY_LEVELS = (
     ("still", "Low", "A still portrait"),
-    ("prerendered", "Medium", "Pre-rendered lip movement, works on any computer"),
+    ("prerendered", "Med", "Medium: pre-rendered lip movement, works on any computer"),
     ("live", "High", "Full neural face, needs a graphics card"),
 )
 
@@ -30,8 +30,8 @@ LIVE_UNAVAILABLE_REASON = "The full neural face is not available yet"
 
 
 def quality_label(mode: str) -> str:
-    """Map a face mode to its quality label; unknown modes read as Medium."""
-    return MODE_TO_LABEL.get(mode, "Medium")
+    """Map a face mode to its quality label; unknown modes read as Med."""
+    return MODE_TO_LABEL.get(mode, "Med")
 
 
 def mode_for_label(label: str) -> str:
@@ -40,7 +40,7 @@ def mode_for_label(label: str) -> str:
 
 
 class FaceQualitySwitch(Gtk.Box):
-    """A caption plus three linked toggle buttons (Low / Medium / High)."""
+    """A caption plus three linked toggle buttons (Low / Med / High)."""
 
     def __init__(self, on_selected: Callable[[str], None] | None = None, stacked: bool = False) -> None:
         # ``stacked`` puts the caption on its own line above the buttons: a narrow block for the left column.
