@@ -273,6 +273,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._last_search_at = 0.0
         self._search_record: dict | None = None
         self._search_source = ""
+        self._search_results: list = []
         self._last_site_url: tuple[float, str] | None = None
         self.style_manager = Adw.StyleManager.get_default()
         self._apply_appearance()
@@ -3372,6 +3373,7 @@ class MainWindow(Adw.ApplicationWindow):
     def _web_context(self, prompt: str, generation: int, cancel_event: threading.Event) -> str:
         self._search_record = None
         self._search_source = ""
+        self._search_results = []
         previous = self._last_search_query
         if previous is not None and time.time() - self._last_search_at > 180:
             previous = None
@@ -3391,6 +3393,7 @@ class MainWindow(Adw.ApplicationWindow):
         if results:
             self._last_site_url = (time.time(), results[0].url)
             self._search_source = websearch.source_line(results)
+            self._search_results = results
             return websearch.format_for_prompt(query, results)
         return ""
 
@@ -3718,6 +3721,9 @@ class MainWindow(Adw.ApplicationWindow):
             # The model talked as if it had acted, but no tool ran: answer honestly.
             self._log_action(heard, "false_claim", detail=first_sentences(answer, 1))
             spoken = FALSE_CLAIM_REPLY
+        if spoken and spoken != FALSE_CLAIM_REPLY and self._search_results:
+            query = ((self._search_record or {}).get("args") or {}).get("query", "")
+            spoken = websearch.grounded_answer(spoken, self._search_results, query)
         if spoken != answer:
             buffer = self.response_view.get_buffer()
             buffer.set_text(spoken)
