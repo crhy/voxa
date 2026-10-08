@@ -5,6 +5,7 @@ from voxa.agent.tools.applications import application_tools
 from voxa.agent.tools.appstore import appstore_tools
 from voxa.agent.tools.browser import browser_tools
 from voxa.agent.tools.calc import calc_tools
+from voxa.agent.tools.camera import camera_tools
 from voxa.agent.tools.compiz import compiz_tools
 from voxa.agent.tools.contacts import contact_tools
 from voxa.agent.tools.deals import deal_tools
@@ -44,6 +45,7 @@ def default_registry() -> ToolRegistry:
         *reminders_tools(),
         *notes_tools(),
         *screenshot_tools(),
+        *camera_tools(),
         *home_tools(),
         *volume_tools(),
         *compiz_tools(),

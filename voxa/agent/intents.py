@@ -403,6 +403,15 @@ _READ_NOTES = re.compile(
 )
 _DELETE_LAST_NOTE = re.compile(r"(?:delete|remove|erase|scratch) (?:my |the )?last note", re.IGNORECASE)
 _OPEN_NOTES = re.compile(r"open (?:my )?notes", re.IGNORECASE)
+_TAKE_PICTURE = re.compile(
+    r"(?:take|snap|shoot|grab)\s+(?:a\s+|my\s+|me\s+a\s+)?(?:picture|photo|photograph|selfie|pic)"
+    r"(?:\s+of\s+me|\s+with\s+the\s+(?:web\s?cam|camera))?(?:\s+please)?",
+    re.IGNORECASE,
+)
+_SHOW_PICTURE = re.compile(
+    r"(?:show|open)(?:\s+me)?\s+(?:the|that|my)\s+(?:picture|photo|selfie)|let\s+me\s+see\s+(?:it|the\s+(?:picture|photo))",
+    re.IGNORECASE,
+)
 _TAKE_SCREENSHOT = re.compile(
     r"(?:take|grab|capture|make) (?:a |me a )?(?:screen ?shot|picture of (?:the|my) screen)"
     r"(?: of (?:the|my) screen)?(?: please)?|screen ?shot(?: this| that| the screen)?",
@@ -525,6 +534,8 @@ ROUTED_TOOLS = frozenset(
         "delete_last_note",
         "open_notes",
         "take_screenshot",
+        "take_picture",
+        "show_picture",
         "home_turn",
         "home_set",
         "home_scene",
@@ -654,6 +665,10 @@ def route(text: str) -> ToolCall | None:
         return call("open_notes")
     if _TAKE_SCREENSHOT.fullmatch(s):
         return call("take_screenshot")
+    if _TAKE_PICTURE.fullmatch(s):
+        return call("take_picture")
+    if _SHOW_PICTURE.fullmatch(s):
+        return call("show_picture")
 
     browse_match = _BROWSE.fullmatch(s)
     if browse_match and "." in browse_match.group(1):
