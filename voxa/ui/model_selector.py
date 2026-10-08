@@ -39,8 +39,13 @@ class ModelSelector(Gtk.Box):
         self,
         on_model_selected: Callable[[str], None] | None = None,
         on_backend_selected: Callable[[str], None] | None = None,
+        stacked: bool = False,
     ) -> None:
-        super().__init__(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        # ``stacked`` gives three short lines (label, model, engine + status): a narrow block for the left column.
+        super().__init__(
+            orientation=Gtk.Orientation.VERTICAL if stacked else Gtk.Orientation.HORIZONTAL,
+            spacing=6 if stacked else 8,
+        )
 
         label = Gtk.Label(label="Local AI")
         label.add_css_class("voxa-section")
@@ -70,14 +75,29 @@ class ModelSelector(Gtk.Box):
         self._dropdown.connect("notify::selected", self._on_selected)
         self._backend_dropdown.connect("notify::selected", self._on_backend_selected)
 
-        self.append(label)
-        self.append(self._dropdown)
-        self.append(self._backend_dropdown)
         # Whether the chosen AI engine is answering: a coloured dot and one word.
         self._status = Gtk.Label(label="")
         self._status.add_css_class("voxa-ai-status")
         self._status.set_visible(False)
-        self.append(self._status)
+        if stacked:
+            # Same look as the FACIAL QUALITY caption above it.
+            label.set_label("LOCAL AI")
+            label.remove_css_class("voxa-section")
+            label.add_css_class("voxa-control-caption")
+            label.set_xalign(0)
+            label.set_halign(Gtk.Align.START)
+            self._dropdown.set_halign(Gtk.Align.START)
+            engine_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            engine_row.append(self._backend_dropdown)
+            engine_row.append(self._status)
+            self.append(label)
+            self.append(self._dropdown)
+            self.append(engine_row)
+        else:
+            self.append(label)
+            self.append(self._dropdown)
+            self.append(self._backend_dropdown)
+            self.append(self._status)
         self._status_state = ""
 
     def set_status(self, state: str) -> None:

@@ -42,9 +42,14 @@ def mode_for_label(label: str) -> str:
 class FaceQualitySwitch(Gtk.Box):
     """A caption plus three linked toggle buttons (Low / Medium / High)."""
 
-    def __init__(self, on_selected: Callable[[str], None] | None = None) -> None:
-        super().__init__(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+    def __init__(self, on_selected: Callable[[str], None] | None = None, stacked: bool = False) -> None:
+        # ``stacked`` puts the caption on its own line above the buttons: a narrow block for the left column.
+        super().__init__(
+            orientation=Gtk.Orientation.VERTICAL if stacked else Gtk.Orientation.HORIZONTAL,
+            spacing=6 if stacked else 8,
+        )
         self.on_selected = on_selected
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8) if stacked else self
 
         caption = Gtk.Label(label="FACIAL QUALITY")
         caption.set_xalign(0)
@@ -62,14 +67,16 @@ class FaceQualitySwitch(Gtk.Box):
             button.set_active(mode == self._mode)
             button.connect("clicked", self._make_click_handler(mode))
             self._buttons[mode] = button
-            self.append(button)
+            row.append(button)
 
         # What High is doing right now ("Loading the high-resolution face…"); empty and hidden otherwise.
         self._status = Gtk.Label(label="")
         self._status.set_xalign(0)
         self._status.add_css_class("voxa-control-caption")
         self._status.set_visible(False)
-        self.append(self._status)
+        row.append(self._status)
+        if stacked:
+            self.append(row)
 
     def set_status(self, text: str) -> None:
         """Show a short status after the buttons; an empty string hides it."""

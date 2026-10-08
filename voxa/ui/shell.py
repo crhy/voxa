@@ -152,22 +152,23 @@ class AssistantShell(Gtk.Overlay):
         self.model_selector = ModelSelector(
             on_model_selected=self._model_selected,
             on_backend_selected=self._backend_selected,
+            stacked=True,
         )
         self.character_picker = PortraitPicker(
             on_character_selected=self._character_selected,
         )
-        # Two short rows, centred: one long row ran underneath the ACTIVE / OFFLINE buttons.
-        self._bottom_controls = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        self.face_quality = FaceQualitySwitch(on_selected=self._face_mode_selected)
-        self.face_quality.set_halign(Gtk.Align.CENTER)
-        self.model_selector.set_halign(Gtk.Align.CENTER)
+        # Two narrow blocks in the bottom-left corner, above the attachment button: the middle of the
+        # window belongs to the face and its caption, the right to the ACTIVE / PAUSE / OFFLINE buttons.
+        self._bottom_controls = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+        self.face_quality = FaceQualitySwitch(on_selected=self._face_mode_selected, stacked=True)
+        self.face_quality.set_halign(Gtk.Align.START)
+        self.model_selector.set_halign(Gtk.Align.START)
         self._bottom_controls.append(self.face_quality)
         self._bottom_controls.append(self.model_selector)
-        self._bottom_controls.set_halign(Gtk.Align.CENTER)
-        # Three status buttons sit bottom-right: nudge the centred rows left so a long model name clears them.
-        self._bottom_controls.set_margin_end(220)
+        self._bottom_controls.set_halign(Gtk.Align.START)
         self._bottom_controls.set_valign(Gtk.Align.END)
-        self._bottom_controls.set_margin_bottom(EDGE_MARGIN)
+        self._bottom_controls.set_margin_start(EDGE_MARGIN)
+        self._bottom_controls.set_margin_bottom(EDGE_MARGIN + 44)
         self.add_overlay(self._bottom_controls)
 
         self.status_controls = StatusControls(
