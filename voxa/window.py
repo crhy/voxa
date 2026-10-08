@@ -15,7 +15,7 @@ gi.require_version("Adw", "1")
 gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
-from . import apps, documents, mail, wakelabel, websearch, welcome  # noqa: E402
+from . import apps, documents, mail, speechfit, wakelabel, websearch, welcome  # noqa: E402
 from .agent import hearing, host, intents, issueflow, mailflow, planner, repeat, ui  # noqa: E402
 from .agent.actionlog import ActionLog, ActionRecord  # noqa: E402
 from .agent.claims import claims_action, first_sentences  # noqa: E402
@@ -1602,9 +1602,21 @@ class MainWindow(Adw.ApplicationWindow):
             return False
         self._welcome_followup = step != "ready"
         name = self._character_name()
+        note = ""
+        try:
+            gpu, threads, ram = speechfit.detect()
+            old_model = self.settings.whisper_model
+            if speechfit.is_too_heavy(old_model, gpu):
+                new_model = speechfit.recommend_whisper(gpu, threads, ram)
+                self._load_whisper(new_model)
+                note = speechfit.spoken_note(old_model, new_model)
+        except Exception as exc:
+            logging.warning("speechfit welcome fit failed: %s", exc)
         WelcomeDialog(name, step, self._on_welcome_primary, self._on_welcome_tutorial).present(self)
+        if note:
+            self._toast(note)
         self.speech.speak(
-            welcome.spoken(step, name),
+            welcome.spoken(step, name) + (" " + note if note else ""),
             self.settings.tts_rate,
             self._reply_voice(),
             on_started=lambda: None,
@@ -3536,9 +3548,19 @@ class MainWindow(Adw.ApplicationWindow):
         echo_row.connect("notify::active", self._on_echo_row_changed)
         listening_group.add(echo_row)
 
+        whisper_subtitle = "Whisper size: smaller starts faster, larger hears more accurately"
+        try:
+            gpu, threads, ram = speechfit.detect()
+            recommended = speechfit.recommend_whisper(gpu, threads, ram)
+            recommended_name = recommended[:1].upper() + recommended[1:]
+            whisper_subtitle = f"Recommended for this computer: {recommended_name}. " + speechfit.explain(
+                recommended, gpu, threads
+            )
+        except Exception as exc:
+            logging.warning("speechfit preference fit failed: %s", exc)
         whisper_row = Adw.ComboRow(
             title="Recognition model",
-            subtitle="Whisper size: smaller starts faster, larger hears more accurately",
+            subtitle=whisper_subtitle,
         )
         whisper_model = Gtk.StringList.new(WHISPER_MODELS)
         whisper_row.set_model(whisper_model)
@@ -3698,6 +3720,17 @@ class MainWindow(Adw.ApplicationWindow):
         rate_row,
     ) -> None:
         new_whisper = WHISPER_MODELS[whisper_row.get_selected()]
+        heavy_note = ""
+        try:
+            gpu, _threads, _ram = speechfit.detect()
+            if speechfit.is_too_heavy(new_whisper, gpu):
+                heavy_name = new_whisper[:1].upper() + new_whisper[1:]
+                heavy_note = (
+                    f"{heavy_name} is heavy for this computer; dictation may lag. "
+                    "Base is the comfortable choice."
+                )
+        except Exception as exc:
+            logging.warning("speechfit save fit failed: %s", exc)
         if self.devices:
             device = self.devices[min(mic_row.get_selected(), len(self.devices) - 1)]
             self.settings.microphone_id = device.identifier
@@ -3729,6 +3762,8 @@ class MainWindow(Adw.ApplicationWindow):
             assistant_view.set_character(self.settings.character_id)
         if new_whisper != self.settings.whisper_model:
             self._load_whisper(new_whisper)
+        if heavy_note:
+            self._toast(heavy_note)
         self._refresh_ollama_models()
         # Keep the main-shell backend dropdown in step with what was just saved.
         self.shell.set_backend(self.settings.ai_backend)

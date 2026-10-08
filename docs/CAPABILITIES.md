@@ -204,6 +204,7 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | --- | --- | --- |
 | Top-left tips | Change with what you are doing (dictating, paused, music playing …) | 🧪 |
 | Small face when Voxa is not in focus | A round talking head floats in the top-right corner of the screen, above other programs, with a one-line status; click it to bring Voxa back. X11 only | 🧪 |
+| Whisper model that fits this computer | At the first-run welcome Voxa checks the hardware and switches a too-heavy Whisper model to one this computer runs comfortably (Turbo only with a usable graphics card; otherwise Base, or Tiny on small machines); Preferences show the recommendation and a heavy manual choice warns. (#94) | 🧪 |
 
 ---
 
