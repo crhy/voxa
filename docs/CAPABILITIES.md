@@ -76,7 +76,7 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | “Take a screenshot” | Saves a picture of the screen to Pictures | 🧪 |
 | “Install the most popular SNES emulator” / “Install GIMP” | Finds it on Flathub, opens it in Spaced Bazaar, presses Install there, and checks it is really installed before saying so | 🧪 |
 | “Uninstall Snes9x” | Removes an installed Flatpak app | 🧪 |
-| “Spin cube” … “stop” | The cube keeps turning until you say stop or give any command, then returns to where it started | 🧪 |
+| “Spin cube” … “stop” | The cube slowly rotates while zoomed out (like holding ctrl+alt and dragging) until you say stop or give any command, then returns to where it started | 🧪 needs the owner's check on a real desktop |
 | “Take a picture” / “show me the picture” | A webcam photo saved to Pictures | 🧪 |
 
 ## Music and video

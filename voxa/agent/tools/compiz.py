@@ -109,8 +109,13 @@ def _press(combo: str, times: int = 1) -> bool:
     return ok
 
 
-SPIN_SECONDS = 1.2   # one face of the cube every 1.2 s: a medium rate
+SPIN_SECONDS = 1.2   # one face of the cube every 1.2 s: a medium rate (fallback spin)
 SPIN_MAX_FACES = 200
+SPIN_GRAB = True  # the grab spin below; False falls back to pressing the rotate keys
+SPIN_STEP_MS = 40  # one pointer step every 40 ms
+SPIN_TURN_SECONDS = 20.0  # one full turn of the cube takes this long
+SPIN_MAX_SECONDS = 300.0  # five minutes, then the spin stops itself
+SPIN_EDGE_MARGIN = 150  # let go and grab again when the pointer gets this close to a screen edge
 _spin_stop = threading.Event()
 _spin_thread: threading.Thread | None = None
 
@@ -124,6 +129,20 @@ def faces_from_wmctrl(listing: str) -> int:
             return faces
     lines = [line for line in listing.splitlines() if line.strip()]
     return len(lines) if len(lines) >= 2 else 4
+
+
+def desktop_size(listing: str) -> tuple[int, int, int]:
+    """(desktop width, screen width, screen height) from ``wmctrl -d``; zeros when unknown."""
+    match = re.search(r"DG:\s*(\d+)x\d+.*?WA:\s*\S+\s+(\d+)x(\d+)", listing)
+    if match:
+        return (int(match.group(1)), int(match.group(2)), int(match.group(3)))
+    return (0, 0, 0)
+
+
+def spin_dx(desktop_width: int, turn_seconds: float = SPIN_TURN_SECONDS, step_ms: int = SPIN_STEP_MS) -> int:
+    """Pixels per pointer step so the pointer crosses the whole desktop once per turn."""
+    steps = max(1, int(turn_seconds * 1000 // step_ms))
+    return max(1, round(desktop_width / steps))
 
 
 def way_back(turned: int, faces: int) -> tuple[str, int]:
@@ -161,7 +180,72 @@ def _spin(keys: dict[str, str], faces: int, sleep=None) -> None:
         _press(keys[direction], presses)
 
 
-def start_spin() -> ToolResult:
+def _mouse_position() -> tuple[int, int] | None:
+    if simulation.actions_simulated():
+        return None
+    try:
+        done = subprocess.run(host_command(["xdotool", "getmouseposition"]), capture_output=True, text=True, timeout=5, check=False)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    parts = done.stdout.split()
+    if len(parts) >= 2:
+        try:
+            return (int(parts[0]), int(parts[1]))
+        except ValueError:
+            return None
+    return None
+
+
+def _spin_grab(start: tuple[int, int], desktop_w: int, screen_w: int, screen_h: int, direction: int) -> None:
+    """Grab the cube the way the user does: hold ctrl+alt, drag with mouse button 1, step the pointer sideways."""
+    dx = spin_dx(desktop_w) * direction
+    x, y = start
+    keys_down = False
+    button_down = False
+
+    def release() -> None:
+        nonlocal keys_down, button_down
+        if button_down:
+            _run(["xdotool", "mouseup", "1"])
+            button_down = False
+        if keys_down:
+            _run(["xdotool", "keyup", "ctrl+alt"])
+            keys_down = False
+
+    def grab() -> bool:
+        nonlocal keys_down, button_down
+        if _run(["xdotool", "keydown", "ctrl+alt"]):
+            keys_down = True
+            if _run(["xdotool", "mousedown", "1"]):
+                button_down = True
+                return True
+            release()
+        return False
+
+    try:
+        if not grab():
+            return
+        elapsed = 0.0
+        while elapsed < SPIN_MAX_SECONDS and not _spin_stop.is_set():
+            if (dx > 0 and x + SPIN_EDGE_MARGIN >= screen_w) or (dx < 0 and x - SPIN_EDGE_MARGIN <= 0):
+                release()
+                x, y = screen_w // 2, screen_h // 2
+                if not _run(["xdotool", "mousemove", str(x), str(y)]):
+                    break
+                if not grab():
+                    break
+            if not _run(["xdotool", "mousemove_relative", "--", str(dx), "0"]):
+                break
+            x += dx
+            if _spin_stop.wait(SPIN_STEP_MS / 1000):
+                break
+            elapsed += SPIN_STEP_MS / 1000
+    finally:
+        release()
+        _run(["xdotool", "mousemove", str(start[0]), str(start[1])])
+
+
+def start_spin(direction: str = "right") -> ToolResult:
     global _spin_thread
     if spinning():
         return ToolResult.success("Already spinning. Say stop to finish.")
@@ -173,6 +257,18 @@ def start_spin() -> ToolResult:
     except (OSError, subprocess.SubprocessError):
         listing = ""
     _spin_stop.clear()
+    if SPIN_GRAB:
+        desktop_w, screen_w, screen_h = desktop_size(listing)
+        start = _mouse_position()
+        if desktop_w and screen_w and start:
+            _spin_thread = threading.Thread(
+                target=_spin_grab,
+                args=(start, desktop_w, screen_w, screen_h, -1 if direction == "left" else 1),
+                name="cube-spin",
+                daemon=True,
+            )
+            _spin_thread.start()
+            return ToolResult.success("Spinning. Say stop when you have had enough.")
     _spin_thread = threading.Thread(
         target=_spin, args=(keys, faces_from_wmctrl(listing)), name="cube-spin", daemon=True
     )
@@ -183,7 +279,7 @@ def start_spin() -> ToolResult:
 def compiz_control(args: dict[str, str]) -> ToolResult:
     action = args["action"]
     if action == "spin":
-        return start_spin()
+        return start_spin(args.get("direction", "right"))
     if action == "spin_stop":
         return ToolResult.success("Stopping." if stop_spin() else "The cube is not spinning.")
     keys = bindings()
@@ -213,11 +309,12 @@ def compiz_tools() -> list[Tool]:
         Tool(
             name="compiz_control",
             description=(
-                "Compiz desktop effects: rotate the desktop cube left or right, zoom the desktop in or out, "
-                "and move the zoomed view left or right."
+                "Compiz desktop effects: rotate the desktop cube left or right, spin it slowly while zoomed out "
+                "(like holding ctrl+alt and dragging), zoom the desktop in or out, and move the zoomed view left or right."
             ),
             parameters={
-                "action": "one of cube_right, cube_left, zoom_in, zoom_in_more, zoom_out, zoom_reset, zoom_left, zoom_right",
+                "action": "one of cube_right, cube_left, spin, spin_stop, zoom_in, zoom_in_more, zoom_out, zoom_reset, zoom_left, zoom_right",
+                "direction": "for spin: left or right (default right)",
             },
             risk=RiskLevel.REVERSIBLE,
             handler=compiz_control,
