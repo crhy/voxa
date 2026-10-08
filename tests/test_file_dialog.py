@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import time
 
 from voxa.agent.tools.files import file_dialog, file_dialog_tools
 
@@ -50,8 +51,12 @@ def test_close_argv(monkeypatch):
 
 def test_new_argv(monkeypatch):
     calls = _record(monkeypatch)
+    ticks = iter(range(1000))
+    monkeypatch.setattr(time, "monotonic", lambda: next(ticks))
+    monkeypatch.setattr(time, "sleep", lambda s: None)
     result = file_dialog({"action": "new"})
-    assert calls == [["xdotool", "key", "--clearmodifiers", "ctrl+n"]]
+    assert ["xdotool", "key", "--clearmodifiers", "ctrl+n"] in calls
+    assert any(command[:2] == ["wmctrl", "-lx"] for command in calls)
     assert result.ok
 
 

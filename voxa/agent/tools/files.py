@@ -42,6 +42,31 @@ def _wait_for(condition, seconds: float = 2.0) -> bool:
     return condition()
 
 
+def _focus_new_document() -> None:
+    """Press ctrl+n and put the freshly created document window in front.
+
+    Some editors open a brand-new window for the new document; others reuse the
+    focused one (its title changes instead), which is already in front, so nothing
+    more is needed there. Either way nothing is clicked and nothing is typed.
+    """
+    from voxa.agent.tools.windows import _run, list_windows
+
+    before = {window.id for window in list_windows()}
+    press_keys(_NEW_DOCUMENT)
+    new_id = ""
+
+    def _new_window() -> bool:
+        nonlocal new_id
+        for window in list_windows():
+            if window.id and window.id not in before:
+                new_id = window.id
+                return True
+        return False
+
+    if _wait_for(_new_window, 4.0):
+        _run(["wmctrl", "-i", "-a", new_id])
+
+
 def documents_dir() -> str:
     """The user's Documents folder on the host (created if missing); "" when it cannot be found."""
     from voxa.agent.tools.windows import _run
@@ -150,7 +175,7 @@ def file_dialog(args: dict[str, str]) -> ToolResult:
         elif action == "close":
             press_keys(_CLOSE_FILE)
         elif action == "new":
-            press_keys(_NEW_DOCUMENT)
+            _focus_new_document()
         else:
             return ToolResult.failure("I don't know that file action.")
     except Exception as exc:
