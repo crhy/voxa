@@ -239,6 +239,7 @@ def test_registry_lists_all_tools():
             "get_contact_email",
             "get_noise_cancellation",
             "go_back",
+            "hidden_files",
             "home_scene",
             "home_set",
             "home_status",

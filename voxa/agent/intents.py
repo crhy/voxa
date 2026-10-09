@@ -259,6 +259,10 @@ _MAKE_FOLDER = re.compile(
     r"(?:create|make|add) (?:a )?(?:new )?(?:folder|directory) (?:called |named )?(.+?) in (.+)",
     re.IGNORECASE,
 )
+_HIDDEN_FILES = re.compile(
+    r"(show|check|turn on|hide|uncheck|turn off|toggle) hidden files",
+    re.IGNORECASE,
+)
 _PREVIOUS = re.compile(
     r"previous\s+(?:song|track|video)|go\s+back\s+a\s+song", re.IGNORECASE
 )
@@ -587,6 +591,7 @@ ROUTED_TOOLS = frozenset(
         "rename_file",
         "make_folder",
         "undo_file_action",
+        "hidden_files",
         "type_text",
         "file_dialog",
         "send_gmail",
@@ -1071,6 +1076,15 @@ def route(text: str) -> ToolCall | None:
         return call("press_key", key=key_match.group(1))
     if s.casefold() in _BARE_KEYS:
         return call("press_key", key=s.casefold())
+
+    hidden_files_match = _HIDDEN_FILES.fullmatch(s)
+    if hidden_files_match:
+        verb = hidden_files_match.group(1).casefold()
+        if verb in ("show", "check", "turn on"):
+            return call("hidden_files", show="on")
+        if verb in ("hide", "uncheck", "turn off"):
+            return call("hidden_files", show="off")
+        return call("hidden_files", show="toggle")
 
     home_on = _HOME_TURN_ON.fullmatch(s)
     home_off = _HOME_TURN_OFF.fullmatch(s)

@@ -15,6 +15,7 @@ from voxa.agent.tools.filemanage import file_manage_tools
 from voxa.agent.tools.files import file_dialog_tools
 from voxa.agent.tools.github import github_tools
 from voxa.agent.tools.help import help_tools
+from voxa.agent.tools.hidden_files import hidden_files_tools
 from voxa.agent.tools.home import home_tools
 from voxa.agent.tools.media import media_tools
 from voxa.agent.tools.notes import notes_tools
@@ -59,6 +60,7 @@ def default_registry() -> ToolRegistry:
         *file_dialog_tools(),
         *textedit_tools(),
         *file_manage_tools(),
+        *hidden_files_tools(),
         *system_tools(),
         *sysupdate_tools(),
         *appstore_tools(),
