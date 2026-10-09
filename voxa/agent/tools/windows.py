@@ -554,6 +554,40 @@ def active_window_name(args: dict[str, str]) -> ToolResult:
     return ToolResult.success(f"This is {title[:80]}.")
 
 
+def scroll_keys(direction: str, amount: str) -> list[str]:
+    """The xdotool key names for a scroll, as a pure function of direction and amount."""
+    if amount == "page":
+        return ["Page_Up"] if direction == "up" else ["Page_Down"]
+    if amount == "little":
+        return ["Up"] * 3 if direction == "up" else ["Down"] * 3
+    if amount == "top":
+        return ["ctrl+Home"]
+    if amount == "bottom":
+        return ["ctrl+End"]
+    return []
+
+
+def scroll(args: dict[str, str]) -> ToolResult:
+    """Send scroll keys to the most recently active window that is not Voxa."""
+    direction = args["direction"]
+    amount = args.get("amount") or "page"
+    keys = scroll_keys(direction, amount)
+    if not keys:
+        return ToolResult.failure(f"I don't know how to scroll {direction} {amount}.")
+    window_id = _active_window_id()
+    if not window_id:
+        return ToolResult.failure("Nothing seems to be open.")
+    title = _run(["xdotool", "getactivewindow", "getwindowname"], check=False).stdout.strip()
+    if title == "Voxa":
+        others = [w for w in list_windows() if not _is_desktop(w)]
+        if not others:
+            return ToolResult.failure("Nothing seems to be open.")
+        window_id = others[0].id
+    _run(["wmctrl", "-i", "-a", window_id], check=False)
+    _run(["xdotool", "key", "--window", window_id, *keys], check=False)
+    return ToolResult.success(f"Scrolled {direction}.")
+
+
 def window_tools() -> list[Tool]:
     return [
         Tool(
@@ -683,5 +717,13 @@ def window_tools() -> list[Tool]:
             risk=RiskLevel.REVERSIBLE,
             handler=lock_screen,
             required=(),
+        ),
+        Tool(
+            name="scroll",
+            description="Scroll the window in front up or down, by a page, a little, to the top, or to the bottom.",
+            parameters={"direction": "up or down", "amount": "page, little, top, or bottom"},
+            risk=RiskLevel.REVERSIBLE,
+            handler=scroll,
+            required=("direction",),
         ),
     ]

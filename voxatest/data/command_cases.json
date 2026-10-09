@@ -1752,7 +1752,8 @@
       "say": "scroll down",
       "tool": "scroll",
       "args": {
-        "direction": "down"
+        "direction": "down",
+        "amount": "page"
       }
     },
     {
@@ -1761,7 +1762,8 @@
       "say": "scroll up",
       "tool": "scroll",
       "args": {
-        "direction": "up"
+        "direction": "up",
+        "amount": "page"
       }
     },
     {
@@ -1770,7 +1772,8 @@
       "say": "go to the top",
       "tool": "scroll",
       "args": {
-        "direction": "top"
+        "direction": "up",
+        "amount": "top"
       }
     },
     {
@@ -1779,7 +1782,8 @@
       "say": "go to the bottom of the page",
       "tool": "scroll",
       "args": {
-        "direction": "bottom"
+        "direction": "down",
+        "amount": "bottom"
       }
     },
     {

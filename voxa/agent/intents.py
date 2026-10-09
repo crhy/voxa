@@ -536,8 +536,13 @@ _SEARCH_SITE = re.compile(
     r"search (?:this site|here|this page) for (.+)", re.IGNORECASE
 )
 _SCROLL = re.compile(
-    r"scroll (down|up)|go to the (top|bottom)(?: of the page)?", re.IGNORECASE
+    r"(?:scroll|page)\s+(down|up)(?:\s+a\s+little)?"
+    r"|scroll\s+to\s+the\s+(top|bottom)"
+    r"|go\s+to\s+the\s+(top|bottom)(?:\s+of\s+the\s+page)?",
+    re.IGNORECASE,
 )
+_KEEP_SCROLLING = re.compile(r"keep scrolling", re.IGNORECASE)
+_LAST_SCROLL_DIRECTION = "down"
 _GO_BACK = re.compile(r"go back|previous page", re.IGNORECASE)
 _UPDATE_SYSTEM = re.compile(
     r"(?:please )?(?:update|upgrade) (?:spaced(?: linux)?|the (?:system|computer|os|operating system)"
@@ -712,6 +717,8 @@ def is_compound(text: str) -> bool:
 
 def route(text: str) -> ToolCall | None:
     """Map a spoken command to a tool call, or None when no rule matches."""
+    global _LAST_SCROLL_DIRECTION
+
     s = _prepare(normalize(text))
     if not s:
         return None
@@ -806,8 +813,22 @@ def route(text: str) -> ToolCall | None:
         return call("search_site", query=search_match.group(1))
     scroll_match = _SCROLL.fullmatch(s)
     if scroll_match:
-        direction = next(g for g in scroll_match.groups() if g is not None)
-        return call("scroll", direction=direction)
+        if scroll_match.group(2) or scroll_match.group(3):
+            amount = scroll_match.group(2) or scroll_match.group(3)
+        elif "a little" in s:
+            amount = "little"
+        else:
+            amount = "page"
+        if amount == "top":
+            direction = "up"
+        elif amount == "bottom":
+            direction = "down"
+        else:
+            direction = "up" if "up" in s else "down"
+        _LAST_SCROLL_DIRECTION = direction
+        return call("scroll", direction=direction, amount=amount)
+    if _KEEP_SCROLLING.fullmatch(s):
+        return call("scroll", direction=_LAST_SCROLL_DIRECTION, amount="page")
     if _GO_BACK.fullmatch(s):
         return call("go_back")
 

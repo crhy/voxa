@@ -153,25 +153,6 @@ def search_web(args: dict[str, str]) -> ToolResult:
     return ToolResult.success(f"Searching the web for {query}.", detail=detail)
 
 
-def scroll(args: dict[str, str]) -> ToolResult:
-    direction = args["direction"]
-    session = get_session()
-    try:
-        if direction == "down":
-            session.evaluate("window.scrollBy(0, 500)")
-        elif direction == "up":
-            session.evaluate("window.scrollBy(0, -500)")
-        elif direction == "top":
-            session.evaluate("window.scrollTo(0, 0)")
-        elif direction == "bottom":
-            session.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-        else:
-            return ToolResult.failure(f"I don't know how to scroll {direction}.")
-    except CdpError as exc:
-        return ToolResult.failure("I couldn't scroll the page.", detail=str(exc))
-    return ToolResult.success(f"Scrolled {direction}.")
-
-
 def web_tools() -> list[Tool]:
     return [
         Tool(
@@ -250,13 +231,5 @@ def web_tools() -> list[Tool]:
             risk=RiskLevel.REVERSIBLE,
             handler=search_web,
             required=("query",),
-        ),
-        Tool(
-            name="scroll",
-            description="Scroll the page down, up, to the top, or to the bottom.",
-            parameters={"direction": "down, up, top, or bottom"},
-            risk=RiskLevel.REVERSIBLE,
-            handler=scroll,
-            required=("direction",),
         ),
     ]
