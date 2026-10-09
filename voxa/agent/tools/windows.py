@@ -393,17 +393,20 @@ def vlc_geometry(voxa_geom: tuple[int, int, int, int], screen: tuple[int, int]) 
     """Pure maths: where to put the VLC window so it stays smaller than Voxa.
 
     voxa_geom is Voxa's (x, y, w, h); screen is the desktop's (width, height).
-    VLC gets 75% of Voxa's size, placed to the right of Voxa when the screen is wide
-    enough so it does not cover Voxa, otherwise centred on the screen.
+    VLC keeps 75% of Voxa's height and gets a standard 16:9 width at that height;
+    if that width is wider than the screen minus 40 px, the width is reduced to fit
+    and the height recomputed from it. It is placed to the right of Voxa when the
+    screen is wide enough so it does not cover Voxa, otherwise centred on the screen.
     """
     vx, vy, vw, vh = voxa_geom
     sw, sh = screen
-    w = max(1, round(vw * 0.75))
     h = max(1, round(vh * 0.75))
-    if sw > 0:
-        w = min(w, sw)
     if sh > 0:
         h = min(h, sh)
+    w = round(h * 16 / 9)
+    if sw > 0 and w > sw - 40:
+        w = sw - 40
+        h = round(w * 9 / 16)
     if sw >= vx + vw + w:
         x = vx + vw
         y = min(max(0, vy), max(0, sh - h))
