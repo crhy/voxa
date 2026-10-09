@@ -474,6 +474,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.shell.on_character_selected = self._on_shell_character_selected
         self.shell.on_face_mode_selected = self._on_shell_face_mode_selected
         self.shell.set_characters(self.settings.character_id)
+        self.shell.on_present = self.present
         if overlay_supported():
             self.shell.enable_focus_window(self.present)
         self.shell.face_quality.set_mode(self.settings.face_mode)

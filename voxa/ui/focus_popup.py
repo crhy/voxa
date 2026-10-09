@@ -7,6 +7,8 @@ a one-line caption of what Voxa is doing. While the window is focused it stays h
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import gi
 
 gi.require_version("Gdk", "4.0")
@@ -45,6 +47,12 @@ class FocusPopup(Gtk.Box):
         circle.append(avatar)
         self._circle = circle
 
+        click = Gtk.GestureClick()
+        click.connect("released", lambda *_: self._fire_click())
+        circle.add_controller(click)
+        self._click = click
+        self._on_click: Callable[[], None] | None = None
+
         self._caption = Gtk.Label(label="")
         self._caption.set_xalign(0.5)
         self._caption.set_wrap(True)
@@ -57,6 +65,14 @@ class FocusPopup(Gtk.Box):
     def set_state(self, state: AssistantState, detail: str = "") -> None:
         """Set the caption; a non-empty detail replaces the default state text."""
         self._caption.set_text(detail or STATE_CAPTIONS.get(state, ""))
+
+    def set_click_callback(self, on_click: Callable[[], None] | None = None) -> None:
+        """Set the callback a click on the pop-up fires (the window connects it)."""
+        self._on_click = on_click
+
+    def _fire_click(self) -> None:
+        if self._on_click is not None:
+            self._on_click()
 
     def set_window_focus(self, focused: bool) -> None:
         """Show the pop-up only while the window is NOT focused (the user is elsewhere)."""

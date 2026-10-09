@@ -58,6 +58,7 @@ class AssistantShell(Gtk.Overlay):
         self.on_backend_selected: Callable[[str], None] | None = None
         self.on_character_selected: Callable[[str], None] | None = None
         self.on_face_mode_selected: Callable[[str], None] | None = None
+        self.on_present: Callable[[], None] | None = None
         self.focus_window: FocusWindow | None = None
 
         self.set_hexpand(True)
@@ -133,6 +134,7 @@ class AssistantShell(Gtk.Overlay):
         self.focus_popup.set_valign(Gtk.Align.START)
         self.focus_popup.set_margin_end(EDGE_MARGIN)
         self.focus_popup.set_margin_top(EDGE_MARGIN)
+        self.focus_popup.set_click_callback(self._popup_clicked)
         self.add_overlay(self.focus_popup)
 
         # Bottom row: attachment, model picker, status controls.
@@ -331,6 +333,12 @@ class AssistantShell(Gtk.Overlay):
 
     def _face_mode_selected(self, face_mode: str) -> None:
         self._fire(self.on_face_mode_selected, face_mode)
+
+    def _popup_clicked(self) -> None:
+        """Corner pop-up click: present the window, then activate if the Active button is live."""
+        self._fire(self.on_present)
+        if self.status_controls.active_button.get_sensitive():
+            self._activate()
 
     def _activate(self) -> None:
         self._fire(self.on_active)
