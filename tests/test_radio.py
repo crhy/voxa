@@ -6,7 +6,7 @@ from voxa.agent.tools import radio as radio_tools
 
 def test_catalogue_and_find():
     built = radio.catalogue()
-    assert len(built) == 12 and built[0].name == "Groove Salad"
+    assert len(built) == 15 and built[0].name == "Groove Salad"
     assert radio.find("groove salad", built).name == "Groove Salad"
     assert radio.find("some ska radio", built).name == "Bob's Ska Radio"
     assert radio.find("bobs ska", built).name == "Bob's Ska Radio"
@@ -15,7 +15,7 @@ def test_catalogue_and_find():
     assert radio.find("", built).name == "Groove Salad"
     assert radio.find("polka", built) is None
     assert radio.is_station("groove salad") and not radio.is_station("dirty old town by the pogues")
-    assert radio.spoken_list(built).startswith("I have 12 stations: Groove Salad, ")
+    assert radio.spoken_list(built).startswith("I have 15 stations: Groove Salad, ")
     assert radio.describe(built[0]).startswith("This is Groove Salad: ambient, electronic, chill.")
 
 
@@ -32,7 +32,7 @@ def test_soma_list_is_used_when_reachable():
     def broken(url):
         raise OSError("offline")
 
-    assert len(radio.catalogue(broken)) == 12
+    assert len(radio.catalogue(broken)) == 15
 
 
 def test_tools(monkeypatch):
@@ -50,7 +50,7 @@ def test_tools(monkeypatch):
     assert result.ok and result.speech == "Playing Bob's Ska Radio."
     assert played[0].audio_url == "http://51.255.235.165:5528/stream" and played[0].video_url is None
     assert radio_tools.radio_genre({}).speech.startswith("This is Bob's Ska Radio")
-    assert "12 stations" in radio_tools.list_radio({}).speech
+    assert "15 stations" in radio_tools.list_radio({}).speech
     missing = radio_tools.play_radio({"name": "polka"})
     assert not missing.ok and "polka" in missing.speech
 

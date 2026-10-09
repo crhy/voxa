@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import difflib
 import json
 import re
 from dataclasses import dataclass
@@ -37,6 +38,11 @@ _SOMA_BUILTIN = (
     ("beatblender", "Beat Blender", "electronic house", "A late night blend of deep-house and downtempo chill."),
     ("bootliquor", "Boot Liquor", "americana country roots", "Americana roots music for cowhands, cowpokes and cowtippers."),
     ("u80s", "Underground 80s", "eighties synthpop new wave", "Early 80s UK synthpop and a bit of new wave."),
+    ("illstreet", "Illinois Street Lounge", "lounge exotica vintage",
+     "Classic bachelor pad, playful exotica and vintage music of tomorrow."),
+    ("bossa", "Bossa Beyond", "bossa nova brazilian jazz", "Silky-smooth, laid-back Brazilian-style rhythms."),
+    ("christmas", "Christmas Lounge", "christmas holiday lounge",
+     "Chilled holiday grooves and classic winter lounge tracks."),
 )
 BUILTIN = tuple(Station(t, g, d, SOMA_STREAM.format(id=i)) for i, t, g, d in _SOMA_BUILTIN) + EXTRA
 
@@ -79,6 +85,11 @@ def clean_request(spoken: str) -> str:
     return re.sub(r"^(?:some|the)\s+", "", text).strip()
 
 
+def squash(text: str) -> str:
+    """norm() with spaces removed and a trailing radio/station/somafm dropped."""
+    return re.sub(r"\s*(?:radio|station|somafm|soma)$", "", norm(text)).replace(" ", "")
+
+
 def find(spoken: str, stations: list[Station]) -> Station | None:
     """By name first (exact, then all words), then by a genre word. None when nothing fits."""
     wanted = clean_request(spoken)
@@ -96,6 +107,19 @@ def find(spoken: str, stations: list[Station]) -> Station | None:
         genre = norm(station.genre)
         if all(word in genre.split() or word in genre for word in words):
             return station
+    wanted_key = squash(wanted)
+    for station in stations:
+        if wanted_key and wanted_key == squash(station.name):
+            return station
+    best, best_ratio, runner_up = None, 0.0, 0.0
+    for station in stations:
+        ratio = difflib.SequenceMatcher(None, wanted_key, squash(station.name)).ratio()
+        if ratio > best_ratio:
+            runner_up, best_ratio, best = best_ratio, ratio, station
+        elif ratio > runner_up:
+            runner_up = ratio
+    if best_ratio >= 0.8 and best_ratio - runner_up > 0.05:
+        return best
     return None
 
 
