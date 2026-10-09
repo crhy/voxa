@@ -17,7 +17,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
 from . import apps, documents, mail, speechfit, wakelabel, websearch, welcome  # noqa: E402
-from .agent import hearing, host, intents, issueflow, mailflow, planner, repeat, saveflow, ui  # noqa: E402
+from .agent import hearing, host, intents, issueflow, mailflow, planner, radio, repeat, saveflow, ui  # noqa: E402
 from .agent.actionlog import ActionLog, ActionRecord  # noqa: E402
 from .agent.claims import claims_action, first_sentences  # noqa: E402
 from .agent.host import host_command  # noqa: E402
@@ -2339,6 +2339,7 @@ class MainWindow(Adw.ApplicationWindow):
             return False
         speech = result.speech
         detail = getattr(result, "detail", "") or ""
+        ended = True
         if detail == saveflow.ASK_NAME or detail.startswith(saveflow.ASK_REPLACE):
             # A save window is open and needs an answer: the next thing the user says belongs to it.
             name = detail[len(saveflow.ASK_REPLACE):] if detail.startswith(saveflow.ASK_REPLACE) else ""
@@ -2346,7 +2347,15 @@ class MainWindow(Adw.ApplicationWindow):
             self.assistant_model.set_state(AssistantState.DICTATING, self._save_flow.caption)
             if self.conversation is not None:
                 self.conversation.hold_prompt()
-        self._end_query_task("done" if result.ok else "cancelled")
+        elif detail.startswith(radio.ASK_RADIO):
+            # The tool offered a numbered station list: show it as a choice overlay and leave
+            # the task WAITING so the user's next reply (a number or a name) picks a station.
+            choices = [line for line in detail[len(radio.ASK_RADIO):].split("\n") if line]
+            if self._query_task_id is not None and choices:
+                self.assistant_model.request_choice(self._query_task_id, choices)
+                ended = False
+        if ended:
+            self._end_query_task("done" if result.ok else "cancelled")
         if speech:
             self.shell.exchange_panel.show_answer(speech)
             if not self.assistant.is_active:

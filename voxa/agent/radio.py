@@ -140,3 +140,47 @@ def spoken_list(stations: list[Station]) -> str:
 def describe(station: Station) -> str:
     genre = ", ".join(station.genre.split()[:3])
     return f"This is {station.name}: {genre}. {station.description}".strip()
+
+
+ASK_RADIO = "ask-radio"  # ToolResult.detail prefix: the numbered station list follows, one per line
+
+
+def numbered(stations: list[Station]) -> list[str]:
+    """The stations as a numbered list: ["1. Groove Salad", "2. ...", ...]."""
+    return [f"{index}. {station.name}" for index, station in enumerate(stations, 1)]
+
+
+_WORDS = {
+    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8,
+    "nine": 9, "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14,
+    "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18, "nineteen": 19, "twenty": 20,
+}
+_ORDINALS = {
+    "first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5, "sixth": 6, "seventh": 7,
+    "eighth": 8, "ninth": 9, "tenth": 10, "eleventh": 11, "twelfth": 12, "thirteenth": 13,
+    "fourteenth": 14, "fifteenth": 15, "sixteenth": 16, "seventeenth": 17, "eighteenth": 18,
+    "nineteenth": 19, "twentieth": 20,
+}
+
+
+def pick(spoken: str, stations: list[Station]) -> Station | None:
+    """A number as digits or words ("3", "three", "number three", "the third one") picks a
+    station; otherwise fall back to find by name or genre."""
+    text = norm(spoken)
+    number = None
+    digits = re.search(r"\b(\d+)\b", text)
+    if digits:
+        number = int(digits.group(1))
+    else:
+        for word, value in _ORDINALS.items():
+            if re.search(rf"\b{word}\b", text):
+                number = value
+                break
+        if number is None:
+            for word, value in _WORDS.items():
+                if re.search(rf"\b{word}\b", text):
+                    number = value
+                    break
+    if number is not None and 1 <= number <= len(stations):
+        return stations[number - 1]
+    return find(spoken, stations)

@@ -29,6 +29,9 @@ def stations() -> list[radio.Station]:
 def play_radio(args: dict[str, str]) -> ToolResult:
     global now_playing
     wanted = args.get("name", "")
+    if not radio.clean_request(wanted):
+        return ToolResult.success("Which station would you like?",
+                                  detail=radio.ASK_RADIO + "\n" + "\n".join(radio.numbered(stations())))
     station = radio.find(wanted, stations())
     if station is None:
         return ToolResult.failure(f"I do not have a station for {radio.clean_request(wanted)}. {radio.spoken_list(stations())}")
@@ -41,7 +44,8 @@ def play_radio(args: dict[str, str]) -> ToolResult:
 
 
 def list_radio(args: dict[str, str]) -> ToolResult:
-    return ToolResult.success(radio.spoken_list(stations()))
+    return ToolResult.success(f"I have {len(stations())} stations. Which one would you like?",
+                              detail=radio.ASK_RADIO + "\n" + "\n".join(radio.numbered(stations())))
 
 
 def radio_genre(args: dict[str, str]) -> ToolResult:
