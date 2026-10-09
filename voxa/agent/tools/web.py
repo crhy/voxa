@@ -9,6 +9,7 @@ from voxa.agent.cdp import CdpError
 from voxa.agent.policy import RiskLevel
 from voxa.agent.registry import Tool
 from voxa.agent.result import ToolResult
+from voxa.agent.spoken_text import site_label
 from voxa.agent.tools.browser import normalize_url
 
 log = logging.getLogger("voxa.agent.tools.web")
@@ -40,6 +41,8 @@ def browse(args: dict[str, str]) -> ToolResult:
         detail = session.text(1500)
     except CdpError as exc:
         return ToolResult.failure("The browser did not open that page.", detail=str(exc))
+    if site_label(title) == "website":
+        return ToolResult.success("Opened the website.", detail=detail)
     return ToolResult.success(f"Opened {title}.", detail=detail)
 
 

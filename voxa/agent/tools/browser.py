@@ -10,6 +10,7 @@ from voxa.agent import host
 from voxa.agent.policy import RiskLevel
 from voxa.agent.registry import Tool
 from voxa.agent.result import ToolResult
+from voxa.agent.spoken_text import site_label
 from voxa.agent.youtube import play
 
 log = logging.getLogger("voxa.agent.tools.browser")
@@ -104,14 +105,14 @@ def open_site(args: dict[str, str]) -> ToolResult:
             url = f"https://www.{key}.com"
         else:
             return ToolResult.failure(f"I don't know a site called {name}.")
-    return _open(url, f"Opening {name}.")
+    return _open(url, f"Opening {site_label(name)}.")
 
 
 def open_url(args: dict[str, str]) -> ToolResult:
     url = normalize_url(args["url"])
     if url is None:
         return ToolResult.failure("That doesn't look like a web address.")
-    return _open(url, f"Opening {url}.")
+    return _open(url, f"Opening {site_label(url)}.")
 
 
 def play_youtube(args: dict[str, str]) -> ToolResult:

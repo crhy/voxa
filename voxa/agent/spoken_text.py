@@ -1,6 +1,21 @@
 from __future__ import annotations
 
+import re
+
 from voxa.agent.hearing import normalize, strip_wake
+
+_ADDRESS_RE = re.compile(
+    r"(?:https?://\S+|(?:[a-z0-9][a-z0-9-]*\.)+[a-z]{2,}(?:/\S*)?)",
+    re.I,
+)
+
+
+def site_label(url: str) -> str:
+    """Spoken label for a site: 'website' for raw addresses, friendly names unchanged."""
+    text = url.strip()
+    if _ADDRESS_RE.fullmatch(text):
+        return "website"
+    return text
 
 _PHRASES: tuple[tuple[str, str], ...] = (
     ("new paragraph", "\n\n"),
