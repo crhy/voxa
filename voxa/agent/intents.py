@@ -370,6 +370,12 @@ _CLOSE_WINDOW = re.compile(
 _CLOSE_APP = re.compile(
     r"(?:close|quit|exit|kill|shut down)\s+(?:the\s+)?(\w+(?:\s+\w+){0,4})", re.IGNORECASE
 )
+_CLOSE_YOURSELF = re.compile(
+    r"(?:close|quit|exit)\s+(?:yourself|voxa)"
+    r"|shut\s+yourself\s+down"
+    r"|goodbye\s+voxa",
+    re.IGNORECASE,
+)
 _LOCK_SCREEN = re.compile(
     r"lock (?:the |my )?(?:screen|computer|pc|desktop)|lock it|lock up", re.IGNORECASE
 )
@@ -1094,6 +1100,8 @@ def route(text: str) -> ToolCall | None:
     if status_match:
         return call("home_status", name=status_match.group(1))
 
+    if _CLOSE_YOURSELF.fullmatch(s) or _CLOSE_YOURSELF.fullmatch(_prepare(text)):
+        return call("close_yourself")
     if _CLOSE_WINDOW.fullmatch(s):
         return call("close_window")
     if _LOCK_SCREEN.fullmatch(s):

@@ -20,6 +20,7 @@ log = logging.getLogger("voxa.agent.tools.windows")
 _THE_PREFIX = re.compile(r"^the\s+", re.IGNORECASE)
 
 ON_LOCK: Callable | None = None
+QUIT: Callable | None = None
 
 _LOCKERS = (
     ("mate-screensaver-command", "--lock"),
@@ -489,6 +490,12 @@ def maximize_self(args: dict[str, str]) -> ToolResult:
     return ToolResult.success("Maximized.")
 
 
+def close_yourself(args: dict[str, str]) -> ToolResult:
+    if QUIT is not None:
+        QUIT()
+    return ToolResult.success("Goodbye.")
+
+
 def list_characters(args: dict[str, str]) -> ToolResult:
     lines = describe_characters()
     return ToolResult.success(" ".join(lines) if lines else "No characters to choose from.")
@@ -627,6 +634,14 @@ def window_tools() -> list[Tool]:
             parameters={},
             risk=RiskLevel.REVERSIBLE,
             handler=maximize_self,
+            required=(),
+        ),
+        Tool(
+            name="close_yourself",
+            description="Close Voxa itself: shut the assistant's own window down cleanly.",
+            parameters={},
+            risk=RiskLevel.REVERSIBLE,
+            handler=close_yourself,
             required=(),
         ),
         Tool(

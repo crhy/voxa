@@ -219,6 +219,7 @@ def test_registry_lists_all_tools():
             "click_on",
             "close_app",
             "close_window",
+            "close_yourself",
             "compiz_control",
             "compose_gmail",
             "copy_file",
