@@ -8,7 +8,7 @@ SMALLEST_MODEL = "qwen2.5:0.5b"
 TUTORIAL_URL = ""  # filled in when the tutorial video exists; empty hides the link
 
 HOW_TO = (
-    "Press ACTIVE, then say Voxa, followed by what you need. "
+    "Press Active, then say Voxa, followed by what you need. "
     "For example: Voxa, what's the weather today? "
     "Say Voxa, pause, when you want me to wait."
 )

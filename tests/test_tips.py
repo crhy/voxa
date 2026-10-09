@@ -40,7 +40,7 @@ def test_ready_rotation_by_tick():
 
 def test_offline_tips():
     tips = tips_for("OFFLINE", {})
-    assert tips[0] == "Press ACTIVE to start"
+    assert tips[0] == "Press Active to start"
     assert len(tips) == 2
 
 

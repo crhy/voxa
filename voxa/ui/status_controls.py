@@ -26,17 +26,17 @@ class StatusControls(Gtk.Box):
         self.on_offline = on_offline
         self.on_pause = on_pause
 
-        self.active_button = Gtk.Button(label="ACTIVE")
+        self.active_button = Gtk.Button(label="Active")
         self.active_button.add_css_class("voxa-active")
         self.active_button.update_property([Gtk.AccessibleProperty.LABEL], ["Activate assistant"])
         self.active_button.connect("clicked", lambda *_: self._fire(self.on_active))
 
-        self.pause_button = Gtk.Button(label="PAUSE")
+        self.pause_button = Gtk.Button(label="Pause")
         self.pause_button.add_css_class("voxa-pause")
         self.pause_button.update_property([Gtk.AccessibleProperty.LABEL], ["Pause assistant"])
         self.pause_button.connect("clicked", lambda *_: self._fire(self.on_pause))
 
-        self.offline_button = Gtk.Button(label="OFFLINE")
+        self.offline_button = Gtk.Button(label="Offline")
         self.offline_button.add_css_class("voxa-offline")
         self.offline_button.update_property([Gtk.AccessibleProperty.LABEL], ["Take assistant offline"])
         self.offline_button.connect("clicked", lambda *_: self._fire(self.on_offline))

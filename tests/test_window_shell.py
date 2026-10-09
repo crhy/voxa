@@ -190,7 +190,7 @@ def test_user_is_told_once_when_the_speech_model_is_ready(window, monkeypatch) -
     monkeypatch.setattr(window, "_toast", toasts.append)
     window._on_whisper_ready("base", "CPU")
     window._on_whisper_ready("small", "CPU")  # switching models later must not repeat the hint
-    assert [t for t in toasts if "ACTIVE" in t] == ["Voxa is ready. Press ACTIVE to start listening."]
+    assert [t for t in toasts if "Active" in t] == ["Voxa is ready. Press Active to start listening."]
 
 
 def test_an_offline_ai_server_is_explained_in_the_model_picker(window, monkeypatch) -> None:

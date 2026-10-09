@@ -42,7 +42,7 @@ STATE_CAPTIONS = {
 }
 
 STATE_HINTS = {
-    AssistantState.OFFLINE: "Press ACTIVE to start listening",
+    AssistantState.OFFLINE: "Press Active to start listening",
     AssistantState.READY: "Say “Voxa”, then your request",
     AssistantState.PAUSED: "Say “Voxa” to continue",
     AssistantState.LISTENING: "Go ahead",

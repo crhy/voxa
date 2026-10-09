@@ -126,6 +126,13 @@ VOXA_CSS = """
     text-transform: uppercase;
 }
 
+.voxa-face-status {
+    font-size: 11px;
+    font-weight: 600;
+    opacity: 0.55;
+    letter-spacing: 1.4px;
+}
+
 .voxa-task-title {
     font-weight: 700;
     font-size: 14px;

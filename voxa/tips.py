@@ -14,7 +14,7 @@ MAX_TIPS = 3
 
 _STATE_TIPS: dict[str, tuple[str, ...]] = {
     "OFFLINE": (
-        "Press ACTIVE to start",
+        "Press Active to start",
         "Voxa sleeps until you activate it",
     ),
     "READY": (

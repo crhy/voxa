@@ -1671,7 +1671,7 @@ class MainWindow(Adw.ApplicationWindow):
         elif not self._announced_ready and not self.assistant.is_active:
             # ACTIVE cannot start listening until the speech model has loaded; say when it can.
             self._announced_ready = True
-            self._toast("Voxa is ready. Press ACTIVE to start listening.")
+            self._toast("Voxa is ready. Press Active to start listening.")
         GLib.timeout_add(1500, lambda: (self._maybe_welcome(), False)[1])
         return False
 

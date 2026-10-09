@@ -43,7 +43,7 @@ def test_detail_replaces_caption() -> None:
 def test_hint_per_state() -> None:
     view = AssistantView()
     expected = {
-        AssistantState.OFFLINE: "Press ACTIVE to start listening",
+        AssistantState.OFFLINE: "Press Active to start listening",
         AssistantState.READY: "Say “Voxa”, then your request",
         AssistantState.LISTENING: "Go ahead",
         AssistantState.THINKING: "",

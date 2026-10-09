@@ -72,7 +72,7 @@ class FaceQualitySwitch(Gtk.Box):
         # What High is doing right now ("Loading the high-resolution face…"); empty and hidden otherwise.
         self._status = Gtk.Label(label="")
         self._status.set_xalign(0)
-        self._status.add_css_class("voxa-control-caption")
+        self._status.add_css_class("voxa-face-status")
         self._status.set_visible(False)
         row.append(self._status)
         if stacked:
