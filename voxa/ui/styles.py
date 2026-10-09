@@ -14,6 +14,8 @@ gi.require_version("Gdk", "4.0")
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, Gtk  # noqa: E402
 
+from ..theme import BUBBLE_BG_DARK, BUBBLE_BG_LIGHT, host_theme_is_dark, window_bg_color  # noqa: E402
+
 VOXA_CSS = """
 /* Preferences: libadwaita's defaults leave the cards almost the same shade as
    the dialog and the subtitles small and faint, which reads as low contrast on
@@ -379,8 +381,21 @@ def install_styles(display: Gdk.Display | None = None) -> Gtk.CssProvider:
         display = Gdk.Display.get_default()
     if _provider is not None:
         return _provider
+    dark = host_theme_is_dark()
+    bubble_bg = BUBBLE_BG_DARK if dark else BUBBLE_BG_LIGHT
+    window_bg = window_bg_color(dark)
+    css = f"""{VOXA_CSS}
+
+window {{
+    background-color: {window_bg};
+}}
+
+.voxa-task-panel {{
+    background-color: {bubble_bg};
+}}
+"""
     provider = Gtk.CssProvider()
-    provider.load_from_string(VOXA_CSS)
+    provider.load_from_string(css)
     if display is not None:
         Gtk.StyleContext.add_provider_for_display(
             display, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION

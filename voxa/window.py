@@ -74,7 +74,7 @@ from .replylang import LANGUAGES, is_only_a_language_request, requested_language
 from .server import SERVER_FAILED, SERVER_STARTING, SERVER_UNAVAILABLE, AiServerManager  # noqa: E402
 from .speakstream import SentenceFeeder, is_thinking_model, looks_like_reasoning  # noqa: E402
 from .speech import SpeechService  # noqa: E402
-from .theme import host_theme_is_dark  # noqa: E402
+from .theme import host_theme_is_dark, initial_size  # noqa: E402
 from .transcription import WhisperService  # noqa: E402
 from .ui import clipboard  # noqa: E402
 from .ui.avatars import character_choices, describe_characters, find_character, get_avatar  # noqa: E402
@@ -260,7 +260,7 @@ class MainWindow(Adw.ApplicationWindow):
     def __init__(self, application: Adw.Application) -> None:
         super().__init__(application=application)
         self.set_title("Voxa")
-        self.set_default_size(1200, 760)
+        self.set_default_size(*initial_size(None))
         self.set_size_request(850, 600)
 
         self.config_store = ConfigStore()

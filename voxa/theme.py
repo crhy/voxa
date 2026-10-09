@@ -27,3 +27,19 @@ def host_theme_is_dark(environ=os.environ) -> bool:
     if "dark" in theme.casefold():
         return True
     return theme.casefold().endswith(":dark")
+
+
+BUBBLE_BG_DARK = "#242426"
+BUBBLE_BG_LIGHT = "#f9f9fa"
+
+
+def window_bg_color(dark: bool) -> str:
+    """Return the application window background for the current theme."""
+    return "#1d1d1e" if dark else "#eaebeb"
+
+
+def initial_size(saved: tuple[int, int] | None) -> tuple[int, int]:
+    """Return the saved window size, or the smallest usable start size."""
+    if saved is None:
+        return (1, 1)
+    return saved
