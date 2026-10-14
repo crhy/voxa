@@ -1,6 +1,13 @@
 # Voxa changelog
 
-## Unreleased
+## 0.1.6 — 2026-10-14
+
+Everything below is on `main` after the 0.1.5 release. Items marked 🧪 pass their automated tests and still need
+checking by ear and eye on a real desktop; `docs/CAPABILITIES.md` is the checklist with a phrase to try for each.
+
+### Changes from the second hands-on test round (13–14 October)
+
+Found in a real desktop session; each traced in Voxa's own logs before it was changed.
 
 - **Dictation starts typing within seconds.** After “start dictation”, the first thing said was collected with the
   20-second command limit (the listener had already begun that utterance before dictation mode switched on), so
@@ -21,11 +28,6 @@
 - **High animates at 15 frames per second instead of 12**, at less GPU than 12 used to take.
 - **The High face server is in the repository** (`face-server/`), with Voxa's patch to Ditto and an installer that
   links it into `~/voxa-neural`. It was previously only on one machine.
-
-## 0.1.6 — 2026-10-13
-
-Everything below is on `main` after the 0.1.5 release. Items marked 🧪 pass their automated tests and still need
-checking by ear and eye on a real desktop; `docs/CAPABILITIES.md` is the checklist with a phrase to try for each.
 
 ### Changes from the first hands-on test round (8 October)
 

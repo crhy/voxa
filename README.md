@@ -11,7 +11,9 @@ Voxa combines on-device speech recognition, selectable local AI backends, spoken
 
 **Website:** [voxaai.me](https://voxaai.me)
 
-![Voxa ready beside the VoxaTest voice harness](docs/screenshots/voxa-and-voxatest-ready.png)
+![Voxa ready to listen, with Grace as the assistant](docs/screenshots/main-window.png)
+
+![Choosing one of Voxa's 22 characters](docs/screenshots/characters.png)
 
 ## Highlights
 
