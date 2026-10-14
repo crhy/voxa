@@ -8,6 +8,7 @@ Usage (cwd = ditto-talkinghead): python face_server.py <unix-socket-path> [--fak
   --fake    no neural model: returns the source portrait for every frame (for wiring tests without a GPU)
   --steps   diffusion sampling steps (Ditto's default is 50; fewer is faster and a little less refined)
   --max-fps leave a small gap between generated frames so CUDA does not starve the desktop compositor
+  --no-compile  skip torch.compile of the render networks (fp16 only; slower per frame, faster first start)
 """
 import json
 import math
@@ -29,6 +30,11 @@ CHUNK = (3, 5, 2)                      # Ditto's streaming window: history, new,
 # This gate is applied before the costly warp/decode stages as well as at the
 # sender, so a prepared sentence cannot monopolise the GPU in a large burst.
 MAX_RENDER_AHEAD_SECONDS = 0.75
+# Compiled render kernels are cached on disk.  The sandbox's HOME and /tmp are
+# thrown away on exit, so without this every start would recompile (about 15 s)
+# instead of loading the cache (about 3 s).  Set before torch is imported.
+os.environ.setdefault("TORCHINDUCTOR_CACHE_DIR", f"{N}/out/torch-cache")
+os.environ.setdefault("TRITON_CACHE_DIR", f"{N}/out/torch-cache/triton")
 
 
 def natural_head_motion(frames: int, pcm: bytes) -> dict[int, dict[str, float]]:
@@ -190,13 +196,79 @@ class FrameSender:
         pass
 
 
+def accelerate(sdk, compile_models: bool = True) -> str:
+    """Make the per-frame warp and decode passes cheaper on the GPU; returns the mode in use.
+
+    These two networks are nearly all of High's GPU time (about 32 ms a frame
+    as Ditto ships them).  Ditto runs them under autocast, which re-casts every
+    fp32 weight on every call; it also uploads the portrait's 3D features again
+    for every frame and copies the warped features to the CPU and back between
+    the two stages.  Here the weights become fp16 once, the features stay on
+    the GPU, the warped features go straight to the decoder, and both networks
+    are compiled: about 22 ms a frame for the same picture.  Each step falls
+    back to the next simpler one, finally to Ditto's own path.
+    """
+    import torch
+
+    original = sdk.warp_f3d, sdk.decode_f3d
+    warp_model = sdk.warp_f3d.warp_net.model.eval()
+    decode_model = sdk.decode_f3d.decoder.model.eval()
+    features = {}  # id(f_s array) -> (array, GPU tensor); holding the array keeps its id from being reused
+
+    def gpu(array):
+        return torch.from_numpy(array).to("cuda").half()
+
+    def make(warp, decode):
+        def warp_f3d(f_s, x_s, x_d):
+            hit = features.get(id(f_s))
+            if hit is None or hit[0] is not f_s:
+                if len(features) >= 8:
+                    features.pop(next(iter(features)))
+                hit = features[id(f_s)] = (f_s, gpu(f_s))
+            with torch.no_grad():
+                return warp(hit[1], gpu(x_s), gpu(x_d))
+
+        def decode_f3d(f_3d):
+            # Same result as Ditto's Decoder: an HxWx3 float32 image in 0..255.
+            with torch.no_grad():
+                image = decode(f_3d)[0].float().clamp_(0, 1).mul_(255).permute(1, 2, 0).contiguous()
+            return image.cpu().numpy()
+
+        return warp_f3d, decode_f3d
+
+    def ready(stages) -> bool:
+        warp_f3d, decode_f3d = stages
+        pose = np.zeros((1, 21, 3), dtype=np.float32)
+        decode_f3d(warp_f3d(np.zeros((1, 32, 16, 64, 64), dtype=np.float32), pose, pose))
+        features.clear()
+        return True
+
+    warp_model.half(), decode_model.half()
+    attempts = [("fp16", (warp_model, decode_model))]
+    if compile_models:
+        # Compiled on this thread now, not lazily inside the first utterance.
+        attempts.insert(0, ("fp16+compiled", (torch.compile(warp_model), torch.compile(decode_model))))
+    for mode, (warp, decode) in attempts:
+        stages = make(warp, decode)
+        try:
+            if ready(stages):
+                sdk.warp_f3d, sdk.decode_f3d = stages
+                return mode
+        except Exception as exc:  # noqa: BLE001 - each step is only an optimisation
+            print(f"{mode} rendering unavailable:", repr(exc)[:300], flush=True)
+    warp_model.float(), decode_model.float()
+    sdk.warp_f3d, sdk.decode_f3d = original
+    return "ditto"
+
+
 def characters() -> list[str]:
     return sorted(os.path.splitext(f)[0] for f in os.listdir(PORTRAITS) if f.endswith(".jpg"))
 
 
 class Engine:
-    def __init__(self, fake: bool, steps: int, max_fps: float = 0):
+    def __init__(self, fake: bool, steps: int, max_fps: float = 0, compile_models: bool = True):
         self.fake, self.steps, self.max_fps, self.sdk = fake, steps, max_fps, None
+        self.render_mode = "fake" if fake else "ditto"
         if not fake:
             sys.path.insert(0, ".")
             # The offline pipeline: Voxa always has the whole sentence before it plays, and this one returns
@@ -214,6 +286,9 @@ class Engine:
                 return cache[key]
 
             self.sdk.avatar_registrar = cached
+            started = time.time()
+            self.render_mode = accelerate(self.sdk, compile_models)
+            print(f"rendering: {self.render_mode} (ready in {time.time() - started:.1f}s)", flush=True)
 
     def run(self, character: str, pcm: bytes, sender: FrameSender) -> int:
         audio = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
@@ -380,7 +455,7 @@ def main():
     fake = "--fake" in args
     steps = int(args[args.index("--steps") + 1]) if "--steps" in args else 50
     max_fps = float(args[args.index("--max-fps") + 1]) if "--max-fps" in args else 0.0
-    engine = Engine(fake, steps, max_fps)
+    engine = Engine(fake, steps, max_fps, compile_models="--no-compile" not in args)
     if not fake:
         # The first run pays for CUDA start-up (about 1.5 s). Pay it now, not on the user's first sentence.
         class Discard:
@@ -406,7 +481,8 @@ def main():
     os.chmod(path, 0o600)
     server.listen(4)
     busy = threading.Lock()
-    print(f"face server ready on {path} (fake={fake}, steps={steps}, characters={len(characters())})", flush=True)
+    print(f"face server ready on {path} (fake={fake}, steps={steps}, rendering={engine.render_mode}, "
+          f"characters={len(characters())})", flush=True)
     while True:
         conn, _ = server.accept()
         threading.Thread(target=serve, args=(conn, engine, busy), daemon=True).start()
