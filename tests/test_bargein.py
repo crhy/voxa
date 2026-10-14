@@ -134,3 +134,15 @@ def test_her_own_voice_misheard_into_other_words_is_not_a_person():
     assert is_own_voice("voxa stop", spoken, raw="was a celebrated American Voxa stop") is False
     assert is_own_voice("what about his wife", spoken, raw="what about his wife") is False
     assert is_own_voice("stop", spoken, raw="stop") is False
+
+
+def test_her_own_sentence_with_an_interrupt_word_in_it_is_her():
+    # Both traced on 14 October: she stopped herself reading the Ten Commandments.
+    speaking = "**Do not commit adultery.**\n2. **Do not murder.**\n3. **Do not steal.**"
+    assert is_own_voice("3. Do not stop.", speaking, raw="3. Do not stop.") is True
+    speaking = "**Do not lie.**\n5. **Do not falsify accounts or cheat.**\n6. **Do not bear false witness.**"
+    raw = "Voxa. Commands or cheat. Voxa. Commands or cheat. Voxa. Do not bear false witness."
+    assert is_own_voice("voxa commands or cheat voxa commands or cheat voxa do voxa do", speaking, raw=raw) is True
+    # A person interrupting the same sentence still gets through.
+    for heard in ("stop", "Voxa, stop.", "Stop, stop.", "Please stop.", "Wait, wait.", "Voxa, what about lying?"):
+        assert is_own_voice(heard, speaking, raw=heard) is False, heard

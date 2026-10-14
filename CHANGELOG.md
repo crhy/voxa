@@ -9,6 +9,10 @@
 - **High facial quality uses less GPU.** The face server's warp and decode passes run in fp16 with the portrait's
   features kept on the GPU and are compiled once (cached on disk): about 22 ms a frame instead of 32 ms. Measured
   while talking at 12 fps: whole-GPU use fell from about 50% to 36–41% (the idle desktop is about 9%).
+- **She no longer interrupts herself when her own sentence is misheard with “stop” or “Voxa” in it.** Traced on
+  14 October: “3. Do not steal” heard as “3. Do not stop”, and “Voxa.” added three times to her own line by the
+  transcription hint. Replaying all 485 recorded barge-in checks, only those two decisions change.
+- **High animates at 15 frames per second instead of 12**, at less GPU than 12 used to take.
 - **The High face server is in the repository** (`face-server/`), with Voxa's patch to Ditto and an installer that
   links it into `~/voxa-neural`. It was previously only on one machine.
 

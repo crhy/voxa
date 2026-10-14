@@ -170,9 +170,8 @@ def face_server_command() -> list[str] | None:
             found = False
         if found:
             # Five diffusion steps retain the detail that distinguishes High.
-            # Twelve rendered frames per second stays below this GPU's measured
-            # 14 fps ceiling, leaving headroom for GTK and the compositor.
-            return [path, "--steps", "5", "--max-fps", "12"]
+            # The frame rate must match LIVE_FACE_FPS below.
+            return [path, "--steps", "5", "--max-fps", str(LIVE_FACE_FPS)]
     return None
 
 
@@ -185,10 +184,11 @@ LIVE_FACE_MAX_HOLD = 0.65
 LIVE_FACE_STALL_SECONDS = 6.0
 LIVE_FACE_SIZE = 384
 # Motion is still predicted on Ditto's native 25 fps timeline, then sampled
-# across the whole gesture at 12 fps before the expensive render stages.  The
-# neural pipeline sustained about 14 fps in isolation, so asking for 15 made
-# it inevitably drift behind as soon as the desktop needed the GPU too.
-LIVE_FACE_FPS = 12
+# across the whole gesture at this rate before the expensive render stages.
+# The face server's fp16/compiled render path (face-server/face_server.py)
+# keeps 15 fps on time with about 42% whole-GPU use while talking, below the
+# roughly 50% the old path needed for 12 fps (RTX 4070, 14 October).
+LIVE_FACE_FPS = 15
 LIVE_FACE_PROGRESS_INTERVAL = 0.20
 
 

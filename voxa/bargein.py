@@ -59,6 +59,10 @@ def sounds_like(heard: str, spoken: str) -> float:
 
 
 OWN_VOICE_SOUND = 0.5
+# Words other than interrupt words that are mostly hers mark an echo; with fewer than four of them
+# the letters must match closely too.
+ECHO_REST_OVERLAP = 0.75
+ECHO_REST_SOUND = 0.75
 
 
 def is_own_voice(heard: str, speaking_now: str, recently_spoken: str = "", raw: str = "") -> bool:
@@ -70,6 +74,15 @@ def is_own_voice(heard: str, speaking_now: str, recently_spoken: str = "", raw: 
     words = _words(heard)
     spoken = set(_words(spoken_text))
     stop = [w for w in words if w in STOP_WORDS and w not in spoken and not any(s.startswith(w) for s in spoken)]
+    rest = [w for w in words if w not in STOP_WORDS]
+    if len(rest) >= 2 and overlap(" ".join(rest), spoken_text) >= ECHO_REST_OVERLAP and (
+        len(rest) >= 4 or sounds_like(" ".join(rest), spoken_text) >= ECHO_REST_SOUND
+    ):
+        # Her own sentence with one interrupt word in it: "3. Do not steal" misheard as "3. Do not
+        # stop", or the transcription prompt adding "Voxa." to her words ("Voxa. Commands or cheat.
+        # Voxa. Do not bear false witness."). Both made her interrupt herself (traced 14 October).
+        # A person's interruption is the stop word alone or with words of their own.
+        return True
     if stop and (len(words) <= 3 or sounds_like(raw or heard, spoken_text) < OWN_VOICE_SOUND):
         # The words people actually interrupt with count — unless she is saying them herself
         # ("Stopping dictation"), or they sit inside a long mishearing of her own sentence.
