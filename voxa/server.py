@@ -262,8 +262,8 @@ class AiServerManager:
                 command = [
                     "flatpak-spawn",
                     "--host",
-                    "--watch-bus",
                     "--directory=/",
+                    "--watch-bus",
                     "env",
                     f"OLLAMA_HOST={listen_address}",
                     *command,
@@ -276,7 +276,7 @@ class AiServerManager:
 
         command = ["llama-server", "--model", model, "--host", host, "--port", str(port)]
         if self._flatpak:
-            command = ["flatpak-spawn", "--host", "--watch-bus", "--directory=/", *command]
+            command = ["flatpak-spawn", "--host", "--directory=/", "--watch-bus", *command]
         return command, None
 
     def _unload_ollama_model(self) -> None:

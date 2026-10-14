@@ -1,7 +1,11 @@
 from types import SimpleNamespace
 
-from voxa.agent import radio
-from voxa.ui.radio_picker import station_rows
+import pytest
+
+pytest.importorskip("gi")  # the picker module needs GTK; machines without it skip this file
+
+from voxa.agent import radio  # noqa: E402
+from voxa.ui.radio_picker import station_rows  # noqa: E402
 
 STATIONS = list(radio.BUILTIN)
 

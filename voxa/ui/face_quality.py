@@ -11,10 +11,10 @@ from __future__ import annotations
 import math
 from collections.abc import Callable
 
-import cairo
 import gi
 
 gi.require_version("Gtk", "4.0")
+import cairo  # noqa: E402 - after gi, so a machine without GTK reports gi as the missing module
 from gi.repository import Gtk  # noqa: E402
 
 QUALITY_LEVELS = (
