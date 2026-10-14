@@ -67,9 +67,10 @@ def read_bindings(text: str) -> dict[str, str]:
     return found
 
 
-def bindings(config_files=CONFIG_FILES) -> dict[str, str]:
+def bindings(config_files=None) -> dict[str, str]:
     result = {action: to_xdotool(default) for action, (_s, _o, default) in DEFAULT_BINDINGS.items()}
-    for path in config_files:
+    # Looked up when called, not when the module loads, so CONFIG_FILES can be replaced (tests, other homes).
+    for path in CONFIG_FILES if config_files is None else config_files:
         try:
             result.update(read_bindings(Path(path).read_text()))
             break

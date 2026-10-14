@@ -67,10 +67,11 @@ def test_set_backend_does_not_fire_callback() -> None:
 def test_user_backend_choice_fires_callback_with_backend_id() -> None:
     fired: list[str] = []
     selector = ModelSelector(on_backend_selected=fired.append)
-    selector._backend_dropdown.set_selected(1)
-    assert fired == ["ollama"]
+    # The selector starts on Ollama (index 1), so switch away first.
     selector._backend_dropdown.set_selected(0)
-    assert fired == ["ollama", "llamacpp"]
+    assert fired == ["llamacpp"]
+    selector._backend_dropdown.set_selected(1)
+    assert fired == ["llamacpp", "ollama"]
 
 
 def test_backend_dropdown_is_a_real_control_not_a_label() -> None:

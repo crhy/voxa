@@ -82,7 +82,9 @@ GETTING_READY = (
 def test_idle_natural_size_is_the_minimum(window) -> None:
     width, height = _natural(window)
     assert width == 850
-    assert height == 607
+    # The window asks for 850x600; text pushes the natural height a few pixels past that by an
+    # amount that depends on the installed fonts (607 on Spaced Linux, 616 on CI's Fedora).
+    assert 600 <= height <= 640
 
 
 def test_active_getting_ready_does_not_change_natural_width(window) -> None:
