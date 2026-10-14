@@ -1,5 +1,17 @@
 # Voxa changelog
 
+## Unreleased
+
+- **Dictation starts typing within seconds.** After “start dictation”, the first thing said was collected with the
+  20-second command limit (the listener had already begun that utterance before dictation mode switched on), so
+  nothing was typed until 20 seconds of speech had piled up. The utterance in progress now switches to dictation's
+  6-second limit at once. Traced in the 13 October Writer and Pluma tests (first text after 19 s and 10 s).
+- **High facial quality uses less GPU.** The face server's warp and decode passes run in fp16 with the portrait's
+  features kept on the GPU and are compiled once (cached on disk): about 22 ms a frame instead of 32 ms. Measured
+  while talking at 12 fps: whole-GPU use fell from about 50% to 36–41% (the idle desktop is about 9%).
+- **The High face server is in the repository** (`face-server/`), with Voxa's patch to Ditto and an installer that
+  links it into `~/voxa-neural`. It was previously only on one machine.
+
 ## 0.1.6 — 2026-10-13
 
 Everything below is on `main` after the 0.1.5 release. Items marked 🧪 pass their automated tests and still need

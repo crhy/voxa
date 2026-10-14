@@ -408,11 +408,20 @@ class ConversationController:
         self._early_text = None
         self._woken_early = False
         early = not self.keep_prompt
-        max_segment_seconds = (
-            min(self.max_segment_seconds, DICTATION_CHUNK_SECONDS)
-            if self.keep_prompt
-            else self.max_segment_seconds
-        )
+
+        # Read on every chunk, not once here: this loop is already collecting the
+        # next utterance when the UI switches dictation on, and that first dictated
+        # utterance used to run to the full 20 s command limit before anything was
+        # typed.  Dictation must apply to the utterance in progress straight away.
+        def max_segment_seconds() -> float:
+            if self.keep_prompt:
+                return min(self.max_segment_seconds, DICTATION_CHUNK_SECONDS)
+            return self.max_segment_seconds
+
+        def early_check(segment: bytes) -> bool:
+            # Commands only: a dictated sentence is never a wake-word command.
+            return not self.keep_prompt and self._early_check(segment)
+
         for segment in segment_stream(
             self.queue,
             self.stop_event,
@@ -421,7 +430,7 @@ class ConversationController:
             max_segment_seconds=max_segment_seconds,
             idle_timeout_seconds=idle_timeout_seconds,
             early_silence_seconds=self.early_silence_seconds if early else None,
-            early_check=self._early_check if early else None,
+            early_check=early_check if early else None,
             is_voice=self._voice_check if self._voice_detector is not None else None,
         ):
             return segment

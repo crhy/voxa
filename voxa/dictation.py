@@ -17,7 +17,7 @@ def segment_stream(
     *,
     threshold: int,
     silence_seconds: float,
-    max_segment_seconds: float,
+    max_segment_seconds: float | Callable[[], float],
     idle_timeout_seconds: float | None = None,
     on_idle_timeout: Callable[[], None] | None = None,
     trailing_silence_seconds: float | None = None,
@@ -47,6 +47,9 @@ def segment_stream(
     If ``is_voice`` is given it replaces the ``level >= threshold`` loudness rule:
     a chunk counts as voice only when ``level >= threshold / 2`` (so pure silence
     stays cheap) and ``is_voice(pcm, level)`` returns True.
+
+    ``max_segment_seconds`` may be a callable, read on every chunk, so a mode
+    switched on mid-utterance (dictation) applies to the segment already in progress.
     """
     segment = bytearray()
     heard_voice = False
@@ -100,7 +103,8 @@ def segment_stream(
                 last_voice = now
                 early_checked = False
         pause_ready = heard_voice and duration >= min_content and now - last_voice >= silence_seconds
-        max_ready = heard_voice and duration >= max_segment_seconds
+        limit = max_segment_seconds() if callable(max_segment_seconds) else max_segment_seconds
+        max_ready = heard_voice and duration >= limit
         if pause_ready or max_ready:
             yield bytes(segment)
             segment = bytearray()

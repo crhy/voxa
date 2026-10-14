@@ -256,6 +256,28 @@ def test_hold_prompt_delivers_stop_as_a_prompt_not_an_exit() -> None:
     assert exits == []
 
 
+def test_dictation_switched_on_mid_utterance_caps_that_utterance() -> None:
+    """The first dictated sentence must not wait for the long command limit."""
+    controller, prompts, _exits = _make_controller(["first words", "more words"])
+    controller.max_segment_seconds = 30.0
+    controller.silence_seconds = 30.0  # no pauses: only the length limit can end a segment
+    controller.start()
+    loud = (b"\x00\x10" * 1000, 1000.0)
+    for _ in range(3):
+        controller.feed(*loud)
+    time.sleep(0.3)
+    # Dictation turns on while this utterance is already being collected.
+    controller.hold_prompt()
+    for _ in range(200):  # 6.25 s of audio, past the 6 s dictation limit
+        controller.feed(*loud)
+        time.sleep(0.001)
+    deadline = time.monotonic() + 3.0
+    while not prompts and time.monotonic() < deadline:
+        time.sleep(0.05)
+    _drain(controller)
+    assert prompts[:1] == ["first words"]
+
+
 def test_release_prompt_returns_to_wake_word_gated_listening() -> None:
     controller, prompts, exits = _make_controller(["hello there", "hello again"])
     controller.start()

@@ -273,3 +273,29 @@ def test_without_early_parameters_timing_is_unchanged() -> None:
 
     assert len(segments) == 1
     assert len(segments[0]) == 10 * len(LOUD_CHUNK[0])
+
+
+
+def test_segment_stream_reads_a_callable_max_segment_on_every_chunk() -> None:
+    """Dictation switched on mid-utterance caps the segment already in progress."""
+    q: queue.Queue = queue.Queue()
+    for _ in range(40):
+        q.put(LOUD_CHUNK)
+    chunk_seconds = len(LOUD_CHUNK[0]) / 32000
+    reads = []
+
+    def limit() -> float:
+        reads.append(1)
+        # A long command limit for the first chunks, then the short dictation one.
+        return 30.0 if len(reads) <= 3 else 6 * chunk_seconds
+
+    segment = next(
+        segment_stream(
+            q,
+            threading.Event(),
+            threshold=500,
+            silence_seconds=5.0,
+            max_segment_seconds=limit,
+        )
+    )
+    assert len(segment) == 6 * len(LOUD_CHUNK[0])
