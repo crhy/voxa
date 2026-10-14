@@ -1,0 +1,205 @@
+diff --git a/stream_pipeline_offline.py b/stream_pipeline_offline.py
+index fea8609..61fa9af 100644
+--- a/stream_pipeline_offline.py
++++ b/stream_pipeline_offline.py
+@@ -82,6 +82,16 @@ class StreamSDK:
+         # -- avatar_registrar: template cfg --
+         self.max_size = kwargs.get("max_size", 1920)
+         self.template_n_frames = kwargs.get("template_n_frames", -1)
++        self.pipeline_queue_size = max(1, int(kwargs.get("pipeline_queue_size", 100)))
++        # Ditto predicts motion at 25 fps, but the expensive warp/decode pass
++        # need not render every prediction.  Sampling the full motion curve at
++        # a lower display rate preserves timing and expression while reducing
++        # both CUDA work and the GTK JPEG/texture workload.
++        self.native_fps = 25.0
++        self.render_fps = min(self.native_fps, max(1.0, float(kwargs.get("render_fps", self.native_fps))))
++        # Optional playback-aware callback.  It runs before a selected frame
++        # enters the expensive render stages, preventing queued CUDA bursts.
++        self.render_gate = kwargs.get("render_gate")
+ 
+         # -- avatar_registrar: crop cfg --
+         self.crop_scale = kwargs.get("crop_scale", 2.3)
+@@ -210,7 +220,11 @@ class StreamSDK:
+         self.cond_idx_start = 0 - len(self.audio_feat)
+ 
+         # ======== Setup Worker Threads ========
+-        QUEUE_MAX_SIZE = 100
++        # Large queues let every CUDA stage run far ahead of the frame writer,
++        # saturating the GPU even when output is paced.  A small queue carries
++        # that pacing back through the renderer and leaves regular compositor
++        # scheduling opportunities.
++        QUEUE_MAX_SIZE = self.pipeline_queue_size
+         # self.QUEUE_TIMEOUT = None
+ 
+         self.worker_exception = None
+@@ -235,6 +249,16 @@ class StreamSDK:
+         for thread in self.thread_list:
+             thread.start()
+ 
++    def _put(self, target, item):
++        """Hand work to the next stage without becoming stuck after a worker fails."""
++        while not self.stop_event.is_set():
++            try:
++                target.put(item, timeout=1)
++                return True
++            except queue.Full:
++                continue
++        return False
++
+     def _get_ctrl_info(self, fid):
+         try:
+             if isinstance(self.ctrl_info, dict):
+@@ -281,13 +305,14 @@ class StreamSDK:
+             except queue.Empty:
+                 continue
+             if item is None:
+-                self.writer_queue.put(None)
++                self._put(self.writer_queue, None)
+                 break
+             frame_idx, render_img = item
+             frame_rgb = self.source_info["img_rgb_lst"][frame_idx]
+             M_c2o = self.source_info["M_c2o_lst"][frame_idx]
+             res_frame_rgb = self.putback(frame_rgb, render_img, M_c2o)
+-            self.writer_queue.put(res_frame_rgb)
++            if not self._put(self.writer_queue, res_frame_rgb):
++                break
+ 
+     def decode_f3d_worker(self):
+         try:
+@@ -303,11 +328,12 @@ class StreamSDK:
+             except queue.Empty:
+                 continue
+             if item is None:
+-                self.putback_queue.put(None)
++                self._put(self.putback_queue, None)
+                 break
+             frame_idx, f_3d = item
+             render_img = self.decode_f3d(f_3d)
+-            self.putback_queue.put([frame_idx, render_img])
++            if not self._put(self.putback_queue, [frame_idx, render_img]):
++                break
+ 
+     def warp_f3d_worker(self):
+         try:
+@@ -323,12 +349,13 @@ class StreamSDK:
+             except queue.Empty:
+                 continue
+             if item is None:
+-                self.decode_f3d_queue.put(None)
++                self._put(self.decode_f3d_queue, None)
+                 break
+             frame_idx, x_s, x_d = item
+             f_s = self.source_info["f_s_lst"][frame_idx]
+             f_3d = self.warp_f3d(f_s, x_s, x_d)
+-            self.decode_f3d_queue.put([frame_idx, f_3d])
++            if not self._put(self.decode_f3d_queue, [frame_idx, f_3d]):
++                break
+ 
+     def motion_stitch_worker(self):
+         try:
+@@ -344,13 +371,14 @@ class StreamSDK:
+             except queue.Empty:
+                 continue
+             if item is None:
+-                self.warp_f3d_queue.put(None)
++                self._put(self.warp_f3d_queue, None)
+                 break
+             
+             frame_idx, x_d_info, ctrl_kwargs = item
+             x_s_info = self.source_info["x_s_info_lst"][frame_idx]
+             x_s, x_d = self.motion_stitch(x_s_info, x_d_info, **ctrl_kwargs)
+-            self.warp_f3d_queue.put([frame_idx, x_s, x_d])
++            if not self._put(self.warp_f3d_queue, [frame_idx, x_s, x_d]):
++                break
+ 
+     def audio2motion_worker(self):
+         try:
+@@ -395,22 +423,36 @@ class StreamSDK:
+ 
+             x_d_info_list = self.audio2motion.cvt_fmt(res_kp_seq)
+ 
++            render_indices = None
++            if self.render_fps < self.native_fps and len(x_d_info_list) > 1:
++                output_count = max(2, int(np.ceil(len(x_d_info_list) * self.render_fps / self.native_fps)))
++                # Spread samples over the complete motion, including the last
++                # fade frame, rather than truncating the end of each gesture.
++                render_indices = {
++                    int(round(i * (len(x_d_info_list) - 1) / (output_count - 1)))
++                    for i in range(output_count)
++                }
++
+             gen_frame_idx = 0
++            output_frame_idx = 0
+             for x_d_info in x_d_info_list:
++                if render_indices is not None and gen_frame_idx not in render_indices:
++                    gen_frame_idx += 1
++                    continue
+                 frame_idx = _mirror_index(gen_frame_idx, self.source_info_frames)
+                 ctrl_kwargs = self._get_ctrl_info(gen_frame_idx)
+ 
+-                while not self.stop_event.is_set():
+-                    try:
+-                        self.motion_stitch_queue.put([frame_idx, x_d_info, ctrl_kwargs], timeout=1)
+-                        break
+-                    except queue.Full:
+-                        continue
++                if self.render_gate is not None and not self.render_gate(output_frame_idx):
++                    break
++
++                if not self._put(self.motion_stitch_queue, [frame_idx, x_d_info, ctrl_kwargs]):
++                    break
++                output_frame_idx += 1
+                 gen_frame_idx += 1
+ 
+             break
+ 
+-        self.motion_stitch_queue.put(None)
++        self._put(self.motion_stitch_queue, None)
+ 
+         
+     def _audio2motion_worker(self):
+@@ -478,12 +520,8 @@ class StreamSDK:
+                         frame_idx = _mirror_index(gen_frame_idx, self.source_info_frames)
+                         ctrl_kwargs = self._get_ctrl_info(gen_frame_idx)
+ 
+-                        while not self.stop_event.is_set():
+-                            try:
+-                                self.motion_stitch_queue.put([frame_idx, x_d_info, ctrl_kwargs], timeout=1)
+-                                break
+-                            except queue.Full:
+-                                continue
++                        if not self._put(self.motion_stitch_queue, [frame_idx, x_d_info, ctrl_kwargs]):
++                            break
+ 
+                         gen_frame_idx += 1
+ 
+@@ -510,11 +548,11 @@ class StreamSDK:
+             if is_end:
+                 break
+         
+-        self.motion_stitch_queue.put(None)
++        self._put(self.motion_stitch_queue, None)
+ 
+     def close(self):
+         # flush frames
+-        self.audio2motion_queue.put(None)
++        self._put(self.audio2motion_queue, None)
+         # Wait for worker threads to finish
+         for thread in self.thread_list:
+             thread.join()
+@@ -532,14 +570,6 @@ class StreamSDK:
+     def run_chunk(self, audio_chunk, chunksize=(3, 5, 2)):
+         # only for hubert
+         aud_feat = self.wav2feat(audio_chunk, chunksize=chunksize)
+-        while not self.stop_event.is_set():
+-            try:
+-                self.audio2motion_queue.put(aud_feat, timeout=1)
+-                break
+-            except queue.Full:
+-                continue
++        self._put(self.audio2motion_queue, aud_feat)
+ 
+     
+-
+-
+-
