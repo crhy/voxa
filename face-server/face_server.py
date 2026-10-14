@@ -10,6 +10,8 @@ Usage (cwd = ditto-talkinghead): python face_server.py <unix-socket-path> [--fak
   --max-fps leave a small gap between generated frames so CUDA does not starve the desktop compositor
   --no-compile  skip torch.compile of the render networks (fp16 only; slower per frame, faster first start)
 """
+import collections
+import itertools
 import json
 import math
 import os
@@ -30,6 +32,12 @@ CHUNK = (3, 5, 2)                      # Ditto's streaming window: history, new,
 # This gate is applied before the costly warp/decode stages as well as at the
 # sender, so a prepared sentence cannot monopolise the GPU in a large burst.
 MAX_RENDER_AHEAD_SECONDS = 0.75
+# A frame is skipped when its moment will have been played before it can be on
+# screen: it is admitted roughly this long before the client draws it (the GPU
+# stages, JPEG encoding and delivery).  Skipping is what lets a face that fell
+# behind -- a slow start on a long reply, or the GPU shared with the language
+# model -- catch up with the voice instead of staying late for the whole reply.
+CATCH_UP_SECONDS = 0.15
 # Compiled render kernels are cached on disk.  The sandbox's HOME and /tmp are
 # thrown away on exit, so without this every start would recompile (about 15 s)
 # instead of loading the cache (about 3 s).  Set before torch is imported.
@@ -109,12 +117,22 @@ class PlaybackGate:
 
     def __init__(self):
         self.seconds = 0.0
+        self.reported_at = None
         self.condition = threading.Condition()
 
     def update(self, seconds: float) -> None:
         with self.condition:
             self.seconds = max(self.seconds, max(0.0, float(seconds)))
+            if self.seconds > 0.0:
+                self.reported_at = time.monotonic()
             self.condition.notify_all()
+
+    def played(self) -> float | None:
+        """Estimated audio position now (reports arrive every ~0.15 s); None before playback starts."""
+        with self.condition:
+            if self.reported_at is None:
+                return None
+            return self.seconds + (time.monotonic() - self.reported_at)
 
     def wait_for(self, frame_seconds: float, cancelled: threading.Event) -> bool:
         with self.condition:
@@ -129,58 +147,82 @@ class PlaybackGate:
             self.condition.notify_all()
 
 
+class Turns:
+    """Lets numbered jobs through one at a time, strictly in number order."""
+
+    def __init__(self):
+        self.serving = 0
+        self.condition = threading.Condition()
+
+    def wait(self, ticket: int) -> None:
+        with self.condition:
+            while self.serving != ticket:
+                self.condition.wait()
+
+    def advance(self) -> None:
+        with self.condition:
+            self.serving += 1
+            self.condition.notify_all()
+
+
 class FrameSender:
     """Stands in for Ditto's video writer: each finished frame goes straight to the client as a JPEG."""
 
-    def __init__(self, conn, lock, utterance_id, size, cancelled, gate, fps=FPS, max_fps=0):
+    def __init__(self, conn, lock, utterance_id, size, cancelled, gate, fps=FPS, max_fps=0, on_first_frame=None):
         self.conn, self.lock, self.id, self.size, self.cancelled = conn, lock, utterance_id, size, cancelled
+        self.on_first_frame = on_first_frame
         self.gate = gate
-        self.index = 0
+        self.index = 0  # frames sent
+        self.skipped = 0
         self.first_at = None
         self.fps = min(float(fps), max_fps) if max_fps > 0 else float(fps)
         self.fps = max(1.0, self.fps)
         self.min_interval = 1.0 / self.fps
         self.last_render_release_at = None
-        self.timeline_started_at = None
+        # Timeline positions of admitted frames, in order: the pipeline keeps
+        # order, so each finished frame takes the next one.  Skipped frames
+        # leave gaps, which the client fills by holding the previous frame.
+        self.admitted = collections.deque()
 
-    def wait_to_render(self, index: int) -> bool:
-        """Pace costly inference itself, not merely delivery of finished frames.
+    def wait_to_render(self, index: int):
+        """Admit, skip or stop one frame before its costly GPU work.
 
-        The pipeline has several CUDA stages and one queued item per stage.  If
-        this method only applies the audio-ahead limit, a newly released job can
-        still fill every stage in a short GPU-saturating burst.  That starves
-        Compiz and GTK even though the finished frames subsequently leave the
-        sender at the requested frame rate.  Spacing admission here keeps the
-        same visual rate while leaving a regular scheduling gap for the desktop.
-        Use a relative interval so a temporarily slow frame cannot cause a
-        catch-up burst afterward.
+        Returns True to render, "skip" for a frame whose moment has already
+        been played, False to stop.  Admission is spaced by one frame interval
+        so a newly released job cannot fill every CUDA stage in one burst that
+        starves Compiz and GTK.  That spacing alone never lets a late face
+        catch up, so frames that are already late are skipped instead.  Frame
+        0 is always rendered: Ditto takes its motion reference from the first
+        frame it stitches.
         """
-        if not self.gate.wait_for(float(index) / self.fps, self.cancelled):
+        seconds = float(index) / self.fps
+        if not self.gate.wait_for(seconds, self.cancelled):
             return False
+        played = self.gate.played()
+        if index > 0 and played is not None and seconds < played + CATCH_UP_SECONDS:
+            self.skipped += 1
+            return "skip"
         now = time.monotonic()
         if self.last_render_release_at is not None:
             delay = self.last_render_release_at + self.min_interval - now
             if delay > 0 and self.cancelled.wait(delay):
                 return False
         self.last_render_release_at = time.monotonic()
-        return not self.cancelled.is_set()
+        if self.cancelled.is_set():
+            return False
+        self.admitted.append(index)
+        return True
 
     def __call__(self, frame_rgb, fmt="rgb"):
         if self.cancelled.is_set():
             return
-        if not self.gate.wait_for(self.index / self.fps, self.cancelled):
+        # Without a render gate (warm-up, older pipelines) frames are consecutive.
+        index = self.admitted.popleft() if self.admitted else self.index
+        # Frames are timed by the client against the audio it is playing, so
+        # the only pacing needed here is the cushion limit; a timeline anchored
+        # to the first frame kept a late start late for the whole reply.
+        if not self.gate.wait_for(index / self.fps, self.cancelled):
             return
-        # Pace against one absolute timeline, so inference time counts toward
-        # each frame's 40 ms slot. A relative sleep here would add inference
-        # and pacing together and make the face drift behind the voice.
-        now = time.monotonic()
-        if self.timeline_started_at is None:
-            self.timeline_started_at = now
-        elif self.min_interval:
-            target = self.timeline_started_at + self.index * self.min_interval
-            delay = target - now
-            if delay > 0:
-                time.sleep(delay)
         if self.first_at is None:
             self.first_at = time.time()
         img = frame_rgb if fmt == "bgr" else cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
@@ -189,8 +231,10 @@ class FrameSender:
         ok, jpeg = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 82])
         if ok:
             with self.lock:
-                self.conn.sendall(encode({"op": "frame", "id": self.id, "index": self.index}, jpeg.tobytes()))
+                self.conn.sendall(encode({"op": "frame", "id": self.id, "index": index}, jpeg.tobytes()))
             self.index += 1
+            if self.index == 1 and self.on_first_frame is not None:
+                self.on_first_frame()
 
     def close(self):
         pass
@@ -269,6 +313,7 @@ class Engine:
     def __init__(self, fake: bool, steps: int, max_fps: float = 0, compile_models: bool = True):
         self.fake, self.steps, self.max_fps, self.sdk = fake, steps, max_fps, None
         self.render_mode = "fake" if fake else "ditto"
+        self.features_lock = threading.Lock()
         if not fake:
             sys.path.insert(0, ".")
             # The offline pipeline: Voxa always has the whole sentence before it plays, and this one returns
@@ -290,7 +335,20 @@ class Engine:
             self.render_mode = accelerate(self.sdk, compile_models)
             print(f"rendering: {self.render_mode} (ready in {time.time() - started:.1f}s)", flush=True)
 
-    def run(self, character: str, pcm: bytes, sender: FrameSender) -> int:
+    def features(self, pcm: bytes):
+        """Speech features for one utterance, or None in --fake mode.
+
+        Computed before the utterance waits for the GPU renderer, so a reply's
+        next sentence is prepared while the current one is still being drawn
+        instead of adding this time to the start of every sentence.
+        """
+        if self.fake:
+            return None
+        audio = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
+        with self.features_lock:
+            return self.sdk.wav2feat.wav2feat(audio)
+
+    def run(self, character: str, pcm: bytes, sender: FrameSender, feat=None) -> int:
         audio = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
         frames = math.ceil(len(audio) / 16000 * FPS)
         source = f"{PORTRAITS}/{character}.jpg"
@@ -326,7 +384,9 @@ class Engine:
         # This checkpoint otherwise changes the mouth while leaving the head almost perfectly fixed.
         sdk.setup_Nd(N_d=frames, fade_in=6, fade_out=10, ctrl_info=natural_head_motion(frames, pcm))
         t1 = time.time()
-        feat = sdk.wav2feat.wav2feat(audio)
+        if feat is None:
+            with self.features_lock:
+                feat = sdk.wav2feat.wav2feat(audio)
         t2 = time.time()
         sdk.audio2motion_queue.put(feat)
         print(f"  setup {t1 - t0:.2f}s, audio features {t2 - t1:.2f}s", flush=True)
@@ -352,6 +412,13 @@ def serve(conn, engine: Engine, busy: threading.Lock):
                "cancelled": threading.Event(), "gate": PlaybackGate()}
     jobs_lock = threading.Lock()
     jobs = {}
+    # A reply's sentences arrive in order and must be prepared and drawn in
+    # that order; plain locks let whichever thread wins go first.
+    tickets = itertools.count()
+    feature_turns, render_turns = Turns(), Turns()
+    # Set once the previous sentence shows its first frame (or ends): the next
+    # sentence is prepared after that, never competing with that first frame.
+    previous_ready = None
     try:
         while True:
             message, payload = reader.next()
@@ -390,10 +457,25 @@ def serve(conn, engine: Engine, busy: threading.Lock):
                     job["gate"].update(message.get("seconds", 0.0))
             elif op == "end" and message.get("id") == current["id"]:
                 job = current
+                job["ticket"] = next(tickets)
+                job["after"], job["ready"] = previous_ready, threading.Event()
+                previous_ready = job["ready"]
                 with jobs_lock:
                     jobs[job["id"]] = job
 
                 def work(job=job):
+                    feat = None
+                    if job["after"] is not None:
+                        job["after"].wait()
+                    feature_turns.wait(job["ticket"])
+                    try:
+                        if not job["cancelled"].is_set():
+                            feat = engine.features(bytes(job["pcm"]))
+                    except Exception as exc:  # noqa: BLE001 - run() computes them again and reports
+                        print("speech features failed:", repr(exc), flush=True)
+                    finally:
+                        feature_turns.advance()
+                    render_turns.wait(job["ticket"])
                     try:
                         with busy:  # one utterance at a time on the GPU
                             if job["cancelled"].is_set():
@@ -401,18 +483,19 @@ def serve(conn, engine: Engine, busy: threading.Lock):
                             started = time.time()
                             sender = FrameSender(
                                 conn, lock, job["id"], job["size"], job["cancelled"], job["gate"],
-                                job["fps"], engine.max_fps
+                                job["fps"], engine.max_fps, on_first_frame=job["ready"].set
                             )
                             try:
                                 with lock:
                                     conn.sendall(encode({"op": "started", "id": job["id"]}))
                                 if job["character"] not in characters():
                                     raise ValueError(f"unknown character {job['character']!r}")
-                                count = engine.run(job["character"], bytes(job["pcm"]), sender)
+                                count = engine.run(job["character"], bytes(job["pcm"]), sender, feat)
                                 took = time.time() - started
                                 first = (sender.first_at - started) if sender.first_at else -1
                                 line = (f"utterance {job['id']} {job['character']}: {count} frames in {took:.2f}s "
-                                        f"({count / max(took, 1e-6):.1f} fps), first frame after {first:.2f}s")
+                                        f"({count / max(took, 1e-6):.1f} fps), first frame after {first:.2f}s, "
+                                        f"{sender.skipped} skipped to keep up")
                                 print(line, flush=True)
                                 try:  # kept on disk too: when Voxa starts the server its output goes nowhere
                                     with open(f"{N}/out/face-usage.log", "a") as log:
@@ -430,6 +513,8 @@ def serve(conn, engine: Engine, busy: threading.Lock):
                                 except OSError:
                                     pass
                     finally:
+                        job["ready"].set()
+                        render_turns.advance()
                         with jobs_lock:
                             jobs.pop(job["id"], None)
 

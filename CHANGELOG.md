@@ -12,6 +12,12 @@
 - **She no longer interrupts herself when her own sentence is misheard with “stop” or “Voxa” in it.** Traced on
   14 October: “3. Do not steal” heard as “3. Do not stop”, and “Voxa.” added three times to her own line by the
   transcription hint. Replaying all 485 recorded barge-in checks, only those two decisions change.
+- **High's face no longer falls behind the voice on long replies.** The face server drew every frame on a fixed
+  schedule from its first frame, so a late start or a slow moment (the GPU shared with the language model) kept the
+  face late for the rest of the reply, and each sentence inherited the last one's delay. Frames whose moment has
+  already played are now skipped so the face catches up, and the next sentence's audio is prepared while the
+  current one is drawn. Simulated five-sentence reply with the GPU shared: median lag 2.0 s growing to 4.5 s before,
+  0.03 s for every sentence after.
 - **High animates at 15 frames per second instead of 12**, at less GPU than 12 used to take.
 - **The High face server is in the repository** (`face-server/`), with Voxa's patch to Ditto and an installer that
   links it into `~/voxa-neural`. It was previously only on one machine.

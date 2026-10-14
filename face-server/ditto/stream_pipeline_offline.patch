@@ -1,5 +1,5 @@
 diff --git a/stream_pipeline_offline.py b/stream_pipeline_offline.py
-index fea8609..61fa9af 100644
+index fea8609..ca00073 100644
 --- a/stream_pipeline_offline.py
 +++ b/stream_pipeline_offline.py
 @@ -82,6 +82,16 @@ class StreamSDK:
@@ -114,7 +114,7 @@ index fea8609..61fa9af 100644
  
      def audio2motion_worker(self):
          try:
-@@ -395,22 +423,36 @@ class StreamSDK:
+@@ -395,22 +423,44 @@ class StreamSDK:
  
              x_d_info_list = self.audio2motion.cvt_fmt(res_kp_seq)
  
@@ -142,9 +142,16 @@ index fea8609..61fa9af 100644
 -                        self.motion_stitch_queue.put([frame_idx, x_d_info, ctrl_kwargs], timeout=1)
 -                        break
 -                    except queue.Full:
--                        continue
-+                if self.render_gate is not None and not self.render_gate(output_frame_idx):
-+                    break
++                if self.render_gate is not None:
++                    # True renders the frame, False stops, "skip" drops a frame whose
++                    # moment has already been played so the face catches up with the voice.
++                    decision = self.render_gate(output_frame_idx)
++                    if decision == "skip":
++                        output_frame_idx += 1
++                        gen_frame_idx += 1
+                         continue
++                    if not decision:
++                        break
 +
 +                if not self._put(self.motion_stitch_queue, [frame_idx, x_d_info, ctrl_kwargs]):
 +                    break
@@ -158,7 +165,7 @@ index fea8609..61fa9af 100644
  
          
      def _audio2motion_worker(self):
-@@ -478,12 +520,8 @@ class StreamSDK:
+@@ -478,12 +528,8 @@ class StreamSDK:
                          frame_idx = _mirror_index(gen_frame_idx, self.source_info_frames)
                          ctrl_kwargs = self._get_ctrl_info(gen_frame_idx)
  
@@ -173,7 +180,7 @@ index fea8609..61fa9af 100644
  
                          gen_frame_idx += 1
  
-@@ -510,11 +548,11 @@ class StreamSDK:
+@@ -510,11 +556,11 @@ class StreamSDK:
              if is_end:
                  break
          
@@ -187,7 +194,7 @@ index fea8609..61fa9af 100644
          # Wait for worker threads to finish
          for thread in self.thread_list:
              thread.join()
-@@ -532,14 +570,6 @@ class StreamSDK:
+@@ -532,14 +578,6 @@ class StreamSDK:
      def run_chunk(self, audio_chunk, chunksize=(3, 5, 2)):
          # only for hubert
          aud_feat = self.wav2feat(audio_chunk, chunksize=chunksize)
