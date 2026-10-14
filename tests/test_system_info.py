@@ -169,6 +169,6 @@ def test_router_phrases():
 
 
 def test_router_keeps_others():
-    assert route("what time is it in Tokyo") is None
+    assert route("what time is it in Tokyo").tool == "world_time"
     assert route("what is the date of the next election") is None
     assert route("what time does the store close") is None

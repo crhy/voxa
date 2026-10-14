@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import urllib.request
 
-from voxa.agent import radio
+from voxa.agent import player, radio
 from voxa.agent.player import VlcPlayer
 from voxa.agent.policy import RiskLevel
 from voxa.agent.registry import Tool
@@ -34,11 +34,11 @@ def play_radio(args: dict[str, str]) -> ToolResult:
                                   detail=radio.ASK_RADIO + "\n" + "\n".join(radio.numbered(stations())))
     station = radio.find(wanted, stations())
     if station is None:
-        return ToolResult.failure(f"I do not have a station for {radio.clean_request(wanted)}. {radio.spoken_list(stations())}")
-    try:
-        VlcPlayer().play(Media(station.name, "radio", 0, station.stream, None, station.stream, False))
-    except Exception as exc:  # noqa: BLE001 - the player is outside our control
-        return ToolResult.failure("I could not start the radio.", detail=str(exc))
+        return ToolResult.success(f"I do not have a station for {radio.clean_request(wanted)}. Which station would you like?",
+                                  detail=radio.ASK_RADIO + "\n" + "\n".join(radio.numbered(stations())))
+    media = Media(station.name, "radio", 0, station.stream, None, station.stream, False)
+    # Her "Playing …" comes first: a stream that starts at once plays over her own sentence.
+    player.start_after(player.START_DELAY_SECONDS, lambda: VlcPlayer().play(media))
     now_playing = station
     return ToolResult.success(f"Playing {station.name}.", detail=station.stream)
 

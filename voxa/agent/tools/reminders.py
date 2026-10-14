@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from datetime import datetime
 
 from voxa.agent.policy import RiskLevel
@@ -54,6 +55,46 @@ def _cancel_reminders_handler(args: dict[str, str]) -> ToolResult:
     return ToolResult.success(f"Cancelled {len(items)} reminders.")
 
 
+def _focus_start_handler(args: dict[str, str]) -> ToolResult:
+    duration = args.get("duration", "").strip() or "25 minutes"
+    what = args.get("what", "").strip()
+    now = datetime.now()
+    due = parse_when(f"in {duration}", now)
+    if due is None:
+        return ToolResult.failure("I couldn't understand that duration.")
+    store = ReminderStore()
+    for item in store.upcoming():
+        if item.kind == "focus":
+            store.remove(item.id)
+    store.add(Reminder(id=f"f{int(due.timestamp())}", due=due, text=what, kind="focus"))
+    suffix = f" for {what}" if what else ""
+    return ToolResult.success(
+        f"Focus time started: {duration}{suffix}. I'll tell you when it's over.",
+        detail=due.isoformat(timespec="seconds"),
+    )
+
+
+def _focus_status_handler(args: dict[str, str]) -> ToolResult:
+    now = datetime.now()
+    focus = [r for r in ReminderStore().upcoming() if r.kind == "focus"]
+    if not focus:
+        return ToolResult.success("You are not in a focus session.")
+    due = min(r.due for r in focus)
+    minutes = max(1, math.ceil((due - now).total_seconds() / 60))
+    word = "minute" if minutes == 1 else "minutes"
+    return ToolResult.success(f"You have {minutes} {word} of focus time left.")
+
+
+def _focus_stop_handler(args: dict[str, str]) -> ToolResult:
+    store = ReminderStore()
+    focus = [r for r in store.upcoming() if r.kind == "focus"]
+    if not focus:
+        return ToolResult.success("You are not in a focus session.")
+    for item in focus:
+        store.remove(item.id)
+    return ToolResult.success("Focus time ended.")
+
+
 def reminders_tools() -> list[Tool]:
     return [
         Tool(
@@ -85,5 +126,26 @@ def reminders_tools() -> list[Tool]:
             parameters={},
             risk=RiskLevel.REVERSIBLE,
             handler=_cancel_reminders_handler,
+        ),
+        Tool(
+            name="focus_start",
+            description="Start a focus session, e.g. for 25 minutes, optionally on a task.",
+            parameters={"duration": "the duration, e.g. '25 minutes'; empty means 25 minutes", "what": "what to focus on, optional"},
+            risk=RiskLevel.REVERSIBLE,
+            handler=_focus_start_handler,
+        ),
+        Tool(
+            name="focus_status",
+            description="Report how much focus time is left.",
+            parameters={},
+            risk=RiskLevel.READ_ONLY,
+            handler=_focus_status_handler,
+        ),
+        Tool(
+            name="focus_stop",
+            description="End the focus session.",
+            parameters={},
+            risk=RiskLevel.REVERSIBLE,
+            handler=_focus_stop_handler,
         ),
     ]

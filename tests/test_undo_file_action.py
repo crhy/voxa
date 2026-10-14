@@ -21,6 +21,8 @@ def fake_run(recorded, names_map, fail_on=None):
         if argv[0] == "ls":
             folder = argv[-1]
             return subprocess.CompletedProcess(argv, 0, "\n".join(names_map.get(folder, [])), "")
+        if argv[0] == "test":
+            return subprocess.CompletedProcess(argv, 1, "", "")
         return subprocess.CompletedProcess(argv, 0, "", "")
 
     return run

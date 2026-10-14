@@ -2,10 +2,33 @@ from __future__ import annotations
 
 import pytest
 
-from voxa.agent.intents import ROUTED_TOOLS, ToolCall, is_compound, is_start_dictation, route
+from voxa.agent.intents import (
+    ROUTED_TOOLS,
+    ToolCall,
+    dictation_target,
+    is_compound,
+    is_start_dictation,
+    route,
+)
 from voxa.agent.tools import default_registry
 
 CASES: list[tuple[str, ToolCall | None]] = [
+    ("what is the British pound in USD", ToolCall("exchange_rate", {"base": "GBP", "quote": "USD"})),
+    ("what is the price of the brittish pound in us dollars",
+     ToolCall("exchange_rate", {"base": "GBP", "quote": "USD"})),
+    ("what is Tesla stock price", ToolCall("market", {"what": "Tesla"})),
+    ("what's Tesla's stock price", ToolCall("market", {"what": "Tesla's"})),
+    ("stock price of Tesla", ToolCall("market", {"what": "Tesla"})),
+    ("how much is Tesla stock", ToolCall("market", {"what": "Tesla"})),
+    ("what is the current price of one share of Tesla",
+     ToolCall("market", {"what": "one share of Tesla"})),
+    ("what is the current price of one share of Mercedes",
+     ToolCall("market", {"what": "one share of Mercedes"})),
+    ("how is Nvidia stock doing", ToolCall("market", {"what": "Nvidia"})),
+    ("what's Ford at", ToolCall("market", {"what": "Ford"})),
+    ("what is the stock price for Ford Motor Company", ToolCall("market", {"what": "Ford Motor Company"})),
+    ("what is the share price right now", ToolCall("market", {"what": "share price"})),
+    ("what is the price of one Toyota share", ToolCall("market", {"what": "one Toyota share"})),
     ("open gmail", ToolCall("open_site", {"name": "gmail"})),
     ("Check my inbox", ToolCall("open_site", {"name": "gmail"})),
     ("go to email", ToolCall("open_site", {"name": "gmail"})),
@@ -37,8 +60,14 @@ CASES: list[tuple[str, ToolCall | None]] = [
     ("go to google maps", ToolCall("open_site", {"name": "google maps"})),
     ("open the youtube website", ToolCall("open_site", {"name": "the youtube website"})),
     ("pause the music", ToolCall("media_control", {"action": "pause"})),
+    ("pause music", ToolCall("media_control", {"action": "pause"})),
+    ("pause radio", ToolCall("media_control", {"action": "pause"})),
+    ("pause TV", ToolCall("media_control", {"action": "pause"})),
+    ("pause the television", ToolCall("media_control", {"action": "pause"})),
+    ("pause VLC", ToolCall("media_control", {"action": "pause"})),
     ("pause", None),  # a bare "pause" is for Voxa herself, handled by the window
     ("resume", ToolCall("media_control", {"action": "resume"})),
+    ("resume the TV", ToolCall("media_control", {"action": "resume"})),
     ("play", ToolCall("press_key", {"key": "play pause"})),
     ("pause the music", ToolCall("media_control", {"action": "pause"})),
     ("next song", ToolCall("media_control", {"action": "next"})),
@@ -72,7 +101,7 @@ CASES: list[tuple[str, ToolCall | None]] = [
     ("send this email", ToolCall("send_gmail", {})),
     ("open claude", ToolCall("open_app", {"name": "claude"})),
     ("launch spotify", ToolCall("open_app", {"name": "spotify"})),
-    ("start the text editor", ToolCall("open_app", {"name": "the text editor"})),
+    ("start the text editor", ToolCall("open_app", {"name": "text editor"})),
     ("run Visual Studio Code", ToolCall("open_app", {"name": "Visual Studio Code"})),
     ("close brutal chess", ToolCall("close_app", {"name": "brutal chess"})),
     ("quit Brave", ToolCall("close_app", {"name": "Brave"})),
@@ -88,7 +117,32 @@ CASES: list[tuple[str, ToolCall | None]] = [
     ("show me Brutal Chess", ToolCall("switch_to", {"name": "Brutal Chess"})),
     ("go to gmail", ToolCall("open_site", {"name": "gmail"})),
     ("switch to Gmail", ToolCall("open_site", {"name": "gmail"})),
-    ("open the file manager", ToolCall("open_app", {"name": "file manager"})),
+    ("open the file manager", ToolCall("open_app", {"name": "file browser"})),
+    ("What is today\u2019s date", ToolCall("tell_date", {})),
+    ("what is todays date", ToolCall("tell_date", {})),
+    ("playscar radio", ToolCall("play_radio", {"name": "ska"})),
+    ("PlaySka Radio", ToolCall("play_radio", {"name": "ska"})),
+    ("take a note, call the vet", ToolCall("take_note", {"text": "call the vet"})),
+    ("what is 15% of 80", ToolCall("calculate", {"expression": "what is 15% of 80"})),
+    ("What is it my documents folder", ToolCall("list_folder", {"folder": "documents"})),
+    ("Watch Nassatini", ToolCall("play_tv", {"name": "NASA TV"})),
+    ("Open my documents older", ToolCall("open_folder", {"folder": "documents"})),
+    ("Composer, new email", ToolCall("compose_gmail", {})),
+    ("Health with Music", ToolCall("voxa_help", {"topic": "Music"})),
+    ("what are my reminders", ToolCall("list_reminders", {})),
+    ("what is the square root of 81", ToolCall("calculate", {"expression": "what is the square root of 81"})),
+    ("PlayScore Radio", ToolCall("play_radio", {"name": "ska"})),
+    ("open, gitHub", ToolCall("open_site", {"name": "gitHub"})),
+    ("What is 7x8", ToolCall("calculate", {"expression": "What is 7x8"})),
+    ("stop the radio", ToolCall("media_control", {"action": "stop"})),
+    ("Set the volume of 40%", ToolCall("system_volume", {"action": "set", "percent": "40"})),
+    ("Please open the terminal window.", ToolCall("open_app", {"name": "terminal"})),
+    ("Open my email client quickly.", ToolCall("open_app", {"name": "email client"})),
+    ("Start a new document editor instance.", ToolCall("open_app", {"name": "LibreOffice Writer"})),
+    ("I need to open Photoshop right now.", ToolCall("open_app", {"name": "Photoshop"})),
+    ("Open the Notepad app.", ToolCall("open_app", {"name": "text editor"})),
+    ("Try to open my nonexistent app called FooBar.", ToolCall("open_app", {"name": "FooBar"})),
+    ("Open the media player for playback.", ToolCall("open_app", {"name": "media player"})),
     ("copy that", ToolCall("press_key", {"key": "copy"})),
     ("play some music please", ToolCall("play_music", {"query": "music"})),
     ("check gmail for me", ToolCall("open_site", {"name": "gmail"})),
@@ -233,8 +287,19 @@ def test_is_start_dictation_recognises_the_mode_switch() -> None:
         "type what I say",
         "please start dictating",
         "please dictate.",
+        "start dictation in Pluma",
+        "start dictating into the Codex window",
+        "please start dictation in Pluma",
+        "start dictation in Write",
     ):
         assert is_start_dictation(phrase), phrase
+
+
+def test_dictation_target_preserves_the_destination_name() -> None:
+    assert dictation_target("start dictation in Pluma") == "Pluma"
+    assert dictation_target("start dictating into the Codex window") == "Codex window"
+    assert dictation_target("start dictation in Write") == "LibreOffice Writer"
+    assert dictation_target("start dictation") is None
 
 
 def test_is_start_dictation_rejects_ordinary_commands() -> None:
@@ -342,3 +407,16 @@ def test_route_recognises_reminder_commands(spoken: str, expected: ToolCall) -> 
 
 def test_is_start_dictation_strips_the_wake_word() -> None:
     assert is_start_dictation("Voxet start dictation.")
+
+
+def test_a_request_is_found_among_other_peoples_words():
+    from voxa.agent.intents import route_spoken
+
+    call, said = route_spoken("Add pay the rent to my to-do list. Dude, it's bothering you, like")
+    assert call == ToolCall("list_add", {"item": "pay the rent", "list": "to-do"}) and said == "Add pay the rent to my to-do list."
+    call, _ = route_spoken("You can go ahead and watch it if you want. , what's on my to-do list")
+    assert call == ToolCall("list_read", {"list": "to-do"})
+    assert route_spoken("What time is it")[0] == ToolCall("tell_time", {})
+    # two requests among the chatter are not guessed at, and plain chatter is still nothing
+    assert route_spoken("So anyway what time is it. And then what day is it. He said no.")[0] is None
+    assert route_spoken("I went to the shop. It was closed.")[0] is None

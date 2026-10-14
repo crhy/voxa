@@ -14,15 +14,30 @@ Say **“Voxa”** first, then the request (or speak straight away in the follow
 | ⚠️ | Partly working — see the note |
 | ❌ | Known not to work yet |
 
-Last updated: 7 October 2026 (development build after 0.1.5).
+Last updated: 13 October 2026 (development build after 0.1.5).
 
 ---
+
+## Automated evidence
+
+[VoxaTest's generated capability audit](VOXATEST_CAPABILITY_AUDIT.md) runs 384
+deterministic command phrases across 20 categories. A 38,400-check benchmark
+records the measured rate and lists every router failure and unimplemented
+wishlist phrase. This covers text routing and tool argument validation.
+
+The status tables below remain the source for desktop, audio, model, network,
+and hardware behavior. Those paths need the 30-case focused spoken VoxaTest suite
+or a real desktop check. Current known limitations remain marked below: the
+High neural face needs its developer service, lip sync can trail slightly,
+echo can recur at high speaker volume, and speech over loud music still lacks
+adaptive noise cancellation.
 
 ## Talking to Voxa
 
 | Try saying | What should happen | Status |
 | --- | --- | --- |
 | “Voxa” … then a question | Caption goes **Ready → Listening → Thinking → Speaking → Ready** | ✅ |
+| Ask another question just after her answer | She listens during the follow-up window; no second “Voxa” needed | 🧪 |
 | Ask anything while she is answering | She stops and listens (barge-in) | ✅ |
 | “Voxa, pause” / press **PAUSE** | Caption **Paused**; everything is ignored until you say “Voxa” | ✅ |
 | “Voxa” (while paused) | Back to **Ready/Listening** | ✅ |
@@ -51,6 +66,8 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 
 | Try saying | What should happen | Status |
 | --- | --- | --- |
+| “What is Tesla's stock price?” | Speaks the current Nasdaq quote, including after-hours trading when available | ✅ |
+| “What is the British pound in USD?” | Speaks the latest GBP-to-USD reference exchange rate | ✅ |
 | “What is the current price of Bitcoin?” | Searches the web, answers from the results, shows **Source:** under the answer | 🧪 |
 | “Tell me about Spaced Linux” | Searches for the named thing instead of guessing | 🧪 |
 | “How many wins do they have?” (after a sports question) | Follow-up search using the previous topic | 🧪 |

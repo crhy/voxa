@@ -26,6 +26,19 @@
   </screenshots>
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="0.1.6" date="2026-10-13">
+      <description>
+        <p>Voxa 0.1.6 makes everyday voice use more reliable and expands the local assistant with practical desktop capabilities.</p>
+        <ul>
+          <li>WebRTC echo cancellation is now the default, voice activity detection finds pauses more accurately, and wake-word and interruption handling are more dependable.</li>
+          <li>Voice-driven documents now support safe save prompts, long-text cleanup, selection and clipboard read-back, and better focus handling.</li>
+          <li>New local tools cover calendars, lists, expenses, meals, world time, backups, file conversion, system health, radio and live TV.</li>
+          <li>Application and window actions are safer: closing an app preserves unrelated windows and unsaved work, while minimize, restore and show-desktop commands are more predictable.</li>
+          <li>VoxaTest now includes a deterministic 384-capability audit and broader regression coverage for assistant actions.</li>
+          <li>Flatpak dependencies and packaging are refreshed for reliable installation on the GNOME 50 runtime.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.5" date="2026-10-06">
       <description>
         <p>Voxa gets a face and learns to act. This release adds photoreal characters, hands-free actions and a much faster, more natural conversation.</p>

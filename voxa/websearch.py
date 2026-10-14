@@ -12,6 +12,7 @@ import re
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
+from datetime import date
 
 SEARCH_URL = "https://html.duckduckgo.com/html/"
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) Voxa"
@@ -209,14 +210,19 @@ def _site(url: str) -> str:
     return host[4:] if host.startswith("www.") else host
 
 
-def format_for_prompt(query: str, results: list[SearchResult]) -> str:
+def format_for_prompt(
+    query: str,
+    results: list[SearchResult],
+    today: date | None = None,
+) -> str:
     """Instruction first, then numbered results, today's date, question last."""
+    current_date = today or date.today()
     lines = [
         "Answer ONLY from these search results. Do not add facts from memory."
     ]
     for number, item in enumerate(results[:MAX_RESULTS], 1):
         lines.append(f"{number}. {item.title} — {item.snippet[:300]} ({item.url})")
-    lines.append("Today is 6 October 2026.")
+    lines.append(f"Today is {current_date.day} {current_date.strftime('%B %Y')}.")
     lines.append(f"Question: {query}")
     return "\n".join(lines)
 

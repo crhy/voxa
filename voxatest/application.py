@@ -13,9 +13,11 @@ from .window import VoxaTestWindow  # noqa: E402
 
 
 class VoxaTestApplication(Adw.Application):
-    def __init__(self) -> None:
+    def __init__(self, cases: str = "", autostart: bool = False) -> None:
         super().__init__(application_id=APP_ID, flags=Gio.ApplicationFlags.DEFAULT_FLAGS)
         self.window: VoxaTestWindow | None = None
+        self._cases = cases
+        self._autostart = autostart
         quit_action = Gio.SimpleAction.new("quit", None)
         quit_action.connect("activate", lambda *_: self.quit())
         self.add_action(quit_action)
@@ -27,7 +29,7 @@ class VoxaTestApplication(Adw.Application):
 
     def do_activate(self) -> None:
         if self.window is None:
-            self.window = VoxaTestWindow(self)
+            self.window = VoxaTestWindow(self, cases=self._cases, autostart=self._autostart)
         self.window.present()
 
     def _show_about(self, *_args) -> None:
@@ -46,9 +48,19 @@ class VoxaTestApplication(Adw.Application):
 
 
 def main() -> int:
-    """Launch the standalone VoxaTest desktop application."""
-    app = VoxaTestApplication()
-    return app.run(sys.argv)
+    """Launch the standalone VoxaTest desktop application.
+
+    ``--cases FILE`` chooses the case file and ``--autostart`` begins the run at once, so a
+    recorded session needs no clicks.
+    """
+    import argparse
+
+    parser = argparse.ArgumentParser(prog="voxatest-gui", add_help=False)
+    parser.add_argument("--cases", default="")
+    parser.add_argument("--autostart", action="store_true")
+    options, rest = parser.parse_known_args(sys.argv[1:])
+    app = VoxaTestApplication(cases=options.cases, autostart=options.autostart)
+    return app.run([sys.argv[0], *rest])
 
 
 if __name__ == "__main__":

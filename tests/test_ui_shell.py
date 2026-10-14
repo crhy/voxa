@@ -83,6 +83,15 @@ def test_task_panel_floats_beside_not_over_center() -> None:
     window.close()
 
 
+def test_exchange_panel_is_anchored_in_upper_right() -> None:
+    shell = AssistantShell(AssistantModel())
+
+    assert shell.exchange_panel.get_halign() is Gtk.Align.END
+    assert shell.exchange_panel.get_valign() is Gtk.Align.START
+    assert shell.exchange_panel.get_margin_end() == 24
+    assert shell.exchange_panel.get_margin_top() == 24
+
+
 def test_state_wiring_caption_and_buttons() -> None:
     model = AssistantModel()
     shell = AssistantShell(model)

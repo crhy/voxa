@@ -267,12 +267,13 @@ def test_find_large_files(monkeypatch):
             "f",
             "-size",
             f"+{2 * 1024 ** 3}c",
-            "-print",
-        ): "/home/u/Documents/big.iso\n/home/u/Downloads/huge.iso",
+            "-printf",
+            "%s\\t%p\\n",
+        ): "3221225472\t/home/u/Documents/big.iso\n5368709120\t/home/u/Downloads/huge.iso",
     }
     monkeypatch.setattr(filemanage, "_run", _make_fake(records, results))
     result = find_large_files({"amount": "2", "unit": "gigabytes"})
-    assert result.speech == "I found 2 files bigger than 2 gigabytes: big.iso and huge.iso."
+    assert result.speech == "I found 2 files bigger than 2 gigabytes. The biggest is huge.iso."
 
 
 def test_find_large_files_none(monkeypatch):

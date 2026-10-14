@@ -2,6 +2,24 @@ from __future__ import annotations
 
 from voxa.conversation import ConversationController
 from voxa.speechfit import RtfGuard, lighter
+from voxa.transcription import WhisperService
+
+
+class StubModel:
+    """Stand-in for a loaded Faster Whisper model: only the inference call is stubbed."""
+
+    def transcribe(self, audio, **kwargs):
+        class _Segment:
+            text = "hello"
+
+        return ([_Segment()], None)
+
+
+def real_whisper(name: str) -> WhisperService:
+    service = WhisperService()
+    service._model = StubModel()
+    service._model_name = name
+    return service
 
 
 class FakeWhisper:
@@ -11,6 +29,7 @@ class FakeWhisper:
     def transcribe(self, segment: bytes, language: str, hint: str = "") -> str:
         return "hello"
 
+    @property
     def model_name(self) -> str:
         return self._name
 
@@ -127,5 +146,57 @@ def test_raising_hook_does_not_break():
         raise RuntimeError("hook failed")
 
     conv = make_controller(boom)
+    text = conv._transcribe(b"\0" * 64000, conv.prompt_whisper)
+    assert text == "hello"
+
+
+def make_real_controller(on_transcribe_timing=None):
+    wake = FakeWhisper("tiny")
+    prompt = real_whisper("base")
+    conv = ConversationController(
+        wake_whisper=wake,
+        prompt_whisper=prompt,
+        language="en",
+        wake_word="voxa",
+        threshold=500,
+        silence_ms=800,
+        max_segment_seconds=10.0,
+        on_woken=lambda: None,
+        on_prompt=lambda text: None,
+        on_status=lambda text: None,
+        on_error=lambda text: None,
+    )
+    conv.on_transcribe_timing = on_transcribe_timing
+    return conv
+
+
+def test_real_service_reports_timing():
+    calls: list[tuple[str, float, float]] = []
+
+    def hook(model: str, audio: float, took: float) -> None:
+        calls.append((model, audio, took))
+
+    conv = make_real_controller(hook)
+    text = conv._transcribe(b"\0" * 64000, conv.prompt_whisper)
+    assert text == "hello"
+    assert len(calls) == 1
+    model, audio, took = calls[0]
+    assert model == "base"
+    assert audio == 2.0
+    assert took > 0.0
+
+
+def test_real_service_wake_not_timed():
+    calls: list[tuple[str, float, float]] = []
+    conv = make_real_controller(lambda model, audio, took: calls.append((model, audio, took)))
+    conv._transcribe(b"\0" * 64000, conv.wake_whisper)
+    assert calls == []
+
+
+def test_real_service_raising_hook_does_not_break():
+    def boom(model: str, audio: float, took: float) -> None:
+        raise RuntimeError("hook failed")
+
+    conv = make_real_controller(boom)
     text = conv._transcribe(b"\0" * 64000, conv.prompt_whisper)
     assert text == "hello"

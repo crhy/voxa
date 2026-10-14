@@ -1,3 +1,5 @@
+from datetime import date
+
 from voxa import websearch
 
 PAGE = """
@@ -104,3 +106,12 @@ def test_format_for_prompt_forces_answers_from_results() -> None:
     text = websearch.format_for_prompt("q", [websearch.SearchResult("T", "https://u", "S")])
     assert "Answer ONLY from these search results." in text
     assert "Do not add facts from memory." in text
+
+
+def test_format_for_prompt_uses_supplied_current_date() -> None:
+    text = websearch.format_for_prompt(
+        "q",
+        [websearch.SearchResult("T", "https://u", "S")],
+        today=date(2027, 1, 2),
+    )
+    assert "Today is 2 January 2027." in text

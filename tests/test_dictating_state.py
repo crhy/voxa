@@ -2,8 +2,14 @@
 
 from __future__ import annotations
 
-from voxa.ui.assistant_view import STATE_CAPTIONS, STATE_HINTS
-from voxa.ui.state import ALLOWED_TRANSITIONS, AssistantModel, AssistantState, can_transition
+import pytest
+
+gi = pytest.importorskip("gi")
+if not hasattr(gi, "require_version"):
+    pytest.skip("PyGObject is not available", allow_module_level=True)
+
+from voxa.ui.assistant_view import STATE_CAPTIONS, STATE_HINTS  # noqa: E402
+from voxa.ui.state import ALLOWED_TRANSITIONS, AssistantModel, AssistantState, can_transition  # noqa: E402
 
 _S = AssistantState
 

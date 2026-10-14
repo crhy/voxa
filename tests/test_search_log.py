@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import date
+
 from voxa.websearch import SearchResult, format_for_prompt, search_record_fields, source_line
 
 
@@ -12,7 +14,7 @@ def test_format_for_prompt_order():
         _result("Bitcoin price", "https://www.example.com/a", "x" * 400),
         _result("Second", "https://coins.site/b", "short"),
     ]
-    block = format_for_prompt("what is the price", results)
+    block = format_for_prompt("what is the price", results, today=date(2026, 10, 6))
     lines = block.split("\n")
     assert lines[0].startswith("Answer ONLY from these search results.")
     assert lines[1].startswith("1. Bitcoin price")

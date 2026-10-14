@@ -1,6 +1,6 @@
 # Voxa changelog
 
-## 0.1.6 — in development
+## 0.1.6 — 2026-10-13
 
 Everything below is on `main` after the 0.1.5 release. Items marked 🧪 pass their automated tests and still need
 checking by ear and eye on a real desktop; `docs/CAPABILITIES.md` is the checklist with a phrase to try for each.

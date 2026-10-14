@@ -49,7 +49,6 @@ NOT_COMPLETE = [
     "turn up the",
     "play music on",
     "voxa and then",
-    "what is the weather",
     "hello there",
     "hey",
     "ok",

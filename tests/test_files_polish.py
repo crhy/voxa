@@ -59,15 +59,15 @@ def test_find_large_files_one(monkeypatch):
     find_cmd = (
         "timeout", "15", "find", "/home/u", "-xdev", "(", "-name", ".*",
         "-o", "-name", "node_modules", "-o", "-name", "__pycache__", ")",
-        "-prune", "-o", "-type", "f", "-size", "+5368709120c", "-print",
+        "-prune", "-o", "-type", "f", "-size", "+5368709120c", "-printf", "%s\\t%p\\n",
     )
     results = {
         ("sh", "-c", "echo $HOME"): "/home/u",
-        find_cmd: "/home/u/Downloads/big.iso",
+        find_cmd: "6442450944\t/home/u/Downloads/big.iso",
     }
     monkeypatch.setattr(filemanage, "_run", _make_fake(records, results))
     result = filemanage.find_large_files({"amount": "5", "unit": "gigabytes"})
-    assert "1 file bigger" in result.speech
+    assert "one file bigger" in result.speech
 
 
 def test_find_file_five_depths(monkeypatch):

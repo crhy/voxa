@@ -881,7 +881,7 @@
       "say": "start notepad",
       "tool": "open_app",
       "args": {
-        "name": "notepad"
+        "name": "text editor"
       }
     },
     {
@@ -917,7 +917,7 @@
       "say": "open the terminal",
       "tool": "open_app",
       "args": {
-        "name": "the terminal"
+        "name": "terminal"
       }
     },
     {
@@ -1277,7 +1277,7 @@
       "say": "open the file manager",
       "tool": "open_app",
       "args": {
-        "name": "file manager"
+        "name": "file browser"
       }
     },
     {

@@ -115,7 +115,6 @@ SPIN_GRAB = True  # the grab spin below; False falls back to pressing the rotate
 SPIN_STEP_MS = 40  # one pointer step every 40 ms
 SPIN_TURN_SECONDS = 20.0  # one full turn of the cube takes this long
 SPIN_MAX_SECONDS = 300.0  # five minutes, then the spin stops itself
-SPIN_EDGE_MARGIN = 150  # let go and grab again when the pointer gets this close to a screen edge
 _spin_stop = threading.Event()
 _spin_thread: threading.Thread | None = None
 
@@ -180,26 +179,36 @@ def _spin(keys: dict[str, str], faces: int, sleep=None) -> None:
         _press(keys[direction], presses)
 
 
+def mouse_position_from_output(output: str) -> tuple[int, int] | None:
+    """Parse xdotool's normal or ``--shell`` mouse-location output."""
+    shell = re.search(r"(?:^|\n)X=(-?\d+)\s*\nY=(-?\d+)(?:\n|$)", output, re.IGNORECASE)
+    if shell:
+        return (int(shell.group(1)), int(shell.group(2)))
+    normal = re.search(r"\bx:(-?\d+)\s+y:(-?\d+)\b", output, re.IGNORECASE)
+    if normal:
+        return (int(normal.group(1)), int(normal.group(2)))
+    return None
+
+
 def _mouse_position() -> tuple[int, int] | None:
     if simulation.actions_simulated():
         return None
     try:
-        done = subprocess.run(host_command(["xdotool", "getmouseposition"]), capture_output=True, text=True, timeout=5, check=False)
+        done = subprocess.run(
+            host_command(["xdotool", "getmouselocation", "--shell"]),
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
     except (OSError, subprocess.SubprocessError):
         return None
-    parts = done.stdout.split()
-    if len(parts) >= 2:
-        try:
-            return (int(parts[0]), int(parts[1]))
-        except ValueError:
-            return None
-    return None
+    return mouse_position_from_output(done.stdout) if done.returncode == 0 else None
 
 
-def _spin_grab(start: tuple[int, int], desktop_w: int, screen_w: int, screen_h: int, direction: int) -> None:
-    """Grab the cube the way the user does: hold ctrl+alt, drag with mouse button 1, step the pointer sideways."""
+def _spin_grab(start: tuple[int, int], desktop_w: int, direction: int) -> None:
+    """Hold one uninterrupted Compiz rotation grab and move the pointer sideways."""
     dx = spin_dx(desktop_w) * direction
-    x, y = start
     keys_down = False
     button_down = False
 
@@ -227,16 +236,8 @@ def _spin_grab(start: tuple[int, int], desktop_w: int, screen_w: int, screen_h: 
             return
         elapsed = 0.0
         while elapsed < SPIN_MAX_SECONDS and not _spin_stop.is_set():
-            if (dx > 0 and x + SPIN_EDGE_MARGIN >= screen_w) or (dx < 0 and x - SPIN_EDGE_MARGIN <= 0):
-                release()
-                x, y = screen_w // 2, screen_h // 2
-                if not _run(["xdotool", "mousemove", str(x), str(y)]):
-                    break
-                if not grab():
-                    break
             if not _run(["xdotool", "mousemove_relative", "--", str(dx), "0"]):
                 break
-            x += dx
             if _spin_stop.wait(SPIN_STEP_MS / 1000):
                 break
             elapsed += SPIN_STEP_MS / 1000
@@ -245,7 +246,7 @@ def _spin_grab(start: tuple[int, int], desktop_w: int, screen_w: int, screen_h: 
         _run(["xdotool", "mousemove", str(start[0]), str(start[1])])
 
 
-def start_spin(direction: str = "right") -> ToolResult:
+def start_spin(direction: str = "left") -> ToolResult:
     global _spin_thread
     if spinning():
         return ToolResult.success("Already spinning. Say stop to finish.")
@@ -263,7 +264,7 @@ def start_spin(direction: str = "right") -> ToolResult:
         if desktop_w and screen_w and start:
             _spin_thread = threading.Thread(
                 target=_spin_grab,
-                args=(start, desktop_w, screen_w, screen_h, -1 if direction == "left" else 1),
+                args=(start, desktop_w, -1 if direction == "left" else 1),
                 name="cube-spin",
                 daemon=True,
             )
@@ -279,7 +280,7 @@ def start_spin(direction: str = "right") -> ToolResult:
 def compiz_control(args: dict[str, str]) -> ToolResult:
     action = args["action"]
     if action == "spin":
-        return start_spin(args.get("direction", "right"))
+        return start_spin(args.get("direction", "left"))
     if action == "spin_stop":
         return ToolResult.success("Stopping." if stop_spin() else "The cube is not spinning.")
     keys = bindings()
@@ -314,7 +315,7 @@ def compiz_tools() -> list[Tool]:
             ),
             parameters={
                 "action": "one of cube_right, cube_left, spin, spin_stop, zoom_in, zoom_in_more, zoom_out, zoom_reset, zoom_left, zoom_right",
-                "direction": "for spin: left or right (default right)",
+                "direction": "for spin: left or right (default left)",
             },
             risk=RiskLevel.REVERSIBLE,
             handler=compiz_control,

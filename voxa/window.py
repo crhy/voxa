@@ -17,7 +17,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
 from . import apps, documents, mail, speechfit, wakelabel, websearch, welcome  # noqa: E402
-from .agent import hearing, host, intents, issueflow, mailflow, planner, radio, repeat, saveflow, ui  # noqa: E402
+from .agent import hearing, host, intents, issueflow, livetv, mailflow, planner, radio, repeat, saveflow, ui  # noqa: E402
 from .agent.actionlog import ActionLog, ActionRecord  # noqa: E402
 from .agent.claims import claims_action, first_sentences  # noqa: E402
 from .agent.host import host_command  # noqa: E402
@@ -25,7 +25,7 @@ from .agent.host import spawn as host_spawn  # noqa: E402
 from .agent.player import active_player  # noqa: E402
 from .agent.progress import working_caption  # noqa: E402
 from .agent.registry import ToolError  # noqa: E402
-from .agent.reminders import ReminderStore, reminder_phrase, timer_phrase  # noqa: E402
+from .agent.reminders import ReminderStore, focus_phrase, reminder_phrase, timer_phrase  # noqa: E402
 from .agent.result import ToolResult  # noqa: E402
 from .agent.routines import Routine, RoutineStore, parse_create, parse_delete, parse_list  # noqa: E402
 from .agent.spoken_text import format_dictation, parse_dictation_control  # noqa: E402
@@ -38,6 +38,7 @@ from .agent.tools import (  # noqa: E402
     github,
     media,
     textedit,
+    transcribe_file,
     translate,
     typing,
     windows,
@@ -50,7 +51,12 @@ from .bargein import BargeInGate, is_own_voice  # noqa: E402
 from .catalog import CatalogUnavailable, load_catalog, refresh_and_cache, refresh_due  # noqa: E402
 from .config import ConfigStore  # noqa: E402
 from .controller import AssistantController, ControllerPorts  # noqa: E402
-from .conversation import ConversationController, ConversationHistory, strip_wake_word  # noqa: E402
+from .conversation import (  # noqa: E402
+    ConversationController,
+    ConversationHistory,
+    detect_addressed_exit_phrase,
+    strip_wake_word,
+)
 from .dictation import DictationController  # noqa: E402
 from .echo import (  # noqa: E402
     default_monitor_source,
@@ -72,7 +78,7 @@ from .ownspeech import OwnSpeech  # noqa: E402
 from .pausewords import is_pause_request, resume_request  # noqa: E402
 from .replylang import LANGUAGES, is_only_a_language_request, requested_language  # noqa: E402
 from .server import SERVER_FAILED, SERVER_STARTING, SERVER_UNAVAILABLE, AiServerManager  # noqa: E402
-from .speakstream import SentenceFeeder, is_thinking_model, looks_like_reasoning  # noqa: E402
+from .speakstream import SentenceFeeder, looks_like_reasoning  # noqa: E402
 from .speech import SpeechService  # noqa: E402
 from .theme import host_theme_is_dark, initial_size  # noqa: E402
 from .transcription import WhisperService  # noqa: E402
@@ -82,6 +88,7 @@ from .ui.focus_window import overlay_supported  # noqa: E402
 from .ui.legacy_view import LegacyCallbacks, LegacyView  # noqa: E402
 from .ui.live_face import LiveFaceClient, decode_audio_to_pcm16k  # noqa: E402
 from .ui.model_selector import ai_status_for  # noqa: E402
+from .ui.radio_picker import RadioPicker  # noqa: E402
 from .ui.shell import AssistantShell, build_header  # noqa: E402
 from .ui.state import AssistantModel, AssistantState  # noqa: E402
 from .ui.styles import install_styles  # noqa: E402
@@ -93,6 +100,9 @@ WHISPER_MODELS = ["tiny", "base", "small", "medium", "large-v3", "turbo"]
 # larger) model the user picked for real dictation — that one only has to
 # run once per turn, after the wake word is actually heard.
 WAKE_WHISPER_MODEL = "tiny"
+# How long a number or a station name is taken as the answer to the open station list.
+RADIO_CHOICE_SECONDS = 45.0
+MEDIA_START_TOOLS = frozenset({"play_radio", "play_tv", "play_music", "play_video", "play_youtube"})
 GPU_POLL_INTERVAL_SECONDS = 2.0
 APPEARANCE_VALUES = ["system", "light", "dark"]
 APPEARANCE_LABELS = ["System", "Light", "Dark"]
@@ -137,6 +147,9 @@ BARGE_IN_GRACE_SECONDS = 0.4
 BARGE_IN_LISTEN_SECONDS = 0.9
 # How long the high-resolution face server may take to load its model before Voxa gives up on it.
 FACE_SERVER_START_SECONDS = 90.0
+# Version 5 also gates neural rendering against the real audio playback clock,
+# so prepared or paused speech cannot make the GPU run far ahead.
+LIVE_FACE_PROTOCOL_VERSION = 5
 
 
 def face_server_command() -> list[str] | None:
@@ -156,13 +169,27 @@ def face_server_command() -> list[str] | None:
         except (OSError, subprocess.SubprocessError):
             found = False
         if found:
-            return [path, "--steps", "10"]
+            # Five diffusion steps retain the detail that distinguishes High.
+            # Twelve rendered frames per second stays below this GPU's measured
+            # 14 fps ceiling, leaving headroom for GTK and the compositor.
+            return [path, "--steps", "5", "--max-fps", "12"]
     return None
 
 
-# High facial quality: how much video must be buffered before the voice starts, and the longest it may wait.
-LIVE_FACE_HEAD_START = 0.2
-LIVE_FACE_MAX_HOLD = 2.5
+# High facial quality: keep enough generated video ahead of the audio clock to
+# absorb one slow neural frame.  The GPU-friendly renderer is deliberately
+# paced at playback speed, so starting audio before this cushion exists leaves
+# the face permanently behind; its cold first frame can take roughly 400 ms.
+LIVE_FACE_HEAD_START = 0.16
+LIVE_FACE_MAX_HOLD = 0.65
+LIVE_FACE_STALL_SECONDS = 6.0
+LIVE_FACE_SIZE = 384
+# Motion is still predicted on Ditto's native 25 fps timeline, then sampled
+# across the whole gesture at 12 fps before the expensive render stages.  The
+# neural pipeline sustained about 14 fps in isolation, so asking for 15 made
+# it inevitably drift behind as soon as the desktop needed the GPU too.
+LIVE_FACE_FPS = 12
+LIVE_FACE_PROGRESS_INTERVAL = 0.20
 
 
 # How long the model list waits for an AI server that Voxa has only just started.
@@ -336,6 +363,11 @@ class MainWindow(Adw.ApplicationWindow):
         # Set when the window starts closing, so callbacks that arrive afterwards do nothing.
         self._closing = False
         self._follow_up_token: int | None = None
+        self._radio_picker: RadioPicker | None = None
+        self._radio_choice_until = 0.0
+        self._picker_is_tv = False
+        self._media_just_started = False
+        self._last_tool_started = ""
         self._app_cache: list[apps.DesktopApp] | None = None
         # Tools the router can call directly, without ever asking the model.
         self.tools = default_registry()
@@ -789,6 +821,9 @@ class MainWindow(Adw.ApplicationWindow):
         assistant_view = getattr(self.shell, "assistant_view", None)
         if assistant_view is not None:
             assistant_view.set_face_mode(self.settings.face_mode)
+        sync = getattr(self.shell, "sync_focus_face", None)
+        if sync is not None:
+            sync()
         self._refresh_live_available()
         # The face server's share of the card changes what fits, so the
         # suggestions are re-run for the new mode.
@@ -814,28 +849,56 @@ class MainWindow(Adw.ApplicationWindow):
             if face_quality is not None:
                 face_quality.set_status("")
             return
-        if face_quality is not None:
-            face_quality.set_status("Loading the high-resolution face…")
         if getattr(self, "_live_starting", False):
             return  # one start at a time: several things ask for this while the window is being built
+        if face_quality is not None:
+            face_quality.set_loading_progress(0)
         self._live_starting = True
         generation = getattr(self, "_live_generation", 0)
 
         def worker() -> None:
             client = LiveFaceClient()
             started = False
+            if client.available() and client.protocol_version() < LIVE_FACE_PROTOCOL_VERSION:
+                logging.info(
+                    "Replacing face server protocol %s with %s",
+                    client.protocol_version(),
+                    LIVE_FACE_PROTOCOL_VERSION,
+                )
+                client.shutdown_server()
+                # The host wrapper owns the listening socket and may take a
+                # moment to notice that its model process exited.
+                deadline = time.monotonic() + 5.0
+                while time.monotonic() < deadline:
+                    probe = LiveFaceClient(connect_timeout=0.15)
+                    if not probe.available():
+                        break
+                    probe.close()
+                    time.sleep(0.1)
+                client = LiveFaceClient()
             if not client.available():
                 command = face_server_command()
                 if command is None:
                     idle(self._on_live_ready, generation, None, False,
                          "The high-resolution face is not installed on this computer")
                     return
-                host_spawn(command)
+                if not host_spawn(command):
+                    idle(
+                        self._on_live_ready,
+                        generation,
+                        None,
+                        False,
+                        "The high-resolution face launcher exited before its model started",
+                    )
+                    return
                 started = True
-                deadline = time.monotonic() + FACE_SERVER_START_SECONDS
+                deadline = (started_at := time.monotonic()) + FACE_SERVER_START_SECONDS
                 while time.monotonic() < deadline and generation == getattr(self, "_live_generation", 0):
                     if client.available():
                         break
+                    elapsed = time.monotonic() - started_at
+                    percentage = min(99, int(elapsed * 100 / FACE_SERVER_START_SECONDS))
+                    idle(self._on_live_loading_progress, generation, percentage)
                     time.sleep(1.0)
             if generation != getattr(self, "_live_generation", 0):
                 if started and client.available():
@@ -849,6 +912,14 @@ class MainWindow(Adw.ApplicationWindow):
 
         threading.Thread(target=worker, name="live-face-start", daemon=True).start()
 
+    def _on_live_loading_progress(self, generation: int, percentage: int) -> bool:
+        if generation != getattr(self, "_live_generation", 0):
+            return False
+        face_quality = getattr(self.shell, "face_quality", None)
+        if face_quality is not None:
+            face_quality.set_loading_progress(percentage)
+        return False
+
     def _on_live_ready(self, generation: int, client: LiveFaceClient | None, started: bool, problem: str) -> None:
         if generation != getattr(self, "_live_generation", 0):
             return
@@ -857,6 +928,8 @@ class MainWindow(Adw.ApplicationWindow):
         self._live_client = client
         self._face_server_started = bool(started and client is not None)
         if face_quality is not None:
+            if client is not None:
+                face_quality.set_loading_progress(100)
             face_quality.set_status("")
         if client is not None:
             self._toast("High-resolution face ready.")
@@ -870,6 +943,9 @@ class MainWindow(Adw.ApplicationWindow):
         assistant_view = getattr(self.shell, "assistant_view", None)
         if assistant_view is not None:
             assistant_view.set_face_mode("prerendered")
+        sync = getattr(self.shell, "sync_focus_face", None)
+        if sync is not None:
+            sync()
 
     def _prepare_microphone(self) -> None:
         """Before listening: choose how the computer's own sound is removed from the microphone."""
@@ -912,15 +988,13 @@ class MainWindow(Adw.ApplicationWindow):
         except Exception:
             return
         buffer = self._live_client.start_utterance(
-            self.settings.character_id or "", pcm, size=512
+            self.settings.character_id or "", pcm, size=LIVE_FACE_SIZE, fps=LIVE_FACE_FPS
         )
         if buffer is None:
             return
-        renderer = getattr(self.shell, "assistant_view", None)
-        if renderer is not None:
-            photo = getattr(renderer, "_photo_renderer", None)
-            if photo is not None:
-                idle(photo.set_live_frames, buffer)
+        self._watch_live_buffer(buffer, self._live_client)
+        idle(self.shell.show_live_frames, buffer)
+        self._start_live_playback_clock(buffer, self._live_client)
         # Hold the voice until the first frames are in, so face and sound start together. The server makes
         # frames faster than they are played, so a small head start is enough; never wait long.
         deadline = time.monotonic() + LIVE_FACE_MAX_HOLD
@@ -939,7 +1013,42 @@ class MainWindow(Adw.ApplicationWindow):
         if client is None or self.settings.face_mode != "live":
             return
         pcm = decode_audio_to_pcm16k(item.path)
-        item.extra = client.start_utterance(self.settings.character_id or "", pcm, size=512)
+        item.extra = client.start_utterance(
+            self.settings.character_id or "", pcm, size=LIVE_FACE_SIZE, fps=LIVE_FACE_FPS
+        )
+        if item.extra is not None:
+            self._watch_live_buffer(item.extra, client)
+
+    def _watch_live_buffer(self, buffer, client: LiveFaceClient) -> None:
+        """Restart a renderer that accepted an utterance but stopped producing frames."""
+
+        def worker() -> None:
+            while True:
+                started_at = buffer.started_at()
+                if buffer.buffered_seconds() > 0 or buffer.done() or buffer.failed():
+                    return
+                if client is not self._live_client or self.settings.face_mode != "live":
+                    return
+                if started_at is not None and time.monotonic() - started_at >= LIVE_FACE_STALL_SECONDS:
+                    logging.warning("High face renderer stalled; restarting it")
+                    client.shutdown_server()
+                    idle(self._recover_stalled_live_face, client)
+                    return
+                time.sleep(0.1)
+
+        threading.Thread(target=worker, name="live-face-watch", daemon=True).start()
+
+    def _recover_stalled_live_face(self, client: LiveFaceClient) -> bool:
+        if client is not self._live_client:
+            return False
+        self._live_client = None
+        self._face_server_started = False
+        self._live_starting = False
+        self._live_generation = getattr(self, "_live_generation", 0) + 1
+        self.shell.show_live_frames(None)
+        self._toast("The high-resolution face stopped responding. Restarting it…")
+        self._refresh_live_available()
+        return False
 
     def _live_activate(self, item) -> None:
         """Worker thread, just before a prepared piece plays: show its frames and hold the voice briefly
@@ -950,12 +1059,10 @@ class MainWindow(Adw.ApplicationWindow):
             except Exception:  # noqa: BLE001 - no neural face for this piece: the pre-rendered mouth is used
                 item.extra = None
         buffer = item.extra
-        view = getattr(self.shell, "assistant_view", None)
-        photo = getattr(view, "_photo_renderer", None) if view is not None else None
-        if photo is not None:
-            idle(photo.set_live_frames, buffer)
+        idle(self.shell.show_live_frames, buffer)
         if buffer is None:
             return
+        self._start_live_playback_clock(buffer, self._live_client)
         deadline = time.monotonic() + LIVE_FACE_MAX_HOLD
 
         def flag(value) -> bool:
@@ -966,15 +1073,43 @@ class MainWindow(Adw.ApplicationWindow):
                 break
             time.sleep(0.02)
 
+    def _start_live_playback_clock(self, buffer, client: LiveFaceClient | None) -> None:
+        """Feed actual GStreamer playback progress to the neural renderer."""
+        if client is None:
+            return
+        self._live_playback_buffer = buffer
+
+        def worker() -> None:
+            last_sent = -1.0
+            started = False
+            while getattr(self, "_live_playback_buffer", None) is buffer:
+                if client is not self._live_client or self.settings.face_mode != "live":
+                    return
+                played = self.speech.position()
+                if played > 0.0:
+                    started = True
+                    if last_sent < 0.0 or played - last_sent >= LIVE_FACE_PROGRESS_INTERVAL * 0.75:
+                        client.report_playback(buffer, played)
+                        last_sent = played
+                elif started:
+                    # EOS resets GStreamer's position to zero. Release any
+                    # final frames still inside the two-second render window.
+                    client.report_playback(buffer, buffer.duration_seconds)
+                    return
+                if buffer.failed():
+                    return
+                time.sleep(LIVE_FACE_PROGRESS_INTERVAL)
+
+        threading.Thread(target=worker, name="live-face-clock", daemon=True).start()
+
     def _live_reset(self) -> None:
         """Cancel any in-flight live utterance and clear the renderer's buffer."""
+        self._live_playback_buffer = None
         if self._live_client is not None:
             self._live_client.cancel()
-        renderer = getattr(self.shell, "assistant_view", None)
-        if renderer is not None:
-            photo = getattr(renderer, "_photo_renderer", None)
-            if photo is not None:
-                photo.set_live_frames(None)
+        shell = getattr(self, "shell", None)
+        if shell is not None:
+            shell.show_live_frames(None)
 
     def show_transcript_window(self) -> None:
         """The original dictation and transcript view, in a secondary window."""
@@ -1025,7 +1160,12 @@ class MainWindow(Adw.ApplicationWindow):
     def _reminders_tick(self) -> bool:
         """Deliver reminders whose time has come, then reschedule. Returns True to keep the timer."""
         for item in self.reminder_store.due(datetime.now()):
-            phrase = timer_phrase(item.text) if item.kind == "timer" else reminder_phrase(item.text)
+            if item.kind == "timer":
+                phrase = timer_phrase(item.text)
+            elif item.kind == "focus":
+                phrase = focus_phrase(item.text)
+            else:
+                phrase = reminder_phrase(item.text)
             self._toast(phrase)
             if self.assistant.is_active:
                 self._conversation_speak(phrase)
@@ -1663,6 +1803,7 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _on_whisper_ready(self, name: str, backend: str) -> bool:
         self.settings.whisper_model = name
+        transcribe_file.transcriber = lambda pcm: self.whisper.transcribe(pcm, self.settings.language)
         self.config_store.save(self.settings)
         self._stop_progress()
         self._set_status(f"Ready — Whisper {name} on {backend}")
@@ -1972,6 +2113,8 @@ class MainWindow(Adw.ApplicationWindow):
             threshold=self.settings.voice_threshold,
             silence_ms=self.settings.silence_ms,
             max_segment_seconds=self.settings.max_segment_seconds,
+            early_silence_ms=self.settings.early_silence_ms,
+            early_final_pass=self.settings.early_final_pass,
             voice_detector=self.settings.voice_detector,
             on_woken=lambda: idle(session(self._on_conversation_woken)),
             on_prompt=lambda text: idle(session(self._on_conversation_prompt), text),
@@ -2063,6 +2206,8 @@ class MainWindow(Adw.ApplicationWindow):
         marks["prompt"] = time.monotonic()
         self._cmd_marks = marks
         heard = self.conversation.last_heard if self.conversation is not None else text
+        # Test builds: every accepted request, as heard and as passed on (see _trace_ignored).
+        self._barge_trace("request", heard=heard[:160], text=text[:160])
         if self.assistant.is_paused:
             resumed, rest = resume_request(heard, self.settings.wake_word)
             if not resumed:
@@ -2091,6 +2236,11 @@ class MainWindow(Adw.ApplicationWindow):
             return False
         stripped = strip_wake_word(text, self.settings.wake_word)
         if stripped is not None and not stripped:
+            # Only her name, said while she was already waiting for a request ("Voxa" … pause …
+            # "convert 100 kilometers to miles"): keep waiting, the request is the next thing said.
+            if self.conversation is not None:
+                self.conversation.arm_prompt()
+            self._set_status("Listening for your request…", busy=True)
             return False
         self.ask_ai(stripped if stripped is not None else text)
         return False
@@ -2237,6 +2387,51 @@ class MainWindow(Adw.ApplicationWindow):
             return ToolResult.success(" ".join(lines) if lines else "No characters to choose from.")
         return self.tools.call(call.tool, call.args)
 
+    def _picker_entries(self) -> list:
+        from .agent.tools import radio as radio_tools
+
+        return list(livetv.CHANNELS) if self._picker_is_tv else radio_tools.stations()
+
+    def _show_radio_picker(self, tv: bool = False) -> None:
+        self._picker_is_tv = tv
+        if self._radio_picker is None:
+            self._radio_picker = RadioPicker(self, self._play_station)
+        if tv:
+            self._radio_picker.show_stations(
+                self._picker_entries(), "Live TV channels", "Say a number or a name, or click a channel."
+            )
+        else:
+            self._radio_picker.show_stations(self._picker_entries())
+        self._radio_choice_until = time.monotonic() + RADIO_CHOICE_SECONDS
+        if self.conversation is not None:
+            # "Three" is not a sentence the follow-up window would accept: take the next utterance as it is.
+            self.conversation.arm_prompt()
+
+    def _play_station(self, name: str) -> None:
+        self._close_radio_picker()
+        tool = "play_tv" if self._picker_is_tv else "play_radio"
+        self._run_tool(intents.ToolCall(tool, {"name": name}), f"play {name}")
+
+    def _close_radio_picker(self) -> None:
+        self._radio_choice_until = 0.0
+        if self._radio_picker is not None:
+            self._radio_picker.set_visible(False)
+
+    def _radio_reply(self, prompt: str) -> bool:
+        """While the station list is up, a number or a station name plays it. False for anything else."""
+        if time.monotonic() >= self._radio_choice_until:
+            return False
+        entries = self._picker_entries()
+        station = radio.chosen(prompt, entries)
+        if station is None and self._picker_is_tv:
+            station = livetv.find(prompt) if livetv.clean_request(prompt) and len(prompt.split()) <= 5 else None
+        self._close_radio_picker()
+        if station is None:
+            return False
+        tool = "play_tv" if self._picker_is_tv else "play_radio"
+        self._run_tool(intents.ToolCall(tool, {"name": station.name}), prompt)
+        return True
+
     def _run_tool(self, call: intents.ToolCall, prompt: str) -> None:
         """A recognised command goes straight to its tool, never to the model."""
         marks = getattr(self, "_cmd_marks", None) or {}
@@ -2245,6 +2440,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._restore_reply_language()
         if call.args.get("action") != "spin":
             compiz.stop_spin()  # any new command ends a spinning cube (it turns back home)
+        self._last_tool_started = call.tool
         if repeat.repeatable(call.tool):
             self._last_tool_call = call
         self._tool_ran_for_request = True
@@ -2340,6 +2536,11 @@ class MainWindow(Adw.ApplicationWindow):
             return False
         speech = result.speech
         detail = getattr(result, "detail", "") or ""
+        self._media_just_started = (
+            self._last_tool_started in MEDIA_START_TOOLS
+            and bool(result.ok)
+            and not detail.startswith((radio.ASK_RADIO, livetv.ASK_TV))
+        )
         ended = True
         if detail == saveflow.ASK_NAME or detail.startswith(saveflow.ASK_REPLACE):
             # A save window is open and needs an answer: the next thing the user says belongs to it.
@@ -2349,12 +2550,11 @@ class MainWindow(Adw.ApplicationWindow):
             if self.conversation is not None:
                 self.conversation.hold_prompt()
         elif detail.startswith(radio.ASK_RADIO):
-            # The tool offered a numbered station list: show it as a choice overlay and leave
-            # the task WAITING so the user's next reply (a number or a name) picks a station.
-            choices = [line for line in detail[len(radio.ASK_RADIO):].split("\n") if line]
-            if self._query_task_id is not None and choices:
-                self.assistant_model.request_choice(self._query_task_id, choices)
-                ended = False
+            # The tool offered the station list: it opens as its own window, and the user's
+            # next reply (a number or a name, with or without the wake word) picks a station.
+            self._show_radio_picker()
+        elif detail.startswith(livetv.ASK_TV):
+            self._show_radio_picker(tv=True)
         if ended:
             self._end_query_task("done" if result.ok else "cancelled")
         if speech:
@@ -2462,20 +2662,20 @@ class MainWindow(Adw.ApplicationWindow):
         reply_id = self.assistant.current_reply()
         self._set_status("Speaking…", busy=True)
         self.shell.set_speech_clock(self._lip_clock)
-        self.speech.speak(
-            text,
-            self.settings.tts_rate,
-            self._reply_voice(),
-            on_started=lambda: idle(self._for_session(token, self._set_status), "Speaking…", True),
-            on_done=lambda: idle(self._for_session(token, self._on_conversation_speech_done), reply_id),
-            on_error=lambda error: idle(self._for_session(token, self._on_conversation_speech_error), error),
-            on_words=lambda words: idle(self.shell.set_word_timeline, words),
-            **(
-                {"before_play": self._live_before_play}
-                if self._live_client is not None and self.settings.face_mode == "live"
-                else {}
-            ),
-        )
+        speech_callbacks = {
+            "on_started": lambda: idle(self._for_session(token, self._set_status), "Speaking…", True),
+            "on_done": lambda: idle(self._for_session(token, self._on_conversation_speech_done), reply_id),
+            "on_error": lambda error: idle(self._for_session(token, self._on_conversation_speech_error), error),
+            "on_words": lambda words: idle(self.shell.set_word_timeline, words),
+        }
+        if self._live_client is not None and self.settings.face_mode == "live":
+            # Thinking models and several tool replies use the whole-reply path instead of the
+            # sentence-preparation path below.  High used to be connected only to prepared
+            # sentences, so these very common replies spoke over the static Medium portrait even
+            # while the selector still said High.  Asking SpeechService for a complete audio file
+            # lets the neural server receive this utterance before playback as well.
+            speech_callbacks["before_play"] = self._live_before_play
+        self.speech.speak(text, self.settings.tts_rate, self._reply_voice(), **speech_callbacks)
 
     def _conversation_idle_status(self) -> str:
         return (
@@ -2485,7 +2685,11 @@ class MainWindow(Adw.ApplicationWindow):
         )
 
     def _on_conversation_speech_done(self, reply_id: int | None = None) -> bool:
-        if self.conversation is not None and self.settings.followup_seconds > 0 and not self.assistant.is_paused:
+        # Suppress only the immediate follow-up after Voxa starts radio, television or music:
+        # its presenter could otherwise be mistaken for the user. An unrelated player that was
+        # already running must not silently turn conversational mode off for every ordinary reply.
+        follow_up = self.settings.followup_seconds > 0 and not self._media_just_started
+        if self.conversation is not None and follow_up and not self.assistant.is_paused:
             # Listen for a follow-up straight away, without the wake word.
             self.conversation.arm_prompt()
             self.conversation.open_followup(self.settings.followup_seconds)
@@ -2651,10 +2855,25 @@ class MainWindow(Adw.ApplicationWindow):
         started = time.monotonic()
         heard = self.conversation.candidate_text()
         raw = getattr(self.conversation, "last_candidate_raw", "")
+        # A spoken OFFLINE command is a kill switch even when it arrives over
+        # Voxa's reply. Handle it before echo rejection: short phrases such as
+        # "go offline" otherwise look like her own audio, or merely arm another
+        # prompt and force the user to repeat the command.
+        if detect_addressed_exit_phrase(heard, self.settings.wake_word) == "goodbye":
+            self._barge_trace("offline-interrupt", heard=heard, raw=raw)
+            self._barge_gate.reset()
+            self._barge_pending_since = 0.0
+            self._on_conversation_exit("goodbye")
+            return
         own = is_own_voice(heard, self._speaking_text, self._recent_spoken, raw=raw)
         self._barge_trace("words", heard=heard, raw=getattr(self.conversation, "last_candidate_raw", ""),
                           own_voice=own, seconds=time.monotonic() - started,
                           speaking=self._speaking_text[:60])
+        if not own and self._media_just_started and not re.search(
+            r"\b(?:stop|pause|cancel|quiet|enough|wait)\b", f"{heard} {raw}".casefold()
+        ) and strip_wake_word(f"{heard} {raw}", self.settings.wake_word) is None:
+            # The station she is announcing has already started: its presenter is not the user.
+            own = True
         if own:
             # The loud sound was Voxa's own voice: carry on speaking.
             self._barge_gate.reset()
@@ -2752,19 +2971,41 @@ class MainWindow(Adw.ApplicationWindow):
         self._set_status("Ready")
 
     def _start_external_dictation(self, prompt: str) -> None:
+        target = intents.dictation_target(prompt)
         self._external_dictation = True
         self._last_dictated = ""
         self.assistant_model.set_state(AssistantState.DICTATING, "")
         if self.conversation is not None:
             self.conversation.hold_prompt()
+        if target:
+            # Window discovery/application launch can take seconds. Dictation
+            # mode must become active immediately, so focus the destination in
+            # parallel and let the acknowledgement play without waiting on it.
+            def focus_destination() -> None:
+                try:
+                    result = windows.switch_to({"name": target})
+                except Exception as exc:
+                    logging.warning("Could not focus dictation target %s: %s", target, exc)
+                    return
+                if not result.ok:
+                    idle(self._toast, result.speech)
+
+            threading.Thread(
+                target=focus_destination,
+                name="dictation-focus",
+                daemon=True,
+            ).start()
         # The reminder of how to stop is only useful the first couple of times.
         given = int(getattr(self.settings, "dictation_hints_given", 0) or 0)
+        destination = f" in {target}" if target else ""
         if given < 2:
             self.settings.dictation_hints_given = given + 1
             self.config_store.save(self.settings)
-            self._on_tool_finished(ToolResult.success("Dictating. Say stop dictating when you're done."))
+            self._on_tool_finished(
+                ToolResult.success(f"Dictating{destination}. Say stop dictating when you're done.")
+            )
         else:
-            self._on_tool_finished(ToolResult.success("Dictating."))
+            self._on_tool_finished(ToolResult.success(f"Dictating{destination}."))
 
     def _stop_external_dictation(self) -> None:
         self._external_dictation = False
@@ -2840,6 +3081,13 @@ class MainWindow(Adw.ApplicationWindow):
             self.assistant_model.set_state(AssistantState.DICTATING, flow.caption)
         if speech:
             self._on_tool_finished(ToolResult.success(speech))
+
+    def _abandon_mail_flow(self) -> None:
+        self._mail_flow = None
+        if self.assistant_model.state is AssistantState.DICTATING:
+            self.assistant_model.set_state(AssistantState.READY, "")
+        if self.conversation is not None:
+            self.conversation.release_prompt()
 
     def _feed_save_flow(self, text: str) -> None:
         """One answer in a save conversation: the file name, or yes/no to replacing a file."""
@@ -2944,6 +3192,7 @@ class MainWindow(Adw.ApplicationWindow):
         marks["routed"] = time.monotonic()
         self._cmd_marks = marks
         self._follow_up_token = None
+        self._media_just_started = False
         self._restore_reply_language()
         self._stop_dictation_for_action()
         if prompt is None:
@@ -2961,12 +3210,17 @@ class MainWindow(Adw.ApplicationWindow):
             return
         original = prompt
         prompt = hearing.normalize(prompt) or prompt
+        if self._radio_reply(prompt):
+            return
         if self._save_flow is not None:
             self._feed_save_flow(original)
             return
         if self._mail_flow is not None:
-            self._feed_mail_flow(original)
-            return
+            if self._mail_flow.step == "address" and mailflow.interrupts_address_prompt(prompt):
+                self._abandon_mail_flow()
+            else:
+                self._feed_mail_flow(original)
+                return
         if self._issue_flow is not None:
             self._feed_issue_flow(original)
             return
@@ -3019,9 +3273,9 @@ class MainWindow(Adw.ApplicationWindow):
             self._log_action(prompt, "routine", detail=f"run {matched.name}")
             self._start_routine(matched.steps)
             return
-        call = intents.route(prompt)
+        call, said = intents.route_spoken(original)
         if call is not None:
-            self._run_tool(call, prompt)
+            self._run_tool(call, hearing.normalize(said) or said)
             return
         app_name = apps.parse_open_command(prompt)
         if app_name and len(app_name.split()) <= 5:
@@ -3302,7 +3556,13 @@ class MainWindow(Adw.ApplicationWindow):
                 ms=ms,
             )
 
-        result = planner.run_plan(plan, self.tools, on_step=on_step)
+        steps: list[str] = []
+        result = planner.run_plan(
+            plan, self.tools, on_step=lambda call, outcome, ms: (steps.append(call.tool), on_step(call, outcome, ms))
+        )
+        if not steps:
+            # A plan that only speaks ran no tool: still record what was heard and answered.
+            self._log_action(prompt, "plan", speech=result, detail="no tool step")
         self._maybe_suggest()
         return result
 
@@ -3578,7 +3838,13 @@ class MainWindow(Adw.ApplicationWindow):
                 "playing": False,
                 "finished": False,
                 "started": False,
-                "disabled": is_thinking_model(self.settings.ollama_model),
+                # Ollama requests are sent with ``think: false``.  Do not
+                # disable streaming speech merely because a capable model has
+                # "qwen3" (or another reasoning-family name) in its tag: that
+                # made Voxa wait for the complete response before speaking.
+                # If a backend nevertheless emits a tagged scratchpad, the
+                # runtime guard below still catches it before speech starts.
+                "disabled": False,
                 "token": None,
                 "reply_id": None,
             }
@@ -3620,7 +3886,9 @@ class MainWindow(Adw.ApplicationWindow):
             text = " ".join(state["queue"])
             state["queue"].clear()
             if live or state["started"]:
-                # High needs the whole piece before it plays; later pieces are fetched as files as well.
+                # High needs a complete audio piece so its neural frames can
+                # be generated before playback.  Medium and Low may stream the
+                # first piece immediately; later pieces are prepared ahead.
                 item = self.speech.prepare(text, rate, voice, on_ready=self._live_prepare if live else None)
         state["playing"] = True
         piece = item_text or text
@@ -3797,11 +4065,6 @@ class MainWindow(Adw.ApplicationWindow):
             on_done=lambda: idle(self._set_status, "Ready"),
             on_error=lambda error: idle(self._speech_error, error),
             on_words=lambda words: idle(self.shell.set_word_timeline, words),
-            **(
-                {"before_play": self._live_before_play}
-                if self._live_client is not None and self.settings.face_mode == "live"
-                else {}
-            ),
         )
 
     def _speech_error(self, error: str) -> bool:
@@ -3848,7 +4111,11 @@ class MainWindow(Adw.ApplicationWindow):
         elif appearance == "light":
             scheme = Adw.ColorScheme.FORCE_LIGHT
         elif self.style_manager.get_system_supports_color_schemes():
-            scheme = Adw.ColorScheme.PREFER_LIGHT
+            # Let libadwaita use the portal's actual system preference.  A
+            # preference here can conflict with the host GTK theme inherited
+            # by a Flatpak, leaving dark foregrounds on a light surface (or
+            # the reverse).
+            scheme = Adw.ColorScheme.DEFAULT
         elif self._gtk_theme_prefers_dark():
             scheme = Adw.ColorScheme.PREFER_DARK
         else:

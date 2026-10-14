@@ -83,8 +83,8 @@ def is_own_voice(heard: str, speaking_now: str, recently_spoken: str = "", raw: 
 
 
 class BargeInGate:
-    """Opens only after `needed` consecutive calls whose mic level towers
-    over the level heard while Voxa speaks; one quieter frame resets."""
+    """Opens once `needed` of the last `WINDOW` calls tower over the level heard
+    while Voxa speaks; a quieter frame only lowers the count, it does not reset."""
 
     def __init__(self, ratio: float = 2.0, min_level: float = 0.02, needed: int = 4):
         self._ratio = ratio
@@ -102,7 +102,9 @@ class BargeInGate:
         self._recent.append(mic_level > max(self._min_level, self._ratio * baseline))
         del self._recent[:-WINDOW]
         self._count = sum(self._recent)
-        return self._count >= self._needed
+        # Never open before the baseline has heard enough of her own voice to be trusted:
+        # at session start the baseline is 0.0, so any loud sound would open the gate.
+        return self.settled and self._count >= self._needed
 
     def note_speaking_level(self, mic_level: float) -> None:
         self._baseline += BASELINE_ALPHA * (mic_level - self._baseline)

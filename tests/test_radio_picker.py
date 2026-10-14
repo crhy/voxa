@@ -38,7 +38,7 @@ def test_no_station_offers_choices():
 def test_list_offers_choices():
     radio_tools._stations = radio.catalogue()
     result = radio_tools.list_radio({})
-    assert result.ok and "15 stations" in result.speech
+    assert result.ok and "16 stations" in result.speech
     assert result.detail.startswith(radio.ASK_RADIO)
     lines = [line for line in result.detail[len(radio.ASK_RADIO):].split("\n") if line]
     assert lines == radio.numbered(radio_tools._stations)

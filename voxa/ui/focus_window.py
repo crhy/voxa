@@ -97,6 +97,14 @@ class FocusWindow(Gtk.Window):
             self.renderer.set_speaking(speaking)
         self._speaking = speaking
 
+    def set_face_mode(self, mode: str) -> None:
+        """Follow the main window's facial quality, so High looks the same in the pop-up."""
+        self.renderer.set_mode(mode)
+
+    def set_live_frames(self, buffer) -> None:
+        """The same neural-face frames the main window is showing (or None to go back to the pack)."""
+        self.renderer.set_live_frames(buffer)
+
     def set_word_timeline(self, words) -> None:
         self.renderer.set_word_timeline(words)
 

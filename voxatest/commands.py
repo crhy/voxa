@@ -102,65 +102,126 @@ def run_commands(cases: list[CommandCase], registry: ToolRegistry) -> list[Comma
     return [check(case, registry) for case in cases]
 
 
-def summarize(results: list[CommandResult]) -> dict[str, Any]:
+def summarize(
+    results: list[CommandResult],
+    *,
+    elapsed_seconds: float | None = None,
+    unique_cases: int | None = None,
+    repeats: int = 1,
+    minimum_checks_per_hour: float = 1000.0,
+) -> dict[str, Any]:
     passed = sum(1 for result in results if result.passed)
     total = len(results)
     by_category: dict[str, dict[str, int]] = {}
+    failures: dict[tuple[str, str, str], dict[str, str]] = {}
     for result in results:
         entry = by_category.setdefault(result.case.category, {"total": 0, "passed": 0})
         entry["total"] += 1
         if result.passed:
             entry["passed"] += 1
+        else:
+            key = (result.case.id, result.case.say, result.problem)
+            failures[key] = {"id": result.case.id, "say": result.case.say, "problem": result.problem}
 
-    return {
+    summary: dict[str, Any] = {
         "total": total,
+        "unique_cases": unique_cases if unique_cases is not None else total,
+        "repeats": repeats,
         "passed": passed,
         "failed": total - passed,
         "pass_rate": round(passed / total * 100, 1) if total else 0.0,
         "by_category": by_category,
         "slowest_micros": max((result.micros for result in results), default=0),
-        "failures": [
-            {"id": result.case.id, "say": result.case.say, "problem": result.problem}
-            for result in results
-            if not result.passed
-        ],
+        "failures": list(failures.values()),
     }
+    if elapsed_seconds is not None:
+        checks_per_hour = total / elapsed_seconds * 3600 if elapsed_seconds > 0 else 0.0
+        summary.update(
+            {
+                "elapsed_seconds": round(elapsed_seconds, 6),
+                "checks_per_second": round(total / elapsed_seconds, 1) if elapsed_seconds > 0 else 0.0,
+                "checks_per_hour": round(checks_per_hour),
+                "minimum_checks_per_hour": minimum_checks_per_hour,
+                "throughput_passed": checks_per_hour >= minimum_checks_per_hour,
+            }
+        )
+    return summary
+
+
+def _cell(value: object) -> str:
+    return str(value).replace("|", "\\|").replace("\n", " ")
 
 
 def format_markdown(summary: dict[str, Any], wishlist_results: list[CommandResult]) -> str:
-    lines = ["# Voxa command bench", ""]
+    lines = [
+        "# Voxa capability audit",
+        "",
+        "This report measures Voxa's deterministic command router. It does not exercise the microphone, "
+        "speech recognition, model backend, network, or desktop side effects. Use the spoken `voxatest run` "
+        "suite for those end-to-end paths.",
+        "",
+    ]
     lines.append(
-        f"Total: {summary['total']} cases, {summary['passed']} passed, {summary['failed']} failed "
-        f"(pass rate {summary['pass_rate']}%). Slowest route: {summary['slowest_micros']} microseconds."
+        f"Result: {summary['total']} checks, {summary['passed']} passed, {summary['failed']} failed "
+        f"(pass rate {summary['pass_rate']}%). {summary['unique_cases']} unique cases repeated "
+        f"{summary['repeats']} time(s)."
     )
-    lines.append("")
-    lines.append("| Category | Total | Passed |")
-    lines.append("| --- | ---: | ---: |")
+    if "checks_per_hour" in summary:
+        throughput = "PASS" if summary["throughput_passed"] else "FAIL"
+        lines.extend(
+            [
+                "",
+                "## Throughput",
+                "",
+                f"- Elapsed: {summary['elapsed_seconds']:.6f} seconds",
+                f"- Rate: {summary['checks_per_second']:,.1f} checks/second "
+                f"({summary['checks_per_hour']:,} checks/hour)",
+                f"- Required minimum: {summary['minimum_checks_per_hour']:,.0f} checks/hour",
+                f"- Throughput result: **{throughput}**",
+            ]
+        )
+
+    lines.extend(
+        [
+            "",
+            "## What works in the deterministic command router",
+            "",
+            "| Category | Checks | Passed | Failed | Status |",
+            "| --- | ---: | ---: | ---: | --- |",
+        ]
+    )
     for category, counts in sorted(summary["by_category"].items()):
-        lines.append(f"| {category} | {counts['total']} | {counts['passed']} |")
+        failed = counts["total"] - counts["passed"]
+        status = "PASS" if failed == 0 else "FAIL"
+        lines.append(f"| {_cell(category)} | {counts['total']} | {counts['passed']} | {failed} | {status} |")
 
-    lines.append("")
-    lines.append("## Failures")
+    lines.extend(["", "## What does not work"])
     if summary["failures"]:
-        lines.append("| id | say | problem |")
-        lines.append("| --- | --- | --- |")
+        lines.extend(["", "| id | say | problem |", "| --- | --- | --- |"])
         for failure in summary["failures"]:
-            lines.append(f"| {failure['id']} | {failure['say']} | {failure['problem']} |")
+            lines.append(
+                f"| {_cell(failure['id'])} | {_cell(failure['say'])} | {_cell(failure['problem'])} |"
+            )
     else:
-        lines.append("None.")
+        lines.extend(["", "No deterministic router failures were found."])
 
-    lines.append("")
-    lines.append("## Wishlist (not handled yet)")
+    lines.extend(["", "## Wishlist (not handled yet)"])
     if wishlist_results:
-        lines.append("| id | say | router did |")
-        lines.append("| --- | --- | --- |")
+        lines.extend(["", "| id | say | router did |", "| --- | --- | --- |"])
         for result in wishlist_results:
-            if result.got_tool is None:
-                action = "nothing (no rule matched)"
-            else:
-                action = f"{result.got_tool} {result.got_args}"
-            lines.append(f"| {result.case.id} | {result.case.say} | {action} |")
+            action = "nothing (no rule matched)" if result.got_tool is None else f"{result.got_tool} {result.got_args}"
+            lines.append(f"| {_cell(result.case.id)} | {_cell(result.case.say)} | {_cell(action)} |")
     else:
-        lines.append("None.")
+        lines.extend(["", "None."])
 
+    lines.extend(
+        [
+            "",
+            "## Coverage limits",
+            "",
+            "A passing row proves that text was routed to the expected registered tool with valid arguments. "
+            "It does not prove that the target application accepted the action. Hardware, audio, model, "
+            "network, and desktop integration results belong in the spoken reports and `docs/CAPABILITIES.md`.",
+        ]
+    )
     return "\n".join(lines) + "\n"

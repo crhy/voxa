@@ -3,7 +3,7 @@ from voxa.agent import radio
 
 def test_three_new_stations():
     built = radio.catalogue()
-    assert len(built) == 15
+    assert len(built) == 16
     by_name = {s.name: s for s in built}
     assert by_name["Illinois Street Lounge"].stream == "https://ice1.somafm.com/illstreet-128-mp3"
     assert by_name["Bossa Beyond"].stream == "https://ice1.somafm.com/bossa-128-mp3"

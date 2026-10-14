@@ -8,6 +8,7 @@ from collections.abc import Callable, Iterator
 from .transcription import WhisperService
 
 PRE_ROLL_BYTES = int(0.6 * 16000) * 2  # 0.6 s of 16 kHz 16-bit audio kept before the first loud moment
+DICTATION_CHUNK_SECONDS = 6.0
 
 
 def segment_stream(
@@ -151,7 +152,9 @@ class DictationController:
         self.language = language
         self.threshold = threshold
         self.silence_seconds = silence_ms / 1000.0
-        self.max_segment_seconds = max_segment_seconds
+        # Dictation should put text on screen while somebody is still speaking.
+        # The general command limit can be much longer, so cap only this mode.
+        self.max_segment_seconds = min(max_segment_seconds, DICTATION_CHUNK_SECONDS)
         self.on_text = on_text
         self.on_status = on_status
         self.on_auto_stop = on_auto_stop

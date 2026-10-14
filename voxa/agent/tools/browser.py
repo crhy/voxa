@@ -90,7 +90,8 @@ def youtube_play_url(query: str, fetch: Callable[[str], str] | None = None) -> s
 
 
 def _open(url: str, speech: str) -> ToolResult:
-    host.spawn(["xdg-open", url])
+    if host.spawn(["xdg-open", url]) is False:
+        return ToolResult.failure("I couldn't open the browser.", detail=url)
     return ToolResult.success(speech, detail=url)
 
 
@@ -157,13 +158,18 @@ def image_search(args: dict[str, str]) -> ToolResult:
 def directions(args: dict[str, str]) -> ToolResult:
     """Google Maps directions from where the user is (Maps works that out itself) to the destination."""
     destination = args["destination"]
+    origin = (args.get("origin") or "").strip()
     url = f"https://www.google.com/maps/dir/?api=1&destination={urllib.parse.quote(destination)}"
+    if origin:
+        url += f"&origin={urllib.parse.quote(origin)}"
     spoken = (args.get("mode") or "").casefold()
     travel = {"walking": "walking", "walk": "walking", "on foot": "walking", "biking": "bicycling", "bike": "bicycling",
               "cycling": "bicycling", "transit": "transit", "bus": "transit", "train": "transit"}.get(spoken)
     if travel:
         url += f"&travelmode={travel}"
         return _open(url, f"Here are {travel} directions to {destination}.")
+    if origin:
+        return _open(url, f"Here are directions from {origin} to {destination}.")
     return _open(url, f"Here are directions to {destination}.")
 
 
@@ -179,7 +185,8 @@ def browser_tools() -> list[Tool]:
         Tool(
             name="directions",
             description="Open Google Maps directions to a place.",
-            parameters={"destination": "where to go", "mode": "optional: walking, biking or transit"},
+            parameters={"destination": "where to go", "origin": "optional: where to start from",
+                        "mode": "optional: walking, biking or transit"},
             risk=RiskLevel.REVERSIBLE,
             handler=directions,
             required=("destination",),

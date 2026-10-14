@@ -17,6 +17,19 @@ class TestCase:
     expected_contains: list[str] = field(default_factory=list)
     expected_keywords: list[str] = field(default_factory=list)
     rubric: str = ""
+    expected_tool: str = ""
+    expected_args: dict[str, Any] = field(default_factory=dict)
+    # "stop_media": the harness stops playback itself after the case. Voxa cancels what the
+    # speakers play, and the prompts come from those same speakers, so a spoken "stop the
+    # radio" cannot reach her while the radio she started is on.
+    after: str = ""
+    # Checks of the real outcome, made after the reply passed:
+    #   "file" with "file_contains" / "file_lacks": text that must (not) be in that file afterwards;
+    #   "says_within" (seconds) with "says": words Voxa must speak on her own within that time,
+    #   for a timer or reminder that has to go off.
+    verify: dict[str, Any] = field(default_factory=dict)
+    # Which of the 100 assistant capabilities (GitHub issue 102) this case is evidence for; 0 for none.
+    capability: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -26,6 +39,11 @@ class TestCase:
             "expected_contains": list(self.expected_contains),
             "expected_keywords": list(self.expected_keywords),
             "rubric": self.rubric,
+            "expected_tool": self.expected_tool,
+            "expected_args": dict(self.expected_args),
+            "after": self.after,
+            "verify": dict(self.verify),
+            "capability": self.capability,
         }
 
     @classmethod
@@ -43,6 +61,9 @@ class TestCase:
         case_id = str(raw.get("id", "")).strip() or f"case-{re.sub(r'[^a-zA-Z0-9]+', '-', prompt.lower())[:24]}"
         category = str(raw.get("category", "general")).strip() or "general"
         rubric = str(raw.get("rubric", "")).strip()
+        expected_tool = str(raw.get("expected_tool", "")).strip()
+        raw_expected_args = raw.get("expected_args", {})
+        expected_args = dict(raw_expected_args) if isinstance(raw_expected_args, dict) else {}
 
         return cls(
             id=case_id,
@@ -51,6 +72,11 @@ class TestCase:
             expected_contains=expected_contains,
             expected_keywords=expected_keywords,
             rubric=rubric,
+            expected_tool=expected_tool,
+            expected_args=expected_args,
+            after=str(raw.get("after", "")).strip(),
+            verify=dict(raw["verify"]) if isinstance(raw.get("verify"), dict) else {},
+            capability=int(raw.get("capability") or 0) if str(raw.get("capability") or "0").isdigit() else 0,
         )
 
 

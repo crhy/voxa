@@ -85,8 +85,8 @@ def test_format_markdown_has_totals_and_failure_row():
     ]
     results = run_commands(cases, registry)
     markdown = format_markdown(summarize(results), run_commands([CommandCase("w-1", "web", "start dictating", None, None)], registry))
-    assert "# Voxa command bench" in markdown
-    assert "Total: 2 cases, 1 passed, 1 failed" in markdown
+    assert "# Voxa capability audit" in markdown
+    assert "Result: 2 checks, 1 passed, 1 failed" in markdown
     assert "| bad-1 | open gmail | expected open_app, got open_site |" in markdown
     assert "## Wishlist (not handled yet)" in markdown
     assert "start dictating" in markdown
@@ -97,10 +97,13 @@ def test_commands_subcommand_writes_reports(tmp_path: Path):
     code = main(["commands", "--report-dir", str(report_dir)])
     assert code == 0
     markdown = (report_dir / "command-bench.md").read_text(encoding="utf-8")
-    assert "# Voxa command bench" in markdown
+    assert "# Voxa capability audit" in markdown
     payload = json.loads((report_dir / "command-bench.json").read_text(encoding="utf-8"))
     assert payload["summary"]["failed"] == 0
-    assert len(payload["results"]) >= 120
+    assert payload["summary"]["throughput_passed"] is True
+    assert payload["summary"]["unique_cases"] >= 120
+    assert payload["summary"]["repeats"] == 10
+    assert len(payload["results"]) >= 1200
 
 
 def test_commands_subcommand_fails_on_bad_case(tmp_path: Path):
@@ -114,3 +117,51 @@ def test_commands_subcommand_fails_on_bad_case(tmp_path: Path):
     assert code == 1
     assert (report_dir / "command-bench.md").exists()
     assert (report_dir / "command-bench.json").exists()
+
+
+def test_commands_subcommand_writes_stable_capability_report(tmp_path: Path):
+    report_dir = tmp_path / "reports"
+    capability_report = tmp_path / "CAPABILITY_AUDIT.md"
+    code = main(
+        [
+            "commands",
+            "--repeat",
+            "2",
+            "--report-dir",
+            str(report_dir),
+            "--capability-report",
+            str(capability_report),
+        ]
+    )
+    assert code == 0
+    assert capability_report.read_text(encoding="utf-8") == (
+        report_dir / "command-bench.md"
+    ).read_text(encoding="utf-8")
+
+
+def test_commands_subcommand_fails_when_throughput_is_below_minimum(tmp_path: Path):
+    code = main(
+        [
+            "commands",
+            "--repeat",
+            "1",
+            "--report-dir",
+            str(tmp_path / "reports"),
+            "--min-checks-per-hour",
+            "1000000000000000",
+        ]
+    )
+    assert code == 2
+
+
+def test_commands_subcommand_rejects_invalid_repeat(tmp_path: Path):
+    code = main(
+        [
+            "commands",
+            "--repeat",
+            "0",
+            "--report-dir",
+            str(tmp_path / "reports"),
+        ]
+    )
+    assert code == 2

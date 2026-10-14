@@ -59,6 +59,13 @@ def test_known_site_opens_directly(opened):
     assert opened == [["xdg-open", "https://www.cnn.com/"]]
 
 
+def test_generic_email_client_falls_back_to_gmail(opened):
+    result = open_app({"name": "email client"})
+    assert result.ok
+    assert result.detail == "https://mail.google.com/"
+    assert opened == [["xdg-open", "https://mail.google.com/"]]
+
+
 def test_unknown_name_suggests_website(opened):
     result = open_app({"name": "frobnicate"})
     assert not result.ok

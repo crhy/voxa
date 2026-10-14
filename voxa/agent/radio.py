@@ -26,6 +26,8 @@ EXTRA = (
             "http://51.255.235.165:5528/stream"),
     Station("Cowpoke Radio", "country western cowboy", "Classic country and western.",
             "http://pavo.prostreaming.net:8034/stream"),
+    Station("HPR-2 Classical", "classical orchestral symphony opera", "Hawaii Public Radio's classical music station.",
+            "http://khpr-ice.streamguys1.com/kipo2"),
 )
 _SOMA_BUILTIN = (
     ("groovesalad", "Groove Salad", "ambient electronic chill", "A nicely chilled plate of ambient and downtempo beats."),
@@ -45,6 +47,7 @@ _SOMA_BUILTIN = (
      "Chilled holiday grooves and classic winter lounge tracks."),
 )
 BUILTIN = tuple(Station(t, g, d, SOMA_STREAM.format(id=i)) for i, t, g, d in _SOMA_BUILTIN) + EXTRA
+ALWAYS_AVAILABLE = tuple(station for station in BUILTIN if station.name in {"Bossa Beyond", "Christmas Lounge", "Illinois Street Lounge"})
 
 
 def norm(text: str) -> str:
@@ -66,14 +69,19 @@ def parse_soma(json_text: str, top: int = 10) -> list[Station]:
 
 
 def catalogue(fetch=None) -> list[Station]:
-    """SomaFM's current top ten (when reachable) plus the fixed extras; the built-in list otherwise."""
+    """SomaFM's top ten plus permanent favourites and extras; the built-in list offline."""
     if fetch is not None:
         try:
             soma = parse_soma(fetch(SOMA_URL))
         except Exception:  # noqa: BLE001 - no network: the built-in list is the answer
             soma = []
         if soma:
-            return soma + list(EXTRA)
+            # The live feed is deliberately limited to its current top ten. Keep requested
+            # favourites available even when they fall outside that ranking, without adding a
+            # duplicate when one of them is already in the feed.
+            live_names = {norm(station.name) for station in soma}
+            favourites = [station for station in ALWAYS_AVAILABLE if norm(station.name) not in live_names]
+            return soma + favourites + list(EXTRA)
     return list(BUILTIN)
 
 
@@ -161,6 +169,25 @@ _ORDINALS = {
     "fourteenth": 14, "fifteenth": 15, "sixteenth": 16, "seventeenth": 17, "eighteenth": 18,
     "nineteenth": 19, "twentieth": 20,
 }
+
+
+_REPLY_FILLER = re.compile(
+    r"\b(?:please|play|the|a|station|radio|number|one(?=\s*$)|i\s+would\s+like|i\s+want|lets\s+hear|put\s+on)\b"
+)
+
+
+def chosen(spoken: str, stations: list[Station]) -> Station | None:
+    """The station an answer to "Which one would you like?" names, or None when the words are
+    not an answer at all (a new request such as "what is seven times eight" must not pick one)."""
+    text = norm(spoken)
+    if not text or len(text.split()) > 6:
+        return None
+    rest = _REPLY_FILLER.sub(" ", text).split()
+    if len(rest) == 1 and (rest[0].isdigit() or rest[0] in _WORDS or rest[0] in _ORDINALS):
+        return pick(text, stations)
+    if text.split()[-1] == "one" and len(rest) == 0:
+        return pick("one", stations)
+    return find(" ".join(rest), stations) if rest else None
 
 
 def pick(spoken: str, stations: list[Station]) -> Station | None:

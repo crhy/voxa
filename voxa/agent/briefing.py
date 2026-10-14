@@ -44,8 +44,8 @@ def reminders_today(reminders, now: datetime) -> str:
     return f"You have {len(due)} {noun} today: {listed}{more}."
 
 
-def compose(greeting: str, date_sentence: str, weather: str, reminders: str) -> str:
-    parts = [greeting, date_sentence, weather, reminders or "Nothing is on your reminder list today."]
+def compose(greeting: str, date_sentence: str, weather: str, reminders: str, calendar: str = "") -> str:
+    parts = [greeting, date_sentence, weather, reminders or "Nothing is on your reminder list today.", calendar]
     return " ".join(part.strip() for part in parts if part and part.strip())
 
 

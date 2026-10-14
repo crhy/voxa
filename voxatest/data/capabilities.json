@@ -1,0 +1,705 @@
+{
+ "source": "https://github.com/crhy/voxa/issues/102",
+ "capabilities": [
+  {
+   "n": 1,
+   "category": "Email & Communications",
+   "name": "Manage email inboxes",
+   "desc": "Read, categorize, prioritize, archive, and delete emails.",
+   "needs_user": "your mail account"
+  },
+  {
+   "n": 2,
+   "category": "Email & Communications",
+   "name": "Draft and send emails",
+   "desc": "Compose professional or personal correspondence.",
+   "needs_user": ""
+  },
+  {
+   "n": 3,
+   "category": "Email & Communications",
+   "name": "Respond to routine messages",
+   "desc": "Handle common questions and requests.",
+   "needs_user": "your mail account"
+  },
+  {
+   "n": 4,
+   "category": "Email & Communications",
+   "name": "Screen incoming communications",
+   "desc": "Identify important messages, spam, and urgent requests.",
+   "needs_user": "your mail account"
+  },
+  {
+   "n": 5,
+   "category": "Email & Communications",
+   "name": "Manage text messages",
+   "desc": "Read, draft, and respond to SMS and messaging apps.",
+   "needs_user": "your phone or messaging accounts"
+  },
+  {
+   "n": 6,
+   "category": "Email & Communications",
+   "name": "Handle phone calls",
+   "desc": "Answer, screen, route, and summarize calls.",
+   "needs_user": "a phone line"
+  },
+  {
+   "n": 7,
+   "category": "Email & Communications",
+   "name": "Manage contacts",
+   "desc": "Create, update, merge, and organize contact records.",
+   "needs_user": ""
+  },
+  {
+   "n": 8,
+   "category": "Email & Communications",
+   "name": "Follow up on unanswered messages",
+   "desc": "Track responses and send reminders.",
+   "needs_user": "your mail account"
+  },
+  {
+   "n": 9,
+   "category": "Email & Communications",
+   "name": "Summarize conversations",
+   "desc": "Extract decisions, commitments, and action items.",
+   "needs_user": ""
+  },
+  {
+   "n": 10,
+   "category": "Email & Communications",
+   "name": "Coordinate communications across platforms",
+   "desc": "Manage email, chat, SMS, and social messaging.",
+   "needs_user": "your accounts"
+  },
+  {
+   "n": 11,
+   "category": "Calendar & Scheduling",
+   "name": "Manage calendars",
+   "desc": "Create, update, move, and cancel appointments.",
+   "needs_user": ""
+  },
+  {
+   "n": 12,
+   "category": "Calendar & Scheduling",
+   "name": "Schedule meetings",
+   "desc": "Coordinate availability among participants.",
+   "needs_user": "other people's calendars"
+  },
+  {
+   "n": 13,
+   "category": "Calendar & Scheduling",
+   "name": "Send appointment reminders",
+   "desc": "Provide timely notifications.",
+   "needs_user": ""
+  },
+  {
+   "n": 14,
+   "category": "Calendar & Scheduling",
+   "name": "Resolve scheduling conflicts",
+   "desc": "Detect overlapping commitments and propose solutions.",
+   "needs_user": ""
+  },
+  {
+   "n": 15,
+   "category": "Calendar & Scheduling",
+   "name": "Prepare daily schedules",
+   "desc": "Deliver morning briefings and agendas.",
+   "needs_user": ""
+  },
+  {
+   "n": 16,
+   "category": "Calendar & Scheduling",
+   "name": "Manage recurring appointments",
+   "desc": "Handle routine meetings and obligations.",
+   "needs_user": ""
+  },
+  {
+   "n": 17,
+   "category": "Calendar & Scheduling",
+   "name": "Track birthdays and anniversaries",
+   "desc": "Remind you of important personal dates.",
+   "needs_user": ""
+  },
+  {
+   "n": 18,
+   "category": "Calendar & Scheduling",
+   "name": "Coordinate time zones",
+   "desc": "Schedule international meetings correctly.",
+   "needs_user": ""
+  },
+  {
+   "n": 19,
+   "category": "Calendar & Scheduling",
+   "name": "Manage deadlines",
+   "desc": "Track due dates and warn of approaching obligations.",
+   "needs_user": ""
+  },
+  {
+   "n": 20,
+   "category": "Calendar & Scheduling",
+   "name": "Protect focus time",
+   "desc": "Reserve uninterrupted working periods.",
+   "needs_user": ""
+  },
+  {
+   "n": 21,
+   "category": "Tasks & Productivity",
+   "name": "Maintain to-do lists",
+   "desc": "Create, prioritize, organize, and complete tasks.",
+   "needs_user": ""
+  },
+  {
+   "n": 22,
+   "category": "Tasks & Productivity",
+   "name": "Track ongoing projects",
+   "desc": "Monitor progress, milestones, and deliverables.",
+   "needs_user": ""
+  },
+  {
+   "n": 23,
+   "category": "Tasks & Productivity",
+   "name": "Break down complex projects",
+   "desc": "Convert broad goals into actionable steps.",
+   "needs_user": ""
+  },
+  {
+   "n": 24,
+   "category": "Tasks & Productivity",
+   "name": "Set reminders",
+   "desc": "Trigger reminders based on time, date, or conditions.",
+   "needs_user": ""
+  },
+  {
+   "n": 25,
+   "category": "Tasks & Productivity",
+   "name": "Monitor pending tasks",
+   "desc": "Identify stalled work and unfinished activities.",
+   "needs_user": ""
+  },
+  {
+   "n": 26,
+   "category": "Tasks & Productivity",
+   "name": "Prepare progress reports",
+   "desc": "Summarize completed work and outstanding items.",
+   "needs_user": ""
+  },
+  {
+   "n": 27,
+   "category": "Tasks & Productivity",
+   "name": "Prioritize daily activities",
+   "desc": "Recommend what to work on next.",
+   "needs_user": ""
+  },
+  {
+   "n": 28,
+   "category": "Tasks & Productivity",
+   "name": "Automate repetitive workflows",
+   "desc": "Execute recurring sequences of actions.",
+   "needs_user": ""
+  },
+  {
+   "n": 29,
+   "category": "Tasks & Productivity",
+   "name": "Coordinate multiple projects",
+   "desc": "Track dependencies and competing priorities.",
+   "needs_user": ""
+  },
+  {
+   "n": 30,
+   "category": "Tasks & Productivity",
+   "name": "Maintain personal knowledge bases",
+   "desc": "Organize notes, instructions, and reference material.",
+   "needs_user": ""
+  },
+  {
+   "n": 31,
+   "category": "Research & Information Gathering",
+   "name": "Research products and services",
+   "desc": "Compare features, prices, and reviews.",
+   "needs_user": ""
+  },
+  {
+   "n": 32,
+   "category": "Research & Information Gathering",
+   "name": "Find answers to questions",
+   "desc": "Investigate topics and provide reliable summaries.",
+   "needs_user": ""
+  },
+  {
+   "n": 33,
+   "category": "Research & Information Gathering",
+   "name": "Monitor news",
+   "desc": "Track developments in selected areas of interest.",
+   "needs_user": ""
+  },
+  {
+   "n": 34,
+   "category": "Research & Information Gathering",
+   "name": "Research companies and people",
+   "desc": "Prepare background information and profiles.",
+   "needs_user": ""
+  },
+  {
+   "n": 35,
+   "category": "Research & Information Gathering",
+   "name": "Compare purchasing options",
+   "desc": "Evaluate alternatives and recommend choices.",
+   "needs_user": ""
+  },
+  {
+   "n": 36,
+   "category": "Research & Information Gathering",
+   "name": "Track prices and availability",
+   "desc": "Watch for deals, discounts, and inventory changes.",
+   "needs_user": ""
+  },
+  {
+   "n": 37,
+   "category": "Research & Information Gathering",
+   "name": "Research technical problems",
+   "desc": "Investigate errors and potential solutions.",
+   "needs_user": ""
+  },
+  {
+   "n": 38,
+   "category": "Research & Information Gathering",
+   "name": "Summarize documents and websites",
+   "desc": "Extract important information.",
+   "needs_user": ""
+  },
+  {
+   "n": 39,
+   "category": "Research & Information Gathering",
+   "name": "Monitor competitors and markets",
+   "desc": "Identify relevant changes and opportunities.",
+   "needs_user": ""
+  },
+  {
+   "n": 40,
+   "category": "Research & Information Gathering",
+   "name": "Verify information",
+   "desc": "Cross-check claims and evaluate source reliability.",
+   "needs_user": ""
+  },
+  {
+   "n": 41,
+   "category": "Travel & Transportation",
+   "name": "Plan trips",
+   "desc": "Build itineraries around destinations, budgets, and preferences.",
+   "needs_user": ""
+  },
+  {
+   "n": 42,
+   "category": "Travel & Transportation",
+   "name": "Book flights",
+   "desc": "Research and reserve suitable flights with approval.",
+   "needs_user": "payment and your approval"
+  },
+  {
+   "n": 43,
+   "category": "Travel & Transportation",
+   "name": "Reserve accommodations",
+   "desc": "Find and book hotels or vacation rentals.",
+   "needs_user": "payment and your approval"
+  },
+  {
+   "n": 44,
+   "category": "Travel & Transportation",
+   "name": "Arrange transportation",
+   "desc": "Coordinate taxis, rideshares, rentals, and transfers.",
+   "needs_user": "payment and your approval"
+  },
+  {
+   "n": 45,
+   "category": "Travel & Transportation",
+   "name": "Monitor flight status",
+   "desc": "Track delays, cancellations, and gate changes.",
+   "needs_user": ""
+  },
+  {
+   "n": 46,
+   "category": "Travel & Transportation",
+   "name": "Manage travel documents",
+   "desc": "Organize passports, visas, tickets, and confirmations.",
+   "needs_user": ""
+  },
+  {
+   "n": 47,
+   "category": "Travel & Transportation",
+   "name": "Research destinations",
+   "desc": "Identify attractions, restaurants, and activities.",
+   "needs_user": ""
+  },
+  {
+   "n": 48,
+   "category": "Travel & Transportation",
+   "name": "Optimize travel routes",
+   "desc": "Plan efficient driving and transit routes.",
+   "needs_user": ""
+  },
+  {
+   "n": 49,
+   "category": "Travel & Transportation",
+   "name": "Manage travel expenses",
+   "desc": "Track costs, receipts, and reimbursements.",
+   "needs_user": ""
+  },
+  {
+   "n": 50,
+   "category": "Travel & Transportation",
+   "name": "Handle itinerary changes",
+   "desc": "Research alternatives and coordinate rebooking.",
+   "needs_user": ""
+  },
+  {
+   "n": 51,
+   "category": "Shopping & Personal Finances",
+   "name": "Create shopping lists",
+   "desc": "Maintain grocery, household, and equipment lists.",
+   "needs_user": ""
+  },
+  {
+   "n": 52,
+   "category": "Shopping & Personal Finances",
+   "name": "Order products online",
+   "desc": "Find and purchase approved items.",
+   "needs_user": "payment and your approval"
+  },
+  {
+   "n": 53,
+   "category": "Shopping & Personal Finances",
+   "name": "Compare prices across retailers",
+   "desc": "Identify the best overall value.",
+   "needs_user": ""
+  },
+  {
+   "n": 54,
+   "category": "Shopping & Personal Finances",
+   "name": "Track deliveries",
+   "desc": "Monitor packages and shipping updates.",
+   "needs_user": ""
+  },
+  {
+   "n": 55,
+   "category": "Shopping & Personal Finances",
+   "name": "Manage returns and refunds",
+   "desc": "Initiate returns and follow up with retailers.",
+   "needs_user": "retailer accounts"
+  },
+  {
+   "n": 56,
+   "category": "Shopping & Personal Finances",
+   "name": "Track bills and payment deadlines",
+   "desc": "Organize upcoming financial obligations.",
+   "needs_user": ""
+  },
+  {
+   "n": 57,
+   "category": "Shopping & Personal Finances",
+   "name": "Categorize expenses",
+   "desc": "Maintain personal spending records.",
+   "needs_user": ""
+  },
+  {
+   "n": 58,
+   "category": "Shopping & Personal Finances",
+   "name": "Monitor subscriptions",
+   "desc": "Identify renewals, price increases, and unused services.",
+   "needs_user": ""
+  },
+  {
+   "n": 59,
+   "category": "Shopping & Personal Finances",
+   "name": "Prepare budgets",
+   "desc": "Organize expected income, expenses, and savings goals.",
+   "needs_user": ""
+  },
+  {
+   "n": 60,
+   "category": "Shopping & Personal Finances",
+   "name": "Organize financial documents",
+   "desc": "Maintain invoices, receipts, warranties, and tax records.",
+   "needs_user": ""
+  },
+  {
+   "n": 61,
+   "category": "Home & Personal Life",
+   "name": "Manage household maintenance",
+   "desc": "Schedule repairs and routine servicing.",
+   "needs_user": ""
+  },
+  {
+   "n": 62,
+   "category": "Home & Personal Life",
+   "name": "Coordinate service providers",
+   "desc": "Contact plumbers, electricians, cleaners, and contractors.",
+   "needs_user": "a phone line"
+  },
+  {
+   "n": 63,
+   "category": "Home & Personal Life",
+   "name": "Make restaurant reservations",
+   "desc": "Find availability and book tables.",
+   "needs_user": "a booking account or a phone line"
+  },
+  {
+   "n": 64,
+   "category": "Home & Personal Life",
+   "name": "Plan meals",
+   "desc": "Recommend menus, recipes, and grocery requirements.",
+   "needs_user": ""
+  },
+  {
+   "n": 65,
+   "category": "Home & Personal Life",
+   "name": "Manage personal appointments",
+   "desc": "Coordinate medical, dental, grooming, and other visits.",
+   "needs_user": ""
+  },
+  {
+   "n": 66,
+   "category": "Home & Personal Life",
+   "name": "Organize family schedules",
+   "desc": "Track activities and shared commitments.",
+   "needs_user": ""
+  },
+  {
+   "n": 67,
+   "category": "Home & Personal Life",
+   "name": "Manage gifts and special occasions",
+   "desc": "Research, purchase, and arrange delivery.",
+   "needs_user": "payment and your approval"
+  },
+  {
+   "n": 68,
+   "category": "Home & Personal Life",
+   "name": "Track vehicle maintenance",
+   "desc": "Monitor registration, insurance, and service intervals.",
+   "needs_user": ""
+  },
+  {
+   "n": 69,
+   "category": "Home & Personal Life",
+   "name": "Maintain household inventories",
+   "desc": "Track supplies, appliances, and important possessions.",
+   "needs_user": ""
+  },
+  {
+   "n": 70,
+   "category": "Home & Personal Life",
+   "name": "Coordinate events and gatherings",
+   "desc": "Manage invitations, vendors, and logistics.",
+   "needs_user": ""
+  },
+  {
+   "n": 71,
+   "category": "Documents & Administrative Work",
+   "name": "Create documents",
+   "desc": "Draft letters, reports, proposals, and other materials.",
+   "needs_user": ""
+  },
+  {
+   "n": 72,
+   "category": "Documents & Administrative Work",
+   "name": "Edit and proofread writing",
+   "desc": "Improve grammar, clarity, and formatting.",
+   "needs_user": ""
+  },
+  {
+   "n": 73,
+   "category": "Documents & Administrative Work",
+   "name": "Organize digital files",
+   "desc": "Sort, rename, tag, and archive documents.",
+   "needs_user": ""
+  },
+  {
+   "n": 74,
+   "category": "Documents & Administrative Work",
+   "name": "Fill out forms",
+   "desc": "Populate applications and routine paperwork.",
+   "needs_user": ""
+  },
+  {
+   "n": 75,
+   "category": "Documents & Administrative Work",
+   "name": "Convert file formats",
+   "desc": "Transform PDFs, documents, spreadsheets, and images.",
+   "needs_user": ""
+  },
+  {
+   "n": 76,
+   "category": "Documents & Administrative Work",
+   "name": "Create spreadsheets",
+   "desc": "Build trackers, budgets, schedules, and calculations.",
+   "needs_user": ""
+  },
+  {
+   "n": 77,
+   "category": "Documents & Administrative Work",
+   "name": "Prepare presentations",
+   "desc": "Generate slides and supporting materials.",
+   "needs_user": ""
+  },
+  {
+   "n": 78,
+   "category": "Documents & Administrative Work",
+   "name": "Transcribe audio recordings",
+   "desc": "Convert speech into searchable text.",
+   "needs_user": ""
+  },
+  {
+   "n": 79,
+   "category": "Documents & Administrative Work",
+   "name": "Extract information from documents",
+   "desc": "Capture dates, amounts, names, and other data.",
+   "needs_user": ""
+  },
+  {
+   "n": 80,
+   "category": "Documents & Administrative Work",
+   "name": "Manage digital signatures and approvals",
+   "desc": "Route documents for review and signing.",
+   "needs_user": "a signing service"
+  },
+  {
+   "n": 81,
+   "category": "Computer & Digital Assistance",
+   "name": "Launch and control applications",
+   "desc": "Open programs and navigate interfaces.",
+   "needs_user": ""
+  },
+  {
+   "n": 82,
+   "category": "Computer & Digital Assistance",
+   "name": "Perform computer tasks by voice",
+   "desc": "Execute spoken commands without typing.",
+   "needs_user": ""
+  },
+  {
+   "n": 83,
+   "category": "Computer & Digital Assistance",
+   "name": "Manage files and folders",
+   "desc": "Copy, move, rename, search, and organize files.",
+   "needs_user": ""
+  },
+  {
+   "n": 84,
+   "category": "Computer & Digital Assistance",
+   "name": "Install and update software",
+   "desc": "Handle approved installations and updates.",
+   "needs_user": ""
+  },
+  {
+   "n": 85,
+   "category": "Computer & Digital Assistance",
+   "name": "Troubleshoot computer problems",
+   "desc": "Diagnose errors and recommend or perform fixes.",
+   "needs_user": ""
+  },
+  {
+   "n": 86,
+   "category": "Computer & Digital Assistance",
+   "name": "Monitor system health",
+   "desc": "Track CPU, GPU, memory, storage, and temperatures.",
+   "needs_user": ""
+  },
+  {
+   "n": 87,
+   "category": "Computer & Digital Assistance",
+   "name": "Manage backups",
+   "desc": "Schedule, verify, and restore backed-up files.",
+   "needs_user": ""
+  },
+  {
+   "n": 88,
+   "category": "Computer & Digital Assistance",
+   "name": "Automate browser activities",
+   "desc": "Navigate websites and complete routine workflows.",
+   "needs_user": ""
+  },
+  {
+   "n": 89,
+   "category": "Computer & Digital Assistance",
+   "name": "Manage development projects",
+   "desc": "Track Git repositories, issues, builds, and tests.",
+   "needs_user": ""
+  },
+  {
+   "n": 90,
+   "category": "Computer & Digital Assistance",
+   "name": "Coordinate AI agents",
+   "desc": "Delegate work to specialized models and monitor their progress.",
+   "needs_user": ""
+  },
+  {
+   "n": 91,
+   "category": "Proactive Assistance & Decision Support",
+   "name": "Deliver personalized morning briefings",
+   "desc": "Summarize the day, messages, tasks, and important developments.",
+   "needs_user": ""
+  },
+  {
+   "n": 92,
+   "category": "Proactive Assistance & Decision Support",
+   "name": "Anticipate upcoming needs",
+   "desc": "Suggest preparations before deadlines or events.",
+   "needs_user": ""
+  },
+  {
+   "n": 93,
+   "category": "Proactive Assistance & Decision Support",
+   "name": "Monitor important conditions",
+   "desc": "Watch for changes requiring action.",
+   "needs_user": ""
+  },
+  {
+   "n": 94,
+   "category": "Proactive Assistance & Decision Support",
+   "name": "Identify forgotten commitments",
+   "desc": "Detect promises and obligations buried in communications.",
+   "needs_user": ""
+  },
+  {
+   "n": 95,
+   "category": "Proactive Assistance & Decision Support",
+   "name": "Recommend next actions",
+   "desc": "Suggest productive steps based on current circumstances.",
+   "needs_user": ""
+  },
+  {
+   "n": 96,
+   "category": "Proactive Assistance & Decision Support",
+   "name": "Prepare meeting briefings",
+   "desc": "Assemble relevant documents, participant information, and talking points.",
+   "needs_user": ""
+  },
+  {
+   "n": 97,
+   "category": "Proactive Assistance & Decision Support",
+   "name": "Learn user preferences",
+   "desc": "Adapt recommendations and workflows to established habits.",
+   "needs_user": ""
+  },
+  {
+   "n": 98,
+   "category": "Proactive Assistance & Decision Support",
+   "name": "Detect unusual activity",
+   "desc": "Flag suspicious transactions, unexpected changes, or abnormal system behavior.",
+   "needs_user": ""
+  },
+  {
+   "n": 99,
+   "category": "Proactive Assistance & Decision Support",
+   "name": "Coordinate complex multi-step activities",
+   "desc": "Execute workflows spanning multiple applications and services.",
+   "needs_user": ""
+  },
+  {
+   "n": 100,
+   "category": "Proactive Assistance & Decision Support",
+   "name": "Act as a proactive executive assistant",
+   "desc": "Continuously coordinate information, commitments, communications, and tasks while keeping the user informed and in control.",
+   "needs_user": ""
+  }
+ ]
+}

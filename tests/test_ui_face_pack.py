@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -72,6 +73,41 @@ def test_load_pack_rest_falls_back_to_entry_zero(tmp_path: Path) -> None:
     pack = load_pack("fake", root)
     assert pack is not None
     assert pack.rest == (0.0, 0.5)
+
+
+def test_load_pack_accepts_matching_portrait(tmp_path: Path) -> None:
+    root = _write_pack(tmp_path)
+    portrait = tmp_path / "portrait.jpg"
+    portrait.write_bytes(b"new face")
+    index = root / "fake" / "index.json"
+    data = json.loads(index.read_text())
+    data["portrait_sha256"] = hashlib.sha256(portrait.read_bytes()).hexdigest()
+    index.write_text(json.dumps(data))
+
+    pack = load_pack("fake", root, portrait=portrait)
+
+    assert pack is not None
+    assert pack.portrait_sha256 == data["portrait_sha256"]
+
+
+def test_load_pack_rejects_pack_for_old_portrait(tmp_path: Path) -> None:
+    root = _write_pack(tmp_path)
+    portrait = tmp_path / "portrait.jpg"
+    portrait.write_bytes(b"new face")
+    index = root / "fake" / "index.json"
+    data = json.loads(index.read_text())
+    data["portrait_sha256"] = hashlib.sha256(b"old face").hexdigest()
+    index.write_text(json.dumps(data))
+
+    assert load_pack("fake", root, portrait=portrait) is None
+
+
+def test_load_pack_rejects_unversioned_pack_when_portrait_checked(tmp_path: Path) -> None:
+    root = _write_pack(tmp_path)
+    portrait = tmp_path / "portrait.jpg"
+    portrait.write_bytes(b"new face")
+
+    assert load_pack("fake", root, portrait=portrait) is None
 
 
 def test_rest_index_is_zero(tmp_path: Path) -> None:

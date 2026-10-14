@@ -3,7 +3,7 @@ from __future__ import annotations
 import queue
 import threading
 
-from voxa.dictation import DictationController, segment_stream
+from voxa.dictation import DICTATION_CHUNK_SECONDS, DictationController, segment_stream
 
 LOUD_CHUNK = (b"\x00\x10" * 1000, 1000.0)  # 2000 bytes, above any test threshold
 QUIET_CHUNK = (b"\x00\x00" * 1000, 0.0)
@@ -145,6 +145,22 @@ def test_stop_during_transcription_drops_text_callback() -> None:
         controller.thread.join(timeout=3.0)
 
     assert texts == []
+
+
+def test_dictation_caps_long_general_command_segments() -> None:
+    controller = DictationController(
+        whisper=object(),
+        language="en",
+        threshold=500,
+        silence_ms=100,
+        max_segment_seconds=20.0,
+        on_text=lambda _text: None,
+        on_status=lambda _status: None,
+        on_auto_stop=lambda: None,
+        on_error=lambda _error: None,
+    )
+
+    assert controller.max_segment_seconds == DICTATION_CHUNK_SECONDS
 
 
 def test_early_check_ends_segment_before_full_silence() -> None:

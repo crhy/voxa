@@ -107,9 +107,11 @@ def test_legacy_avatar_key_maps_to_character_id(tmp_path: Path) -> None:
     assert loaded.character_id == "grace"
 
 
-def test_a_new_install_defaults_to_llamacpp(tmp_path: Path) -> None:
+def test_a_new_install_defaults_to_ollama_and_qwen(tmp_path: Path) -> None:
     path = tmp_path / "voxa" / "config.json"
-    assert ConfigStore(path).load().ai_backend == "llamacpp"
+    loaded = ConfigStore(path).load()
+    assert loaded.ai_backend == "ollama"
+    assert loaded.ollama_model == "qwen2.5:0.5b"
 
 
 def test_read_only_load_leaves_legacy_files_alone(tmp_path: Path, monkeypatch) -> None:

@@ -55,6 +55,22 @@ def test_minimize_all_own_window_last(monkeypatch):
     assert wt._MINIMIZED_IDS == ["8", "7"]
 
 
+def test_minimize_all_reports_dispatch_failure(monkeypatch):
+    calls: list[list[str]] = []
+
+    def fail(command: list[str], check: bool = True) -> subprocess.CompletedProcess:
+        calls.append(list(command))
+        return subprocess.CompletedProcess(command, 1, "", "no window")
+
+    monkeypatch.setattr(wt, "_run", fail)
+    monkeypatch.setattr(wt, "list_windows", lambda: _make_windows(("9", "Pluma.pluma", "Notes")))
+    result = wt.minimize_all({})
+    assert not result.ok
+    assert result.speech == "I couldn't minimize every window."
+    assert result.detail == "Notes"
+    assert wt._MINIMIZED_IDS == []
+
+
 def test_restore_all_reverse_order(monkeypatch):
     calls: list[list[str]] = []
     monkeypatch.setattr(wt, "_run", _fake_run(calls))

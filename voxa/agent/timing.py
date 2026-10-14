@@ -13,6 +13,28 @@ STAGES = (
     "first_token",
     "speech_start",
     "done",
+    "capture_start",
+    "capture_end",
+    "early_pause",
+    "early_done",
+    "endpoint",
+    "delivered",
+)
+
+# Stages that describe the recognition path (capture -> endpoint -> inference -> callback).
+# The production latency hook marks ``speech_end`` only after ``_next_segment`` returns,
+# which has already run the synchronous early check, so the old ``transcribe_ms``
+# interval (speech_end -> transcribed) omits that early inference. These stages let a
+# caller mark the true endpoint (``capture_end``) before the early check so the
+# endpoint-to-text total includes it.
+RECOGNITION_STAGES = (
+    "capture_start",
+    "capture_end",
+    "early_pause",
+    "early_done",
+    "endpoint",
+    "transcribed",
+    "delivered",
 )
 
 

@@ -1,10 +1,11 @@
 """Harness settings.
 
-The grading model defaults to the llama.cpp server known to be running on this
-machine (qwen38-flash-next at 127.0.0.1:8080). Voxa's own config file is read
+The grading model defaults to Voxa's normal Ollama setup
+(qwen2.5:0.5b at 127.0.0.1:11434). Voxa's own config file is read
 best-effort so the same backend/model never has to be configured twice; the
 VOXATEST_BACKEND, VOXATEST_MODEL and VOXATEST_URL environment variables always
-win.
+win. VoxaTest intentionally uses Guy independently of Voxa's selected voice;
+VOXATEST_TTS_VOICE and VOXATEST_TTS_RATE can override that test voice and pace.
 
 Device notes:
 * ``input_device`` is a microphone identifier from ``voxa.audio.AudioCapture``
@@ -22,9 +23,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, TypeVar
 
-DEFAULT_BACKEND = "llamacpp"
-DEFAULT_MODEL = "qwen38-flash-next"
-DEFAULT_URL = "http://127.0.0.1:8080"
+DEFAULT_BACKEND = "ollama"
+DEFAULT_MODEL = "qwen2.5:0.5b"
+DEFAULT_URL = "http://127.0.0.1:11434"
+DEFAULT_TTS_VOICE = "en-US-GuyNeural"
+DEFAULT_TTS_RATE = 250
 
 PACKAGE_DIR = Path(__file__).resolve().parent
 DEFAULT_DATA_PATH = PACKAGE_DIR / "data" / "test_cases.json"
@@ -111,6 +114,32 @@ def default_failure_report_path() -> Path:
     return Path("VOXATEST_FAILURES.md")
 
 
+def default_action_log_path() -> Path:
+    """Return the Voxa action log used to verify real command execution."""
+    override = os.environ.get("VOXATEST_ACTION_LOG")
+    if override:
+        return Path(override).expanduser()
+    from voxa.agent.actionlog import default_path
+
+    # Voxa as a Flatpak keeps its log inside its own sandbox folder, which is not where a
+    # separately sandboxed VoxaTest would look. Whichever log was written last is Voxa's.
+    candidates = [
+        default_path(),
+        Path.home() / ".local" / "state" / "voxa" / "actions.jsonl",
+        Path.home() / ".var" / "app" / "io.github.crhy.voxa" / ".local" / "state" / "voxa" / "actions.jsonl",
+    ]
+    newest = candidates[0]
+    newest_mtime = -1.0
+    for candidate in candidates:
+        try:
+            mtime = candidate.stat().st_mtime
+        except OSError:
+            continue
+        if mtime > newest_mtime:
+            newest, newest_mtime = candidate, mtime
+    return newest
+
+
 DEFAULT_REPORTS_DIR = default_reports_dir()
 DEFAULT_FAILURE_REPORT_PATH = default_failure_report_path()
 
@@ -122,11 +151,12 @@ class HarnessSettings:
     url: str = DEFAULT_URL
     input_device: str = ""
     output_device: str = ""
+    voxa_echo_mode: str = ""
     wake_word: str = "voxa"
     whisper_model: str = "base"
     language: str = "en"
-    tts_rate: int = 180
-    tts_voice: str = "en-US-AriaNeural"
+    tts_rate: int = DEFAULT_TTS_RATE
+    tts_voice: str = DEFAULT_TTS_VOICE
     voice_threshold: int = 450
     silence_ms: int = 900
     max_segment_seconds: float = 12.0
@@ -143,6 +173,7 @@ class HarnessSettings:
     data_path: Path = DEFAULT_DATA_PATH
     reports_dir: Path = field(default_factory=default_reports_dir)
     failure_report_path: Path = field(default_factory=default_failure_report_path)
+    action_log_path: Path = field(default_factory=default_action_log_path)
     voxa_config_path: Path | None = None
 
     def make_client(self) -> Any:
@@ -181,10 +212,9 @@ def load_settings() -> HarnessSettings:
         settings.wake_word = voxa_settings.wake_word or "voxa"
         settings.whisper_model = voxa_settings.whisper_model or "base"
         settings.language = voxa_settings.language or "en"
-        settings.tts_rate = voxa_settings.tts_rate
-        settings.tts_voice = voxa_settings.tts_voice
         settings.voice_threshold = voxa_settings.voice_threshold
         settings.silence_ms = voxa_settings.silence_ms
+        settings.voxa_echo_mode = getattr(voxa_settings, "echo_mode", "")
 
         if settings.backend == "ollama":
             settings.model = voxa_settings.ollama_model or DEFAULT_MODEL
@@ -196,6 +226,8 @@ def load_settings() -> HarnessSettings:
     settings.model = os.environ.get("VOXATEST_MODEL", settings.model)
     settings.url = os.environ.get("VOXATEST_URL", settings.url)
     settings.wake_word = os.environ.get("VOXATEST_WAKE_WORD", settings.wake_word)
+    settings.tts_voice = os.environ.get("VOXATEST_TTS_VOICE", settings.tts_voice).strip() or DEFAULT_TTS_VOICE
+    settings.tts_rate = _env_number("VOXATEST_TTS_RATE", settings.tts_rate, int)
     settings.reasoning_effort = os.environ.get("VOXATEST_REASONING_EFFORT", settings.reasoning_effort)
     settings.run_deadline_seconds = _env_number("VOXATEST_RUN_DEADLINE", settings.run_deadline_seconds, float)
     settings.end_silence_seconds = _env_number("VOXATEST_END_SILENCE", settings.end_silence_seconds, float)
@@ -204,6 +236,7 @@ def load_settings() -> HarnessSettings:
     settings.max_consecutive_no_reply = _env_number("VOXATEST_MAX_SILENT", settings.max_consecutive_no_reply, int)
     settings.reports_dir = default_reports_dir()
     settings.failure_report_path = default_failure_report_path()
+    settings.action_log_path = default_action_log_path()
     if not settings.reasoning_effort:
         settings.reasoning_effort = None
     if settings.backend not in {"llamacpp", "ollama"}:

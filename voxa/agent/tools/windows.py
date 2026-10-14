@@ -237,6 +237,14 @@ _BROWSER_NAMES = frozenset({
     "brave", "brave browser", "firefox", "chrome", "google chrome", "chromium", "edge", "vivaldi", "opera", "librewolf",
 })
 
+# Desktop components such as docks do not necessarily publish an ordinary
+# application window, so wmctrl cannot find them.  Keep this list deliberately
+# narrow: stopping a process is only safe when the spoken name maps to one exact,
+# well-known executable.
+_WINDOWLESS_APPS = {
+    "cairodock": ("Cairo Dock", "cairo-dock"),
+}
+
 
 def _close_named_browser(name: str) -> ToolResult | None:
     """"Close Brave" closes the browser window Voxa opened and never the user's own windows.
@@ -266,6 +274,22 @@ def _close_named_browser(name: str) -> ToolResult | None:
     return ToolResult.failure(f"{name} doesn't seem to be open.")
 
 
+def _close_windowless_app(name: str) -> ToolResult | None:
+    """Close a known desktop component which is absent from wmctrl's window list."""
+    app = _WINDOWLESS_APPS.get(_normalize(name))
+    if app is None:
+        return None
+    label, process_name = app
+    running = _run(["pgrep", "-x", process_name], check=False)
+    if running.returncode != 0:
+        return ToolResult.failure(f"{label} doesn't seem to be open.")
+    # SIGTERM lets Cairo Dock save its state and shut its plug-ins down cleanly.
+    stopped = _run(["pkill", "-TERM", "-x", process_name], check=False)
+    if stopped.returncode == 0:
+        return ToolResult.success(f"Closing {label}.")
+    return ToolResult.failure(f"I couldn't close {label}.")
+
+
 def close_app(args: dict[str, str]) -> ToolResult:
     name = _THE_PREFIX.sub("", args["name"].strip())
     own = _close_own_browser(name)
@@ -275,8 +299,6 @@ def close_app(args: dict[str, str]) -> ToolResult:
     if browser is not None:
         return browser
     windows = match_windows(name, list_windows())
-    app = apps.match_app(name, apps.list_apps())
-    app_id = flatpak_app_id(app.path) if app is not None else None
 
     if windows:
         # Ask each window to close and stop there: the program may need to ask about unsaved work,
@@ -285,6 +307,12 @@ def close_app(args: dict[str, str]) -> ToolResult:
             _run(["wmctrl", "-i", "-c", window.id])
         return ToolResult.success(f"Closing {name}.")
 
+    windowless = _close_windowless_app(name)
+    if windowless is not None:
+        return windowless
+
+    app = apps.match_app(name, apps.list_apps())
+    app_id = flatpak_app_id(app.path) if app is not None else None
     if app_id is not None:
         # No window at all: a background program, which only a kill can stop.
         result = _run(["flatpak", "kill", app_id], check=False)
@@ -377,9 +405,17 @@ def minimize_all(args: dict[str, str]) -> ToolResult:
     own = [w for w in ordinary if w.title.strip() == "Voxa"]
     ordered = [w for w in ordinary if w.title.strip() != "Voxa"] + own
     _MINIMIZED_IDS.clear()
+    failed: list[str] = []
     for window in ordered:
-        _run(["xdotool", "windowminimize", window.id], check=False)
-        _MINIMIZED_IDS.append(window.id)
+        result = _run(["xdotool", "windowminimize", window.id], check=False)
+        if result.returncode == 0:
+            _MINIMIZED_IDS.append(window.id)
+        else:
+            failed.append(window.title or window.id)
+    if failed:
+        return ToolResult.failure(
+            "I couldn't minimize every window.", detail=", ".join(failed)
+        )
     return ToolResult.success("Minimized everything.")
 
 
@@ -390,30 +426,24 @@ def restore_all(args: dict[str, str]) -> ToolResult:
     return ToolResult.success("Restored everything.")
 
 
-def vlc_geometry(voxa_geom: tuple[int, int, int, int], screen: tuple[int, int]) -> tuple[int, int, int, int]:
-    """Pure maths: where to put the VLC window so it stays smaller than Voxa.
+def vlc_geometry(monitor: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
+    """Centre a compact 16:9 VLC window within one monitor.
 
-    voxa_geom is Voxa's (x, y, w, h); screen is the desktop's (width, height).
-    VLC keeps 75% of Voxa's height and gets a standard 16:9 width at that height;
-    if that width is wider than the screen minus 40 px, the width is reduced to fit
-    and the height recomputed from it. It is placed to the right of Voxa when the
-    screen is wide enough so it does not cover Voxa, otherwise centred on the screen.
+    ``monitor`` is (x, y, width, height), including a monitor's offset in a
+    multi-monitor desktop. The normal 640x360 video size matches Voxa's compact
+    media-player size. Small monitors retain a 20 px margin and the aspect ratio.
     """
-    vx, vy, vw, vh = voxa_geom
-    sw, sh = screen
-    h = max(1, round(vh * 0.75))
-    if sh > 0:
-        h = min(h, sh)
-    w = round(h * 16 / 9)
+    mx, my, sw, sh = monitor
+    w = min(640, max(1, sw - 40)) if sw > 0 else 640
+    h = round(w * 9 / 16)
+    if sh > 0 and h > sh - 40:
+        h = max(1, sh - 40)
+        w = round(h * 16 / 9)
     if sw > 0 and w > sw - 40:
-        w = sw - 40
+        w = max(1, sw - 40)
         h = round(w * 9 / 16)
-    if sw >= vx + vw + w:
-        x = vx + vw
-        y = min(max(0, vy), max(0, sh - h))
-    else:
-        x = max(0, (sw - w) // 2)
-        y = max(0, (sh - h) // 2)
+    x = mx + max(0, (sw - w) // 2) if sw > 0 else mx
+    y = my + max(0, (sh - h) // 2) if sh > 0 else my
     return (x, y, w, h)
 
 
@@ -434,19 +464,64 @@ def _voxa_geometry() -> tuple[int, int, int, int] | None:
         return None
 
 
-def _screen_geometry() -> tuple[int, int] | None:
-    """Desktop size from xdotool getdisplaygeometry, or None when it cannot be read."""
+def parse_monitors(listing: str) -> list[tuple[int, int, int, int]]:
+    """Return (x, y, width, height) records from ``xrandr --query`` output."""
+    monitors: list[tuple[int, int, int, int]] = []
+    for line in listing.splitlines():
+        if " connected" not in line:
+            continue
+        match = re.search(r"\b(\d+)x(\d+)([+-]\d+)([+-]\d+)\b", line)
+        if match:
+            width, height, x, y = (int(value) for value in match.groups())
+            monitors.append((x, y, width, height))
+    return monitors
+
+
+def monitor_at(
+    point: tuple[int, int], monitors: list[tuple[int, int, int, int]]
+) -> tuple[int, int, int, int] | None:
+    """The monitor containing a desktop point, if there is one."""
+    px, py = point
+    return next(
+        (monitor for monitor in monitors
+         if monitor[0] <= px < monitor[0] + monitor[2] and monitor[1] <= py < monitor[1] + monitor[3]),
+        None,
+    )
+
+
+def _pointer_position() -> tuple[int, int] | None:
+    result = _run(["xdotool", "getmouselocation", "--shell"], check=False)
+    values: dict[str, int] = {}
+    for line in result.stdout.splitlines():
+        key, sep, value = line.partition("=")
+        if sep and value.strip().lstrip("-").isdigit():
+            values[key.strip()] = int(value)
+    return (values["X"], values["Y"]) if "X" in values and "Y" in values else None
+
+
+def _current_monitor_geometry() -> tuple[int, int, int, int]:
+    monitors = parse_monitors(_run(["xrandr", "--query"], check=False).stdout)
+    pointer = _pointer_position()
+    if pointer is not None:
+        pointed = monitor_at(pointer, monitors)
+        if pointed is not None:
+            return pointed
+    voxa = _voxa_geometry()
+    if voxa is not None:
+        centred = monitor_at((voxa[0] + voxa[2] // 2, voxa[1] + voxa[3] // 2), monitors)
+        if centred is not None:
+            return centred
+    if monitors:
+        return monitors[0]
     result = _run(["xdotool", "getdisplaygeometry"], check=False)
     parts = result.stdout.split()
     if len(parts) >= 2 and parts[0].isdigit() and parts[1].isdigit():
-        return (int(parts[0]), int(parts[1]))
-    return None
+        return (0, 0, int(parts[0]), int(parts[1]))
+    return (0, 0, 0, 0)
 
 
 def frame_vlc_window() -> None:
-    """After VLC starts for a video: wait up to 5 s for its window, un-maximise it and
-    resize/move it to 75% of Voxa's window (vlc_geometry), falling back to 900x570.
-    """
+    """Restore VLC and centre its compact video window on the current monitor."""
     if simulation.actions_simulated():
         log.info("simulated action: would frame the VLC window")
         return
@@ -460,15 +535,16 @@ def frame_vlc_window() -> None:
         if time.monotonic() >= deadline:
             return
         time.sleep(0.25)
-    voxa_geom = _voxa_geometry() or (0, 0, 1200, 760)
-    screen = _screen_geometry() or (0, 0)
-    x, y, w, h = vlc_geometry(voxa_geom, screen)
+    x, y, w, h = vlc_geometry(_current_monitor_geometry())
     # The window is placed again once the stream has started: VLC and the window manager both
     # move it when the first picture arrives.
     for wait in (0.0, 1.5, 3.0):
         time.sleep(wait)
-        _run(["wmctrl", "-i", "-r", window.id, "-b", "remove,maximized_vert,maximized_horz,fullscreen"], check=False)
+        _run(["xdotool", "windowmap", window.id], check=False)
+        _run(["wmctrl", "-i", "-r", window.id, "-b", "remove,hidden,maximized_vert,maximized_horz,fullscreen"], check=False)
         _run(["wmctrl", "-i", "-r", window.id, "-e", f"0,{x},{y},{w},{h}"], check=False)
+    _run(["xdotool", "windowraise", window.id], check=False)
+    _run(["wmctrl", "-i", "-a", window.id], check=False)
 
 
 def minimize_self(args: dict[str, str]) -> ToolResult:

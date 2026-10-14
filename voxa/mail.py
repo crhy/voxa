@@ -55,7 +55,9 @@ def parse_email_command(prompt: str) -> EmailRequest | None:
     match = _EMAIL.match(prompt)
     if match is None:
         return None
-    return EmailRequest((match.group("to") or "").strip(), (match.group("topic") or "").strip())
+    recipient = (match.group("to") or "").strip()
+    recipient = re.sub(r"\s+(?:right\s+now|now|quickly)$", "", recipient, flags=re.I).strip()
+    return EmailRequest(recipient, (match.group("topic") or "").strip())
 
 
 def build_prompt(request: EmailRequest) -> str:

@@ -51,7 +51,8 @@ def _take_note_handler(args: dict[str, str]) -> ToolResult:
         _run(["sh", "-c", 'printf "%s\\n" "$1" >> "$2"', "sh", line, path])
     except (OSError, subprocess.SubprocessError):
         return ToolResult.failure(REACH_ERROR)
-    return ToolResult.success("Noted.")
+    # Say the note back: a bare "Noted." does not tell the user what was understood.
+    return ToolResult.success(f"I made a note: {text}.")
 
 
 def _read_notes_handler(args: dict[str, str]) -> ToolResult:

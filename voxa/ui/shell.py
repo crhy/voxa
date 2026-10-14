@@ -101,8 +101,9 @@ class AssistantShell(Gtk.Overlay):
         # Latest question and answer, kept on screen until the next question.
         self.exchange_panel = ExchangePanel()
         self.exchange_panel.set_halign(Gtk.Align.END)
-        self.exchange_panel.set_valign(Gtk.Align.CENTER)
+        self.exchange_panel.set_valign(Gtk.Align.START)
         self.exchange_panel.set_margin_end(EDGE_MARGIN)
+        self.exchange_panel.set_margin_top(EDGE_MARGIN)
         self.add_overlay(self.exchange_panel)
 
         # Notifications slide in at the top instead of crowding the controls.
@@ -167,11 +168,23 @@ class AssistantShell(Gtk.Overlay):
         self.model_selector.set_halign(Gtk.Align.START)
         self._bottom_controls.append(self.face_quality)
         self._bottom_controls.append(self.model_selector)
+        self.level_bar = Gtk.LevelBar()
+        self.level_bar.set_min_value(0)
+        self.level_bar.set_max_value(4000)
+        self.level_bar.set_value(0)
+        self.level_bar.set_size_request(150, -1)
+        self.level_bar.set_tooltip_text("Microphone level")
+        self.level_bar.add_css_class("mic-level")
+        self._bottom_controls.append(self.level_bar)
+        self.level_label = Gtk.Label(label="0", xalign=0)
+        self.level_label.add_css_class("dim-label")
+        self._bottom_controls.append(self.level_label)
         self._bottom_controls.set_halign(Gtk.Align.START)
         self._bottom_controls.set_valign(Gtk.Align.END)
         self._bottom_controls.set_margin_start(EDGE_MARGIN)
         self._bottom_controls.set_margin_bottom(EDGE_MARGIN + 44)
         self.add_overlay(self._bottom_controls)
+        self._level_css_provider = self._install_level_css()
 
         self.status_controls = StatusControls(
             on_active=self._activate,
@@ -224,13 +237,51 @@ class AssistantShell(Gtk.Overlay):
             self.focus_window.hide_window()
         else:
             self.focus_window.set_character(self.assistant_view._character_id)
+            self.sync_focus_face()
             if not self.focus_window.get_visible():
                 self.focus_window.show_at_corner(self._focus_monitor())
             else:
                 self.focus_window.keep_on_top()
 
+    def sync_focus_face(self) -> None:
+        """Give the floating head the main face's quality mode and the frames it is showing now."""
+        if self.focus_window is None:
+            return
+        self.focus_window.set_face_mode(self.assistant_view.get_face_mode())
+        photo = getattr(self.assistant_view, "_photo_renderer", None)
+        self.focus_window.set_live_frames(getattr(photo, "_live_buffer", None))
+
+    def show_live_frames(self, buffer) -> None:
+        """Neural-face frames for the utterance about to play: the main face and the floating head."""
+        photo = getattr(self.assistant_view, "_photo_renderer", None)
+        if photo is not None:
+            photo.set_live_frames(buffer)
+        if self.focus_window is not None:
+            self.focus_window.set_live_frames(buffer)
+
+    def _install_level_css(self) -> Gtk.CssProvider | None:
+        """Give the microphone level bar a visible fill on any theme."""
+        display = Gdk.Display.get_default()
+        if display is None:
+            return None
+        provider = Gtk.CssProvider()
+        provider.load_from_data(
+            b"""
+            levelbar.mic-level > trough { background-color: #c8c8c8; }
+            levelbar.mic-level > trough > fill { background-color: #2e8b57; }
+            """
+        )
+        Gtk.StyleContext.add_provider_for_display(
+            display,
+            provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
+        )
+        return provider
+
     def set_audio_level(self, level: float) -> None:
-        """Forward the microphone level to the assistant view."""
+        """Forward the microphone level to the assistant view and the level bar."""
+        self.level_bar.set_value(level * 4000.0)
+        self.level_label.set_text(str(int(level * 4000.0)))
         self.assistant_view.set_audio_level(level)
         if self.focus_window is not None:
             self.focus_window.set_audio_level(level)

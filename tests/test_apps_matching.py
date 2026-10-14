@@ -1,4 +1,4 @@
-from voxa.apps import build_aliases, match_app, parse_desktop_dump, phonetic_key
+from voxa.apps import build_aliases, clean_spoken_app_name, match_app, parse_desktop_dump, phonetic_key
 
 DUMP = """@@@/usr/share/applications/org.gimp.GIMP.desktop
 [Desktop Entry]
@@ -51,6 +51,7 @@ def test_fuzzy_names():
     assert _name("Libra Office right") == "LibreOffice Writer"
     assert _name("libre office writer") == "LibreOffice Writer"
     assert _name("writer") == "LibreOffice Writer"
+    assert clean_spoken_app_name("Write") == "LibreOffice Writer"
     assert _name("libre office calc") == "LibreOffice Calc"
     assert _name("Space Bizarre") == "Spaced Bazaar"
     assert _name("spaced bazar") == "Spaced Bazaar"
@@ -71,6 +72,21 @@ def test_phonetic_key():
     assert phonetic_key("gimp") == phonetic_key("gamp")
     assert phonetic_key("Claude") == phonetic_key("cloud")
     assert phonetic_key("bizarre") == phonetic_key("bazaar")
+
+
+def test_clean_spoken_app_names_from_voxatest_report():
+    cases = {
+        "the file manager": "file browser",
+        "terminal window": "terminal",
+        "my email client quickly": "email client",
+        "a new document editor instance": "LibreOffice Writer",
+        "Photoshop right now": "Photoshop",
+        "the Notepad app": "text editor",
+        "my nonexistent app called FooBar": "FooBar",
+        "the media player for playback": "media player",
+    }
+    for spoken, expected in cases.items():
+        assert clean_spoken_app_name(spoken) == expected
 
 
 def test_build_aliases_gimp():

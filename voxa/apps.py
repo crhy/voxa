@@ -14,7 +14,11 @@ from .simulation import actions_simulated
 log = logging.getLogger(__name__)
 
 IN_FLATPAK = os.path.exists("/.flatpak-info")
-_OPEN_VERB = re.compile(r"^\s*(?:please\s+)?(?:open|launch|start|run)\s+(?:up\s+)?(?:the\s+)?(?P<name>.+?)\s*[.!?]*\s*$", re.I)
+_OPEN_VERB = re.compile(
+    r"^\s*(?:please\s+|try\s+to\s+|i\s+need\s+to\s+)?"
+    r"(?:open|launch|start|run)\s+(?:up\s+)?(?P<name>.+?)\s*[.!?]*\s*$",
+    re.I,
+)
 _SKIP_IDS = {"io.github.crhy.voxa.desktop"}
 
 _LIST_SCRIPT = r'''
@@ -30,6 +34,15 @@ done
 _SKIP_EXEC = {"flatpak", "env", "sh", "bash", "python", "python3", "gio", "/usr/bin/flatpak"}
 _LEADING_WORDS = re.compile(r"^(?:the|my|a)\s+")
 
+_GENERIC_APP_NAMES = {
+    "file manager": "file browser",
+    "document editor": "LibreOffice Writer",
+    "word processor": "LibreOffice Writer",
+    "write": "LibreOffice Writer",
+    "notepad": "text editor",
+    "terminal window": "terminal",
+}
+
 
 @dataclass(frozen=True, slots=True)
 class DesktopApp:
@@ -42,7 +55,24 @@ class DesktopApp:
 def parse_open_command(prompt: str) -> str | None:
     """The app name from "open X" / "launch X", or None when it isn't such a command."""
     match = _OPEN_VERB.match(prompt)
-    return match.group("name").strip() if match else None
+    return clean_spoken_app_name(match.group("name")) if match else None
+
+
+def clean_spoken_app_name(name: str) -> str:
+    """Remove conversational wrappers and map generic app names to menu aliases."""
+    cleaned = name.strip()
+    cleaned = re.sub(r"^(?:the|my|a|an)\s+", "", cleaned, flags=re.I)
+    cleaned = re.sub(r"^new\s+", "", cleaned, flags=re.I)
+    cleaned = re.sub(
+        r"^(?:nonexistent\s+)?app(?:lication)?\s+called\s+", "", cleaned, flags=re.I
+    )
+    cleaned = re.sub(
+        r"\s+(?:app|application|instance|for\s+playback|right\s+now|now|quickly|please)\s*$",
+        "",
+        cleaned,
+        flags=re.I,
+    ).strip()
+    return _GENERIC_APP_NAMES.get(_normalize(cleaned), cleaned)
 
 
 def parse_desktop_dump(dump: str) -> list[DesktopApp]:
@@ -191,14 +221,26 @@ def list_apps() -> list[DesktopApp]:
     return parse_desktop_dump(result.stdout)
 
 
-def launch(app: DesktopApp) -> None:
+def launch(app: DesktopApp) -> bool:
     if actions_simulated():
         log.info("simulated action: would launch %s", app.name)
-        return
-    subprocess.Popen(  # noqa: S603 - fixed argv, path comes from the host's own menu
-        _host(["gio", "launch", app.path]),
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        start_new_session=True,
-    )
+        return True
+    try:
+        result = subprocess.run(  # noqa: S603 - fixed argv, path comes from the host's own menu
+            _host(["gio", "launch", app.path]),
+            stdin=subprocess.DEVNULL,
+            # Never a pipe: the launched program inherits these, so reading them
+            # would block until that program itself closes.
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        log.warning("could not launch %s: %s", app.name, exc)
+        return False
+    if result.returncode != 0:
+        log.warning("could not launch %s: gio launch exited with %s", app.name, result.returncode)
+        return False
+    return True

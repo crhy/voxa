@@ -1,4 +1,4 @@
-from voxa.bargein import BargeInGate, is_own_voice, overlap
+from voxa.bargein import SETTLED_SAMPLES, BargeInGate, is_own_voice, overlap
 
 
 def test_overlap_table():
@@ -31,6 +31,8 @@ def test_is_own_voice_noise():
 
 def test_gate_opens_after_four_loud_ticks():
     gate = BargeInGate()
+    for _ in range(SETTLED_SAMPLES):  # teach the baseline so the gate trusts it
+        gate.note_speaking_level(0.0)
     assert gate.baseline == 0.0
     for _ in range(3):
         assert gate.update(0.5, gate.baseline) is False
@@ -40,6 +42,8 @@ def test_gate_opens_after_four_loud_ticks():
 def test_gate_tolerates_dips_between_syllables():
     # "Voxa, stop": loud, dip, loud, loud, dip, loud — four loud ticks among the last eight.
     gate = BargeInGate()
+    for _ in range(SETTLED_SAMPLES):  # baseline heard her voice first
+        gate.note_speaking_level(0.0)
     results = [gate.update(level, gate.baseline) for level in (0.5, 0.01, 0.5, 0.5, 0.01, 0.5)]
     assert results[-1] is True and not any(results[:-1])
 

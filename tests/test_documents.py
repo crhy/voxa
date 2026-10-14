@@ -18,6 +18,31 @@ def test_parse_document_command_extracts_kind_title_and_topic() -> None:
         assert (request.kind, request.title, request.topic) == expected, prompt
 
 
+def test_parse_document_commands_from_voxatest_report() -> None:
+    cases = [
+        ("Write a memo about project updates in LibreOffice.", ("memo", "project updates")),
+        ("Draft a letter to my landlord in LibreOffice.", ("letter", "my landlord")),
+        ("Create a weekly status report in LibreOffice.", ("weekly status report", "")),
+        ("Write a thank you note in LibreOffice.", ("thank you note", "")),
+        ("Draft an email reply in LibreOffice.", ("email reply", "")),
+        ("Write a meeting summary in LibreOffice.", ("meeting summary", "")),
+        ("Create a grocery list in LibreOffice.", ("grocery list", "")),
+        ("Draft a resume in LibreOffice.", ("resume", "")),
+        ("Write a blog post draft in LibreOffice.", ("blog post draft", "")),
+        ("Draft a job description in LibreOffice.", ("job description", "")),
+    ]
+    for prompt, expected in cases:
+        request = documents.parse_document_command(prompt)
+        assert request is not None, prompt
+        assert (request.kind, request.topic) == expected, prompt
+
+
+def test_parse_draft_removes_markdown_title_decoration() -> None:
+    title, body = documents.parse_draft("**Project updates**\nThe project is on schedule.")
+    assert title == "Project updates"
+    assert body == "The project is on schedule."
+
+
 def test_parse_document_command_rejects_plain_questions_and_other_commands() -> None:
     for prompt in (
         "open firefox",

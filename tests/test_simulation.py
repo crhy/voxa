@@ -1,3 +1,4 @@
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -29,7 +30,7 @@ def test_actions_simulated_reads_env(monkeypatch):
 
 
 def test_launch_simulated(simulated, monkeypatch):
-    monkeypatch.setattr("voxa.apps.subprocess.Popen", booms)
+    monkeypatch.setattr("voxa.apps.subprocess.run", booms)
     launch(DesktopApp("Firefox", "/usr/share/applications/firefox.desktop"))
 
 
@@ -46,7 +47,10 @@ def test_open_in_libreoffice_simulated(simulated, monkeypatch):
 def test_real_actions_still_run(monkeypatch):
     monkeypatch.delenv("VOXA_SIMULATE_ACTIONS", raising=False)
     launched = []
-    monkeypatch.setattr("voxa.apps.subprocess.Popen", lambda command, **kwargs: launched.append(command))
+    monkeypatch.setattr(
+        "voxa.apps.subprocess.run",
+        lambda command, **kwargs: launched.append(command) or subprocess.CompletedProcess(command, 0),
+    )
     monkeypatch.setattr("voxa.mail.subprocess.Popen", lambda command, **kwargs: launched.append(command))
     monkeypatch.setattr("voxa.documents.subprocess.Popen", lambda command, **kwargs: launched.append(command))
     launch(DesktopApp("Firefox", "/usr/share/applications/firefox.desktop"))

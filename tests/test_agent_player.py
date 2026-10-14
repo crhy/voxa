@@ -58,7 +58,7 @@ def test_mpris_pause_argv(monkeypatch):
     seen: list[list[str]] = []
     monkeypatch.setattr("voxa.agent.player.subprocess.run", lambda *a, **k: seen.append(a[0]) or _completed(a[0]))
     VlcPlayer().pause()
-    assert seen[0] == [
+    assert seen[-1] == [
         "gdbus", "call", "--session", "--dest", "org.mpris.MediaPlayer2.vlc",
         "--object-path", "/org/mpris/MediaPlayer2", "--method", "org.mpris.MediaPlayer2.Player.Pause",
     ]
@@ -69,10 +69,24 @@ def test_mpris_seek_argv(monkeypatch):
     monkeypatch.setattr("voxa.agent.player.subprocess.run", lambda *a, **k: seen.append(a[0]) or _completed(a[0]))
     VlcPlayer().seek(5.0)
     # gdbus takes each argument on its own (there is no --params flag); MPRIS seeks in microseconds.
-    assert seen[0] == [
+    assert seen[-1] == [
         "gdbus", "call", "--session", "--dest", "org.mpris.MediaPlayer2.vlc",
         "--object-path", "/org/mpris/MediaPlayer2", "--method", "org.mpris.MediaPlayer2.Player.Seek", "5000000",
     ]
+
+
+def test_mpris_pause_reaches_vlc_instance_bus(monkeypatch):
+    seen: list[list[str]] = []
+
+    def fake_run(argv, **_k):
+        seen.append(argv)
+        stdout = "['org.mpris.MediaPlayer2.vlc.instance1234']\n" if argv[-1] == "org.freedesktop.DBus.ListNames" else ""
+        return _completed(argv, stdout=stdout)
+
+    monkeypatch.setattr("voxa.agent.player.subprocess.run", fake_run)
+    VlcPlayer().pause()
+    pause_calls = [argv for argv in seen if argv[-1] == "org.mpris.MediaPlayer2.Player.Pause"]
+    assert pause_calls[0][pause_calls[0].index("--dest") + 1] == "org.mpris.MediaPlayer2.vlc.instance1234"
 
 
 def test_mpris_set_volume_argv(monkeypatch):

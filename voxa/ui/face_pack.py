@@ -9,6 +9,7 @@ cv2, no mediapipe, no GTK.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import os
@@ -42,6 +43,7 @@ class FacePack:
     mouth: tuple[MouthFrame, ...]
     blink: tuple[str, ...]
     rest: tuple[float, float]
+    portrait_sha256: str | None = None
 
 
 VISEME_SHAPES: dict[str, tuple[float, float]] = {
@@ -65,19 +67,20 @@ VISEME_SHAPES: dict[str, tuple[float, float]] = {
 REST_TARGET = (0.0, 0.5)
 
 
-def load_pack(character_id: str, directory: Path | None = None) -> FacePack | None:
-    """Load a face pack from disk, or ``None`` when it is missing or invalid."""
-    root = directory if directory is not None else FACES_DIRECTORY
-    pack_dir = Path(root) / character_id
-    if directory is None and not (pack_dir / "index.json").exists():
-        # Inside the Flatpak XDG_DATA_HOME is the app's private folder; the packs live in the host's
-        # ~/.local/share/voxa/faces, which the sandbox can read.
-        host_dir = Path.home() / ".local" / "share" / "voxa" / "faces" / character_id
-        bundled_dir = BUNDLED_FACES_DIRECTORY / character_id
-        if (host_dir / "index.json").exists():
-            pack_dir = host_dir          # the user's own or newer packs win
-        elif (bundled_dir / "index.json").exists():
-            pack_dir = bundled_dir       # the packs shipped inside the Flatpak
+def _portrait_digest(portrait: str | Path | None) -> str | None:
+    if portrait is None:
+        return None
+    try:
+        return hashlib.sha256(Path(portrait).read_bytes()).hexdigest()
+    except OSError:
+        return ""
+
+
+def _load_pack_directory(
+    character_id: str,
+    pack_dir: Path,
+    portrait_sha256: str | None,
+) -> FacePack | None:
     index = pack_dir / "index.json"
     try:
         raw = index.read_text()
@@ -85,6 +88,12 @@ def load_pack(character_id: str, directory: Path | None = None) -> FacePack | No
     except (OSError, ValueError):
         return None
     if not isinstance(data, dict):
+        return None
+    pack_portrait_sha256 = data.get("portrait_sha256")
+    # When the renderer provides its current portrait, only load a pack built
+    # from that exact asset. Old, unversioned packs are deliberately rejected:
+    # showing a still matching face is better than animating a different one.
+    if portrait_sha256 is not None and pack_portrait_sha256 != portrait_sha256:
         return None
     try:
         pack_id = str(data["id"])
@@ -123,7 +132,37 @@ def load_pack(character_id: str, directory: Path | None = None) -> FacePack | No
         mouth=mouth,
         blink=blink,
         rest=rest,
+        portrait_sha256=(str(pack_portrait_sha256) if pack_portrait_sha256 else None),
     )
+
+
+def load_pack(
+    character_id: str,
+    directory: Path | None = None,
+    portrait: str | Path | None = None,
+) -> FacePack | None:
+    """Load a matching face pack, or ``None`` when it is missing, stale, or invalid."""
+    digest = _portrait_digest(portrait)
+    if directory is not None:
+        return _load_pack_directory(character_id, Path(directory) / character_id, digest)
+
+    # Inside Flatpak, XDG_DATA_HOME may be the app-private directory. Also try
+    # the host-visible user directory, then the pack bundled with the app.
+    roots = (
+        FACES_DIRECTORY,
+        Path.home() / ".local" / "share" / "voxa" / "faces",
+        BUNDLED_FACES_DIRECTORY,
+    )
+    seen: set[Path] = set()
+    for root in roots:
+        pack_dir = root / character_id
+        if pack_dir in seen:
+            continue
+        seen.add(pack_dir)
+        pack = _load_pack_directory(character_id, pack_dir, digest)
+        if pack is not None:
+            return pack
+    return None
 
 
 def mouth_target(

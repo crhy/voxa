@@ -38,7 +38,7 @@ def test_find_large_files_prune(monkeypatch):
     argv = next(cmd for cmd in records if cmd[:3] == ["timeout", "15", "find"])
     assert argv[:5] == ["timeout", "15", "find", "/home/u", "-xdev"]
     assert "-prune" in argv
-    assert "-print" in argv
+    assert "-printf" in argv
     assert "-path" not in argv
     assert argv[argv.index("-name") + 1] == ".*"
     assert argv[argv.index("-size") + 1] == "+2147483648c"

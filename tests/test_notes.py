@@ -72,7 +72,7 @@ def test_take_read_delete(monkeypatch):
     fake = _fake_host(monkeypatch)
     for text in ("call the vet on Friday", "buy milk", "water the plants"):
         result = notes_mod._take_note_handler({"text": text})
-        assert result.ok and result.speech == "Noted."
+        assert result.ok and result.speech.startswith("I made a note: ")
     read = notes_mod._read_notes_handler({})
     assert read.speech == "You have 3 notes. The latest are: Water the plants. Buy milk. Call the vet on Friday."
     deleted = notes_mod._delete_last_note_handler({})
@@ -95,7 +95,7 @@ def test_dangerous_text_is_one_argv_element(monkeypatch):
     fake = _fake_host(monkeypatch)
     tricky = 'say "hi" $HOME `whoami`'
     result = notes_mod._take_note_handler({"text": tricky})
-    assert result.ok and result.speech == "Noted."
+    assert result.ok and result.speech.startswith("I made a note: ")
     append_calls = [argv for argv in fake.calls if argv[:3] == ["sh", "-c", APPEND_SCRIPT]]
     assert len(append_calls) == 1
     argv = append_calls[0]

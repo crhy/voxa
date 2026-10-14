@@ -22,6 +22,7 @@ from voxa.agent.policy import RiskLevel  # noqa: E402
 from voxa.agent.registry import Tool, ToolRegistry  # noqa: E402
 from voxa.agent.result import ToolResult  # noqa: E402
 from voxa.agent.tools import typing as typing_mod  # noqa: E402
+from voxa.agent.tools import windows as windows_mod  # noqa: E402
 from voxa.apps import DesktopApp  # noqa: E402
 from voxa.audio import AudioDevice  # noqa: E402
 from voxa.hardware import MODEL_CATALOG  # noqa: E402
@@ -307,6 +308,22 @@ def test_dictation_types_into_the_window_without_the_model(window, monkeypatch) 
     window.ask_ai("stop dictating")
     assert not window._external_dictation
     assert window._fake_client.queries == []
+
+
+def test_targeted_dictation_focuses_libreoffice_writer_without_waiting(window, monkeypatch) -> None:
+    focused: list[str] = []
+    monkeypatch.setattr(
+        windows_mod,
+        "switch_to",
+        lambda args: focused.append(args["name"]) or ToolResult.success("Focused."),
+    )
+
+    window.ask_ai("start dictation in Write")
+
+    assert window._external_dictation
+    assert window._fake_client.queries == []
+    assert _settle(window, lambda: bool(focused))
+    assert focused == ["LibreOffice Writer"]
 
 
 def test_going_offline_ends_dictation(window, monkeypatch) -> None:

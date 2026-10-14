@@ -112,8 +112,23 @@ modules:
   - name: voxa
     buildsystem: simple
     sources:
+      # List the application inputs explicitly. A broad `path: .` snapshot can
+      # absorb local build trees and caches when building inside the checkout.
       - type: dir
-        path: .
+        path: voxa
+        dest: voxa
+      - type: file
+        path: voxa.py
+      - type: dir
+        path: packaging/flatpak
+        dest: packaging/flatpak
+      - type: file
+        path: io.github.crhy.voxa.desktop
+      - type: file
+        path: io.github.crhy.voxa.metainfo.xml
+      - type: dir
+        path: icons
+        dest: icons
     build-commands:
       - install -d /app/lib/voxa
       - install -Dm755 voxa.py /app/lib/voxa/voxa.py

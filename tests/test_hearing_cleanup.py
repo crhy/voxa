@@ -13,10 +13,15 @@ STOP_MUSIC = [
 ]
 
 PAUSE = [
-    "Xa, pause",
-    "Step, pause",
-    "Set, pause",
-    "So pause",
+    ("Xa, pause", "pause"),
+    ("Step, pause", "pause"),
+    ("Set, pause", "pause"),
+    ("So pause", "pause"),
+    ("Fox, pause music", "pause music"),
+    ("Voxa, pause the radio", "pause the radio"),
+    ("Boxa, pause TV", "pause tv"),
+    ("Voxa, pause the television", "pause the television"),
+    ("Voxa, pause VLC", "pause vlc"),
 ]
 
 NOISE = ["Music", "As", "Up", "Out", "Peace", "Pag", "Yeah"]
@@ -28,8 +33,8 @@ def test_direct_command_stop_music():
 
 
 def test_direct_command_pause():
-    for text in PAUSE:
-        assert direct_command(text) == "pause"
+    for text, expected in PAUSE:
+        assert direct_command(text) == expected
 
 
 def test_direct_command_rejects_long_sentences():

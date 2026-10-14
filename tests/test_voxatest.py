@@ -15,6 +15,7 @@ from voxatest.cases import TestCase, load_cases, save_cases
 from voxatest.config import (
     DEFAULT_BACKEND,
     DEFAULT_MODEL,
+    DEFAULT_TTS_VOICE,
     DEFAULT_URL,
     HarnessSettings,
     _env_number,
@@ -31,7 +32,7 @@ from voxatest.generate_cases import (
     generate_cases,
     parse_model_json,
 )
-from voxatest.grader import GradeResult, build_grade_prompt, grade_reply, parse_grade_response
+from voxatest.grader import GradeResult, build_grade_prompt, grade_reply, parse_grade_response, reply_match
 from voxatest.report import (
     PROGRESS_RE,
     format_failure_report,
@@ -41,7 +42,7 @@ from voxatest.report import (
     summarize,
     write_reports,
 )
-from voxatest.runner import RunResult, run_case
+from voxatest.runner import RunResult, _require_action, run_case
 
 
 class FakeGenerationClient:
@@ -63,7 +64,7 @@ class FakeGradingClient:
         return self.response
 
     def list_models(self):
-        return ["qwen38-flash-next"]
+        return ["qwen2.5:0.5b"]
 
 
 class FakeSpeech:
@@ -118,6 +119,8 @@ def test_case_roundtrip(tmp_path):
             expected_contains=["hello"],
             expected_keywords=["there"],
             rubric="Be friendly.",
+            expected_tool="open_app",
+            expected_args={"name": "calculator"},
         )
     ]
 
@@ -128,6 +131,22 @@ def test_case_roundtrip(tmp_path):
     assert loaded[0].id == "one"
     assert loaded[0].expected_contains == ["hello"]
     assert loaded[0].rubric == "Be friendly."
+    assert loaded[0].expected_tool == "open_app"
+    assert loaded[0].expected_args == {"name": "calculator"}
+
+
+def test_shipped_acceptance_queue_is_balanced_and_unique():
+    cases = load_cases(Path(__file__).parents[1] / "voxatest" / "data" / "test_cases.json")
+
+    assert len(cases) == 30
+    assert len({case.id for case in cases}) == 30
+    assert len({case.prompt.casefold() for case in cases}) == 30
+    assert {case.category for case in cases} == set(CATEGORIES)
+    assert sum(bool(case.expected_tool) for case in cases) == 29
+    assert {
+        category: sum(case.category == category for case in cases)
+        for category in CATEGORIES
+    } == {category: 5 for category in CATEGORIES}
 
 
 def test_load_cases_missing_file(tmp_path):
@@ -225,7 +244,7 @@ def test_generate_cases_logs_one_line_per_batch():
 
 
 def test_grade_reply_uses_model_json():
-    case = TestCase(id="one", category="math", prompt="What is two plus two?", expected_contains=["four"])
+    case = TestCase(id="one", category="math", prompt="What is two plus two?", rubric="The reply says four.")
     client = FakeGradingClient("{\"score\": 92, \"passed\": true, \"notes\": \"Correct.\"}")
 
     result = grade_reply(case, "Four.", client, "model")
@@ -236,15 +255,48 @@ def test_grade_reply_uses_model_json():
     assert result.notes == "Correct."
 
 
+def test_grade_reply_checks_stated_keywords_without_asking_the_model():
+    case = TestCase(id="one", category="math", prompt="What is two plus two?", expected_keywords=["four|4"])
+    client = FakeGradingClient("{\"score\": 0, \"passed\": false, \"notes\": \"Wrong.\"}")
+
+    heard = grade_reply(case, "Two plus two is 4.", client, "model")
+    missing = grade_reply(case, "Two plus two is five.", client, "model")
+
+    assert (heard.method, heard.score, heard.passed) == ("keywords", 100, True)
+    assert (missing.method, missing.passed) == ("keywords", False)
+    assert "four|4" in missing.notes
+
+
 def test_grade_reply_falls_back_when_model_response_is_not_json():
-    case = TestCase(id="one", category="math", prompt="What is two plus two?", expected_keywords=["four"])
+    case = TestCase(id="one", category="math", prompt="What is two plus two?", rubric="The reply says four.")
     client = FakeGradingClient("The model said: four")
 
     result = grade_reply(case, "Four.", client, "model")
 
     assert result.method == "fallback"
-    assert result.score == 100
-    assert result.passed is True
+    assert result.passed is False
+
+
+def test_reply_match_tolerates_how_whisper_writes_things():
+    assert reply_match("Opening Caja.", "opening kaja") == 1.0
+    assert reply_match("Volume 40 percent.", "Volume 40%.") == 1.0
+    assert reply_match("It's 2:41 in the morning.", "It's 241 in the morning") == 1.0
+    assert reply_match("Playing Bob's Ska Radio.", "playing bobs ska radio la la la la") == 1.0
+    assert reply_match("Here are directions to the public library.", "Thanks for watching.") < 0.3
+    assert reply_match("", "anything") == 1.0
+    assert reply_match("7 times 8 is 56.", "Seven times eight is 50-60.") >= 0.8
+
+
+def test_require_action_fails_when_the_reply_was_not_heard():
+    case = TestCase(id="one", category="desktop_apps", prompt="Open the calculator", expected_tool="open_app")
+    good = GradeResult(100, True, "ok", "keywords")
+    record = {"tool": "open_app", "args": {"name": "calculator"}, "ok": True, "speech": "Opening MATE Calculator."}
+
+    heard, _ = _require_action(case, good, [record], "opening mate calculator")
+    unheard, _ = _require_action(case, good, [record], "thank you for watching")
+
+    assert heard is good
+    assert (unheard.passed, unheard.method) == (False, "reply_match")
 
 
 def test_grade_reply_empty_transcript():
@@ -496,15 +548,18 @@ def test_default_failure_report_path_honors_override(tmp_path, monkeypatch):
 def test_config_defaults():
     settings = HarnessSettings()
 
-    assert settings.backend == "llamacpp"
-    assert settings.model == "qwen38-flash-next"
-    assert settings.url == "http://127.0.0.1:8080"
+    assert settings.backend == "ollama"
+    assert settings.model == "qwen2.5:0.5b"
+    assert settings.url == "http://127.0.0.1:11434"
     assert settings.wake_word == "voxa"
+    assert settings.tts_voice == "en-US-GuyNeural"
+    assert settings.tts_rate == 250
     assert settings.whisper_load_timeout_seconds == 120.0
     assert settings.run_deadline_seconds == 0.0
     assert settings.max_reply_seconds == 90.0
     assert settings.settle_seconds == 1.5
     assert settings.retries == 1
+    assert settings.voxa_echo_mode == ""
 
 
 def test_config_numeric_env_overrides(monkeypatch, tmp_path):
@@ -514,6 +569,7 @@ def test_config_numeric_env_overrides(monkeypatch, tmp_path):
     monkeypatch.setenv("VOXATEST_RETRIES", "3")
     monkeypatch.setenv("VOXATEST_RETRIES", "3")
     monkeypatch.setenv("VOXATEST_MAX_SILENT", "2")
+    monkeypatch.setenv("VOXATEST_TTS_RATE", "240")
 
     fake_module = types.ModuleType("voxa.config")
 
@@ -536,6 +592,7 @@ def test_config_numeric_env_overrides(monkeypatch, tmp_path):
     assert settings.reply_wait_seconds == 30.0
     assert settings.retries == 3
     assert settings.max_consecutive_no_reply == 2
+    assert settings.tts_rate == 240
 
 
 def test_config_invalid_numeric_env_falls_back(monkeypatch, tmp_path):
@@ -568,6 +625,7 @@ def test_config_env_overrides(monkeypatch, tmp_path):
     monkeypatch.setenv("VOXATEST_MODEL", "tiny")
     monkeypatch.setenv("VOXATEST_URL", "http://127.0.0.1:11434")
     monkeypatch.setenv("VOXATEST_WAKE_WORD", "hey")
+    monkeypatch.setenv("VOXATEST_TTS_VOICE", "en-GB-RyanNeural")
 
     fake_module = types.ModuleType("voxa.config")
 
@@ -589,6 +647,7 @@ def test_config_env_overrides(monkeypatch, tmp_path):
     assert settings.model == "tiny"
     assert settings.url == "http://127.0.0.1:11434"
     assert settings.wake_word == "hey"
+    assert settings.tts_voice == "en-GB-RyanNeural"
 
 
 def test_config_invalid_backend_falls_back(monkeypatch, tmp_path):
@@ -610,7 +669,7 @@ def test_config_invalid_backend_falls_back(monkeypatch, tmp_path):
 
     settings = load_settings()
 
-    assert settings.backend == "llamacpp"
+    assert settings.backend == "ollama"
 
 
 @pytest.mark.parametrize(
@@ -621,7 +680,7 @@ def test_config_invalid_backend_falls_back(monkeypatch, tmp_path):
     ],
 )
 def test_config_follows_voxa_backend(monkeypatch, tmp_path, backend, expected_model, expected_url):
-    for name in ("VOXATEST_BACKEND", "VOXATEST_MODEL", "VOXATEST_URL", "FLATPAK_ID"):
+    for name in ("VOXATEST_BACKEND", "VOXATEST_MODEL", "VOXATEST_URL", "VOXATEST_TTS_VOICE", "FLATPAK_ID"):
         monkeypatch.delenv(name, raising=False)
     config_path = tmp_path / "config.json"
     config_path.write_text("{}", encoding="utf-8")
@@ -648,6 +707,7 @@ def test_config_follows_voxa_backend(monkeypatch, tmp_path, backend, expected_mo
                 tts_voice="voice",
                 voice_threshold=450,
                 silence_ms=900,
+                echo_mode="webrtc",
             )
 
     fake_module.ConfigStore = FakeConfigStore
@@ -658,7 +718,10 @@ def test_config_follows_voxa_backend(monkeypatch, tmp_path, backend, expected_mo
     assert settings.backend == backend
     assert settings.model == expected_model
     assert settings.url == expected_url
+    assert settings.tts_voice == DEFAULT_TTS_VOICE
+    assert settings.tts_rate == 250
     assert settings.voxa_config_path == config_path
+    assert settings.voxa_echo_mode == "webrtc"
 
 
 def test_voxa_config_candidate_ordering_and_dedup(monkeypatch, tmp_path):
@@ -803,10 +866,49 @@ def test_start_glib_main_loop_runs_callbacks(monkeypatch):
     assert loop.quit_called is True
 
 
+def test_action_contract_rejects_missing_failed_and_wrong_actions():
+    case = TestCase(id="open", category="desktop", prompt="Open calculator", expected_tool="open_app", expected_args={"name": "calculator"})
+    semantic = GradeResult(100, True, "Sounds convincing.", "model")
+
+    missing, record = _require_action(case, semantic, [])
+    assert not missing.passed
+    assert record is None
+
+    wrong, record = _require_action(case, semantic, [{"tool": "open_app", "args": {"name": "terminal"}, "ok": True}])
+    assert not wrong.passed
+    assert record is not None
+
+    failed, record = _require_action(case, semantic, [{"tool": "open_app", "args": {"name": "calculator"}, "ok": False, "detail": "launch failed"}])
+    assert not failed.passed
+    assert "launch failed" in failed.notes
+
+
+def test_action_contract_accepts_matching_success():
+    case = TestCase(id="open", category="desktop", prompt="Open calculator", expected_tool="open_app", expected_args={"name": "calculator"})
+    semantic = GradeResult(95, True, "Good.", "model")
+    grade, record = _require_action(
+        case, semantic, [{"tool": "open_app", "args": {"name": "calculator"}, "ok": True}], "Opening the calculator."
+    )
+    assert grade is semantic
+    assert record is not None
+
+
+def test_action_contract_accepts_a_command_that_is_silent_by_design():
+    case = TestCase(id="pause", category="media", prompt="Pause the music", expected_tool="media_control")
+    empty = GradeResult(0, False, "No spoken reply was captured.", "empty")
+    record = {"tool": "media_control", "args": {"action": "pause"}, "ok": True, "speech": ""}
+
+    silent, _ = _require_action(case, empty, [record], "")
+    spoken_but_unheard, _ = _require_action(case, empty, [{**record, "speech": "Paused."}], "")
+
+    assert (silent.passed, silent.method) == (True, "action_log")
+    assert spoken_but_unheard is empty
+
+
 def test_run_case_with_stubbed_audio_pipeline(monkeypatch):
     monkeypatch.setattr(runner_module, "segment_stream", lambda *_args, **_kwargs: iter([b"hello"]))
 
-    case = TestCase(id="one", category="general", prompt="Say hello", expected_keywords=["hello"])
+    case = TestCase(id="one", category="general", prompt="Say hello", rubric="Says hello.")
     settings = HarnessSettings(wake_word="", settle_seconds=0.0, speak_timeout_seconds=1.0, reply_wait_seconds=1.0)
     client = FakeGradingClient("{\"score\": 95, \"passed\": true, \"notes\": \"Heard it.\"}")
     capture = FakeCapture()
@@ -836,7 +938,7 @@ def test_run_case_transcribes_every_captured_segment(monkeypatch):
         def transcribe(self, pcm, language):
             return {b"one": "First part.", b"two": "Second part."}[pcm]
 
-    case = TestCase(id="two", category="general", prompt="Tell me a story", expected_keywords=["story"])
+    case = TestCase(id="two", category="general", prompt="Tell me a story", rubric="Tells a story.")
     settings = HarnessSettings(wake_word="", settle_seconds=0.0, speak_timeout_seconds=1.0, reply_wait_seconds=1.0)
     client = FakeGradingClient("{\"score\": 88, \"passed\": true, \"notes\": \"Both parts heard.\"}")
     capture = FakeCapture()
@@ -884,7 +986,7 @@ def _stub_harness(monkeypatch, capture, speech):
     audio_module = types.ModuleType("voxa.audio")
     audio_module.AudioCapture = lambda: capture
     speech_module = types.ModuleType("voxa.speech")
-    speech_module.SpeechService = lambda: speech
+    speech_module.SpeechService = lambda **_kwargs: speech
     monkeypatch.setitem(sys.modules, "voxa.audio", audio_module)
     monkeypatch.setitem(sys.modules, "voxa.speech", speech_module)
 
@@ -950,8 +1052,39 @@ def test_run_preflight_returns_two_when_backend_is_unreachable(tmp_path, monkeyp
     err = capsys.readouterr().err
 
     assert code == 2
-    assert "Grading model backend is not reachable at http://127.0.0.1:8080: connection refused" in err
+    assert "Grading model backend is not reachable at http://127.0.0.1:11434: connection refused" in err
     assert not list((tmp_path / "reports").glob("run_*.json"))
+
+
+def test_run_preflight_rejects_voxa_echo_cancellation(tmp_path, capsys):
+    settings = HarnessSettings(voxa_echo_mode="webrtc")
+
+    code = voxatest_main._run(
+        settings, [], None, None, str(tmp_path / "reports"), str(tmp_path / "failures.md")
+    )
+    err = capsys.readouterr().err
+
+    assert code == 2
+    assert "set Preferences > Speech > Echo cancellation to Off" in err
+    assert not list((tmp_path / "reports").glob("run_*.json"))
+
+
+def test_run_preflight_allows_explicit_separate_output(tmp_path, monkeypatch, capsys):
+    class UnreachableClient:
+        def list_models(self):
+            raise OSError("connection refused")
+
+    settings = HarnessSettings(voxa_echo_mode="voxa", output_device="alsasink")
+    monkeypatch.setattr(HarnessSettings, "make_client", lambda _self: UnreachableClient())
+
+    code = voxatest_main._run(
+        settings, [], None, None, str(tmp_path / "reports"), str(tmp_path / "failures.md")
+    )
+    err = capsys.readouterr().err
+
+    assert code == 2
+    assert "echo cancellation is enabled" not in err
+    assert "backend is not reachable" in err
 
 
 def test_run_retries_cases_with_empty_transcript(tmp_path, monkeypatch, capsys):
@@ -997,7 +1130,7 @@ def test_run_warns_when_model_is_not_listed(tmp_path, monkeypatch, capsys):
     out = capsys.readouterr().out
 
     assert code == 0
-    assert "Warning: grading model qwen38-flash-next is not listed" in out
+    assert "Warning: grading model qwen2.5:0.5b is not listed" in out
     assert "tiny-model" in out
 
 
@@ -1180,3 +1313,77 @@ def test_cli_run_deadline_retries_and_end_silence_overrides_settings():
     assert defaults.end_silence is None
     assert defaults.max_silent is None
     assert defaults.start_at == 1
+
+
+@pytest.mark.parametrize("name", ["test_cases.json", "test_cases_2.json", "test_cases_3.json", "test_cases_cap.json", "test_cases_features.json"])
+def test_every_shipped_spoken_case_routes_to_its_tool(name):
+    """A shipped spoken case must at least be routed correctly from its exact words."""
+    import re
+
+    from voxa.agent import hearing
+    from voxa.agent.intents import route
+    from voxatest.runner import _same_argument
+
+    for case in load_cases(Path(__file__).parents[1] / "voxatest" / "data" / name):
+        assert not re.search(r"\bvolume\b|\bmute\b", case.prompt, re.IGNORECASE), case.id
+        if not case.expected_tool or case.id == "feat-radio-03":  # that one answers an open list
+            continue
+        call = route(hearing.normalize(case.prompt))
+        assert call is not None and call.tool == case.expected_tool, (case.id, call)
+        for key, value in case.expected_args.items():
+            assert _same_argument(value, call.args.get(key)) or case.expected_tool == "play_radio", (case.id, call.args)
+
+
+def test_a_word_the_harness_misheard_is_checked_in_voxas_own_words():
+    case = TestCase(id="sum", category="math", prompt="What is seven times eight", expected_keywords=["56"], expected_tool="calculate")
+    record = {"tool": "calculate", "args": {}, "ok": True, "speech": "7 times 8 is 56."}
+    transcript = "Seven times eight is 50-60."
+    failed = GradeResult(0, False, "The reply did not contain: 56.", "keywords")
+
+    grade, _ = _require_action(case, failed, [record], transcript)
+    wrong, _ = _require_action(case, failed, [{**record, "speech": "7 times 8 is 54."}], "Seven times eight is 54.")
+
+    assert grade.passed and wrong is failed
+
+
+def test_outcome_check_reads_the_real_file(tmp_path):
+    from voxatest.runner import check_file
+
+    notes = tmp_path / "Voxa Notes.md"
+    notes.write_text("- 2026-10-10 11:40 — Water the plants.\n", encoding="utf-8")
+    assert check_file({"file": str(notes), "file_contains": "water the plants"}) == ""
+    assert "does not contain" in check_file({"file": str(notes), "file_contains": "buy milk"})
+    assert "still contains" in check_file({"file": str(notes), "file_lacks": "water the plants"})
+    assert "could not be read" in check_file({"file": str(tmp_path / "missing.md"), "file_contains": "x"})
+
+
+def test_outcome_check_fails_a_reminder_that_never_speaks(monkeypatch):
+    import voxatest.runner as runner
+
+    case = TestCase(id="r", category="files", prompt="Remind me", verify={"says_within": 5, "says": "oven"})
+    good = GradeResult(100, True, "ok.", "keywords")
+    monkeypatch.setattr(runner, "hear_until", lambda *_args: (False, ""))
+    silent = runner.verify_outcome(case, good, HarnessSettings(), None, None, log=lambda _m: None)
+    monkeypatch.setattr(runner, "hear_until", lambda *_args: (True, "Reminder: check the oven."))
+    spoken = runner.verify_outcome(case, good, HarnessSettings(), None, None, log=lambda _m: None)
+    assert (silent.passed, silent.method) == (False, "outcome")
+    assert spoken.passed and "check the oven" in spoken.notes
+
+
+def test_app_events_round_trip(capsys):
+    gi = pytest.importorskip("gi")
+    if not hasattr(gi, "require_version"):
+        pytest.skip("PyGObject is not available")
+
+    from voxatest.report import emit_event, parse_event_line
+    from voxatest.window import RunTally
+
+    emit_event("case_result", index=3, status="PASS", prompt="Open the calculator")
+    line = capsys.readouterr().out
+    assert parse_event_line(line) == {"event": "case_result", "index": 3, "status": "PASS", "prompt": "Open the calculator"}
+    assert parse_event_line("[3/30] PASS desktop-03 score 100 (9.8s)") is None
+    tally = RunTally(total=30)
+    tally.add("desktop_apps", True)
+    tally.add("web_and_maps", False)
+    assert (tally.passed, tally.failed, tally.remaining, tally.percent()) == (1, 1, 28, 50)
+    assert [count for count, _rgb in tally.slices()] == [1, 1, 28]

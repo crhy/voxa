@@ -24,6 +24,8 @@ _KNOWN_SITES: dict[str, str] = {
     "amazon": "https://www.amazon.com/",
     "gmail": "https://mail.google.com/",
     "maps": "https://www.google.com/maps",
+    "email client": "https://mail.google.com/",
+    "mail client": "https://mail.google.com/",
     "netflix": "https://www.netflix.com/",
     "spotify": "https://open.spotify.com/",
     "archive.org": "https://archive.org/",
@@ -59,10 +61,11 @@ def _spoken_name(name: str) -> bool:
 def open_app(args: dict[str, str]) -> ToolResult:
     # The menu is read on every call (a few milliseconds) rather than cached for the
     # life of the process, so a newly installed app is found straight away.
-    name = args["name"]
+    name = apps.clean_spoken_app_name(args["name"])
     app = apps.match_app(name, apps.list_apps())
     if app is not None:
-        apps.launch(app)
+        if apps.launch(app) is False:
+            return ToolResult.failure(f"I couldn't open {app.name}.", detail=app.path)
         return ToolResult.success(f"Opening {app.name}.", detail=app.path)
     site = _site_for(name)
     if site is not None:

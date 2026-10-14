@@ -41,6 +41,12 @@ def test_css_contains_expected_classes() -> None:
         assert cls in VOXA_CSS
 
 
+def test_window_surface_and_text_use_one_libadwaita_palette() -> None:
+    assert "background-color: @window_bg_color" in VOXA_CSS
+    assert "color: @window_fg_color" in VOXA_CSS
+    assert "background-color: @view_bg_color" in VOXA_CSS
+
+
 def test_css_contains_avatar_animation_rules() -> None:
     for fragment in (
         ".voxa-avatar",

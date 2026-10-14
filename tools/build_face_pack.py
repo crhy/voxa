@@ -12,6 +12,7 @@ that :mod:`voxa.ui.face_pack` can play.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import statistics
 from pathlib import Path
@@ -21,7 +22,9 @@ import mediapipe as mp
 import numpy as np
 
 MODEL = "/home/rhy/voxa-characters/analysis/models/face_landmarker.task"
-DEFAULT_CLIPS = "/home/rhy/voxa-neural/out/locked"
+# The 1026 clips were generated from the current portrait roster. The older
+# ``locked`` directory contains the retired faces for several characters.
+DEFAULT_CLIPS = "/home/rhy/voxa-neural/out/locked-1026"
 
 EYE_LANDMARKS = (33, 133, 159, 145, 263, 362, 386, 374)
 BROW_LANDMARKS = (70, 105, 300, 334)
@@ -55,6 +58,69 @@ def _measure(landmarks: list) -> tuple[float, float, float, float] | None:
     return (float(e), open_, width, eye)
 
 
+def _face_anchor(landmarks: list) -> tuple[tuple[float, float], float]:
+    """Return the midpoint and span of the eyes in normalized image coordinates."""
+    left = (
+        (landmarks[33].x + landmarks[133].x) / 2.0,
+        (landmarks[33].y + landmarks[133].y) / 2.0,
+    )
+    right = (
+        (landmarks[263].x + landmarks[362].x) / 2.0,
+        (landmarks[263].y + landmarks[362].y) / 2.0,
+    )
+    midpoint = ((left[0] + right[0]) / 2.0, (left[1] + right[1]) / 2.0)
+    span = float(((left[0] - right[0]) ** 2 + (left[1] - right[1]) ** 2) ** 0.5)
+    return midpoint, span
+
+
+def _square_image(rgb: np.ndarray, size: int) -> np.ndarray:
+    """Apply the same top-biased square framing used for generated clips."""
+    h, w = rgb.shape[:2]
+    if h > w:
+        top = int((h - w) * 0.25)
+        rgb = rgb[top:top + w]
+    elif w > h:
+        left = (w - h) // 2
+        rgb = rgb[:, left:left + h]
+    return cv2.resize(rgb, (size, size), interpolation=cv2.INTER_AREA)
+
+
+def _reframe_image(
+    rgb: np.ndarray,
+    portrait_rgb: np.ndarray,
+    scale: float,
+    offset: tuple[float, float],
+) -> np.ndarray:
+    """Align a clip frame to its portrait and softly fill uncovered edges."""
+    size = rgb.shape[0]
+    tx = size * (0.5 + offset[0] - 0.5 * scale)
+    ty = size * (0.5 + offset[1] - 0.5 * scale)
+    matrix = np.array(((scale, 0.0, tx), (0.0, scale, ty)), dtype=np.float32)
+    warped = cv2.warpAffine(
+        rgb,
+        matrix,
+        (size, size),
+        flags=cv2.INTER_LINEAR,
+        borderMode=cv2.BORDER_CONSTANT,
+    )
+    coverage = cv2.warpAffine(
+        np.ones((size, size), dtype=np.float32),
+        matrix,
+        (size, size),
+        flags=cv2.INTER_LINEAR,
+        borderMode=cv2.BORDER_CONSTANT,
+    )
+    # A soft edge prevents a horizontal seam where the shifted clip no longer
+    # covers the square. The matching still portrait supplies that edge.
+    # Fade *inside* the valid clip region. Blurring a hard coverage mask would
+    # retain the dark encoded edge pixels and expose a horizontal line.
+    distance = cv2.distanceTransform(
+        (coverage >= 0.99).astype(np.uint8), cv2.DIST_L2, cv2.DIST_MASK_PRECISE
+    )
+    coverage = np.clip(distance / 32.0, 0.0, 1.0)[..., None]
+    return np.rint(warped * coverage + portrait_rgb * (1.0 - coverage)).astype(np.uint8)
+
+
 def _read_clip(landmarker: mp.tasks.vision.FaceLandmarker, path: Path, size: int) -> list:
     """Return a list of (image_rgb_uint8, measurement_or_None) for every frame."""
     cap = cv2.VideoCapture(str(path))
@@ -65,14 +131,7 @@ def _read_clip(landmarker: mp.tasks.vision.FaceLandmarker, path: Path, size: int
             break
         rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         # Square crop first (top-biased, the same crop the still portraits use) so faces are never squashed.
-        h, w = rgb.shape[:2]
-        if h > w:
-            top = int((h - w) * 0.25)
-            rgb = rgb[top:top + w]
-        elif w > h:
-            left = (w - h) // 2
-            rgb = rgb[:, left:left + h]
-        rgb = cv2.resize(rgb, (size, size), interpolation=cv2.INTER_AREA)
+        rgb = _square_image(rgb, size)
         mp_img = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
         res = landmarker.detect(mp_img)
         if res.face_landmarks:
@@ -112,11 +171,25 @@ def main() -> None:
     parser.add_argument("--out", default=None)
     parser.add_argument("--size", type=int, default=512)
     parser.add_argument("--max-mouth", type=int, default=120)
+    parser.add_argument(
+        "--portrait",
+        default=None,
+        help="portrait asset this pack must match (defaults to the app portrait for ID)",
+    )
     args = parser.parse_args()
 
     clips_dir = Path(args.clips)
     out_dir = Path(args.out) if args.out else Path.home() / ".local/share/voxa/faces" / args.id
     size = args.size
+    portrait = (
+        Path(args.portrait)
+        if args.portrait
+        else Path(__file__).resolve().parents[1] / "voxa" / "ui" / "assets" / "portraits" / f"{args.id}.jpg"
+    )
+    try:
+        portrait_sha256 = hashlib.sha256(portrait.read_bytes()).hexdigest()
+    except OSError as exc:
+        raise SystemExit(f"cannot read matching portrait {portrait}: {exc}") from exc
     out_dir.mkdir(parents=True, exist_ok=True)
 
     landmarker = _options()
@@ -158,16 +231,55 @@ def main() -> None:
     chosen = _farthest_point(norm, args.max_mouth)
     # chosen[0] is the neutral frame (entry 0, m000.jpg)
 
+    # Measure the fixed clip-to-portrait transform. Some source clips were
+    # framed substantially lower than their still portrait; bake their
+    # correction into the pack once instead of translating every GTK frame.
+    mp_img = mp.Image(image_format=mp.ImageFormat.SRGB, data=neutral_rgb)
+    res = landmarker.detect(mp_img)
+    lm = res.face_landmarks[0]
+    portrait_bgr = cv2.imread(str(portrait))
+    if portrait_bgr is None:
+        raise SystemExit(f"cannot decode matching portrait {portrait}")
+    portrait_rgb = _square_image(cv2.cvtColor(portrait_bgr, cv2.COLOR_BGR2RGB), size)
+    portrait_res = landmarker.detect(mp.Image(image_format=mp.ImageFormat.SRGB, data=portrait_rgb))
+    if not portrait_res.face_landmarks:
+        raise SystemExit(f"no face found in matching portrait {portrait}")
+    pack_anchor, pack_span = _face_anchor(lm)
+    portrait_anchor, portrait_span = _face_anchor(portrait_res.face_landmarks[0])
+    alignment_scale = portrait_span / pack_span
+    alignment_offset = [
+        portrait_anchor[axis] - (0.5 + alignment_scale * (pack_anchor[axis] - 0.5))
+        for axis in (0, 1)
+    ]
+    needs_reframe = (
+        max(abs(value) for value in alignment_offset) >= 0.03
+        or abs(alignment_scale - 1.0) >= 0.03
+    )
+
+    def reframe(rgb: np.ndarray) -> np.ndarray:
+        if not needs_reframe:
+            return rgb
+        return _reframe_image(
+            rgb,
+            portrait_rgb,
+            alignment_scale,
+            (alignment_offset[0], alignment_offset[1]),
+        )
+
     mouth_entries = []
     for order, idx in enumerate(chosen):
-        on, ow, rgb, m = norm[idx]
+        on, ow, rgb, _m = norm[idx]
         name = f"m{order:03d}.jpg"
-        cv2.imwrite(str(out_dir / name), cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR),
-                    [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
+        aligned_rgb = reframe(rgb)
+        cv2.imwrite(
+            str(out_dir / name),
+            cv2.cvtColor(aligned_rgb, cv2.COLOR_RGB2BGR),
+            [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY],
+        )
         mouth_entries.append({"file": name, "open": round(on, 5), "width": round(ow, 5)})
 
-    # eye box and blink mask from the neutral frame
-    rest_rgb = neutral_rgb
+    # Calculate the eye box and blink mask in the final, aligned coordinate system.
+    rest_rgb = reframe(neutral_rgb)
     mp_img = mp.Image(image_format=mp.ImageFormat.SRGB, data=rest_rgb)
     res = landmarker.detect(mp_img)
     lm = res.face_landmarks[0]
@@ -187,7 +299,7 @@ def main() -> None:
     def _crop(rgb: np.ndarray) -> np.ndarray:
         return rgb[eye_box[1]:eye_box[1] + eye_box[3], eye_box[0]:eye_box[0] + eye_box[2]]
 
-    sil_measured = [(rgb, m) for rgb, m in silence if m is not None]
+    sil_measured = [(reframe(rgb), m) for rgb, m in silence if m is not None]
     blink_names = []
     if sil_measured:
         closed = min(sil_measured, key=lambda t: t[1][3])
@@ -215,6 +327,12 @@ def main() -> None:
 
     index = {
         "id": args.id,
+        "portrait_sha256": portrait_sha256,
+        "source_alignment": {
+            "offset": [round(float(value), 6) for value in alignment_offset],
+            "scale": round(float(alignment_scale), 6),
+            "baked": needs_reframe,
+        },
         "size": size,
         "fps": 25,
         "eye_box": eye_box,

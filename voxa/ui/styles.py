@@ -14,8 +14,6 @@ gi.require_version("Gdk", "4.0")
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, Gtk  # noqa: E402
 
-from ..theme import BUBBLE_BG_DARK, BUBBLE_BG_LIGHT, host_theme_is_dark, window_bg_color  # noqa: E402
-
 VOXA_CSS = """
 /* Preferences: libadwaita's defaults leave the cards almost the same shade as
    the dialog and the subtitles small and faint, which reads as low contrast on
@@ -76,6 +74,8 @@ VOXA_CSS = """
     min-height: 48px;
     border-radius: 12px;
     font-weight: 700;
+    border: 1px solid alpha(#000000, 0.30);
+    box-shadow: 0 3px 2px alpha(#000000, 0.35), inset 0 1px 1px alpha(#ffffff, 0.30);
 }
 
 .voxa-active {
@@ -98,6 +98,13 @@ VOXA_CSS = """
 .voxa-pause.selected {
     outline: 1px solid alpha(currentColor, 0.45);
     outline-offset: 2px;
+}
+
+.voxa-active:active,
+.voxa-offline:active,
+.voxa-pause:active {
+    box-shadow: inset 0 2px 3px alpha(#000000, 0.50);
+    margin-top: 2px;
 }
 
 .voxa-active.dimmed,
@@ -138,6 +145,53 @@ VOXA_CSS = """
 .voxa-task-title {
     font-weight: 700;
     font-size: 14px;
+}
+
+.voxa-radio-heading {
+    font-weight: 700;
+    font-size: 18px;
+    margin: 18px 20px 2px 20px;
+}
+
+.voxa-radio-hint {
+    font-size: 12px;
+    opacity: 0.6;
+    margin: 0 20px 12px 20px;
+}
+
+.voxa-radio-list,
+.voxa-radio-list row {
+    background: transparent;
+    color: inherit;
+}
+
+.voxa-radio-list row:hover {
+    background: alpha(currentColor, 0.07);
+}
+
+.voxa-radio-list row {
+    padding: 0;
+    border-top: 1px solid alpha(currentColor, 0.08);
+}
+
+.voxa-radio-row {
+    padding: 10px 20px;
+}
+
+.voxa-radio-number {
+    font-size: 17px;
+    font-weight: 700;
+    opacity: 0.55;
+}
+
+.voxa-radio-name {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.voxa-radio-about {
+    font-size: 12px;
+    opacity: 0.6;
 }
 
 .voxa-task-detail {
@@ -369,6 +423,19 @@ window.voxa-focus-window {
     font-size: 11px;
     opacity: 0.8;
 }
+
+/* Keep the surface and foreground from the same libadwaita palette.  A host
+   GTK_THEME can disagree with the color scheme exposed through the Flatpak
+   portal; hard-coding only the background in that situation produced white
+   text on a nearly white window. */
+window {
+    background-color: @window_bg_color;
+    color: @window_fg_color;
+}
+
+.voxa-task-panel {
+    background-color: @view_bg_color;
+}
 """
 
 _provider: Gtk.CssProvider | None = None
@@ -381,21 +448,8 @@ def install_styles(display: Gdk.Display | None = None) -> Gtk.CssProvider:
         display = Gdk.Display.get_default()
     if _provider is not None:
         return _provider
-    dark = host_theme_is_dark()
-    bubble_bg = BUBBLE_BG_DARK if dark else BUBBLE_BG_LIGHT
-    window_bg = window_bg_color(dark)
-    css = f"""{VOXA_CSS}
-
-window {{
-    background-color: {window_bg};
-}}
-
-.voxa-task-panel {{
-    background-color: {bubble_bg};
-}}
-"""
     provider = Gtk.CssProvider()
-    provider.load_from_string(css)
+    provider.load_from_string(VOXA_CSS)
     if display is not None:
         Gtk.StyleContext.add_provider_for_display(
             display, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION

@@ -17,7 +17,13 @@ WAKE_SOUNDALIKES: frozenset[str] = frozenset(
 CONTROL_COMMANDS: frozenset[str] = frozenset(
     {
         "stop music", "stop the music", "stop playing", "stop", "pause",
-        "pause music", "pause the music", "resume", "play", "next", "next song",
+        "pause music", "pause the music", "pause radio", "pause the radio",
+        "pause video", "pause the video", "pause playback", "pause the playback",
+        "pause tv", "pause the tv", "pause television", "pause the television",
+        "pause vlc", "resume", "resume music", "resume the music", "resume radio",
+        "resume the radio", "resume video", "resume the video", "resume playback",
+        "resume the playback", "resume tv", "resume the tv", "resume television",
+        "resume the television", "resume vlc", "play", "next", "next song",
         "skip", "louder", "quieter", "volume up", "volume down", "mute",
     }
 )
@@ -46,6 +52,15 @@ WAKE_VARIANTS: tuple[str, ...] = (
 _WAKE_ALT = r"(?:voxa|vox a|vox|boxa|box a|boxer|voxet|vaxa|foxa|voxer|vauxa)"
 
 PHRASE_FIXES: tuple[tuple[str, str | Callable[..., str]], ...] = (
+    (r"^composer,?\s+(?:a\s+)?new\b", "compose a new"),
+    (r"^health\s+with\b", "help with"),
+    (r"\b(?:like|life|light|lives)\s+(tv|television)\b", r"live \1"),
+    (r"\b(?:light|life|lived) music\b(?= (?:tonight|today|tomorrow|this|near|in my|around|nearby))", "live music"),
+    (r"^what(?:'s| is) it (?:in )?(my|the) (.+ folder)\b", r"what is in \1 \2"),
+    (r"\bnass?a\s*t(?:ini|eeny|ivi|ivy|v)\b", "NASA TV"),
+    (r"\b(documents?|downloads?|pictures?|music|videos?|desktop)\s+older\b", r"\1 folder"),
+    (r"\bplay\s*(?:ska|scar|sca|scah|skaa|skar|score|scour|scott|skaw)\s+(radio|music)\b", r"play ska \1"),
+    (r"^(?:direct|dract|dracting|drafting)\s+(?:a|an|the|in)\s+email\b", "draft an email"),
     (r"\blibra office[, ]+(?:right|write|rite|ray|rate|writer)\b", "LibreOffice Writer"),
     (r"\blibre office[, ]+(?:right|write|rite|ray|rate)\b", "LibreOffice Writer"),
     (r"\blibra office\b", "LibreOffice"),
@@ -77,6 +92,8 @@ PHRASE_FIXES: tuple[tuple[str, str | Callable[..., str]], ...] = (
     (r"\bthe gamp\b|\bgamp\b|\bthe gimp\b", "GIMP"),
     (r"\bstopdictation\b|\bstop dictation\b", "stop dictating"),
     (r"\b(open|close|quit|launch|start)\s+cloud\b", r"\1 Claude"),
+    (r"\bnorthern lengths?\b", "northern lights"),
+    (r"\bcounty later\b", "calculator"),
 )
 
 VERB_FIXES: dict[str, str] = {
@@ -122,7 +139,16 @@ def strip_wake(text: str) -> str:
 
 def normalize(text: str) -> str:
     """Strip the wake word, apply phrase fixes, then fix the first-word verb."""
-    text = strip_wake(text)
+    text = strip_wake(text).replace("\u2019", "'").replace("\u2018", "'")
+    text = re.sub(r"\b([ap])\.\s?m\b\.?", r"\1m", text, flags=re.IGNORECASE)
+    text = re.sub(
+        r"\b(\d+|an?|one|two|three|four|five|six|seven|eight|nine|ten|fifteen|twenty|thirty)-(minute|hour|second|day)s?\b",
+        r"\1 \2",
+        text,
+        flags=re.IGNORECASE,
+    )
+    # A pause after the verb is written as a comma ("open, GitHub"), which no command rule expects.
+    text = re.sub(r"^(open|close|play|launch|start|run|show|find|search|stop|pause|resume),\s+", r"\1 ", text, flags=re.IGNORECASE)
     for pattern, repl in PHRASE_FIXES:
         text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
     words = text.split()

@@ -44,14 +44,14 @@ def test_empty_model_list() -> None:
     assert fired == []
 
 
-def test_backend_dropdown_exists_and_defaults_to_llamacpp() -> None:
+def test_backend_dropdown_exists_and_defaults_to_ollama() -> None:
     selector = ModelSelector()
     backend = selector._backend_dropdown
     assert isinstance(backend, Gtk.DropDown)
     items = [backend.get_model().get_string(i) for i in range(backend.get_model().get_n_items())]
     assert items == ["llama.cpp", "Ollama", "Strata"]
-    assert backend.get_selected() == 0
-    assert selector.get_backend() == "llamacpp"
+    assert backend.get_selected() == 1
+    assert selector.get_backend() == "ollama"
 
 
 def test_set_backend_does_not_fire_callback() -> None:

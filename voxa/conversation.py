@@ -10,7 +10,8 @@ from collections import deque
 from collections.abc import Callable
 from difflib import SequenceMatcher
 
-from .dictation import segment_stream
+from .agent.intents import is_start_dictation
+from .dictation import DICTATION_CHUNK_SECONDS, segment_stream
 from .endpoint import is_complete, is_followup
 from .transcription import WhisperService
 from .vocabulary import build_hint, refresh_app_names
@@ -111,21 +112,56 @@ _GOODBYE_PHRASES = frozenset(
     }
 )
 
+_POLITE_OFFLINE_PHRASES = frozenset(
+    {
+        "can you go offline",
+        "could you go offline",
+        "would you go offline",
+        "will you go offline",
+        "go offline now",
+        "turn yourself off",
+        "shut yourself down",
+    }
+)
 
-def detect_exit_phrase(text: str) -> str | None:
+
+def detect_exit_phrase(text: str, wake_word: str = "") -> str | None:
     """Return "cancel", "stop" or "goodbye" if the utterance ends the conversation.
 
-    Comparison is exact after casefolding and stripping punctuation, so
-    "Never mind." and "Goodbye!" match while "never mind that" does not.
+    A leading configured wake word is ignored, because the natural one-breath
+    command is "Voxa, go offline". Comparison remains exact after that and
+    after punctuation/politeness normalization, so a sentence which merely
+    mentions going offline cannot trip the kill switch.
     """
+    if wake_word:
+        addressed = re.sub(r"^\s*(?:hey|ok|okay)\b[\s,]*", "", text, flags=re.IGNORECASE)
+        remainder = strip_wake_word(addressed, wake_word)
+        if remainder is not None:
+            text = remainder
     normalized = " ".join(re.sub(r"[^a-z0-9'\s]", " ", text.casefold()).split())
-    if normalized in _GOODBYE_PHRASES:
+    if normalized.startswith("please "):
+        normalized = normalized.removeprefix("please ")
+    if normalized in _GOODBYE_PHRASES or normalized in _POLITE_OFFLINE_PHRASES:
         return "goodbye"
     if normalized in _STOP_PHRASES:
         return "stop"
     if normalized in _CANCEL_PHRASES:
         return "cancel"
     return None
+
+
+def detect_addressed_exit_phrase(text: str, wake_word: str) -> str | None:
+    """Detect an exit command only when the utterance explicitly addresses Voxa.
+
+    This stricter form is used while Voxa is speaking. Requiring her wake word
+    prevents an echoed fragment of her own reply from accidentally taking the
+    assistant offline, while still making "Voxa, go offline" a kill switch.
+    """
+    addressed = re.sub(r"^\s*(?:hey|ok|okay)\b[\s,]*", "", text, flags=re.IGNORECASE)
+    remainder = strip_wake_word(addressed, wake_word)
+    if remainder is None:
+        return None
+    return detect_exit_phrase(remainder)
 
 
 class ConversationHistory:
@@ -247,6 +283,9 @@ class ConversationController:
         # Quick transcript captured at the early pause, reused by _run when the
         # utterance ended early and early_final_pass is False.
         self._early_text: str | None = None
+        # Set when _early_check already fired on_woken for a bare wake word at the
+        # early pause, so _run does not acknowledge the same wake word twice.
+        self._woken_early = False
         # Vocabulary hint for prompt transcription, built off the listening
         # thread at start so it never blocks the mic (see _build_prompt_hint).
         self._prompt_hint = ""
@@ -367,13 +406,19 @@ class ConversationController:
 
     def _next_segment(self, idle_timeout_seconds: float | None) -> bytes | None:
         self._early_text = None
+        self._woken_early = False
         early = not self.keep_prompt
+        max_segment_seconds = (
+            min(self.max_segment_seconds, DICTATION_CHUNK_SECONDS)
+            if self.keep_prompt
+            else self.max_segment_seconds
+        )
         for segment in segment_stream(
             self.queue,
             self.stop_event,
             threshold=self.threshold,
             silence_seconds=self.silence_seconds,
-            max_segment_seconds=self.max_segment_seconds,
+            max_segment_seconds=max_segment_seconds,
             idle_timeout_seconds=idle_timeout_seconds,
             early_silence_seconds=self.early_silence_seconds if early else None,
             early_check=self._early_check if early else None,
@@ -436,6 +481,14 @@ class ConversationController:
         if is_complete(text, self.wake_word):
             self._early_text = text
             return True
+        # A bare wake word (exact, not fuzzy) heard at the early pause: acknowledge now so the
+        # user can keep talking, instead of waiting for the full silence to end the utterance.
+        normalized = " ".join(re.sub(r"[^a-z0-9'\s]", " ", text.casefold()).split())
+        if normalized == self.wake_word.strip().casefold():
+            self._woken_early = True
+            self.on_woken()
+            self._early_text = text
+            return True
         return False
 
     def _transcribe(self, segment: bytes, whisper: WhisperService, hint: str = "") -> str:
@@ -456,12 +509,66 @@ class ConversationController:
         # deliver its result to the UI.
         return "" if self.stop_event.is_set() else text
 
+    def _wake_hint(self) -> str:
+        return f"{self.wake_word.strip().capitalize()}."
+
+    def _refine_wake_utterance(
+        self,
+        segment: bytes,
+        wake_text: str,
+        wake_remainder: str | None,
+    ) -> tuple[str, str | None]:
+        """Verify and refine a one-breath wake word plus command.
+
+        The tiny always-on model is quick, but it can omit a short word at the
+        start of connected speech (notably ``Voxa``).  Give the configured
+        prompt model the same audio once.  A missed wake word is accepted only
+        when that second transcript contains it, so background conversation
+        does not become a command.  Once the quick model has already confirmed
+        the wake word, the second transcript may safely supply just the more
+        accurate command text.
+        """
+        if self.prompt_whisper is self.wake_whisper:
+            return wake_text, wake_remainder
+
+        hint = self._prompt_hint or f"{self.wake_word.strip().capitalize()}."
+        refined = self._transcribe(segment, self.prompt_whisper, hint=hint)
+        refined = self._filter_own_speech(refined) if refined else None
+        if not refined:
+            return wake_text, wake_remainder
+
+        refined_remainder = strip_wake_word(refined, self.wake_word)
+        if wake_remainder is None:
+            # Neither model found the wake word: preserve the original text so
+            # follow-up handling and missed-wake diagnostics remain unchanged.
+            if refined_remainder is None and hint != self._wake_hint():
+                # The vocabulary hint itself can pull the wake word towards a listed name
+                # ("Bazaar, what windows…"). One more pass with only the wake word as the hint.
+                plain = self._transcribe(segment, self.prompt_whisper, hint=self._wake_hint())
+                plain = self._filter_own_speech(plain) if plain else None
+                if plain:
+                    plain_remainder = strip_wake_word(plain, self.wake_word)
+                    if plain_remainder is not None:
+                        return plain, plain_remainder
+            if refined_remainder is None:
+                return wake_text, wake_remainder
+            return refined, refined_remainder
+
+        # The fast model already proved that this was addressed to Voxa.  Some
+        # larger-model transcripts omit the wake word but retain a better
+        # command, so in that case the complete refined text is the command.
+        if refined_remainder is None:
+            return refined, refined
+        if refined_remainder:
+            return refined, refined_remainder
+        return wake_text, wake_remainder
+
     def _report_timing(self, whisper: WhisperService, audio_seconds: float, processing_seconds: float) -> None:
         """Hand one real prompt transcription's speed to the UI guard; a raising hook is swallowed."""
         if self.on_transcribe_timing is None:
             return
         try:
-            self.on_transcribe_timing(whisper.model_name(), audio_seconds, processing_seconds)
+            self.on_transcribe_timing(whisper.model_name, audio_seconds, processing_seconds)
         except Exception:  # noqa: BLE001 - optional hook boundary
             pass
 
@@ -523,7 +630,7 @@ class ConversationController:
                 break
 
             if not self.keep_prompt:
-                exit_kind = detect_exit_phrase(text)
+                exit_kind = detect_exit_phrase(text, self.wake_word)
                 if exit_kind is not None:
                     # The user is ending things: abandon any in-flight prompt and
                     # either go back to waiting for the wake word (cancel) or
@@ -538,6 +645,22 @@ class ConversationController:
 
             if not waiting_for_prompt:
                 remainder = strip_wake_word(text, self.wake_word)
+                # The fast model has already proved this request is addressed to
+                # Voxa. Acknowledge it before the slower accuracy pass so the UI
+                # reacts immediately instead of appearing stuck in transcription.
+                if remainder is not None and not self._woken_early:
+                    self._woken_early = True
+                    self.on_woken()
+                # A command spoken immediately after the wake word is one audio
+                # segment.  Verify a tiny-model miss, or refine the command it
+                # found, using the accurate prompt model without asking the user
+                # to pause and repeat themselves.
+                # A destination-qualified dictation request is already
+                # unambiguous. Avoid a second, slower transcription pass so
+                # "Voxa, start dictation in Pluma" reacts like bare dictation.
+                if remainder is None or (remainder and not is_start_dictation(remainder)):
+                    text, remainder = self._refine_wake_utterance(segment, text, remainder)
+                    self.last_heard = text
                 if remainder is None:
                     # No wake word: accept it as a follow-up only while the
                     # window is open and it is clearly addressed to Voxa (at
@@ -559,7 +682,9 @@ class ConversationController:
                     continue
                 if self.stop_event.is_set():
                     break
-                self.on_woken()
+                if not self._woken_early:
+                    self._woken_early = True
+                    self.on_woken()
                 if remainder:
                     self.on_prompt(remainder)
                 else:

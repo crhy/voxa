@@ -29,7 +29,7 @@ def _gst():
 def available() -> bool:
     try:
         gst = _gst()
-    except (ImportError, ValueError):
+    except (AttributeError, ImportError, ValueError):
         return False
     return all(gst.ElementFactory.find(name) is not None for name in ("webrtcdsp", "webrtcechoprobe"))
 

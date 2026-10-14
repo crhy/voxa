@@ -66,6 +66,7 @@ class ModelSelector(Gtk.Box):
 
         self._backend_items = Gtk.StringList.new(BACKENDS)
         self._backend_dropdown = Gtk.DropDown(model=self._backend_items)
+        self._backend_dropdown.set_selected(BACKEND_VALUES.index("ollama"))
 
         self.on_model_selected = on_model_selected
         self.on_backend_selected = on_backend_selected
@@ -166,7 +167,7 @@ class ModelSelector(Gtk.Box):
 
     def set_backend(self, backend: str) -> None:
         """Select the backend ("llamacpp", "ollama" or "strata") without triggering the callback."""
-        index = BACKEND_VALUES.index(backend) if backend in BACKEND_VALUES else 0
+        index = BACKEND_VALUES.index(backend) if backend in BACKEND_VALUES else BACKEND_VALUES.index("ollama")
         self._backend_updating = True
         try:
             self._backend_dropdown.set_selected(index)
@@ -179,7 +180,7 @@ class ModelSelector(Gtk.Box):
         for label, value in zip(BACKENDS, BACKEND_VALUES, strict=True):
             if text == label:
                 return value
-        return "llamacpp"
+        return "ollama"
 
     def _on_selected(self, *_args) -> None:
         self._dropdown.set_tooltip_text(self.get_selected() or None)
@@ -191,5 +192,5 @@ class ModelSelector(Gtk.Box):
         if self._backend_updating or self.on_backend_selected is None:
             return
         index = self._backend_dropdown.get_selected()
-        backend = BACKEND_VALUES[index] if 0 <= index < len(BACKEND_VALUES) else "llamacpp"
+        backend = BACKEND_VALUES[index] if 0 <= index < len(BACKEND_VALUES) else "ollama"
         self.on_backend_selected(backend)

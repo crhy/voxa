@@ -11,6 +11,26 @@ from uuid import uuid4
 PROGRESS_RE = re.compile(r"^\[(\d+)/(\d+)\] (PASS|FAIL|ERROR)\b")
 
 
+EVENT_PREFIX = "@@VOXATEST "
+
+
+def emit_event(kind: str, **data: Any) -> None:
+    """Print one machine-readable line for the desktop app to draw from."""
+    print(EVENT_PREFIX + json.dumps({"event": kind, **data}, ensure_ascii=False), flush=True)
+
+
+def parse_event_line(line: str) -> dict[str, Any] | None:
+    """The event carried by a line printed with :func:`emit_event`, else None."""
+    line = line.strip()
+    if not line.startswith(EVENT_PREFIX):
+        return None
+    try:
+        payload = json.loads(line[len(EVENT_PREFIX):])
+    except json.JSONDecodeError:
+        return None
+    return payload if isinstance(payload, dict) and "event" in payload else None
+
+
 def parse_progress_line(line: str) -> tuple[int, int, str] | None:
     """Parse a ``[done/total] STATUS ...`` progress line printed by the harness.
 
@@ -76,10 +96,16 @@ def format_results(results: list[Any], *, complete: bool = True) -> str:
             f"{status} [{result.category}] {result.case_id}: score {result.grade.score} "
             f"({duration:.1f}s) - {transcript}"
         )
+        heard = getattr(result, "heard", "")
+        if heard:
+            lines.append(f"  Voxa heard: {heard}")
         if result.grade.notes:
             lines.append(f"  notes: {result.grade.notes}")
         if result.error:
             lines.append(f"  error: {result.error}")
+        action_record = getattr(result, "action_record", None)
+        if action_record is not None:
+            lines.append(f"  action: {json.dumps(action_record, ensure_ascii=False, sort_keys=True)}")
 
     return "\n".join(lines)
 
@@ -134,6 +160,9 @@ def format_failure_report(results: list[Any], *, complete: bool = True) -> str:
         )
         if result.error:
             lines.extend(["", "### Runtime error", "", _markdown_quote(result.error)])
+        action_record = getattr(result, "action_record", None)
+        if action_record is not None:
+            lines.extend(["", "### Action evidence", "", "```json", json.dumps(action_record, indent=2, ensure_ascii=False, sort_keys=True), "```"])
         lines.append("")
 
     return "\n".join(lines).rstrip()

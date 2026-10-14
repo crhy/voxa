@@ -11,12 +11,12 @@ Voxa combines on-device speech recognition, selectable local AI backends, spoken
 
 **Website:** [voxaai.me](https://voxaai.me)
 
-![Voxa with Grace, the default character](docs/screenshots/voxa-grace.png)
+![Voxa ready beside the VoxaTest voice harness](docs/screenshots/voxa-and-voxatest-ready.png)
 
 ## Highlights
 
-- **Talk to your computer.** Say the wake word (yours to choose) and ask. Voxa answers aloud through one of 22
-  characters whose lips follow the words.
+- **Talk to your computer.** Say the wake word (yours to choose) and ask. After Voxa answers, keep talking during
+  the follow-up window without repeating her name. One of 22 characters speaks the answer with synchronized lips.
 - **She hears you over your own speakers.** Music and video sound is removed before she listens, so commands get
   through with something playing; saying “Voxa, stop” interrupts her, and her own voice does not.
 - **Commands run instantly.** Opening apps, playing music, dictation, timers and system questions are handled by
@@ -47,6 +47,7 @@ Single commands run instantly without a model; chained requests are planned by t
 | “Start dictation” … “stop dictation” | Types what you say into the window in front |
 | “Clean up the text” | Fixes spelling, grammar and clarity in the text or selection |
 | “Save file” | Asks “What should I save the file as?”, types the name and saves |
+| “What is Tesla's stock price?” / “What is the British pound in USD?” | Speaks the current quote or latest reference exchange rate |
 | “What is the price of Bitcoin?” | Looks it up and answers from the results, with the source |
 | “Walking directions to the library” / “Nearest pharmacy” | Opens maps for it |
 | “Open air ships dot com” / “Open my email” | Opens the website |
@@ -135,6 +136,27 @@ The default cases are installed with the package. Running the full harness
 requires working speaker/microphone routing and a separately running Voxa
 instance; unit tests use a simulated audio pipeline.
 
+### Fast capability audit
+
+The deterministic command audit checks every shipped phrase without playing
+audio or performing desktop actions. It repeats the 384-case corpus ten times
+by default, so one invocation performs 3,840 checks and verifies a minimum rate
+of 1,000 checks per hour:
+
+    .venv/bin/python -m voxatest commands --capability-report docs/VOXATEST_CAPABILITY_AUDIT.md
+
+The Markdown and JSON reports in the report directory show the result for each
+capability category, each failure, the measured checks per hour, and any
+wishlist phrases that are not handled yet. Use --repeat 100 for 38,400 checks.
+Exit code 2 means the requested throughput was missed; change the gate with
+--min-checks-per-hour.
+
+This fast audit proves that text reaches the expected registered tool with
+valid arguments. It does not exercise the microphone, speech recognition,
+model backend, network, or target application. Use voxatest run for that
+slower spoken end-to-end coverage and compare the result with
+[the capability checklist](docs/CAPABILITIES.md).
+
 ### VoxaTest desktop app
 
 VoxaTest is packaged as a separate desktop application, so it can run beside
@@ -148,9 +170,11 @@ Its reports are written to `~/Documents/VoxaTest/reports/`, including the
 stable `~/Documents/VoxaTest/VOXATEST_FAILURES.md` file that can later be
 copied into a branch and pushed.
 
+![Voxa listening beside a completed VoxaTest run](docs/screenshots/voxa-and-voxatest-passed.png)
+
 ### Running a full unattended test pass
 
-A complete pass exercises all 300 shipped cases with no one at the microphone:
+A complete pass exercises all 30 focused, independent shipped cases with no one at the microphone:
 
 1. Start the llama.cpp (or Ollama) server that both apps use.
 2. Start Voxa with simulated actions and switch on Conversation mode
@@ -162,7 +186,7 @@ A complete pass exercises all 300 shipped cases with no one at the microphone:
    ```
 
 3. Start VoxaTest — the desktop app (`flatpak run io.github.crhy.voxatest`),
-   or the CLI, which runs all 300 installed cases:
+   or the CLI, which runs all 30 installed cases:
 
    ```bash
    .venv/bin/python -m voxatest run

@@ -37,6 +37,7 @@ CROSSFADE_MS = 60.0
 CLIP_RADIUS = 18
 MOTION_PERIOD = 300.0  # seconds after which the idle motion repeats; keeps FaceMotion cheap
 OVERSCAN = 1.0  # no overscan: the frame is drawn exactly, as sharp as the still portrait
+LIVE_TEXTURE_CACHE = 6  # sequential video only needs the current frame and a small rewind window
 
 
 def _now() -> float:
@@ -81,6 +82,9 @@ class FrameCache:
     def has(self, path) -> bool:
         return str(path) in self._items
 
+    def clear(self) -> None:
+        self._items.clear()
+
 
 def compose(
     pack,
@@ -92,7 +96,11 @@ def compose(
     portrait: str,
 ) -> tuple[FaceFrame, int]:
     """Decide what to draw this tick: a :class:`FaceFrame` plus the chosen mouth index."""
-    if mode == "still" or pack is None:
+    # High/live frames are only available while the neural renderer is
+    # processing speech.  Between utterances, keep showing the portrait that
+    # seeds that renderer.  Falling back to the pre-rendered pack here can
+    # display a different (and, after an asset refresh, stale) person.
+    if mode in {"still", "live"} or pack is None:
         return (
             FaceFrame(
                 base=str(portrait),
@@ -126,6 +134,11 @@ def compose(
         ),
         index,
     )
+
+
+def fallback_mode(mode: str, speaking: bool) -> str:
+    """Animate the matching face pack while live neural frames are unavailable."""
+    return "prerendered" if mode == "live" and speaking else mode
 
 
 class FaceCanvas(Gtk.Widget):
@@ -216,11 +229,13 @@ class PhotoFaceRenderer:
         self._cache = FrameCache(self._load_texture)
         self._tick_added = False
         self._last_redraw = 0.0
+        self._fast_animation_until = 0.0
         self._crossfade_from: str | None = None
         self._crossfade_t0 = 0.0
         self._logged = False
         self._live_buffer = None
         self._live_textures: OrderedDict = OrderedDict()
+        self._live_frame_key: str | None = None
 
         self.widget = FaceCanvas()
         self.widget.add_css_class("voxa-photo-face")
@@ -261,21 +276,40 @@ class PhotoFaceRenderer:
 
     def set_character(self, character_id: str | None) -> None:
         """Load the pack (may be None -> still portrait) and the portrait; reset the index."""
-        self._pack = load_pack(character_id) if character_id else None
         avatar = get_avatar(character_id) if character_id else None
         if avatar is None:
             avatar = default_avatar()
         self._portrait = str(avatar.portrait_path)
+        self._pack = (
+            load_pack(character_id, portrait=avatar.portrait_path) if character_id else None
+        )
         self._index = 0
         self._pending.clear()
+        self._cache.clear()
+        self._live_buffer = None
+        self._live_textures.clear()
+        self._live_frame_key = None
         self._base_path = None
-        if self._pack is not None:
+        self._queue_pack_frames()
+
+    def _queue_pack_frames(self) -> None:
+        """Queue pack textures only in the one mode that can display them."""
+        if self._mode == "prerendered" and self._pack is not None:
             self._pending.extend(str(self._pack.directory / frame.file) for frame in self._pack.mouth)
             self._pending.extend(str(self._pack.directory / name) for name in self._pack.blink)
 
     def set_mode(self, mode: str) -> None:
-        if mode in MODES:
-            self._mode = mode
+        if mode not in MODES or mode == self._mode:
+            return
+        self._mode = mode
+        # A few lightweight callers construct the renderer without GTK state
+        # when they only need to track the selected mode.
+        if not hasattr(self, "_pending"):
+            return
+        self._pending.clear()
+        self._cache.clear()
+        self._base_path = None
+        self._queue_pack_frames()
 
     def get_mode(self) -> str:
         return self._mode
@@ -284,10 +318,16 @@ class PhotoFaceRenderer:
         """Hand the renderer a :class:`voxa.ui.live_face.FrameBuffer` (or ``None``).
 
         With a buffer that already holds frames, live mode draws the server's
-        JPEG frames; with no buffer or no frames yet it falls through to the
-        prerendered path, which is exactly Medium.
+        JPEG frames. While speech frames are warming up it animates the matching
+        face pack, then returns to the still portrait between utterances.
         """
+        if buffer is self._live_buffer:
+            return
         self._live_buffer = buffer
+        # Frames are never reused across utterances. Release decoded textures
+        # immediately instead of retaining a second video-sized cache.
+        self._live_textures.clear()
+        self._live_frame_key = None
 
     def set_state(self, state: AssistantState, detail: str = "") -> None:
         self._state = state
@@ -369,6 +409,17 @@ class PhotoFaceRenderer:
             self._load_some()
             now = _now()
             speaking = self._speaking_since is not None
+            fading = self.widget.previous is not None and self.widget.fade < 1.0
+            live = self._live_buffer if self._mode == "live" else None
+            # GTK can call a tick callback at 60/120 Hz. Do the animation work
+            # only as often as it can produce a visible frame; live video is
+            # generated at its negotiated rate and the pack animation tops out at 30 fps.
+            active = speaking or bool(self._viseme) or fading or now < self._fast_animation_until
+            fps = float(live.fps) if live is not None and speaking else (30.0 if active else 10.0)
+            interval = 1.0 / fps
+            if now - self._last_redraw < interval:
+                return GLib.SOURCE_CONTINUE
+            self._last_redraw = now
             if speaking:
                 self._viseme = blend(self._viseme, self._speech_visemes(), 0.45)
             elif self._viseme:
@@ -387,23 +438,33 @@ class PhotoFaceRenderer:
             blink = pose.morphs.get("eyeBlinkLeft", 0.0)
             if self._forced_blink is not None:
                 blink = self._forced_blink
-            fading = self.widget.previous is not None and self.widget.fade < 1.0
-            interval = 1.0 / 30.0 if (speaking or self._viseme or blink >= 0.15 or fading) else 1.0 / 10.0
-            if now - self._last_redraw < interval:
-                return GLib.SOURCE_CONTINUE
-            self._last_redraw = now
-            live = self._live_buffer if self._mode == "live" else None
+            if blink >= 0.01:
+                # Idle faces are sampled at 10 fps, but once a blink begins,
+                # render its short closing/opening motion at the full pack rate.
+                self._fast_animation_until = now + 0.25
             if live is not None:
                 seconds = self._speech_clock() if self._speech_clock is not None else (
                     _now() - self._speaking_since if self._speaking_since is not None else 0.0
                 )
-                index = live.index_at(seconds) if seconds > 0.0 else None
-                jpeg = live.get(index) if index is not None else None
+                if seconds > 0.0 and hasattr(live, "frame_with_index_at"):
+                    index, jpeg = live.frame_with_index_at(seconds)
+                else:
+                    index = live.index_at(seconds) if seconds > 0.0 else None
+                    jpeg = live.get(index) if index is not None else None
                 if jpeg is not None:
-                    self._draw_live(self._live_texture(f"live:{live.utterance_id}:{index}", jpeg))
+                    key = f"live:{live.utterance_id}:{index}"
+                    if key != self._live_frame_key:
+                        self._draw_live(self._live_texture(key, jpeg))
+                        self._live_frame_key = key
                     return GLib.SOURCE_CONTINUE
             frame, self._index = compose(
-                self._pack, self._mode, self._viseme, blink, pose.head, self._index, self._portrait
+                self._pack,
+                fallback_mode(self._mode, speaking),
+                self._viseme,
+                blink,
+                pose.head,
+                self._index,
+                self._portrait,
             )
             self._draw(frame)
         except Exception as exc:  # nothing may raise out of a tick callback
@@ -418,7 +479,15 @@ class PhotoFaceRenderer:
         canvas = self.widget
         now = _now()
         base = str(frame.base)
-        if base != self._base_path and self._ensure_cached(base):
+        if base != self._base_path and not self._ensure_cached(base):
+            # High intentionally does not preload the full face pack: live video
+            # normally supplies its frames and keeping another 120 decoded
+            # textures wastes GPU memory.  Its animated fallback still needs the
+            # frame chosen for *this* tick, though.  Decode that prioritised frame
+            # now; otherwise the viseme can select a different uncached image on
+            # every tick and the renderer perpetually chases the moving target.
+            self._load_some()
+        if base != self._base_path and self._cache.has(base):
             if canvas.base is not None:
                 canvas.previous = canvas.base
                 self._crossfade_t0 = now
@@ -455,14 +524,14 @@ class PhotoFaceRenderer:
             pass
 
     def _live_texture(self, key: str, jpeg: bytes):
-        """Return a Gdk.Texture for *jpeg*, cached by *key* (LRU, max 64)."""
+        """Return a Gdk.Texture for *jpeg*, with a small sequential-video LRU."""
         items = self._live_textures
         if key in items:
             items.move_to_end(key)
             return items[key]
         texture = Gdk.Texture.new_from_bytes(GLib.Bytes.new(jpeg))  # a plain bytes object is rejected
         items[key] = texture
-        while len(items) > 64:
+        while len(items) > LIVE_TEXTURE_CACHE:
             items.popitem(last=False)
         return texture
 

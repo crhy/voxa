@@ -154,9 +154,9 @@ def test_detector_disabled_uses_loudness_rule() -> None:
     assert controller._voice_check(QUIET, 0.0) is False
 
 
-def test_old_config_still_loads_with_voice_detector_default(tmp_path) -> None:
+def test_old_config_loads_with_voice_detector_and_endpoint_defaults(tmp_path) -> None:
     path = tmp_path / "config.json"
     path.write_text(json.dumps({"whisper_model": "base", "silence_ms": 900}), encoding="utf-8")
     settings = ConfigStore(path).load(migrate=False)
     assert settings.voice_detector is True
-    assert settings.silence_ms == 900
+    assert settings.silence_ms == 700
