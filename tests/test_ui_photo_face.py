@@ -2,12 +2,21 @@
 
 from __future__ import annotations
 
+from collections import deque
+from types import SimpleNamespace
+
 import pytest
 
 pytest.importorskip("gi")  # the renderer needs GTK; machines without it skip this file
 
 from voxa.ui.face_pack import FacePack, MouthFrame  # noqa: E402
-from voxa.ui.photo_face import FrameCache, PhotoFaceRenderer, compose  # noqa: E402
+from voxa.ui.photo_face import (  # noqa: E402
+    LIVE_TEXTURE_CACHE,
+    FrameCache,
+    PhotoFaceRenderer,
+    compose,
+    fallback_mode,
+)
 
 
 def _fake_pack() -> FacePack:
@@ -52,6 +61,15 @@ def test_frame_cache_evicts_lru():
     assert cache.has("/c") is True
 
 
+def test_frame_cache_clear_releases_everything():
+    cache = FrameCache(lambda path: path, capacity=2)
+    cache.get("/a")
+    cache.get("/b")
+    cache.clear()
+    assert cache.has("/a") is False
+    assert cache.has("/b") is False
+
+
 def test_compose_still_mode():
     frame, index = compose(_fake_pack(), "still", {}, 0.0, (0.0, 0.0, 0.0), 7, "/portrait.jpg")
     assert frame.base == "/portrait.jpg"
@@ -67,6 +85,45 @@ def test_compose_pack_none():
     assert frame.base == "/portrait.jpg"
     assert frame.eye_patch is None
     assert index == 3
+
+
+def test_live_mode_uses_animated_pack_only_while_speaking_without_frames():
+    assert fallback_mode("live", speaking=True) == "prerendered"
+    assert fallback_mode("live", speaking=False) == "live"
+    assert fallback_mode("still", speaking=True) == "still"
+
+
+def test_live_fallback_decodes_selected_mouth_frame_on_demand(monkeypatch):
+    """High must animate before neural frames arrive without preloading the whole pack."""
+    loaded = []
+    renderer = PhotoFaceRenderer.__new__(PhotoFaceRenderer)
+    renderer._cache = FrameCache(lambda path: loaded.append(str(path)) or str(path))
+    renderer._pending = deque()
+    renderer._logged = False
+    renderer._base_path = "/portrait.jpg"
+    renderer._crossfade_t0 = 0.0
+    renderer.widget = SimpleNamespace(
+        base="portrait-texture",
+        previous=None,
+        fade=1.0,
+        patch=None,
+        eye_box=(0, 0, 0, 0),
+        frame_size=0,
+        offset=(0.0, 0.0),
+        zoom=1.0,
+        rotation=0.0,
+        queue_draw=lambda: None,
+    )
+    monkeypatch.setattr("voxa.ui.photo_face._now", lambda: 1.0)
+    frame, _index = compose(
+        _fake_pack(), "prerendered", {"viseme_aa": 1.0}, 0.0, (0.0, 0.0, 0.0), 0, "/portrait.jpg"
+    )
+
+    renderer._draw(frame)
+
+    assert loaded == [frame.base]
+    assert renderer._base_path == frame.base
+    assert renderer.widget.base == frame.base
 
 
 def test_compose_prerendered_open_frame():
@@ -88,15 +145,15 @@ def test_compose_never_moves_the_whole_photo():
     assert frame.rotation == 0.0
 
 
-def test_compose_live_equals_prerendered():
-    pack = _fake_pack()
-    live, li = compose(pack, "live", {"viseme_aa": 1.0}, 0.5, (5.0, 3.0, 2.0), 0, "/p.jpg")
-    pre, pi = compose(pack, "prerendered", {"viseme_aa": 1.0}, 0.5, (5.0, 3.0, 2.0), 0, "/p.jpg")
-    assert li == pi
-    assert live.base == pre.base
-    assert live.eye_patch == pre.eye_patch
-    assert live.offset == pre.offset
-    assert live.rotation == pre.rotation
+def test_compose_live_falls_back_to_matching_portrait():
+    frame, index = compose(
+        _fake_pack(), "live", {"viseme_aa": 1.0}, 0.5, (5.0, 3.0, 2.0), 4, "/portrait.jpg"
+    )
+    assert index == 4
+    assert frame.base == "/portrait.jpg"
+    assert frame.eye_patch is None
+    assert frame.offset == (0.0, 0.0)
+    assert frame.rotation == 0.0
 
 
 def test_renderer_mode():
@@ -120,7 +177,7 @@ def test_renderer_public_methods_match():
 def test_renderer_set_character_none_pack(monkeypatch):
     import voxa.ui.photo_face as pf
 
-    monkeypatch.setattr(pf, "load_pack", lambda cid, directory=None: None)
+    monkeypatch.setattr(pf, "load_pack", lambda cid, directory=None, portrait=None: None)
 
     class FakeAvatar:
         portrait_path = "/portrait.jpg"
@@ -158,3 +215,6 @@ def test_live_frames_are_decoded_from_plain_bytes():
     texture = renderer._live_texture("live:test:0", out.getvalue())
     assert texture.get_width() == 16 and texture.get_height() == 16
     assert renderer._live_texture("live:test:0", out.getvalue()) is texture  # cached by key
+    for index in range(LIVE_TEXTURE_CACHE + 3):
+        renderer._live_texture(f"live:test:{index + 1}", out.getvalue())
+    assert len(renderer._live_textures) == LIVE_TEXTURE_CACHE

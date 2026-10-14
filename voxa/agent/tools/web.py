@@ -9,6 +9,7 @@ from voxa.agent.cdp import CdpError
 from voxa.agent.policy import RiskLevel
 from voxa.agent.registry import Tool
 from voxa.agent.result import ToolResult
+from voxa.agent.spoken_text import site_label
 from voxa.agent.tools.browser import normalize_url
 
 log = logging.getLogger("voxa.agent.tools.web")
@@ -40,6 +41,8 @@ def browse(args: dict[str, str]) -> ToolResult:
         detail = session.text(1500)
     except CdpError as exc:
         return ToolResult.failure("The browser did not open that page.", detail=str(exc))
+    if site_label(title) == "website":
+        return ToolResult.success("Opened the website.", detail=detail)
     return ToolResult.success(f"Opened {title}.", detail=detail)
 
 
@@ -150,25 +153,6 @@ def search_web(args: dict[str, str]) -> ToolResult:
     return ToolResult.success(f"Searching the web for {query}.", detail=detail)
 
 
-def scroll(args: dict[str, str]) -> ToolResult:
-    direction = args["direction"]
-    session = get_session()
-    try:
-        if direction == "down":
-            session.evaluate("window.scrollBy(0, 500)")
-        elif direction == "up":
-            session.evaluate("window.scrollBy(0, -500)")
-        elif direction == "top":
-            session.evaluate("window.scrollTo(0, 0)")
-        elif direction == "bottom":
-            session.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-        else:
-            return ToolResult.failure(f"I don't know how to scroll {direction}.")
-    except CdpError as exc:
-        return ToolResult.failure("I couldn't scroll the page.", detail=str(exc))
-    return ToolResult.success(f"Scrolled {direction}.")
-
-
 def web_tools() -> list[Tool]:
     return [
         Tool(
@@ -247,13 +231,5 @@ def web_tools() -> list[Tool]:
             risk=RiskLevel.REVERSIBLE,
             handler=search_web,
             required=("query",),
-        ),
-        Tool(
-            name="scroll",
-            description="Scroll the page down, up, to the top, or to the bottom.",
-            parameters={"direction": "down, up, top, or bottom"},
-            risk=RiskLevel.REVERSIBLE,
-            handler=scroll,
-            required=("direction",),
         ),
     ]

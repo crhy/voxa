@@ -1,0 +1,2059 @@
+{
+  "cases": [
+    {
+      "id": "cap21-01",
+      "category": "files_and_productivity",
+      "prompt": "Add buy stamps to my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "stamps"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {
+        "item": "buy stamps"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Buy stamps"
+      },
+      "capability": 21
+    },
+    {
+      "id": "cap21-02",
+      "category": "files_and_productivity",
+      "prompt": "Add pay the rent to my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "rent"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {
+        "item": "pay the rent"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Pay the rent"
+      },
+      "capability": 21
+    },
+    {
+      "id": "cap21-03",
+      "category": "files_and_productivity",
+      "prompt": "What's on my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "stamps",
+        "rent"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_read",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 21
+    },
+    {
+      "id": "cap21-04",
+      "category": "files_and_productivity",
+      "prompt": "Mark buy stamps as done",
+      "expected_contains": [],
+      "expected_keywords": [
+        "done"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_done",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[x] Buy stamps"
+      },
+      "capability": 21
+    },
+    {
+      "id": "cap21-05",
+      "category": "files_and_productivity",
+      "prompt": "Clear my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared|clear"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_lacks": "pay the rent"
+      },
+      "capability": 21
+    },
+    {
+      "id": "cap51-01",
+      "category": "files_and_productivity",
+      "prompt": "Add milk to my shopping list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "milk"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {
+        "item": "milk"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Milk"
+      },
+      "capability": 51
+    },
+    {
+      "id": "cap51-02",
+      "category": "files_and_productivity",
+      "prompt": "Put eggs on the shopping list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "eggs"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {
+        "item": "eggs"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Eggs"
+      },
+      "capability": 51
+    },
+    {
+      "id": "cap51-03",
+      "category": "files_and_productivity",
+      "prompt": "What's on my shopping list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "milk",
+        "eggs"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_read",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 51
+    },
+    {
+      "id": "cap51-04",
+      "category": "files_and_productivity",
+      "prompt": "Remove eggs from my shopping list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "removed|remove"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_remove",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_lacks": "eggs"
+      },
+      "capability": 51
+    },
+    {
+      "id": "cap51-05",
+      "category": "files_and_productivity",
+      "prompt": "Clear my shopping list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared|clear"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_lacks": "milk"
+      },
+      "capability": 51
+    },
+    {
+      "id": "cap18-01",
+      "category": "system_status",
+      "prompt": "What time is it in Tokyo",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tokyo"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "world_time",
+      "expected_args": {
+        "place": "Tokyo"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 18
+    },
+    {
+      "id": "cap18-02",
+      "category": "system_status",
+      "prompt": "What's the time in London",
+      "expected_contains": [],
+      "expected_keywords": [
+        "london"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "world_time",
+      "expected_args": {
+        "place": "London"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 18
+    },
+    {
+      "id": "cap18-03",
+      "category": "system_status",
+      "prompt": "What's the time difference between here and London",
+      "expected_contains": [],
+      "expected_keywords": [
+        "london",
+        "hours|hour"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "time_difference",
+      "expected_args": {
+        "place": "London"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 18
+    },
+    {
+      "id": "cap18-04",
+      "category": "system_status",
+      "prompt": "How many hours ahead is Tokyo",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tokyo",
+        "hours|hour"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "time_difference",
+      "expected_args": {
+        "place": "Tokyo"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 18
+    },
+    {
+      "id": "cap86-01",
+      "category": "system_status",
+      "prompt": "How hot is my graphics card",
+      "expected_contains": [],
+      "expected_keywords": [
+        "degrees"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "gpu_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "cap86-02",
+      "category": "system_status",
+      "prompt": "What's the CPU temperature",
+      "expected_contains": [],
+      "expected_keywords": [
+        "degrees"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "cpu_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "cap86-03",
+      "category": "system_status",
+      "prompt": "How is my computer doing",
+      "expected_contains": [],
+      "expected_keywords": [
+        "processor",
+        "memory"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "system_health",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "cap17-01",
+      "category": "files_and_productivity",
+      "prompt": "My mom's birthday is May fifth",
+      "expected_contains": [],
+      "expected_keywords": [
+        "may"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_remember",
+      "expected_args": {
+        "kind": "birthday"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Dates.md",
+        "file_contains": "05-05 | birthday"
+      },
+      "capability": 17
+    },
+    {
+      "id": "cap17-02",
+      "category": "files_and_productivity",
+      "prompt": "When is mom's birthday",
+      "expected_contains": [],
+      "expected_keywords": [
+        "may"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_when",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 17
+    },
+    {
+      "id": "cap17-03",
+      "category": "files_and_productivity",
+      "prompt": "Any birthdays coming up",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_upcoming",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 17
+    },
+    {
+      "id": "cap17-04",
+      "category": "files_and_productivity",
+      "prompt": "Forget mom's birthday",
+      "expected_contains": [],
+      "expected_keywords": [
+        "forgot|forget"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_forget",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Dates.md",
+        "file_lacks": "birthday"
+      },
+      "capability": 17
+    },
+    {
+      "id": "cap19-01",
+      "category": "files_and_productivity",
+      "prompt": "The report is due Friday",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_remember",
+      "expected_args": {
+        "kind": "deadline"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Dates.md",
+        "file_contains": "deadline"
+      },
+      "capability": 19
+    },
+    {
+      "id": "cap19-02",
+      "category": "files_and_productivity",
+      "prompt": "When is the report due",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_when",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 19
+    },
+    {
+      "id": "cap19-03",
+      "category": "files_and_productivity",
+      "prompt": "What's due this week",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_upcoming",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 19
+    },
+    {
+      "id": "cap19-04",
+      "category": "files_and_productivity",
+      "prompt": "Forget the report deadline",
+      "expected_contains": [],
+      "expected_keywords": [
+        "forgot|forget"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_forget",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Dates.md",
+        "file_lacks": "deadline"
+      },
+      "capability": 19
+    },
+    {
+      "id": "cap57-01",
+      "category": "files_and_productivity",
+      "prompt": "i spent twelve dollars on lunch",
+      "expected_contains": [],
+      "expected_keywords": [
+        "lunch",
+        "twelve",
+        "dollars",
+        "food"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "expense_add",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 57
+    },
+    {
+      "id": "cap57-02",
+      "category": "files_and_productivity",
+      "prompt": "how much did i spend on food this month",
+      "expected_contains": [],
+      "expected_keywords": [
+        "food",
+        "month",
+        "dollars",
+        "spent"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "expense_total",
+      "expected_args": {
+        "period": "this month",
+        "category": "food"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 57
+    },
+    {
+      "id": "cap57-03",
+      "category": "files_and_productivity",
+      "prompt": "show my spending breakdown this month",
+      "expected_contains": [],
+      "expected_keywords": [
+        "food"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "expense_breakdown",
+      "expected_args": {
+        "period": "this month"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 57
+    },
+    {
+      "id": "cap57-04",
+      "category": "files_and_productivity",
+      "prompt": "remove the last expense",
+      "expected_contains": [],
+      "expected_keywords": [
+        "removed",
+        "last",
+        "expense",
+        "dollars",
+        "lunch"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "expense_undo",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 57
+    },
+    {
+      "id": "cap11-01",
+      "category": "calendar_and_scheduling",
+      "prompt": "Add lunch with Sam to my calendar for tomorrow at noon",
+      "expected_contains": [],
+      "expected_keywords": [
+        "lunch",
+        "sam",
+        "calendar",
+        "tomorrow",
+        "noon"
+      ],
+      "rubric": "The reply confirms the appointment was added.",
+      "expected_tool": "calendar_add",
+      "expected_args": {
+        "title": "lunch with sam",
+        "when": "tomorrow at noon"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Calendar.md",
+        "file_contains": "Lunch with Sam"
+      },
+      "capability": 11
+    },
+    {
+      "id": "cap11-02",
+      "category": "calendar_and_scheduling",
+      "prompt": "Schedule the dentist for Friday at 3 pm",
+      "expected_contains": [],
+      "expected_keywords": [
+        "dentist",
+        "calendar",
+        "friday"
+      ],
+      "rubric": "The reply confirms the appointment was added.",
+      "expected_tool": "calendar_add",
+      "expected_args": {
+        "title": "the dentist",
+        "when": "friday at 3 pm"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Calendar.md",
+        "file_contains": "Dentist"
+      },
+      "capability": 11
+    },
+    {
+      "id": "cap15-01",
+      "category": "calendar_and_scheduling",
+      "prompt": "What's on my calendar tomorrow",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tomorrow",
+        "lunch",
+        "sam",
+        "noon"
+      ],
+      "rubric": "The reply reports what is on the calendar for that day.",
+      "expected_tool": "calendar_day",
+      "expected_args": {
+        "day": "tomorrow"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 15
+    },
+    {
+      "id": "cap15-02",
+      "category": "calendar_and_scheduling",
+      "prompt": "What's my next appointment",
+      "expected_contains": [],
+      "expected_keywords": [
+        "next",
+        "appointment",
+        "lunch",
+        "sam"
+      ],
+      "rubric": "The reply reports the next upcoming appointment.",
+      "expected_tool": "calendar_next",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 15
+    },
+    {
+      "id": "cap11-03",
+      "category": "calendar_and_scheduling",
+      "prompt": "Cancel my dentist appointment",
+      "expected_contains": [],
+      "expected_keywords": [
+        "dentist",
+        "calendar"
+      ],
+      "rubric": "The reply confirms the appointment was removed.",
+      "expected_tool": "calendar_cancel",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Calendar.md",
+        "file_lacks": "entist"
+      },
+      "capability": 11
+    },
+    {
+      "id": "cap11-04",
+      "category": "calendar_and_scheduling",
+      "prompt": "Cancel my lunch with Sam appointment",
+      "expected_contains": [],
+      "expected_keywords": [
+        "lunch",
+        "sam",
+        "calendar"
+      ],
+      "rubric": "The reply confirms the appointment was removed.",
+      "expected_tool": "calendar_cancel",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Calendar.md",
+        "file_lacks": "Lunch"
+      },
+      "capability": 11
+    },
+    {
+      "id": "cap30-01",
+      "category": "files_and_productivity",
+      "prompt": "Remember that the bikes are in the shed",
+      "expected_contains": [],
+      "expected_keywords": [
+        "remember"
+      ],
+      "rubric": "The reply confirms the fact was remembered.",
+      "expected_tool": "remember_fact",
+      "expected_args": {
+        "fact": "the bikes are in the shed"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Memory.md",
+        "file_contains": "bikes"
+      },
+      "capability": 30
+    },
+    {
+      "id": "cap30-02",
+      "category": "files_and_productivity",
+      "prompt": "Remember that the wifi password is on the fridge",
+      "expected_contains": [],
+      "expected_keywords": [
+        "remember"
+      ],
+      "rubric": "The reply confirms the fact was remembered.",
+      "expected_tool": "remember_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Memory.md",
+        "file_contains": "wifi"
+      },
+      "capability": 30
+    },
+    {
+      "id": "cap30-03",
+      "category": "files_and_productivity",
+      "prompt": "What do you remember about the bikes",
+      "expected_contains": [],
+      "expected_keywords": [
+        "shed"
+      ],
+      "rubric": "The reply recalls the remembered fact about the spare key.",
+      "expected_tool": "recall_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 30
+    },
+    {
+      "id": "cap30-04",
+      "category": "files_and_productivity",
+      "prompt": "What do you know about the wifi password",
+      "expected_contains": [],
+      "expected_keywords": [
+        "fridge"
+      ],
+      "rubric": "The reply recalls the remembered fact about the car.",
+      "expected_tool": "recall_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 30
+    },
+    {
+      "id": "cap30-05",
+      "category": "files_and_productivity",
+      "prompt": "What do you remember",
+      "expected_contains": [],
+      "expected_keywords": [
+        "things"
+      ],
+      "rubric": "The reply lists everything remembered.",
+      "expected_tool": "list_facts",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 30
+    },
+    {
+      "id": "cap30-06",
+      "category": "files_and_productivity",
+      "prompt": "Forget about the bikes",
+      "expected_contains": [],
+      "expected_keywords": [
+        "forgotten"
+      ],
+      "rubric": "The reply confirms the fact was forgotten.",
+      "expected_tool": "forget_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Memory.md",
+        "file_lacks": "bikes"
+      },
+      "capability": 30
+    },
+    {
+      "id": "cap30-07",
+      "category": "files_and_productivity",
+      "prompt": "Forget about the wifi password",
+      "expected_contains": [],
+      "expected_keywords": [
+        "forgotten"
+      ],
+      "rubric": "The reply confirms the fact was forgotten.",
+      "expected_tool": "forget_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Memory.md",
+        "file_lacks": "wifi"
+      },
+      "capability": 30
+    },
+    {
+      "id": "cap26-01",
+      "category": "files_and_productivity",
+      "prompt": "Add finish the report to my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Finish the report"
+      },
+      "capability": 26
+    },
+    {
+      "id": "cap26-02",
+      "category": "files_and_productivity",
+      "prompt": "Add water the plants to my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "plants"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Water the plants"
+      },
+      "capability": 26
+    },
+    {
+      "id": "cap26-03",
+      "category": "files_and_productivity",
+      "prompt": "Mark finish the report as done",
+      "expected_contains": [],
+      "expected_keywords": [
+        "done"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_done",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[x] Finish the report"
+      },
+      "capability": 26
+    },
+    {
+      "id": "cap26-04",
+      "category": "files_and_productivity",
+      "prompt": "How am I doing",
+      "expected_contains": [],
+      "expected_keywords": [
+        "finished",
+        "open"
+      ],
+      "rubric": "The reply reports progress on the to-do list.",
+      "expected_tool": "list_progress",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 26
+    },
+    {
+      "id": "cap26-05",
+      "category": "files_and_productivity",
+      "prompt": "What's still open",
+      "expected_contains": [],
+      "expected_keywords": [
+        "open"
+      ],
+      "rubric": "The reply counts the open items.",
+      "expected_tool": "list_pending",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 26
+    },
+    {
+      "id": "cap26-06",
+      "category": "files_and_productivity",
+      "prompt": "What should I do next",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report|plants"
+      ],
+      "rubric": "The reply suggests the next open task.",
+      "expected_tool": "list_next",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 26
+    },
+    {
+      "id": "cap20-01",
+      "category": "calendar_and_scheduling",
+      "prompt": "Begin a focus session for 25 minutes",
+      "expected_contains": [
+        "Focus time started"
+      ],
+      "expected_keywords": [
+        "focus"
+      ],
+      "rubric": "The reply confirms the focus session started.",
+      "expected_tool": "focus_start",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 20
+    },
+    {
+      "id": "cap20-02",
+      "category": "calendar_and_scheduling",
+      "prompt": "How much focus time is left",
+      "expected_contains": [
+        "focus time left"
+      ],
+      "expected_keywords": [
+        "minutes|minute"
+      ],
+      "rubric": "The reply reports the remaining focus time.",
+      "expected_tool": "focus_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 20
+    },
+    {
+      "id": "cap20-04",
+      "category": "calendar_and_scheduling",
+      "prompt": "Stop the focus session",
+      "expected_contains": [
+        "Focus time ended."
+      ],
+      "expected_keywords": [
+        "ended"
+      ],
+      "rubric": "The reply confirms the focus session ended.",
+      "expected_tool": "focus_stop",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 20
+    },
+    {
+      "id": "cap7-e1",
+      "category": "files_and_productivity",
+      "prompt": "Alice's email is alice at gmail dot com",
+      "expected_contains": [],
+      "expected_keywords": [
+        "saved"
+      ],
+      "rubric": "The reply confirms the email was saved.",
+      "expected_tool": "set_contact_email",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 7
+    },
+    {
+      "id": "cap7-e2",
+      "category": "files_and_productivity",
+      "prompt": "What is Alice's email",
+      "expected_contains": [],
+      "expected_keywords": [
+        "email"
+      ],
+      "rubric": "The reply states the saved email.",
+      "expected_tool": "get_contact_email",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 7
+    },
+    {
+      "id": "cap7-e3",
+      "category": "files_and_productivity",
+      "prompt": "Forget Alice's email",
+      "expected_contains": [],
+      "expected_keywords": [
+        "forgotten"
+      ],
+      "rubric": "The reply confirms the email was forgotten.",
+      "expected_tool": "forget_contact_email",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 7
+    },
+    {
+      "id": "cap36-e1",
+      "category": "files_and_productivity",
+      "prompt": "Get me the cheapest ticket to Hawaii",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cheapest"
+      ],
+      "rubric": "The reply offers the cheapest flights.",
+      "expected_tool": "find_deal",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 36
+    },
+    {
+      "id": "cap36-e2",
+      "category": "files_and_productivity",
+      "prompt": "Best price on a 4070 Ti Super",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cheapest"
+      ],
+      "rubric": "The reply offers the cheapest product results.",
+      "expected_tool": "find_deal",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 36
+    },
+    {
+      "id": "cap31-e1",
+      "category": "files_and_productivity",
+      "prompt": "Look up which is better the iPhone or the Android",
+      "expected_contains": [],
+      "expected_keywords": [
+        "searching"
+      ],
+      "rubric": "The reply starts a web search.",
+      "expected_tool": "web_search",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 31
+    },
+    {
+      "id": "cap37-e1",
+      "category": "files_and_productivity",
+      "prompt": "Look up how to fix a null pointer exception",
+      "expected_contains": [],
+      "expected_keywords": [
+        "searching"
+      ],
+      "rubric": "The reply searches the web for the fix.",
+      "expected_tool": "web_search",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 37
+    },
+    {
+      "id": "cap81-e1",
+      "category": "files_and_productivity",
+      "prompt": "Open the calculator",
+      "expected_contains": [],
+      "expected_keywords": [
+        "opening"
+      ],
+      "rubric": "The reply opens the calculator.",
+      "expected_tool": "open_app",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 81
+    },
+    {
+      "id": "cap81-e2",
+      "category": "files_and_productivity",
+      "prompt": "Switch to the calculator",
+      "expected_contains": [],
+      "expected_keywords": [
+        "switching"
+      ],
+      "rubric": "The reply switches to the calculator.",
+      "expected_tool": "switch_to",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 81
+    },
+    {
+      "id": "cap81-e3",
+      "category": "files_and_productivity",
+      "prompt": "Minimize the calculator",
+      "expected_contains": [],
+      "expected_keywords": [
+        "minimized"
+      ],
+      "rubric": "The reply confirms the window was minimized.",
+      "expected_tool": "minimize_app",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 81
+    },
+    {
+      "id": "cap81-e4",
+      "category": "files_and_productivity",
+      "prompt": "Restore the calculator",
+      "expected_contains": [],
+      "expected_keywords": [
+        "restored"
+      ],
+      "rubric": "The reply confirms the window was restored.",
+      "expected_tool": "restore_app",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 81
+    },
+    {
+      "id": "cap81-e5",
+      "category": "files_and_productivity",
+      "prompt": "Maximize the calculator",
+      "expected_contains": [],
+      "expected_keywords": [
+        "maximized"
+      ],
+      "rubric": "The reply confirms the window was maximized.",
+      "expected_tool": "maximize_app",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 81
+    },
+    {
+      "id": "cap81-e6",
+      "category": "files_and_productivity",
+      "prompt": "Close the calculator",
+      "expected_contains": [],
+      "expected_keywords": [
+        "closing|closed"
+      ],
+      "rubric": "The reply closes the calculator.",
+      "expected_tool": "close_app",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 81
+    },
+    {
+      "id": "cap83-e1",
+      "category": "files_and_productivity",
+      "prompt": "Find the file called notes",
+      "expected_contains": [],
+      "expected_keywords": [
+        "found"
+      ],
+      "rubric": "The reply reports matching files.",
+      "expected_tool": "find_file",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 83
+    },
+    {
+      "id": "cap83-e2",
+      "category": "files_and_productivity",
+      "prompt": "Find files bigger than 10 megabytes",
+      "expected_contains": [],
+      "expected_keywords": [
+        "bigger"
+      ],
+      "rubric": "The reply reports large files.",
+      "expected_tool": "find_large_files",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 83
+    },
+    {
+      "id": "cap83-e3",
+      "category": "files_and_productivity",
+      "prompt": "Create a folder called Voxa test folder in Documents",
+      "expected_contains": [],
+      "expected_keywords": [
+        "created"
+      ],
+      "rubric": "The reply confirms the folder was created.",
+      "expected_tool": "make_folder",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 83
+    },
+    {
+      "id": "cap82-e1",
+      "category": "system_status",
+      "prompt": "Say hello world",
+      "expected_contains": [],
+      "expected_keywords": [
+        "hello"
+      ],
+      "rubric": "The reply says the requested text.",
+      "expected_tool": "say_text",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 82
+    },
+    {
+      "id": "cap82-e2",
+      "category": "system_status",
+      "prompt": "Repeat that",
+      "expected_contains": [],
+      "expected_keywords": [
+        "hello"
+      ],
+      "rubric": "The reply repeats the last thing said.",
+      "expected_tool": "repeat_last",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 82
+    },
+    {
+      "id": "cap82-e3",
+      "category": "system_status",
+      "prompt": "Which window is active",
+      "expected_contains": [],
+      "expected_keywords": [
+        "this"
+      ],
+      "rubric": "The reply names the active window.",
+      "expected_tool": "active_window_name",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 82
+    },
+    {
+      "id": "cap82-e4",
+      "category": "system_status",
+      "prompt": "What's on my clipboard",
+      "expected_contains": [],
+      "expected_keywords": [
+        "clipboard"
+      ],
+      "rubric": "The reply reads the clipboard aloud.",
+      "expected_tool": "read_clipboard_aloud",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 82
+    },
+    {
+      "id": "cap10-e1",
+      "category": "system_status",
+      "prompt": "Say hello in German",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply says the phrase in German.",
+      "expected_tool": "say_in_language",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "reply_in_other_language": true
+      },
+      "capability": 10
+    },
+    {
+      "id": "cap10-e2",
+      "category": "system_status",
+      "prompt": "How do I say where is the station in Japanese",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply translates and says the phrase in Japanese.",
+      "expected_tool": "say_in_language",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "reply_in_other_language": true
+      },
+      "capability": 10
+    },
+    {
+      "id": "cap56-01",
+      "category": "dates",
+      "prompt": "the electricity bill is due on the 15th of every month",
+      "expected_contains": [],
+      "expected_keywords": [
+        "electricity",
+        "bill"
+      ],
+      "rubric": "The reply remembers the monthly electricity bill.",
+      "expected_tool": "date_remember",
+      "expected_args": {
+        "kind": "bill"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 56
+    },
+    {
+      "id": "cap56-02",
+      "category": "dates",
+      "prompt": "when is the electricity bill due",
+      "expected_contains": [],
+      "expected_keywords": [
+        "electricity",
+        "bill"
+      ],
+      "rubric": "The reply reports when the electricity bill is due.",
+      "expected_tool": "date_when",
+      "expected_args": {
+        "name": "electricity"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 56
+    },
+    {
+      "id": "cap56-03",
+      "category": "dates",
+      "prompt": "what bills do i have coming up",
+      "expected_contains": [],
+      "expected_keywords": [
+        "bill"
+      ],
+      "rubric": "The reply lists upcoming bills.",
+      "expected_tool": "date_upcoming",
+      "expected_args": {
+        "kind": "bill"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 56
+    },
+    {
+      "id": "cap58-01",
+      "category": "dates",
+      "prompt": "netflix subscription renews on the 3rd of every month",
+      "expected_contains": [],
+      "expected_keywords": [
+        "netflix",
+        "subscription"
+      ],
+      "rubric": "The reply remembers the monthly netflix subscription.",
+      "expected_tool": "date_remember",
+      "expected_args": {
+        "kind": "subscription"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 58
+    },
+    {
+      "id": "cap58-02",
+      "category": "dates",
+      "prompt": "when does netflix renew",
+      "expected_contains": [],
+      "expected_keywords": [
+        "netflix"
+      ],
+      "rubric": "The reply reports when the netflix subscription renews.",
+      "expected_tool": "date_when",
+      "expected_args": {
+        "name": "netflix"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 58
+    },
+    {
+      "id": "cap58-03",
+      "category": "dates",
+      "prompt": "what subscriptions do i have",
+      "expected_contains": [],
+      "expected_keywords": [
+        "subscription"
+      ],
+      "rubric": "The reply lists upcoming subscriptions.",
+      "expected_tool": "date_upcoming",
+      "expected_args": {
+        "kind": "subscription",
+        "days": "365"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 58
+    },
+    {
+      "id": "cap61-01",
+      "category": "dates",
+      "prompt": "the car service is due on march 3rd",
+      "expected_contains": [],
+      "expected_keywords": [
+        "car",
+        "service"
+      ],
+      "rubric": "The reply remembers the car service date.",
+      "expected_tool": "date_remember",
+      "expected_args": {
+        "kind": "service"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 61
+    },
+    {
+      "id": "cap68-01",
+      "category": "dates",
+      "prompt": "forget the electricity bill",
+      "expected_contains": [],
+      "expected_keywords": [
+        "electricity"
+      ],
+      "rubric": "The reply forgets the electricity bill.",
+      "expected_tool": "date_forget",
+      "expected_args": {
+        "name": "electricity"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 68
+    },
+    {
+      "id": "cap13-01",
+      "category": "calendar_and_scheduling",
+      "prompt": "Add dentist to my calendar for tomorrow at 3 pm",
+      "expected_contains": [],
+      "expected_keywords": [
+        "dentist",
+        "calendar",
+        "tomorrow"
+      ],
+      "rubric": "The reply confirms the appointment was added and mentions a reminder.",
+      "expected_tool": "calendar_add",
+      "expected_args": {
+        "title": "dentist",
+        "when": "tomorrow at 3 pm"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 13
+    },
+    {
+      "id": "cap14-01",
+      "category": "calendar_and_scheduling",
+      "prompt": "Do I have any conflicts",
+      "expected_contains": [],
+      "expected_keywords": [
+        "clashes|close"
+      ],
+      "rubric": "The reply reports whether there are clashes in the next 7 days.",
+      "expected_tool": "calendar_conflicts",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 14
+    },
+    {
+      "id": "cap14-02",
+      "category": "calendar_and_scheduling",
+      "prompt": "Check my calendar for clashes",
+      "expected_contains": [],
+      "expected_keywords": [
+        "clashes|close"
+      ],
+      "rubric": "The reply reports whether there are clashes in the next 7 days.",
+      "expected_tool": "calendar_conflicts",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 14
+    },
+    {
+      "id": "cap16-01",
+      "category": "calendar_and_scheduling",
+      "prompt": "Add team call every Monday at 9 am",
+      "expected_contains": [],
+      "expected_keywords": [
+        "team",
+        "call",
+        "every",
+        "monday"
+      ],
+      "rubric": "The reply confirms a recurring weekly appointment was added.",
+      "expected_tool": "calendar_add_weekly",
+      "expected_args": {
+        "title": "team call",
+        "weekday": "monday",
+        "time": "9 am"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Calendar.md",
+        "file_contains": "every Monday 09:00 | Team call"
+      },
+      "capability": 16
+    },
+    {
+      "id": "cap16-02",
+      "category": "calendar_and_scheduling",
+      "prompt": "I have dentist every Friday at 3 pm",
+      "expected_contains": [],
+      "expected_keywords": [
+        "dentist",
+        "every",
+        "friday"
+      ],
+      "rubric": "The reply confirms a recurring weekly appointment was added.",
+      "expected_tool": "calendar_add_weekly",
+      "expected_args": {
+        "title": "dentist",
+        "weekday": "friday",
+        "time": "3 pm"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Calendar.md",
+        "file_contains": "every Friday"
+      },
+      "capability": 16
+    },
+    {
+      "id": "cap22-01",
+      "category": "files_and_productivity",
+      "prompt": "Add buy paint to my kitchen list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "paint"
+      ],
+      "rubric": "The reply confirms the item was added to the kitchen list.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "Buy paint"
+      },
+      "capability": 22
+    },
+    {
+      "id": "cap22-02",
+      "category": "files_and_productivity",
+      "prompt": "What's on my kitchen list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "paint"
+      ],
+      "rubric": "The reply reads back the kitchen list.",
+      "expected_tool": "list_read",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 22
+    },
+    {
+      "id": "cap22-03",
+      "category": "files_and_productivity",
+      "prompt": "Clear my kitchen list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared|clear"
+      ],
+      "rubric": "The reply confirms the kitchen list was cleared.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_lacks": "paint"
+      },
+      "capability": 22
+    },
+    {
+      "id": "cap65-01",
+      "category": "calendar_and_scheduling",
+      "prompt": "What's on this week",
+      "expected_contains": [],
+      "expected_keywords": [
+        "week",
+        "today"
+      ],
+      "rubric": "The reply reports the appointments in the week ahead.",
+      "expected_tool": "calendar_week",
+      "expected_args": {
+        "person": ""
+      },
+      "after": "",
+      "verify": {},
+      "capability": 65
+    },
+    {
+      "id": "cap65-02",
+      "category": "calendar_and_scheduling",
+      "prompt": "What does Emma have this week",
+      "expected_contains": [],
+      "expected_keywords": [
+        "emma",
+        "week"
+      ],
+      "rubric": "The reply reports only Emma appointments this week.",
+      "expected_tool": "calendar_week",
+      "expected_args": {
+        "person": "Emma"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 65
+    },
+    {
+      "id": "cap65-03",
+      "category": "calendar_and_scheduling",
+      "prompt": "How busy am I",
+      "expected_contains": [],
+      "expected_keywords": [
+        "appointments|nothing",
+        "busiest|day"
+      ],
+      "rubric": "The reply counts appointments this week and names the busiest day.",
+      "expected_tool": "calendar_busy",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 65
+    },
+    {
+      "id": "cap65-04",
+      "category": "calendar_and_scheduling",
+      "prompt": "Book dentist on my calendar for friday at 3 pm",
+      "expected_contains": [],
+      "expected_keywords": [
+        "dentist",
+        "calendar",
+        "friday"
+      ],
+      "rubric": "The reply confirms the appointment was added.",
+      "expected_tool": "calendar_add",
+      "expected_args": {
+        "title": "dentist",
+        "when": "friday at 3 pm"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Calendar.md",
+        "file_contains": "Dentist"
+      },
+      "capability": 65
+    },
+    {
+      "id": "cap85-01",
+      "category": "system_status",
+      "prompt": "Why is my computer slow",
+      "expected_contains": [],
+      "expected_keywords": [
+        "percent"
+      ],
+      "rubric": "The reply names the top CPU-using processes with their percentages.",
+      "expected_tool": "top_cpu",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 85
+    },
+    {
+      "id": "cap85-02",
+      "category": "system_status",
+      "prompt": "What is using my memory",
+      "expected_contains": [],
+      "expected_keywords": [
+        "memory"
+      ],
+      "rubric": "The reply names the top memory-using processes.",
+      "expected_tool": "top_memory",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 85
+    },
+    {
+      "id": "cap98-01",
+      "category": "system_status",
+      "prompt": "Is anything wrong with my computer",
+      "expected_contains": [],
+      "expected_keywords": [
+        "normal|thing|things"
+      ],
+      "rubric": "The reply reports any detected problems or says nothing looks wrong.",
+      "expected_tool": "system_problems",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 98
+    },
+    {
+      "id": "cap98-02",
+      "category": "system_status",
+      "prompt": "Do you see anything unusual",
+      "expected_contains": [],
+      "expected_keywords": [
+        "normal|thing|things"
+      ],
+      "rubric": "The reply reports any detected problems or says nothing looks wrong.",
+      "expected_tool": "system_problems",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 98
+    },
+    {
+      "id": "cap92-01",
+      "category": "files_and_productivity",
+      "prompt": "What should I know today",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply summarizes what needs attention today.",
+      "expected_tool": "heads_up",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 92
+    },
+    {
+      "id": "cap94-01",
+      "category": "files_and_productivity",
+      "prompt": "What am I forgetting",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply reports overdue or forgotten commitments.",
+      "expected_tool": "what_did_i_forget",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 94
+    },
+    {
+      "id": "cap95-01",
+      "category": "files_and_productivity",
+      "prompt": "What do you recommend",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply recommends the next action to take.",
+      "expected_tool": "suggest_next_action",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 95
+    },
+    {
+      "id": "cap100-01",
+      "category": "files_and_productivity",
+      "prompt": "Give me a heads up",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply gives a proactive summary of what to know.",
+      "expected_tool": "heads_up",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 100
+    },
+    {
+      "id": "cap96-01",
+      "category": "files_and_productivity",
+      "prompt": "Add the dentist to my calendar for Friday at 3 pm",
+      "expected_contains": [],
+      "expected_keywords": [
+        "dentist",
+        "calendar"
+      ],
+      "rubric": "The reply confirms the dentist appointment was added.",
+      "expected_tool": "calendar_add",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Calendar.md",
+        "file_contains": "Dentist"
+      },
+      "capability": 96
+    },
+    {
+      "id": "cap96-02",
+      "category": "files_and_productivity",
+      "prompt": "Brief me on my dentist appointment",
+      "expected_contains": [],
+      "expected_keywords": [
+        "friday"
+      ],
+      "rubric": "The reply briefs the user on the dentist appointment.",
+      "expected_tool": "meeting_brief",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 96
+    },
+    {
+      "id": "cap96-03",
+      "category": "files_and_productivity",
+      "prompt": "Cancel my dentist appointment",
+      "expected_contains": [],
+      "expected_keywords": [
+        "dentist",
+        "calendar"
+      ],
+      "rubric": "The reply confirms the dentist appointment was removed.",
+      "expected_tool": "calendar_cancel",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Calendar.md",
+        "file_lacks": "entist"
+      },
+      "capability": 96
+    },
+    {
+      "id": "cap89-01",
+      "category": "files_and_productivity",
+      "prompt": "What is the git status of the Voxa project",
+      "expected_contains": [],
+      "expected_keywords": [
+        "voxa"
+      ],
+      "rubric": "The reply reports the git branch and changes for the Voxa project.",
+      "expected_tool": "project_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 89
+    },
+    {
+      "id": "cap90-01",
+      "category": "files_and_productivity",
+      "prompt": "Is the local model running",
+      "expected_contains": [],
+      "expected_keywords": [
+        "model"
+      ],
+      "rubric": "The reply says whether the local model is running and its last task.",
+      "expected_tool": "model_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 90
+    },
+    {
+      "id": "cap64-01",
+      "category": "files_and_productivity",
+      "prompt": "What should I cook tonight",
+      "expected_contains": [],
+      "expected_keywords": [
+        "need"
+      ],
+      "rubric": "The reply suggests a dinner and lists the ingredients you need.",
+      "expected_tool": "meal_idea",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 64
+    },
+    {
+      "id": "cap64-02",
+      "category": "files_and_productivity",
+      "prompt": "Add the ingredients to my shopping list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "shopping"
+      ],
+      "rubric": "The reply confirms the ingredients were added to your shopping list.",
+      "expected_tool": "meal_shop",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 64
+    },
+    {
+      "id": "cap64-03",
+      "category": "files_and_productivity",
+      "prompt": "Clear my shopping list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared"
+      ],
+      "rubric": "The reply confirms your shopping list was cleared.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 64
+    },
+    {
+      "id": "cap87-01",
+      "category": "files_and_productivity",
+      "prompt": "Back up my data",
+      "expected_contains": [
+        "backed up"
+      ],
+      "expected_keywords": [],
+      "rubric": "The reply confirms your Voxa data files were backed up into a dated backup folder.",
+      "expected_tool": "backup_now",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 87
+    },
+    {
+      "id": "cap87-02",
+      "category": "files_and_productivity",
+      "prompt": "When was my last backup",
+      "expected_contains": [
+        "last backup"
+      ],
+      "expected_keywords": [],
+      "rubric": "The reply reports when your last data backup ran.",
+      "expected_tool": "backup_last",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 87
+    },
+    {
+      "id": "cap87-03",
+      "category": "files_and_productivity",
+      "prompt": "How does my downloads folder sort",
+      "expected_contains": [
+        "files|empty"
+      ],
+      "expected_keywords": [],
+      "rubric": "The reply describes how the downloads folder's files sort by kind, without moving anything.",
+      "expected_tool": "sort_folder_preview",
+      "expected_args": {
+        "folder": "downloads"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 87
+    },
+    {
+      "id": "cap29-x1",
+      "category": "files_and_productivity",
+      "prompt": "Add paint the fence to my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "fence"
+      ],
+      "rubric": "The reply confirms the item was added to the to-do list.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Paint the fence"
+      },
+      "capability": 29
+    },
+    {
+      "id": "cap29-x2",
+      "category": "files_and_productivity",
+      "prompt": "Add coffee filters to my kitchen list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "filters"
+      ],
+      "rubric": "The reply confirms the item was added to the kitchen list.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Coffee filters"
+      },
+      "capability": 29
+    },
+    {
+      "id": "cap29-x3",
+      "category": "files_and_productivity",
+      "prompt": "What is still open",
+      "expected_contains": [],
+      "expected_keywords": [
+        "open"
+      ],
+      "rubric": "The reply counts the open items across every list.",
+      "expected_tool": "list_pending",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 29
+    },
+    {
+      "id": "cap29-x4",
+      "category": "files_and_productivity",
+      "prompt": "Clear my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared"
+      ],
+      "rubric": "The reply confirms the to-do list was cleared.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_lacks": "Paint the fence"
+      },
+      "capability": 29
+    },
+    {
+      "id": "cap29-x5",
+      "category": "files_and_productivity",
+      "prompt": "Clear my kitchen list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared"
+      ],
+      "rubric": "The reply confirms the kitchen list was cleared.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_lacks": "Coffee filters"
+      },
+      "capability": 29
+    },
+    {
+      "id": "cap25-x1",
+      "category": "files_and_productivity",
+      "prompt": "What is still pending",
+      "expected_contains": [],
+      "expected_keywords": [
+        "open"
+      ],
+      "rubric": "The reply counts the open items over every list.",
+      "expected_tool": "list_pending",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 25
+    },
+    {
+      "id": "cap27-x1",
+      "category": "files_and_productivity",
+      "prompt": "What is my top priority",
+      "expected_contains": [],
+      "expected_keywords": [
+        "next|waiting|clear"
+      ],
+      "rubric": "The reply names the most important open task.",
+      "expected_tool": "list_next",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 27
+    },
+    {
+      "id": "cap97-x1",
+      "category": "files_and_productivity",
+      "prompt": "Remember that I prefer window seats",
+      "expected_contains": [],
+      "expected_keywords": [
+        "remember"
+      ],
+      "rubric": "The reply confirms the preference was remembered.",
+      "expected_tool": "remember_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Memory.md",
+        "file_contains": "I prefer window seats"
+      },
+      "capability": 97
+    },
+    {
+      "id": "cap97-x2",
+      "category": "files_and_productivity",
+      "prompt": "What do you know about window seats",
+      "expected_contains": [],
+      "expected_keywords": [
+        "window"
+      ],
+      "rubric": "The reply recalls the remembered preference about window seats.",
+      "expected_tool": "recall_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 97
+    },
+    {
+      "id": "cap97-x3",
+      "category": "files_and_productivity",
+      "prompt": "Forget about window seats",
+      "expected_contains": [],
+      "expected_keywords": [
+        "forgotten"
+      ],
+      "rubric": "The reply confirms the preference about window seats was forgotten.",
+      "expected_tool": "forget_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Memory.md",
+        "file_lacks": "window seats"
+      },
+      "capability": 97
+    }
+  ]
+}

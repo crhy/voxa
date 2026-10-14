@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+import re
+import time
 
 from voxa.agent.policy import RiskLevel
 from voxa.agent.registry import Tool
@@ -12,36 +14,173 @@ log = logging.getLogger("voxa.agent.tools.files")
 # The focused editor (Pluma, LibreOffice Writer, ...) owns the file dialogs and
 # remembers the directory it last saved or loaded from; Voxa only drives those
 # dialogs with the same key combos the app itself uses.
+_SAVE = "ctrl+s"
 _SAVE_AS = "ctrl+shift+s"
 _OPEN_FILE = "ctrl+o"
 _CLOSE_FILE = "ctrl+w"
 _NEW_DOCUMENT = "ctrl+n"
 
 
+def _active_window() -> tuple[str, str]:
+    """(id, title) of the window in front; ("", "") when it cannot be read."""
+    from voxa.agent.tools.windows import _run
+
+    try:
+        wid = _run(["xdotool", "getactivewindow"], check=False).stdout.strip()
+        title = _run(["xdotool", "getactivewindow", "getwindowname"], check=False).stdout.strip() if wid else ""
+        return wid, title
+    except Exception:  # noqa: BLE001 - no window information is an answer too
+        return "", ""
+
+
+def _wait_for(condition, seconds: float = 2.0) -> bool:
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        if condition():
+            return True
+        time.sleep(0.1)
+    return condition()
+
+
+def _focus_new_document() -> None:
+    """Press ctrl+n and put the freshly created document window in front.
+
+    Some editors open a brand-new window for the new document; others reuse the
+    focused one (its title changes instead), which is already in front, so nothing
+    more is needed there. Either way nothing is clicked and nothing is typed.
+    """
+    from voxa.agent.tools.windows import _run, list_windows
+
+    before = {window.id for window in list_windows()}
+    press_keys(_NEW_DOCUMENT)
+    new_id = ""
+
+    def _new_window() -> bool:
+        nonlocal new_id
+        for window in list_windows():
+            if window.id and window.id not in before:
+                new_id = window.id
+                return True
+        return False
+
+    if _wait_for(_new_window, 4.0):
+        _run(["wmctrl", "-i", "-a", new_id])
+
+
+def documents_dir() -> str:
+    """The user's Documents folder on the host (created if missing); "" when it cannot be found."""
+    from voxa.agent.tools.windows import _run
+
+    try:
+        home = _run(["sh", "-c", 'printf %s "$HOME"'], check=False).stdout.strip()
+        path = _run(["xdg-user-dir", "DOCUMENTS"], check=False).stdout.strip()
+        if not path or path.rstrip("/") == home.rstrip("/"):
+            path = f"{home}/Documents" if home else ""
+        if path:
+            _run(["mkdir", "-p", path], check=False)
+        return path
+    except Exception:  # noqa: BLE001 - fall back to wherever the dialog already is
+        return ""
+
+
+_NEW_DOCUMENT_TITLE = re.compile(r"unsaved|untitled", re.IGNORECASE)
+
+
+class SaveDialog:
+    """Drives one editor's save dialog. The editor's window is remembered so "saved" can be told
+    apart from "another question appeared" (the file exists) and "the dialog is still there"."""
+
+    def __init__(self) -> None:
+        self.main_id, title = _active_window()
+        self.dialog_id = ""
+        # A document that has never been saved goes to Documents; one that already lives
+        # somewhere keeps the folder its own save window opens in.
+        self.new_document = bool(_NEW_DOCUMENT_TITLE.search(title))
+
+    def open(self, combo: str) -> bool:
+        """Press the save keys; True when a dialog appeared (False: the file simply saved)."""
+        press_keys(combo)
+        appeared = _wait_for(lambda: _active_window()[0] not in ("", self.main_id), 1.5)
+        if appeared:
+            self.dialog_id = _active_window()[0]
+        return appeared
+
+    def type_name(self, name: str) -> str:
+        """Put the name in the dialog and press Save: "saved", "exists" or "failed"."""
+        folder = documents_dir() if self.new_document and "/" not in name else ""
+        press_keys("ctrl+a")  # the name field has the focus; replace whatever it suggests
+        type_text(f"{folder}/{name}" if folder else name)
+        time.sleep(0.15)
+        press_keys("Return")
+        return self._outcome()
+
+    def replace(self) -> str:
+        for combo in ("alt+r", "alt+y", "Return"):  # GTK "Replace", LibreOffice "Yes", then the default
+            press_keys(combo)
+            if _wait_for(lambda: _active_window()[0] == self.main_id, 1.2):
+                return "saved"
+        return "failed"
+
+    def dismiss_question(self) -> None:
+        press_keys("Escape")
+        _wait_for(lambda: _active_window()[0] == self.dialog_id, 1.0)
+
+    def cancel(self) -> None:
+        for _ in range(2):
+            if _active_window()[0] in ("", self.main_id):
+                return
+            press_keys("Escape")
+            time.sleep(0.3)
+
+    def _outcome(self) -> str:
+        if _wait_for(lambda: _active_window()[0] == self.main_id, 1.5):
+            return "saved"
+        return "failed" if _active_window()[0] == self.dialog_id else "exists"
+
+
+CURRENT_SAVE: SaveDialog | None = None  # the dialog a save conversation is talking about
+
+
 def file_dialog(args: dict[str, str]) -> ToolResult:
+    global CURRENT_SAVE
     action = args["action"]
     name = args.get("name", "")
     if not xdotool_available():
         return ToolResult.failure("I can't control the file dialogs here.")
     try:
         if action == "save":
-            press_keys(_SAVE_AS)
-            if name:
-                type_text(name)
-                press_keys("Return")
-        elif action == "load":
+            from voxa.agent import saveflow
+
+            dialog = SaveDialog()
+            if not name:
+                # Plain save first: a document that already has a name just saves.
+                if not dialog.open(_SAVE):
+                    return ToolResult.success("Saved.")
+                CURRENT_SAVE = dialog
+                return ToolResult.success(saveflow.QUESTION, detail=saveflow.ASK_NAME)
+            name = saveflow.clean_name(name)
+            if not dialog.open(_SAVE_AS):
+                return ToolResult.failure("The save window did not open.")
+            outcome = dialog.type_name(name)
+            if outcome == "exists":
+                CURRENT_SAVE = dialog
+                return ToolResult.success(
+                    f"A file called {name} already exists. Replace it?", detail=saveflow.ASK_REPLACE + name
+                )
+            if outcome == "failed":
+                return ToolResult.failure("I could not save it. The save window is still open.")
+            return ToolResult.success(f"Saved as {name}.")
+        if action == "load":
             press_keys(_OPEN_FILE)
         elif action == "close":
             press_keys(_CLOSE_FILE)
         elif action == "new":
-            press_keys(_NEW_DOCUMENT)
+            _focus_new_document()
         else:
             return ToolResult.failure("I don't know that file action.")
     except Exception as exc:
         return ToolResult.failure("I can't control the file dialogs here.", detail=str(exc))
 
-    if action == "save":
-        return ToolResult.success(f"Saved as {name}." if name else "Saved the file.")
     if action == "load":
         return ToolResult.success("Opened the file.")
     if action == "close":

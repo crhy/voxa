@@ -11,7 +11,9 @@ from voxa.ui.avatars import get_avatar
 
 FACE_MODES = ("live", "prerendered", "still")
 WEB_SEARCH_MODES = ("auto", "always", "never")
-ECHO_MODES = ("voxa", "off")
+ECHO_MODES = ("voxa", "webrtc", "off")
+DEFAULT_TTS_RATE = 230
+LEGACY_DEFAULT_TTS_RATES = (180, 225, 250)
 
 
 @dataclass(slots=True)
@@ -19,9 +21,12 @@ class Settings:
     microphone_id: str = ""
     microphone_name: str = ""
     whisper_model: str = "base"
-    ollama_model: str = ""
+    # Measured real-time factors (seconds of processing per second of speech) per model on this computer.
+    whisper_rtf: dict[str, float] = field(default_factory=dict)
+    whisper_benchmarked: bool = False
+    ollama_model: str = "qwen2.5:0.5b"
     ollama_url: str = "http://127.0.0.1:11434"
-    ai_backend: str = "llamacpp"
+    ai_backend: str = "ollama"
     llamacpp_url: str = "http://127.0.0.1:8080"
     llamacpp_model: str = ""
     strata_url: str = "http://127.0.0.1:8080"
@@ -33,25 +38,30 @@ class Settings:
     # Subtract the computer's own sound (Voxa's voice, music) from the microphone.
     echo_cancel: bool = True
     # How to remove the computer's own sound: "voxa" = Voxa's own canceller (listens to the output's
-    # monitor; adds no device and never changes the audio output), "off" = none.
+    # monitor; adds no device and never changes the audio output), "webrtc" = the WebRTC echo
+    # canceller inside the capture pipeline (experimental), "off" = none.
     # ``echo_cancel`` is a deprecated alias: False maps to "off".
-    echo_mode: str = "voxa"
+    echo_mode: str = "webrtc"  # removes music and video sound before she listens; off when unavailable
     # Milliseconds the lips run ahead of the reported audio position (compensates sound-card and display delay).
     lip_sync_lead_ms: int = 160
-    tts_rate: int = 180
+    tts_rate: int = DEFAULT_TTS_RATE
     tts_voice: str = "en-US-AriaNeural"
     appearance: str = "system"
     auto_speak: bool = True
     web_search: str = "auto"
     silence_ms: int = 700
     voice_threshold: int = 450
+    # Use the streaming voice detector (Silero VAD) to find pauses instead of the
+    # loudness rule; falls back to the rule when the detector is unavailable.
+    voice_detector: bool = True
     # The longest single request Voxa will listen to. 6 s (the old default) cut people off mid-sentence.
     max_segment_seconds: float = 20.0
     wake_word: str = "voxa"
     early_silence_ms: int = 300
     early_final_pass: bool = False
     suggestions_enabled: bool = True
-    followup_seconds: float = 6.0
+    followup_seconds: float = 10.0
+    dictation_hints_given: int = 0
     welcomed: bool = False
     github_owner: str = ""
     youtube_channel: str = ""
@@ -75,7 +85,7 @@ class Settings:
         self.llamacpp_url = self.llamacpp_url.rstrip("/") or "http://127.0.0.1:8080"
         self.strata_url = self.strata_url.rstrip("/") or "http://127.0.0.1:8080"
         if self.ai_backend not in {"llamacpp", "ollama", "strata"}:
-            self.ai_backend = "llamacpp"
+            self.ai_backend = "ollama"
         self.language = (self.language or "en").strip()[:16]
         self.wake_word = (self.wake_word or "voxa").strip()[:32] or "voxa"
         self.character_id = (self.character_id or "").strip().lower()
@@ -127,6 +137,17 @@ class ConfigStore:
         # ``ai_backend`` key; those users stay on Ollama, today's behaviour.
         if "ai_backend" not in clean:
             clean["ai_backend"] = "ollama"
+        # Profiles from before early endpointing persisted 900 ms, which was
+        # then the default. Keeping that legacy value adds a perceptible pause
+        # after every request. The absence of ``early_silence_ms`` identifies
+        # those profiles; a current profile that explicitly chooses 900 ms is
+        # left alone.
+        if "early_silence_ms" not in payload and payload.get("silence_ms") == 900:
+            clean["silence_ms"] = Settings().silence_ms
+        # Move profiles still carrying a previously shipped default to today's
+        # conversational pace; other custom rates remain untouched.
+        if payload.get("tts_rate") in LEGACY_DEFAULT_TTS_RATES:
+            clean["tts_rate"] = DEFAULT_TTS_RATE
 
         # Apply fields one at a time so a single invalid value (e.g.
         # "tts_rate": "fast") only resets that field to its default instead

@@ -3,7 +3,7 @@ from __future__ import annotations
 import queue
 import threading
 
-from voxa.dictation import DictationController, segment_stream
+from voxa.dictation import DICTATION_CHUNK_SECONDS, DictationController, segment_stream
 
 LOUD_CHUNK = (b"\x00\x10" * 1000, 1000.0)  # 2000 bytes, above any test threshold
 QUIET_CHUNK = (b"\x00\x00" * 1000, 0.0)
@@ -147,6 +147,22 @@ def test_stop_during_transcription_drops_text_callback() -> None:
     assert texts == []
 
 
+def test_dictation_caps_long_general_command_segments() -> None:
+    controller = DictationController(
+        whisper=object(),
+        language="en",
+        threshold=500,
+        silence_ms=100,
+        max_segment_seconds=20.0,
+        on_text=lambda _text: None,
+        on_status=lambda _status: None,
+        on_auto_stop=lambda: None,
+        on_error=lambda _error: None,
+    )
+
+    assert controller.max_segment_seconds == DICTATION_CHUNK_SECONDS
+
+
 def test_early_check_ends_segment_before_full_silence() -> None:
     q: queue.Queue = queue.Queue()
     for _ in range(10):
@@ -257,3 +273,29 @@ def test_without_early_parameters_timing_is_unchanged() -> None:
 
     assert len(segments) == 1
     assert len(segments[0]) == 10 * len(LOUD_CHUNK[0])
+
+
+
+def test_segment_stream_reads_a_callable_max_segment_on_every_chunk() -> None:
+    """Dictation switched on mid-utterance caps the segment already in progress."""
+    q: queue.Queue = queue.Queue()
+    for _ in range(40):
+        q.put(LOUD_CHUNK)
+    chunk_seconds = len(LOUD_CHUNK[0]) / 32000
+    reads = []
+
+    def limit() -> float:
+        reads.append(1)
+        # A long command limit for the first chunks, then the short dictation one.
+        return 30.0 if len(reads) <= 3 else 6 * chunk_seconds
+
+    segment = next(
+        segment_stream(
+            q,
+            threading.Event(),
+            threshold=500,
+            silence_seconds=5.0,
+            max_segment_seconds=limit,
+        )
+    )
+    assert len(segment) == 6 * len(LOUD_CHUNK[0])

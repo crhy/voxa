@@ -18,6 +18,22 @@ _WORD_MAP = {
 }
 
 _CANCEL_WORDS = {"cancel", "cancel that", "never mind", "forget it"}
+_NEW_REQUEST = re.compile(
+    r"^(?:please\s+)?(?:open|launch|start|run|close|delete|remove|install|update|"
+    r"change|set|order|buy|turn|switch|hack|search|find|play|stop|create|write|draft)\b",
+    re.I,
+)
+
+
+_MAIL_DOMAINS = (
+    "gmail.com",
+    "yahoo.com",
+    "outlook.com",
+    "hotmail.com",
+    "icloud.com",
+    "proton.me",
+    "protonmail.com",
+)
 
 
 def spoken_address(text: str) -> str:
@@ -25,7 +41,18 @@ def spoken_address(text: str) -> str:
     joined = "".join(
         _WORD_MAP.get(word, word) for word in text.lower().split()
     )
-    return joined if _ADDRESS_RE.match(joined) else ""
+    if _ADDRESS_RE.match(joined):
+        return joined
+    if "@" not in joined:
+        for domain in _MAIL_DOMAINS:
+            if joined.endswith(domain):
+                rest = joined[: -len(domain)]
+                for glue in ("at", "an"):
+                    if rest.endswith(glue) and len(rest) > len(glue):
+                        rebuilt = f"{rest[: -len(glue)]}@{domain}"
+                        if _ADDRESS_RE.match(rebuilt):
+                            return rebuilt
+    return ""
 
 
 def contact_key(spoken: str) -> str:
@@ -42,6 +69,12 @@ def resolve(spoken: str, contacts: dict[str, str]) -> str:
     if addr:
         return addr
     return contacts.get(contact_key(spoken), "")
+
+
+def interrupts_address_prompt(text: str) -> bool:
+    """True when an address reply is clearly a fresh, unrelated command."""
+    cleaned = text.strip()
+    return bool(_NEW_REQUEST.match(cleaned)) and not bool(spoken_address(cleaned))
 
 
 class MailFlow:

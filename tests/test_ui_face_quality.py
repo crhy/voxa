@@ -27,14 +27,14 @@ def _pump(iterations: int = 150) -> None:
 
 def test_quality_label_table() -> None:
     assert quality_label("still") == "Low"
-    assert quality_label("prerendered") == "Medium"
+    assert quality_label("prerendered") == "Med"
     assert quality_label("live") == "High"
-    assert quality_label("bogus") == "Medium"
+    assert quality_label("bogus") == "Med"
 
 
 def test_mode_for_label_table() -> None:
     assert mode_for_label("Low") == "still"
-    assert mode_for_label("Medium") == "prerendered"
+    assert mode_for_label("Med") == "prerendered"
     assert mode_for_label("High") == "live"
     assert mode_for_label("bogus") == "prerendered"
 
@@ -61,6 +61,22 @@ def test_clicking_active_button_does_not_fire() -> None:
     switch._buttons["prerendered"].emit("clicked")
     assert fired == []
     assert switch.get_mode() == "prerendered"
+
+
+def test_high_loading_progress_shows_a_clamped_circular_percentage() -> None:
+    switch = FaceQualitySwitch()
+    switch.set_loading_progress(37)
+    assert switch._loading.get_visible()
+    assert switch._progress.get_visible()
+    assert switch._progress.percentage == 37
+    assert switch._progress._label.get_text() == "37%"
+
+    switch.set_loading_progress(150)
+    assert switch._progress.percentage == 100
+    assert switch._progress._label.get_text() == "100%"
+
+    switch.set_status("")
+    assert not switch._loading.get_visible()
 
 
 def test_set_live_available_disables_high_and_falls_back() -> None:

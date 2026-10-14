@@ -21,7 +21,6 @@ from voxa.agent.tools.web import (
     go_back,
     page_outline,
     read_page,
-    scroll,
     search_site,
     search_web,
     set_session,
@@ -232,29 +231,6 @@ def test_search_site_failure():
     result = search_site({"query": "Devuan"})
     assert not result.ok
     assert result.speech == "I couldn't find a search box on this page."
-
-
-def test_scroll_down():
-    session = _fresh_session()
-    result = scroll({"direction": "down"})
-    assert result.ok
-    assert result.speech == "Scrolled down."
-    assert ("evaluate", {"expression": "window.scrollBy(0, 500)"}) in session.calls
-
-
-def test_scroll_top():
-    session = _fresh_session()
-    result = scroll({"direction": "top"})
-    assert result.ok
-    assert result.speech == "Scrolled top."
-    assert ("evaluate", {"expression": "window.scrollTo(0, 0)"}) in session.calls
-
-
-def test_scroll_unknown_direction():
-    _fresh_session()
-    result = scroll({"direction": "sideways"})
-    assert not result.ok
-    assert result.speech == "I don't know how to scroll sideways."
 
 
 def test_launch_command_headless_false():

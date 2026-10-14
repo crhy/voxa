@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from voxa.config import FACE_MODES, WEB_SEARCH_MODES, ConfigStore, Settings
+from voxa.config import DEFAULT_TTS_RATE, FACE_MODES, WEB_SEARCH_MODES, ConfigStore, Settings
 
 
 def test_defaults_when_config_is_missing(tmp_path: Path) -> None:
@@ -59,11 +59,13 @@ def test_wake_word_falls_back_to_default_when_blank(tmp_path: Path) -> None:
     assert store.load().wake_word == "voxa"
 
 
-def test_ai_backend_defaults_to_llamacpp(tmp_path: Path) -> None:
+def test_ai_backend_defaults_to_ollama_and_qwen(tmp_path: Path) -> None:
     store = ConfigStore(tmp_path / "config.json")
-    assert store.load().ai_backend == "llamacpp"
+    assert store.load().ai_backend == "ollama"
+    assert store.load().ollama_model == "qwen2.5:0.5b"
     assert store.load().llamacpp_url == "http://127.0.0.1:8080"
-    assert Settings().ai_backend == "llamacpp"
+    assert Settings().ai_backend == "ollama"
+    assert Settings().ollama_model == "qwen2.5:0.5b"
 
 
 def test_existing_config_without_ai_backend_keeps_ollama(tmp_path: Path) -> None:
@@ -78,7 +80,7 @@ def test_ai_backend_is_validated_and_llamacpp_url_normalized(tmp_path: Path) -> 
     store = ConfigStore(tmp_path / "config.json")
     store.save(Settings(ai_backend="mistral", llamacpp_url="http://box:8080/"))
     loaded = store.load()
-    assert loaded.ai_backend == "llamacpp"
+    assert loaded.ai_backend == "ollama"
     assert loaded.llamacpp_url == "http://box:8080"
     store.save(Settings(ai_backend="ollama", llamacpp_url="http://box:8080"))
     assert store.load().ai_backend == "ollama"
@@ -92,7 +94,7 @@ def test_one_bad_field_keeps_the_other_saved_fields(tmp_path: Path) -> None:
     )
 
     loaded = ConfigStore(path).load()
-    assert loaded.tts_rate == 180
+    assert loaded.tts_rate == DEFAULT_TTS_RATE
     assert loaded.ollama_url == "http://box:11434"
     assert loaded.whisper_model == "small"
 
@@ -109,6 +111,13 @@ def test_legacy_config_dir_is_migrated(tmp_path: Path) -> None:
     assert (tmp_path / "config" / "voxa" / "config.json").is_file()
 
 
+def test_legacy_default_speech_rate_moves_to_quicker_conversational_pace(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    for old_default in (180, 225, 250):
+        path.write_text(json.dumps({"tts_rate": old_default}), encoding="utf-8")
+        assert ConfigStore(path).load().tts_rate == DEFAULT_TTS_RATE
+
+
 def test_early_silence_ms_defaults_and_clamps(tmp_path: Path) -> None:
     store = ConfigStore(tmp_path / "config.json")
     assert store.load().early_silence_ms == 300
@@ -120,6 +129,23 @@ def test_early_silence_ms_defaults_and_clamps(tmp_path: Path) -> None:
     assert store.load().early_silence_ms == 800
     store.save(Settings(early_silence_ms=400))
     assert store.load().early_silence_ms == 400
+
+
+def test_legacy_900ms_endpoint_is_migrated_to_the_faster_default(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"silence_ms": 900, "whisper_model": "base"}), encoding="utf-8")
+
+    loaded = ConfigStore(path).load()
+
+    assert loaded.silence_ms == 700
+    assert loaded.early_silence_ms == 300
+
+
+def test_current_profile_can_explicitly_keep_a_900ms_endpoint(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"silence_ms": 900, "early_silence_ms": 300}), encoding="utf-8")
+
+    assert ConfigStore(path).load().silence_ms == 900
 
 
 def test_early_final_pass_round_trips(tmp_path: Path) -> None:
@@ -150,16 +176,16 @@ def test_strata_backend_is_accepted(tmp_path: Path) -> None:
     assert loaded.strata_url == "http://localhost:9000"
 
 
-def test_unknown_backend_falls_back_to_llamacpp(tmp_path: Path) -> None:
+def test_unknown_backend_falls_back_to_ollama(tmp_path: Path) -> None:
     store = ConfigStore(tmp_path / "config.json")
     store.save(Settings(ai_backend="not-real"))
-    assert store.load().ai_backend == "llamacpp"
+    assert store.load().ai_backend == "ollama"
 
 
 def test_followup_seconds_defaults_and_clamps(tmp_path: Path) -> None:
     store = ConfigStore(tmp_path / "config.json")
-    assert store.load().followup_seconds == 6.0
-    assert Settings().followup_seconds == 6.0
+    assert store.load().followup_seconds == 10.0
+    assert Settings().followup_seconds == 10.0
 
     store.save(Settings(followup_seconds=-5.0))
     assert store.load().followup_seconds == 0.0

@@ -74,6 +74,8 @@ VOXA_CSS = """
     min-height: 48px;
     border-radius: 12px;
     font-weight: 700;
+    border: 1px solid alpha(#000000, 0.30);
+    box-shadow: 0 3px 2px alpha(#000000, 0.35), inset 0 1px 1px alpha(#ffffff, 0.30);
 }
 
 .voxa-active {
@@ -98,6 +100,13 @@ VOXA_CSS = """
     outline-offset: 2px;
 }
 
+.voxa-active:active,
+.voxa-offline:active,
+.voxa-pause:active {
+    box-shadow: inset 0 2px 3px alpha(#000000, 0.50);
+    margin-top: 2px;
+}
+
 .voxa-active.dimmed,
 .voxa-offline.dimmed,
 .voxa-pause.dimmed {
@@ -113,6 +122,11 @@ VOXA_CSS = """
 }
 
 .voxa-section,
+.voxa-ai-status { font-size: 11px; font-weight: 600; margin-left: 6px; }
+.voxa-ai-online { color: #2ec27e; }
+.voxa-ai-starting { color: #e5a50a; }
+.voxa-ai-offline { color: #e01b24; }
+
 .voxa-control-caption {
     font-size: 11px;
     font-weight: 600;
@@ -121,9 +135,63 @@ VOXA_CSS = """
     text-transform: uppercase;
 }
 
+.voxa-face-status {
+    font-size: 11px;
+    font-weight: 600;
+    opacity: 0.55;
+    letter-spacing: 1.4px;
+}
+
 .voxa-task-title {
     font-weight: 700;
     font-size: 14px;
+}
+
+.voxa-radio-heading {
+    font-weight: 700;
+    font-size: 18px;
+    margin: 18px 20px 2px 20px;
+}
+
+.voxa-radio-hint {
+    font-size: 12px;
+    opacity: 0.6;
+    margin: 0 20px 12px 20px;
+}
+
+.voxa-radio-list,
+.voxa-radio-list row {
+    background: transparent;
+    color: inherit;
+}
+
+.voxa-radio-list row:hover {
+    background: alpha(currentColor, 0.07);
+}
+
+.voxa-radio-list row {
+    padding: 0;
+    border-top: 1px solid alpha(currentColor, 0.08);
+}
+
+.voxa-radio-row {
+    padding: 10px 20px;
+}
+
+.voxa-radio-number {
+    font-size: 17px;
+    font-weight: 700;
+    opacity: 0.55;
+}
+
+.voxa-radio-name {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.voxa-radio-about {
+    font-size: 12px;
+    opacity: 0.6;
 }
 
 .voxa-task-detail {
@@ -326,7 +394,6 @@ VOXA_CSS = """
 
 .voxa-focus-circle {
     border-radius: 999px;
-    overflow: hidden;
 }
 
 .voxa-focus-caption {
@@ -355,6 +422,19 @@ window.voxa-focus-window {
 .caption {
     font-size: 11px;
     opacity: 0.8;
+}
+
+/* Keep the surface and foreground from the same libadwaita palette.  A host
+   GTK_THEME can disagree with the color scheme exposed through the Flatpak
+   portal; hard-coding only the background in that situation produced white
+   text on a nearly white window. */
+window {
+    background-color: @window_bg_color;
+    color: @window_fg_color;
+}
+
+.voxa-task-panel {
+    background-color: @view_bg_color;
 }
 """
 

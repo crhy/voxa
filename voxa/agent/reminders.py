@@ -19,7 +19,7 @@ from voxa.agent.actionlog import default_path as action_default_path
 
 log = logging.getLogger(__name__)
 
-__all__ = ["Reminder", "ReminderStore", "parse_when", "default_path", "reminder_phrase", "timer_phrase"]
+__all__ = ["Reminder", "ReminderStore", "parse_when", "default_path", "reminder_phrase", "timer_phrase", "focus_phrase"]
 
 
 def default_path() -> Path:
@@ -28,6 +28,11 @@ def default_path() -> Path:
 
 
 _IN_DURATION = re.compile(r"^in\s+(.+)$", re.IGNORECASE)
+_BARE_DURATION = re.compile(
+    r"(?:(?:\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|fifteen|twenty|thirty)\s*"
+    r"(?:minutes?|hours?|days?)(?:\s*(?:and|,)?\s*)?)+",
+    re.IGNORECASE,
+)
 _AT_TIME = re.compile(r"^(?:(tomorrow|tonight)\s+)?at\s+(.+)$", re.IGNORECASE)
 _UNIT = re.compile(r"(\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|fifteen|twenty|thirty)\s*(minutes?|hours?|days?)", re.IGNORECASE)
 _NUM = {
@@ -81,6 +86,11 @@ def parse_when(text: str, now: datetime) -> datetime | None:
         if seconds is None:
             return None
         return now + timedelta(seconds=seconds)
+    # The router hands over "two hours" with the "in" already taken off.
+    if _BARE_DURATION.fullmatch(s):
+        seconds = _duration_seconds(s)
+        if seconds:
+            return now + timedelta(seconds=seconds)
 
     at_match = _AT_TIME.match(s)
     if at_match:
@@ -133,6 +143,13 @@ def timer_phrase(duration: str) -> str:
     return f"Your {label} timer is done."
 
 
+def focus_phrase(text: str) -> str:
+    """What Voxa says when a focus session comes due."""
+    if text.strip():
+        return f"Your focus time for {text} is over. Well done."
+    return "Your focus time is over. Well done."
+
+
 class ReminderStore:
     """The reminders.json file: survives a restart, never raises on save."""
 
@@ -140,9 +157,28 @@ class ReminderStore:
         self.path = Path(path) if path is not None else default_path()
         self._lock = threading.Lock()
         self._items: dict[str, Reminder] = {}
+        self._seen_mtime = 0.0
         self._load()
 
+    def _mtime(self) -> float:
+        try:
+            return self.path.stat().st_mtime
+        except OSError:
+            return 0.0
+
+    def _refresh(self) -> None:
+        """Pick up what another store wrote to the same file.
+
+        The window keeps one store for delivering reminders while each voice command opens
+        its own to add or cancel one; without this the window never saw a new reminder and
+        nothing was said when it came due.
+        """
+        if self._mtime() != self._seen_mtime:
+            self._items = {}
+            self._load()
+
     def _load(self) -> None:
+        self._seen_mtime = self._mtime()
         try:
             with self.path.open("r", encoding="utf-8") as handle:
                 data = json.load(handle)
@@ -177,14 +213,17 @@ class ReminderStore:
                 json.dump(data, handle, ensure_ascii=False)
         except OSError as exc:
             log.warning("could not write reminders: %s", exc)
+        self._seen_mtime = self._mtime()
 
     def add(self, reminder: Reminder) -> None:
         with self._lock:
+            self._refresh()
             self._items[reminder.id] = reminder
             self._save()
 
     def remove(self, reminder_id: str) -> bool:
         with self._lock:
+            self._refresh()
             if reminder_id not in self._items:
                 return False
             del self._items[reminder_id]
@@ -194,6 +233,7 @@ class ReminderStore:
     def due(self, now: datetime) -> list[Reminder]:
         """Reminders whose time has come; they are removed from the store."""
         with self._lock:
+            self._refresh()
             ready = sorted((r for r in self._items.values() if r.due <= now), key=lambda r: r.due)
             if not ready:
                 return []
@@ -204,4 +244,5 @@ class ReminderStore:
 
     def upcoming(self) -> list[Reminder]:
         with self._lock:
+            self._refresh()
             return sorted(self._items.values(), key=lambda r: r.due)

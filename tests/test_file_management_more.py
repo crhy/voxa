@@ -19,6 +19,8 @@ def install_run(monkeypatch, listing):
             return subprocess.CompletedProcess(command, 0, "/home/u", "")
         if command[0] == "ls":
             return subprocess.CompletedProcess(command, 0, "\n".join(listing), "")
+        if command[0] == "test":
+            return subprocess.CompletedProcess(command, 1, "", "")
         return subprocess.CompletedProcess(command, 0, "", "")
 
     monkeypatch.setattr(filemanage, "_run", run)
@@ -33,6 +35,8 @@ def install_failing_run(monkeypatch, command_to_fail, stderr):
             return subprocess.CompletedProcess(command, 0, "/home/u", "")
         if command[0] == "ls":
             return subprocess.CompletedProcess(command, 0, "", "")
+        if command[0] == "test":
+            return subprocess.CompletedProcess(command, 1, "", "")
         if check and command == command_to_fail:
             raise subprocess.CalledProcessError(1, command, stderr=stderr)
         return subprocess.CompletedProcess(command, 0, "", "")
@@ -45,7 +49,8 @@ def test_open_folder_argv_and_sentence(monkeypatch):
     result = filemanage.open_folder({"folder": "my downloads"})
     assert result.ok
     assert result.speech == "Opening my downloads."
-    assert calls[-1] == ["gio", "open", "/home/u/Downloads"]
+    # A folder is opened in the file manager (the first one found), not by whichever program claims folders.
+    assert calls[-1][:2] == ["sh", "-c"] and "caja" in calls[-1][2] and calls[-1][-1] == "/home/u/Downloads"
 
 
 def test_list_folder_names_and_sentence(monkeypatch):
@@ -89,7 +94,8 @@ def test_make_folder_failure(monkeypatch):
     install_failing_run(monkeypatch, command, "mkdir: cannot create directory: File exists")
     result = filemanage.make_folder({"name": "taxes", "folder": "documents"})
     assert not result.ok
-    assert "File exists" in result.speech
+    assert result.speech == "I couldn't make that folder."
+    assert "File exists" in result.detail
 
 
 def test_router_open_folder():

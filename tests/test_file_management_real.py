@@ -73,12 +73,13 @@ def test_find_large_files_partial_errors(monkeypatch):
             "f",
             "-size",
             f"+{5 * 1024 ** 3}c",
-            "-print",
-        ): (1, "/home/u/a.iso\n/home/u/b.iso", "find: '/home/u/partial': Permission denied"),
+            "-printf",
+            "%s\\t%p\\n",
+        ): (1, "6442450944\t/home/u/a.iso\n7516192768\t/home/u/b.iso", "find: '/home/u/partial': Permission denied"),
     }
     monkeypatch.setattr(filemanage, "_run", _make_fake(records, results))
     result = find_large_files({"amount": "5", "unit": "gigabytes"})
-    assert result.speech == "I found 2 files bigger than 5 gigabytes: a.iso and b.iso."
+    assert result.speech == "I found 2 files bigger than 5 gigabytes. The biggest is b.iso."
     find_command = next(cmd for cmd in records if cmd[:3] == ["timeout", "15", "find"])
     assert find_command[:3] == ["timeout", "15", "find"]
 

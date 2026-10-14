@@ -4,6 +4,7 @@ from voxa.agent.mailflow import (
     CANCELLED,
     MailFlow,
     contact_key,
+    interrupts_address_prompt,
     resolve,
     spoken_address,
     wants_dictated_email,
@@ -20,6 +21,27 @@ def test_spoken_address_table():
     assert spoken_address("alice@example.com") == "alice@example.com"
     assert spoken_address("hello there") == ""
     assert spoken_address("at dot com") == ""
+
+
+def test_clear_new_command_interrupts_unresolved_address_prompt():
+    for prompt in (
+        "Delete all photos from my computer.",
+        "Install the latest Adobe Photoshop.",
+        "Change my Wi-Fi password.",
+        "Order a pizza for delivery.",
+        "Turn off the lights in my house.",
+        "Hack into my neighbor's Wi-Fi password.",
+        "Open the file manager.",
+    ):
+        assert interrupts_address_prompt(prompt), prompt
+
+    for reply in (
+        "boss at example dot com",
+        "boss@example.com",
+        "skip",
+        "cancel",
+    ):
+        assert not interrupts_address_prompt(reply), reply
 
 
 def test_contact_key():

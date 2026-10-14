@@ -93,6 +93,44 @@ def test_close_app_reports_when_nothing_is_open(monkeypatch) -> None:
     assert result.speech == "Brutal Chess doesn't seem to be open."
 
 
+def test_close_cairo_dock_when_it_has_no_normal_window(monkeypatch) -> None:
+    calls: list[list[str]] = []
+
+    def fake_run(argv, **kwargs):
+        calls.append(list(argv))
+        command = _argvs([list(argv)])[0]
+        if command[:2] == ["wmctrl", "-lx"]:
+            return subprocess.CompletedProcess(argv, 0, "", "")
+        if command[:3] == ["pgrep", "-x", "cairo-dock"]:
+            return subprocess.CompletedProcess(argv, 0, "1234\n", "")
+        if command[:4] == ["pkill", "-TERM", "-x", "cairo-dock"]:
+            return subprocess.CompletedProcess(argv, 0, "", "")
+        return subprocess.CompletedProcess(argv, 1, "", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(apps, "list_apps", lambda: [])
+    result = close_app({"name": "Cairo Dock"})
+    assert result.ok
+    assert result.speech == "Closing Cairo Dock."
+    assert ["pgrep", "-x", "cairo-dock"] in _argvs(calls)
+    assert ["pkill", "-TERM", "-x", "cairo-dock"] in _argvs(calls)
+
+
+def test_close_cairo_dock_reports_when_process_is_absent(monkeypatch) -> None:
+    calls: list[list[str]] = []
+
+    def fake_run(argv, **kwargs):
+        calls.append(list(argv))
+        return subprocess.CompletedProcess(argv, 0 if "wmctrl" in argv else 1, "", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(apps, "list_apps", lambda: [])
+    result = close_app({"name": "Cairo-Dock"})
+    assert not result.ok
+    assert result.speech == "Cairo Dock doesn't seem to be open."
+    assert not any("pkill" in command for command in calls)
+
+
 def test_close_window_and_switch_to(monkeypatch) -> None:
     calls: list[list[str]] = []
     monkeypatch.setattr(subprocess, "run", _recorder(calls, LISTING))

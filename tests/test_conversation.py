@@ -2,7 +2,15 @@ from __future__ import annotations
 
 import time
 
-from voxa.conversation import ConversationController, ConversationHistory, detect_exit_phrase, strip_wake_word
+import pytest
+
+from voxa.conversation import (
+    ConversationController,
+    ConversationHistory,
+    detect_addressed_exit_phrase,
+    detect_exit_phrase,
+    strip_wake_word,
+)
 from voxa.vocabulary import build_hint
 
 
@@ -39,6 +47,18 @@ def test_detect_exit_phrase_matches_goodbye_phrases() -> None:
         assert detect_exit_phrase(utterance) == "goodbye", utterance
 
 
+def test_detect_exit_phrase_matches_addressed_and_polite_offline_commands() -> None:
+    for utterance in (
+        "Voxa, go offline.",
+        "Hey Voxa, please go offline",
+        "Voxer, go off-line",
+        "Could you go offline?",
+        "Go offline now",
+        "Turn yourself off",
+    ):
+        assert detect_exit_phrase(utterance, "voxa") == "goodbye", utterance
+
+
 def test_detect_exit_phrase_ignores_plain_questions() -> None:
     for utterance in (
         "never mind that detail, what's the weather?",
@@ -46,8 +66,19 @@ def test_detect_exit_phrase_ignores_plain_questions() -> None:
         "I'm done with my homework",
         "can you stop the weather updating?",
         "bye, and tell me a joke later",
+        "Voxa, tell me why the server went offline",
+        "When could you go offline?",
     ):
-        assert detect_exit_phrase(utterance) is None, utterance
+        assert detect_exit_phrase(utterance, "voxa") is None, utterance
+
+
+def test_addressed_exit_phrase_is_safe_for_interrupting_own_speech() -> None:
+    assert detect_addressed_exit_phrase("Voxa, go offline", "voxa") == "goodbye"
+    assert detect_addressed_exit_phrase("Hey Voxa, please go offline", "voxa") == "goodbye"
+    assert detect_addressed_exit_phrase("Voxer, turn yourself off", "voxa") == "goodbye"
+    # While Voxa is speaking, an unaddressed echo must never trip the kill switch.
+    assert detect_addressed_exit_phrase("go offline", "voxa") is None
+    assert detect_addressed_exit_phrase("the server went offline", "voxa") is None
 
 
 def test_detect_exit_phrase_requires_exact_utterance() -> None:
@@ -118,6 +149,7 @@ def test_stop_during_transcription_drops_prompt_callback() -> None:
         wake_word="voxa",
         threshold=500,
         silence_ms=100,
+        voice_detector=False,
         max_segment_seconds=5.0,
         on_woken=lambda: woken.append(True),
         on_prompt=prompts.append,
@@ -177,6 +209,7 @@ def _make_controller(texts: list[str]) -> tuple[ConversationController, list[str
         wake_word="voxa",
         threshold=500,
         silence_ms=100,
+        voice_detector=False,
         max_segment_seconds=0.3,
         on_woken=lambda: None,
         on_prompt=prompts.append,
@@ -223,6 +256,28 @@ def test_hold_prompt_delivers_stop_as_a_prompt_not_an_exit() -> None:
     assert exits == []
 
 
+def test_dictation_switched_on_mid_utterance_caps_that_utterance() -> None:
+    """The first dictated sentence must not wait for the long command limit."""
+    controller, prompts, _exits = _make_controller(["first words", "more words"])
+    controller.max_segment_seconds = 30.0
+    controller.silence_seconds = 30.0  # no pauses: only the length limit can end a segment
+    controller.start()
+    loud = (b"\x00\x10" * 1000, 1000.0)
+    for _ in range(3):
+        controller.feed(*loud)
+    time.sleep(0.3)
+    # Dictation turns on while this utterance is already being collected.
+    controller.hold_prompt()
+    for _ in range(200):  # 6.25 s of audio, past the 6 s dictation limit
+        controller.feed(*loud)
+        time.sleep(0.001)
+    deadline = time.monotonic() + 3.0
+    while not prompts and time.monotonic() < deadline:
+        time.sleep(0.05)
+    _drain(controller)
+    assert prompts[:1] == ["first words"]
+
+
 def test_release_prompt_returns_to_wake_word_gated_listening() -> None:
     controller, prompts, exits = _make_controller(["hello there", "hello again"])
     controller.start()
@@ -243,6 +298,18 @@ def test_without_hold_prompt_behaviour_is_unchanged() -> None:
     _drain(controller)
     assert prompts == []
     assert exits == ["stop"]
+
+
+def test_one_breath_wake_word_and_offline_command_exits_immediately() -> None:
+    controller, prompts, exits = _make_controller(["Voxa, please go offline."])
+    controller.start()
+    _feed_utterance(controller)
+    if controller.thread is not None:
+        controller.thread.join(timeout=3.0)
+
+    assert exits == ["goodbye"]
+    assert prompts == []
+    assert controller.thread is not None and not controller.thread.is_alive()
 
 
 class CountingTranscriber:
@@ -271,6 +338,7 @@ def _make_early_controller(
         wake_word="voxa",
         threshold=500,
         silence_ms=100,
+        voice_detector=False,
         early_silence_ms=50,
         early_final_pass=early_final_pass,
         max_segment_seconds=5.0,
@@ -328,6 +396,7 @@ def _make_recording_controller(wake: HintRecordingTranscriber, prompt: HintRecor
         wake_word="voxa",
         threshold=500,
         silence_ms=100,
+        voice_detector=False,
         max_segment_seconds=0.3,
         on_woken=lambda: None,
         on_prompt=prompts.append,
@@ -346,6 +415,77 @@ def test_wake_phase_keeps_its_short_hint(monkeypatch) -> None:
     _drain(controller)
     assert prompts == ["open gimp"]
     assert wake.hints and set(wake.hints) == {"Voxa."}
+
+
+def test_prompt_model_recovers_wake_word_dropped_from_connected_speech(monkeypatch) -> None:
+    monkeypatch.setattr("voxa.conversation.refresh_app_names", lambda: [])
+    wake = HintRecordingTranscriber(["tell me the time"])
+    prompt = HintRecordingTranscriber(["Voxa, tell me the time"])
+    controller, prompts = _make_recording_controller(wake, prompt)
+    controller.start()
+    _feed_utterance(controller)
+    _drain(controller)
+    assert prompts == ["tell me the time"]
+    assert len(prompt.hints) == 1
+
+
+def test_prompt_model_refines_same_breath_command_after_wake_is_confirmed(monkeypatch) -> None:
+    monkeypatch.setattr("voxa.conversation.refresh_app_names", lambda: [])
+    wake = HintRecordingTranscriber(["Voxa tell time"])
+    prompt = HintRecordingTranscriber(["tell me the time"])
+    controller, prompts = _make_recording_controller(wake, prompt)
+    controller.start()
+    _feed_utterance(controller)
+    _drain(controller)
+    assert prompts == ["tell me the time"]
+
+
+@pytest.mark.parametrize(
+    "command",
+    ["start dictation in Pluma", "start dictation in Write"],
+)
+def test_same_breath_targeted_dictation_skips_slow_refinement(monkeypatch, command: str) -> None:
+    monkeypatch.setattr("voxa.conversation.refresh_app_names", lambda: [])
+    wake = HintRecordingTranscriber([f"Voxa {command}"])
+    prompt = HintRecordingTranscriber(["this should not be used"])
+    controller, prompts = _make_recording_controller(wake, prompt)
+    controller.start()
+    _feed_utterance(controller)
+    _drain(controller)
+    assert prompts == [command]
+    assert prompt.hints == []
+
+
+def test_wake_is_acknowledged_before_same_breath_refinement(monkeypatch) -> None:
+    monkeypatch.setattr("voxa.conversation.refresh_app_names", lambda: [])
+    events: list[str] = []
+    wake = HintRecordingTranscriber(["Voxa tell time"])
+    prompt = HintRecordingTranscriber(["tell me the time"])
+    original_transcribe = prompt.transcribe
+
+    def transcribe(segment: bytes, language: str, hint: str = "") -> str:
+        events.append("refine")
+        return original_transcribe(segment, language, hint)
+
+    prompt.transcribe = transcribe
+    controller, prompts = _make_recording_controller(wake, prompt)
+    controller.on_woken = lambda: events.append("woken")
+    controller.start()
+    _feed_utterance(controller)
+    _drain(controller)
+    assert prompts == ["tell me the time"]
+    assert events == ["woken", "refine"]
+
+
+def test_second_model_cannot_bypass_wake_word_gate(monkeypatch) -> None:
+    monkeypatch.setattr("voxa.conversation.refresh_app_names", lambda: [])
+    wake = HintRecordingTranscriber(["tell me the time"])
+    prompt = HintRecordingTranscriber(["tell me the time"])
+    controller, prompts = _make_recording_controller(wake, prompt)
+    controller.start()
+    _feed_utterance(controller)
+    _drain(controller)
+    assert prompts == []
 
 
 def test_prompt_transcription_gets_the_built_vocabulary_hint(monkeypatch) -> None:
@@ -383,6 +523,7 @@ def _make_followup_controller(text: str) -> tuple[ConversationController, list[s
         wake_word="voxa",
         threshold=500,
         silence_ms=100,
+        voice_detector=False,
         max_segment_seconds=0.3,
         on_woken=lambda: None,
         on_prompt=prompts.append,

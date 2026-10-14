@@ -1,0 +1,494 @@
+{
+  "cases": [
+    {
+      "id": "feat-directions-01",
+      "category": "web_and_maps",
+      "prompt": "Give me directions from Portland to Seattle",
+      "expected_contains": [],
+      "expected_keywords": [
+        "portland",
+        "seattle"
+      ],
+      "rubric": "Issue 96: directions with a starting point.",
+      "expected_tool": "directions",
+      "expected_args": {
+        "origin": "Portland",
+        "destination": "Seattle"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 48
+    },
+    {
+      "id": "feat-directions-02",
+      "category": "web_and_maps",
+      "prompt": "Show me the way to the airport",
+      "expected_contains": [],
+      "expected_keywords": [
+        "airport"
+      ],
+      "rubric": "Issue 96: forgiving wording.",
+      "expected_tool": "directions",
+      "expected_args": {
+        "destination": "airport|the airport"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 48
+    },
+    {
+      "id": "feat-directions-03",
+      "category": "web_and_maps",
+      "prompt": "Route to Denver",
+      "expected_contains": [],
+      "expected_keywords": [
+        "denver"
+      ],
+      "rubric": "Issue 96: forgiving wording.",
+      "expected_tool": "directions",
+      "expected_args": {
+        "destination": "Denver"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 48
+    },
+    {
+      "id": "new-web-01",
+      "category": "web_and_maps",
+      "prompt": "Go to wikipedia.org",
+      "expected_contains": [],
+      "expected_keywords": [
+        "website|wikipedia"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "open_url",
+      "expected_args": {
+        "url": "wikipedia.org"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "new-web-02",
+      "category": "web_and_maps",
+      "prompt": "Look up banana bread recipes",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "web_search",
+      "expected_args": {
+        "query": "banana bread recipes"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-local-00",
+      "category": "system_status",
+      "prompt": "Where am I",
+      "expected_contains": [],
+      "expected_keywords": [
+        "you are in"
+      ],
+      "rubric": "Issue 101: she knows where the user is.",
+      "expected_tool": "where_am_i",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 93
+    },
+    {
+      "id": "feat-local-01",
+      "category": "web_and_maps",
+      "prompt": "Show the local weather",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "Issue 101: the weather where the user is.",
+      "expected_tool": "local_weather",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 93
+    },
+    {
+      "id": "feat-local-02",
+      "category": "web_and_maps",
+      "prompt": "What's the weather in Tokyo",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tokyo"
+      ],
+      "rubric": "Issue 101: weather for a named place.",
+      "expected_tool": "local_weather",
+      "expected_args": {
+        "place": "Tokyo"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 93
+    },
+    {
+      "id": "feat-local-03",
+      "category": "web_and_maps",
+      "prompt": "Play the local news",
+      "expected_contains": [],
+      "expected_keywords": [
+        "local news"
+      ],
+      "rubric": "Issue 101: local news.",
+      "expected_tool": "local_news",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 33
+    },
+    {
+      "id": "feat-local-04",
+      "category": "web_and_maps",
+      "prompt": "Live music tonight in my area",
+      "expected_contains": [],
+      "expected_keywords": [
+        "live music"
+      ],
+      "rubric": "Issue 101: what is on nearby.",
+      "expected_tool": "local_events",
+      "expected_args": {
+        "what": "live music",
+        "when": "tonight"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 47
+    },
+    {
+      "id": "new-system-01",
+      "category": "system_status",
+      "prompt": "Good morning",
+      "expected_contains": [],
+      "expected_keywords": [
+        "good"
+      ],
+      "rubric": "A short briefing: greeting, date, weather, reminders.",
+      "expected_tool": "daily_briefing",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 91
+    },
+    {
+      "id": "new-files-01",
+      "category": "files_and_productivity",
+      "prompt": "Make a note to water the plants",
+      "expected_contains": [],
+      "expected_keywords": [
+        "plants"
+      ],
+      "rubric": "The note is really written to the notes file.",
+      "expected_tool": "take_note",
+      "expected_args": {
+        "text": "water the plants"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Notes.md",
+        "file_contains": "water the plants"
+      },
+      "capability": 30
+    },
+    {
+      "id": "new-files-02",
+      "category": "files_and_productivity",
+      "prompt": "Read my notes",
+      "expected_contains": [],
+      "expected_keywords": [
+        "plants"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "read_notes",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 30
+    },
+    {
+      "id": "new-files-03",
+      "category": "files_and_productivity",
+      "prompt": "Delete my last note",
+      "expected_contains": [],
+      "expected_keywords": [
+        "deleted|delete"
+      ],
+      "rubric": "The note is really removed from the notes file.",
+      "expected_tool": "delete_last_note",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Notes.md",
+        "file_lacks": "water the plants"
+      },
+      "capability": 30
+    },
+    {
+      "id": "new-files-04",
+      "category": "files_and_productivity",
+      "prompt": "Set a timer for one minute",
+      "expected_contains": [],
+      "expected_keywords": [
+        "timer"
+      ],
+      "rubric": "The timer really goes off: she speaks up a minute later.",
+      "expected_tool": "set_timer",
+      "expected_args": {
+        "duration": "one minute|1 minute"
+      },
+      "after": "",
+      "verify": {
+        "says_within": 85,
+        "says": "timer is done|minute timer"
+      },
+      "capability": 24
+    },
+    {
+      "id": "new-files-05",
+      "category": "files_and_productivity",
+      "prompt": "Remind me to check the oven in one minute",
+      "expected_contains": [],
+      "expected_keywords": [
+        "oven"
+      ],
+      "rubric": "The reminder is really spoken a minute later.",
+      "expected_tool": "set_reminder",
+      "expected_args": {
+        "when": "one minute|1 minute",
+        "text": "check the oven"
+      },
+      "after": "",
+      "verify": {
+        "says_within": 85,
+        "says": "oven"
+      },
+      "capability": 24
+    },
+    {
+      "id": "new-files-06",
+      "category": "files_and_productivity",
+      "prompt": "What timers do I have",
+      "expected_contains": [],
+      "expected_keywords": [
+        "reminders|timers|reminder|timer"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "list_reminders",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 24
+    },
+    {
+      "id": "new-help-01",
+      "category": "software_help_and_knowledge",
+      "prompt": "What is 250 plus 175",
+      "expected_contains": [],
+      "expected_keywords": [
+        "425"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-help-02",
+      "category": "software_help_and_knowledge",
+      "prompt": "What is 20 percent of 150",
+      "expected_contains": [],
+      "expected_keywords": [
+        "30|thirty"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-help-03",
+      "category": "software_help_and_knowledge",
+      "prompt": "Convert 5 miles to kilometers",
+      "expected_contains": [],
+      "expected_keywords": [
+        "kilometers|kilometres"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-help-04",
+      "category": "software_help_and_knowledge",
+      "prompt": "What is 12 squared",
+      "expected_contains": [],
+      "expected_keywords": [
+        "144"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-help-05",
+      "category": "software_help_and_knowledge",
+      "prompt": "Help with files",
+      "expected_contains": [],
+      "expected_keywords": [
+        "files|file"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "voxa_help",
+      "expected_args": {
+        "topic": "files"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 82
+    },
+    {
+      "id": "feat-tv-01",
+      "category": "media_controls",
+      "prompt": "Open live TV",
+      "expected_contains": [],
+      "expected_keywords": [
+        "channel"
+      ],
+      "rubric": "Issue 100: asks which channel and shows the list.",
+      "expected_tool": "play_tv",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 82
+    },
+    {
+      "id": "feat-tv-02",
+      "category": "media_controls",
+      "prompt": "Put on France 24",
+      "expected_contains": [],
+      "expected_keywords": [
+        "france"
+      ],
+      "rubric": "Issue 100: plays a named channel.",
+      "expected_tool": "play_tv",
+      "expected_args": {
+        "name": "France 24"
+      },
+      "after": "stop_media",
+      "verify": {},
+      "capability": 82
+    },
+    {
+      "id": "feat-tv-03",
+      "category": "media_controls",
+      "prompt": "Play DW News",
+      "expected_contains": [],
+      "expected_keywords": [
+        "news"
+      ],
+      "rubric": "Issue 100: plays a named channel.",
+      "expected_tool": "play_tv",
+      "expected_args": {
+        "name": "DW News"
+      },
+      "after": "stop_media",
+      "verify": {},
+      "capability": 82
+    },
+    {
+      "id": "feat-radio-01",
+      "category": "media_controls",
+      "prompt": "Play Illinois Street Lounge",
+      "expected_contains": [],
+      "expected_keywords": [
+        "lounge"
+      ],
+      "rubric": "Issues 98 and 99: the added station plays.",
+      "expected_tool": "play_radio",
+      "expected_args": {
+        "name": "illinois street lounge"
+      },
+      "after": "stop_media",
+      "verify": {},
+      "capability": 82
+    },
+    {
+      "id": "new-media-01",
+      "category": "media_controls",
+      "prompt": "What station is this",
+      "expected_contains": [],
+      "expected_keywords": [
+        "lounge"
+      ],
+      "rubric": "She names the station that was just playing.",
+      "expected_tool": "radio_genre",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 82
+    },
+    {
+      "id": "feat-radio-02",
+      "category": "media_controls",
+      "prompt": "What radio stations do you have",
+      "expected_contains": [],
+      "expected_keywords": [
+        "stations"
+      ],
+      "rubric": "Issue 98: the list opens as a pop-up and she asks which one.",
+      "expected_tool": "list_radio",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 82
+    },
+    {
+      "id": "feat-radio-03",
+      "category": "media_controls",
+      "prompt": "Number two",
+      "expected_contains": [],
+      "expected_keywords": [
+        "playing"
+      ],
+      "rubric": "Issue 98: a spoken number picks from the open list.",
+      "expected_tool": "play_radio",
+      "expected_args": {},
+      "after": "stop_media",
+      "verify": {},
+      "capability": 82
+    },
+    {
+      "id": "new-help-06",
+      "category": "software_help_and_knowledge",
+      "prompt": "What is the highest mountain in the world",
+      "expected_contains": [],
+      "expected_keywords": [
+        "everest"
+      ],
+      "rubric": "The reply names Mount Everest.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    }
+  ]
+}

@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import json
 import threading
+import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from unittest.mock import patch
@@ -18,6 +19,32 @@ class FakeResponse(io.BytesIO):
 
     def __exit__(self, *_args):
         self.close()
+
+
+def _http_error(detail: dict | str, code: int = 400) -> urllib.error.HTTPError:
+    raw = json.dumps(detail) if isinstance(detail, dict) else detail
+    return urllib.error.HTTPError(
+        "http://127.0.0.1:11434/api/chat",
+        code,
+        "request failed",
+        {},
+        io.BytesIO(raw.encode()),
+    )
+
+
+def _context_error(prompt_tokens: int = 4358, context: int = 4096) -> urllib.error.HTTPError:
+    nested = {
+        "error": {
+            "code": 400,
+            "message": f"request ({prompt_tokens} tokens) exceeds the available context size ({context} tokens)",
+            "type": "exceed_context_size_error",
+            "n_prompt_tokens": prompt_tokens,
+            "n_ctx": context,
+        }
+    }
+    # Some Ollama-compatible runners return the useful JSON as a string in
+    # an outer error object, which is the form seen in the live failure.
+    return _http_error({"error": json.dumps(nested)})
 
 
 def test_list_models_sorts_names() -> None:
@@ -164,8 +191,118 @@ def test_generate_stream_uses_chat_endpoint_when_messages_are_given() -> None:
     body = json.loads(request.data)
     assert body["model"] == "test"
     assert body["stream"] is True
+    assert body["think"] is False
     assert body["messages"] == history
     assert "prompt" not in body
+
+
+def test_generate_stream_disables_thinking_for_single_shot_requests() -> None:
+    response = FakeResponse(b'{"response":"Four.","done":true}\n')
+    with patch("voxa.ollama.open_url", return_value=response) as mocked:
+        answer = OllamaClient().generate_stream(
+            model="qwen3.5:8b",
+            prompt="What is two plus two?",
+            cancel_event=threading.Event(),
+            on_chunk=lambda _chunk: None,
+        )
+
+    assert answer == "Four."
+    body = json.loads(mocked.call_args[0][0].data)
+    assert body["think"] is False
+    assert body["prompt"] == "What is two plus two?"
+
+
+def test_generate_stream_grows_context_when_model_supports_it() -> None:
+    history = [
+        {"role": "system", "content": "be brief"},
+        {"role": "user", "content": "an earlier question"},
+        {"role": "assistant", "content": "an earlier answer"},
+        {"role": "user", "content": "read me a passage"},
+    ]
+    model_info = FakeResponse(b'{"model_info":{"qwen35.context_length":262144}}')
+    answer = FakeResponse(b'{"message":{"content":"Once upon a midnight dreary."},"done":true}\n')
+    with patch(
+        "voxa.ollama.open_url", side_effect=[_context_error(), model_info, answer]
+    ) as mocked:
+        result = OllamaClient().generate_stream(
+            model="qwen3.5:0.8b",
+            prompt="read me a passage",
+            cancel_event=threading.Event(),
+            on_chunk=lambda _chunk: None,
+            messages=history,
+        )
+
+    assert result == "Once upon a midnight dreary."
+    chat_requests = [
+        call.args[0] for call in mocked.call_args_list if call.args[0].full_url.endswith("/api/chat")
+    ]
+    assert len(chat_requests) == 2
+    assert "num_ctx" not in json.loads(chat_requests[0].data)["options"]
+    assert json.loads(chat_requests[1].data)["options"]["num_ctx"] == 8192
+
+
+def test_generate_stream_discards_old_history_when_model_cannot_grow() -> None:
+    history = [
+        {"role": "system", "content": "be brief"},
+        {"role": "user", "content": "old question one"},
+        {"role": "assistant", "content": "old answer one"},
+        {"role": "user", "content": "old question two"},
+        {"role": "assistant", "content": "old answer two"},
+        {"role": "user", "content": "new question"},
+    ]
+    model_info = FakeResponse(b'{"model_info":{"small.context_length":4096}}')
+    answer = FakeResponse(b'{"message":{"content":"A recent answer."},"done":true}\n')
+    with patch(
+        "voxa.ollama.open_url", side_effect=[_context_error(), model_info, answer]
+    ) as mocked:
+        result = OllamaClient().generate_stream(
+            model="small",
+            prompt="new question",
+            cancel_event=threading.Event(),
+            on_chunk=lambda _chunk: None,
+            messages=history,
+        )
+
+    assert result == "A recent answer."
+    chat_requests = [
+        call.args[0] for call in mocked.call_args_list if call.args[0].full_url.endswith("/api/chat")
+    ]
+    retried = json.loads(chat_requests[1].data)
+    assert retried["messages"][0] == history[0]
+    assert retried["messages"][-1] == history[-1]
+    assert len(retried["messages"]) < len(history)
+    assert "num_ctx" not in retried["options"]
+
+
+def test_generate_stream_falls_back_when_larger_context_runs_out_of_memory() -> None:
+    history = [
+        {"role": "system", "content": "be brief"},
+        {"role": "user", "content": "old question"},
+        {"role": "assistant", "content": "old answer"},
+        {"role": "user", "content": "new question"},
+    ]
+    model_info = FakeResponse(b'{"model_info":{"large.context_length":32768}}')
+    oom = _http_error({"error": "CUDA out of memory while allocating KV cache"}, code=500)
+    answer = FakeResponse(b'{"message":{"content":"Recovered."},"done":true}\n')
+    with patch(
+        "voxa.ollama.open_url", side_effect=[_context_error(), model_info, oom, answer]
+    ) as mocked:
+        result = OllamaClient().generate_stream(
+            model="large",
+            prompt="new question",
+            cancel_event=threading.Event(),
+            on_chunk=lambda _chunk: None,
+            messages=history,
+        )
+
+    assert result == "Recovered."
+    chat_requests = [
+        call.args[0] for call in mocked.call_args_list if call.args[0].full_url.endswith("/api/chat")
+    ]
+    assert json.loads(chat_requests[1].data)["options"]["num_ctx"] == 8192
+    final = json.loads(chat_requests[2].data)
+    assert "num_ctx" not in final["options"]
+    assert len(final["messages"]) < len(history)
 
 
 def test_strip_reasoning_removes_a_matched_think_block():

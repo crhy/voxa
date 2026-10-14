@@ -190,7 +190,7 @@ def test_user_is_told_once_when_the_speech_model_is_ready(window, monkeypatch) -
     monkeypatch.setattr(window, "_toast", toasts.append)
     window._on_whisper_ready("base", "CPU")
     window._on_whisper_ready("small", "CPU")  # switching models later must not repeat the hint
-    assert [t for t in toasts if "ACTIVE" in t] == ["Voxa is ready. Press ACTIVE to start listening."]
+    assert [t for t in toasts if "Active" in t] == ["Voxa is ready. Press Active to start listening."]
 
 
 def test_an_offline_ai_server_is_explained_in_the_model_picker(window, monkeypatch) -> None:
@@ -228,6 +228,40 @@ def test_speak_wires_word_boundaries_and_clock_to_the_shell(window, monkeypatch)
     window._conversation_speak("hello")
     assert calls[0][0] == "clock"
     assert calls[1] == ("words", [("hello", 0.0, 0.5)])
+
+
+def test_whole_reply_sends_audio_to_high_face_before_playback(window, monkeypatch) -> None:
+    """Thinking-model replies must not bypass High's neural renderer."""
+    sent: list[object] = []
+    live_client = object()
+    window._live_client = live_client
+    window.settings.face_mode = "live"
+    monkeypatch.setattr(window, "_live_before_play", lambda path: sent.append(path))
+
+    def _fake_speak(text, rate, voice, *, before_play=None, **callbacks):
+        assert before_play is not None
+        before_play("/tmp/high-reply.mp3")
+
+    monkeypatch.setattr(window.speech, "speak", _fake_speak)
+
+    window._conversation_speak("hello from High")
+
+    assert sent == ["/tmp/high-reply.mp3"]
+
+
+def test_qwen_reply_can_start_speaking_while_it_is_still_streaming(window, monkeypatch) -> None:
+    """Reasoning-capable model names must not disable streaming when Ollama has thinking off."""
+    pumped: list[bool] = []
+    window.conversation_active = True
+    window.settings.ollama_model = "hf.co/unsloth/Qwen3.5-0.8B-GGUF:BF16"
+    window._early = None
+    monkeypatch.setattr(window, "_early_speech_pump", lambda: pumped.append(True))
+
+    window._early_speech_feed("Here is the first complete sentence. ", 42)
+
+    assert window._early["disabled"] is False
+    assert window._early["queue"] == ["Here is the first complete sentence."]
+    assert pumped == [True]
 
 
 def test_portrait_picker_is_in_the_header_not_the_bottom_controls(window) -> None:

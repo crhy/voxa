@@ -176,6 +176,8 @@ def _strip_lead_in(s: str) -> str:
             s = s[len(lead) :].strip()
             break
     s = s.rstrip("?").strip()
+    if s.startswith("the ") and len(s) > 4:
+        s = s[4:]  # "what is the square root of 81"
     for trail in _TRAILINGS:
         if s.endswith(" " + trail):
             s = s[: -len(trail)].strip()
@@ -307,8 +309,15 @@ class _Parse:
         raise ValueError
 
 
+def _written_times(text: str) -> str:
+    """Whisper writes a spoken "seven times eight" as "7x8": read the x between numbers as times."""
+    text = re.sub(r"(?<=\d)\s*%", " percent", text)
+    return re.sub(r"(?<=\d)\s*[x\u00d7]\s*(?=\d)", " times ", text)
+
+
 def evaluate(text: str) -> float | None:
     """The value of a spoken sum, or None when the text is not purely arithmetic."""
+    text = _written_times(text)
     s = _strip_lead_in(text)
     if not s:
         return None
@@ -488,6 +497,7 @@ def answer(text: str) -> str | None:
     if converted is not None:
         value, unit = converted
         return f"{spoken_number(value)} {unit}."
+    text = _written_times(text)
     value = evaluate(text)
     if value is None:
         return None

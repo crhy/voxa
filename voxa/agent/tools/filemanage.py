@@ -221,7 +221,16 @@ def open_folder(args: dict[str, str]) -> ToolResult:
         path = _folder(args["folder"])
         if path is None:
             return ToolResult.failure(f"I do not know the folder {args['folder']}.")
-        _run(["gio", "open", path])
+        # "gio open" hands a folder to whichever program claims folders, which can be a code
+        # editor; a folder belongs in the file manager.
+        opened = False
+        for manager in ("caja", "nemo", "nautilus", "thunar", "pcmanfm"):
+            if _run(["sh", "-c", f"command -v {manager}"], check=False).returncode == 0:
+                _run(["sh", "-c", f'setsid {manager} "$1" >/dev/null 2>&1 &', "sh", path], check=False)
+                opened = True
+                break
+        if not opened:
+            _run(["gio", "open", path])
         return ToolResult.success(f"Opening {args['folder']}.")
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as error:
         return ToolResult.failure(f"That did not work: {_error_text(error)}")
@@ -272,11 +281,14 @@ def make_folder(args: dict[str, str]) -> ToolResult:
         if path is None:
             return ToolResult.failure(f"I do not know the folder {args['folder']}.")
         new_name = args["name"].strip().title()
-        _run(["mkdir", "--", os.path.join(path, new_name)])
-        LAST_UNDO = (f"Removed the folder {new_name}.", [["rmdir", "--", os.path.join(path, new_name)]])
+        target = os.path.join(path, new_name)
+        if not simulation.actions_simulated() and _run(["test", "-d", target], check=False).returncode == 0:
+            return ToolResult.success(f"You already have a folder called {new_name} in {args['folder']}.")
+        _run(["mkdir", "--", target])
+        LAST_UNDO = (f"Removed the folder {new_name}.", [["rmdir", "--", target]])
         return ToolResult.success(f"Created the folder {new_name} in {args['folder']}.")
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as error:
-        return ToolResult.failure(f"That did not work: {_error_text(error)}")
+        return ToolResult.failure("I couldn't make that folder.", detail=_error_text(error))
 
 
 def find_large_files(args: dict[str, str]) -> ToolResult:
@@ -308,7 +320,8 @@ def find_large_files(args: dict[str, str]) -> ToolResult:
                 "f",
                 "-size",
                 f"+{limit}c",
-                "-print",
+                "-printf",
+                "%s\\t%p\\n",
             ],
             check=False,
         )
@@ -317,10 +330,25 @@ def find_large_files(args: dict[str, str]) -> ToolResult:
             if out.returncode == 124:
                 return ToolResult.failure("I ran out of time looking. Try naming a folder.")
             return ToolResult.failure("No files are bigger than that.")
-        names = [os.path.basename(path) for path in lines]
-        return ToolResult.success(
-            f"I found {count_noun(len(lines), 'file')} bigger than {args['amount']} {args['unit']}: {spoken_list(names)}."
-        )
+        entries: list[tuple[int, str]] = []
+        for line in lines:
+            size_text, _, path = line.partition("\t")
+            try:
+                size = int(size_text)
+            except ValueError:
+                continue
+            entries.append((size, path))
+        if not entries:
+            return ToolResult.failure("No files are bigger than that.")
+        entries.sort(key=lambda pair: pair[0], reverse=True)
+        unit = "gigabytes" if args["unit"].lower().startswith("g") else "megabytes"
+        detail = "\n".join(os.path.basename(path) for _, path in entries)
+        if len(entries) == 1:
+            speech = f"I found one file bigger than {args['amount']} {unit}: {os.path.basename(entries[0][1])}."
+        else:
+            biggest = os.path.basename(entries[0][1])
+            speech = f"I found {count_noun(len(entries), 'file')} bigger than {args['amount']} {unit}. The biggest is {biggest}."
+        return ToolResult.success(speech, detail=detail)
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as error:
         return ToolResult.failure(f"That did not work: {_error_text(error)}")
 
@@ -340,6 +368,49 @@ def undo_file_action(args: dict[str, str]) -> ToolResult:
         for command in commands:
             _run(command)
         return ToolResult.success(sentence)
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as error:
+        return ToolResult.failure(f"That did not work: {_error_text(error)}")
+
+
+def sort_folder_preview(args: dict[str, str]) -> ToolResult:
+    try:
+        path = _folder(args["folder"])
+        if path is None:
+            return ToolResult.failure(f"I do not know the folder {args['folder']}.")
+        out = _run(["ls", "-1p", path], check=False)
+        entries = [line for line in out.stdout.splitlines() if line and not line.endswith("/")]
+        label = os.path.basename(path)
+        if not entries:
+            return ToolResult.success(f"{label} is empty.")
+        kinds = {
+            "document": {"pdf", "doc", "docx", "odt", "txt", "md"},
+            "picture": {"png", "jpg", "jpeg", "gif", "webp"},
+            "video": {"mp4", "mkv", "webm", "mov"},
+            "music file": {"mp3", "flac", "ogg", "wav"},
+            "archive": {"zip", "tar", "gz", "7z"},
+        }
+        counts = {kind: 0 for kind in kinds}
+        other = 0
+        for name in entries:
+            dot = name.rfind(".")
+            ext = name[dot + 1 :].lower() if dot > 0 else ""
+            for kind, exts in kinds.items():
+                if ext in exts:
+                    counts[kind] += 1
+                    break
+            else:
+                other += 1
+        parts = [count_noun(counts[kind], kind) for kind in kinds if counts[kind]]
+        if other:
+            parts.append(count_noun(other, "other"))
+        total = len(entries)
+        if not parts:
+            return ToolResult.success(f"{label} has {count_noun(total, 'file')}.")
+        if len(parts) == 1:
+            breakdown = parts[0]
+        else:
+            breakdown = ", ".join(parts[:-1]) + " and " + parts[-1]
+        return ToolResult.success(f"{label} has {count_noun(total, 'file')}: {breakdown}.")
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as error:
         return ToolResult.failure(f"That did not work: {_error_text(error)}")
 
@@ -424,6 +495,14 @@ def file_manage_tools() -> list[Tool]:
             parameters={"folder": "the folder to list"},
             risk=RiskLevel.REVERSIBLE,
             handler=list_folder,
+            required=("folder",),
+        ),
+        Tool(
+            name="sort_folder_preview",
+            description="Preview how a folder's files sort by kind, without moving anything.",
+            parameters={"folder": "the folder to preview"},
+            risk=RiskLevel.READ_ONLY,
+            handler=sort_folder_preview,
             required=("folder",),
         ),
         Tool(

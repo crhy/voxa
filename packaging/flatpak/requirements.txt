@@ -1,12 +1,25 @@
+# Keep this direct pin before faster-whisper: flatpak-pip-generator splits direct
+# requirements into modules, and the hub HTTP stack must be installed first.
+# Pin the 1.x hub. The pre-1.0 hub (0.28.1) crashes when faster-whisper passes its
+# own disabled_tqdm (a subclass of tqdm.auto.tqdm) as tqdm_class: in a non-TTY
+# (Flatpak/GUI) environment tqdm.auto resolves to the asyncio variant, which never
+# has tqdm's class-level _lock set, and 0.28.1 reads tqdm_class._lock unguarded
+# ("type object 'disabled_tqdm' has no attribute '_lock'). The 1.x hub guards the
+# lock access, so the speech model loads. Cost: pulls hf-xet and the httpx stack
+# (a few MB) instead of requests/urllib3/charset_normalizer.
+# NOTE: python3-requirements-flatpak.json is committed. When changing this file,
+# regenerate it (see .github/workflows/build.yml); at this pin the generator pulls
+# httpx and hf-xet rather than splitting requests/urllib3/charset_normalizer out.
+huggingface-hub==1.32.0
+# Pin av (pulled transitively by faster-whisper). Unpinned, the generator resolves
+# av 19.0.1 with a cp312-abi3 tag. Keep the known-good cp311-abi3 build used by the
+# CPython 3.13 Flatpak runtime.
+av==18.1.0
 faster-whisper>=1.2,<2
 numpy>=2.0,<3
-edge-tts>=7.2,<8
+edge-tts>=7.3.1,<8
 PyOpenGL>=3.1,<4
 # Pure-Python GLB reader for downloaded 3D avatar models (no native build step).
 pygltflib>=1.16,<2
-# Pin the pre-1.0 hub that still uses requests: newer hubs pull hf-xet and the
-# httpx stack, adding several MB to the flatpak with no benefit for model downloads.
-# NOTE: python3-requirements-flatpak.json is committed. When changing this file,
-# regenerate it (see .github/workflows/build.yml) and merge requests, urllib3 and
-# charset_normalizer into the python3-faster-whisper module before building.
-huggingface-hub==0.28.1
+yt-dlp
+yt-dlp-ejs==0.8.0

@@ -1,8 +1,12 @@
 """One short line saying what a tool is doing right now, for the caption under the face."""
 
+from voxa.agent.spoken_text import site_label
+
 
 def working_caption(tool: str, args: dict[str, str]) -> str:
     """Return a caption (at most 40 characters) describing the running tool call."""
+    if tool == "open_site":
+        args = {**args, "name": site_label(args.get("name", ""))}
     template = _TEMPLATES.get(tool)
     if template is None and (tool.startswith("find_") or tool.startswith("search_")):
         value = args.get("query") or args.get("destination") or args.get("place")
@@ -86,7 +90,7 @@ _TEMPLATES: dict[str, str] = {
     "close_app": "Closing {name}…",
     "switch_to": "Switching to {name}…",
     "open_site": "Opening {name}…",
-    "browse": "Opening {url}…",
+    "browse": "Opening website…",
     "web_search": "Searching for {query}…",
     "play_music": "Finding {query}…",
     "play_video": "Finding {query}…",

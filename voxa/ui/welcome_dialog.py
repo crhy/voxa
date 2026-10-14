@@ -36,7 +36,7 @@ class WelcomeDialog(Adw.Dialog):
         self.explanation = Gtk.Label(label=explanation, wrap=True, xalign=0)
         box.append(self.explanation)
 
-        tips = Gtk.Label(label=welcome.HOW_TO, wrap=True, xalign=0)
+        tips = Gtk.Label(label=welcome.how_to(), wrap=True, xalign=0)
         tips.add_css_class("dim-label")
         if step == "ready":
             tips.set_visible(False)

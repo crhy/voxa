@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 import shutil
@@ -93,6 +94,16 @@ class MprisPlayer:
     def _call(self, method: str, *args: str) -> str:
         return self._gdbus(f"{self.iface}.{method}", *args)
 
+    def _call_every_instance(self, method: str, *args: str) -> None:
+        """Send a player command to every registered instance.
+
+        VLC commonly registers only an ``.instanceNNNN`` MPRIS name.  Status
+        discovery already accounted for that, but controls previously targeted
+        the absent generic name and silently did nothing.
+        """
+        for bus in self._buses():
+            self._gdbus_on(bus, f"{self.iface}.{method}", *args)
+
     def _get(self, name: str) -> str:
         return self._gdbus("org.freedesktop.DBus.Properties.Get", self.iface, name)
 
@@ -104,13 +115,13 @@ class MprisPlayer:
         return proc.stdout
 
     def pause(self) -> None:
-        self._call("Pause")
+        self._call_every_instance("Pause")
 
     def resume(self) -> None:
-        self._call("Play")
+        self._call_every_instance("Play")
 
     def toggle(self) -> None:
-        self._call("PlayPause")
+        self._call_every_instance("PlayPause")
 
     def _buses(self) -> list[str]:
         """Every bus name this player may have registered, falling back to the primary one."""
@@ -139,14 +150,14 @@ class MprisPlayer:
         return proc.returncode == 0
 
     def next(self) -> None:
-        self._call("Next")
+        self._call_every_instance("Next")
 
     def previous(self) -> None:
-        self._call("Previous")
+        self._call_every_instance("Previous")
 
     def seek(self, seconds: float) -> None:
         """Relative seek; MPRIS takes microseconds."""
-        self._call("Seek", str(int(seconds * 1_000_000)))
+        self._call_every_instance("Seek", str(int(seconds * 1_000_000)))
 
     def volume(self) -> float | None:
         match = re.search(r"<([0-9.eE+-]+)>", self._get("Volume"))
@@ -180,7 +191,7 @@ class VlcPlayer(MprisPlayer):
     def __init__(self) -> None:
         super().__init__("vlc", [["flatpak", "kill", "org.videolan.VLC"]])
 
-    def play(self, media: Media, fullscreen: bool = False) -> None:
+    def play(self, media: Media) -> None:
         # Music has only an audio stream: play that on its own. Video gets the audio as a companion stream.
         main = media.video_url or media.audio_url
         if not main:
@@ -192,17 +203,24 @@ class VlcPlayer(MprisPlayer):
             "--one-instance",
             "--control",
             "dbus",
+            "--no-fullscreen",
+            # Without this VLC resizes its own window to the video's size the moment the picture
+            # starts (1920x1080 = almost the whole screen), undoing any size given to the window.
+            "--no-qt-video-autoresize",
             "--meta-title",
             media.title,
             main,
         ]
         if media.video_url and media.audio_url:
             argv += ["--input-slave", media.audio_url]
-        if fullscreen:
-            argv += ["--fullscreen"]
         if not media.video_url:
             argv += ["--no-video"]
         spawn(argv)
+        if media.video_url:
+            # Video: VLC must open smaller than Voxa's own window, not almost full screen.
+            from .tools.windows import frame_vlc_window
+
+            frame_vlc_window()
 
 
 class AudaciousPlayer(MprisPlayer):
@@ -321,3 +339,25 @@ def active_player():
     if builtin.status() in ("Playing", "Paused"):
         return builtin
     return None
+
+
+log = logging.getLogger(__name__)
+START_DELAY_SECONDS = 2.5
+
+
+def start_after(seconds: float, play) -> None:
+    """Call ``play()`` after a short pause, so the spoken "Playing …" is heard before the stream."""
+    import threading
+
+    def start() -> None:
+        try:
+            play()
+        except Exception as exc:  # noqa: BLE001 - the player is outside our control
+            log.warning("could not start playback: %s", exc)
+
+    if seconds <= 0:
+        start()
+        return
+    timer = threading.Timer(seconds, start)
+    timer.daemon = True
+    timer.start()

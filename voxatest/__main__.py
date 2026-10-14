@@ -23,7 +23,7 @@ from .config import DEFAULT_DATA_PATH, DEFAULT_FAILURE_REPORT_PATH, DEFAULT_REPO
 from .generate_cases import generate_cases
 from .grader import GradeResult
 from .latency import format_latency, latency_report, load_records
-from .report import format_results, report_paths, write_reports
+from .report import emit_event, format_results, report_paths, write_reports
 from .runner import RunResult, run_case
 
 
@@ -32,7 +32,7 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     generate = subparsers.add_parser("generate", help="Generate spoken test cases with the local model.")
-    generate.add_argument("--count", type=int, default=250)
+    generate.add_argument("--count", type=int, default=30)
     generate.add_argument("--output", default=str(DEFAULT_DATA_PATH))
     generate.add_argument("--batch-size", type=int, default=10)
 
@@ -63,6 +63,29 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     commands.add_argument("--cases", default=str(DEFAULT_COMMAND_CASES_PATH))
     commands.add_argument("--report-dir", default=str(DEFAULT_REPORTS_DIR))
     commands.add_argument("--action-log", help="Optional Voxa action log to report real-world misses from.")
+    commands.add_argument(
+        "--repeat",
+        type=int,
+        default=10,
+        help="Repeat the deterministic corpus this many times (default: 10).",
+    )
+    commands.add_argument(
+        "--min-checks-per-hour",
+        type=float,
+        default=1000.0,
+        help="Fail if measured command-router throughput is below this rate (default: 1000).",
+    )
+    commands.add_argument(
+        "--capability-report",
+        help="Also write the Markdown audit to this stable path.",
+    )
+
+    status = subparsers.add_parser("capabilities", help="Write the capability status (issue 102) from the run reports.")
+    status.add_argument("--reports", default=str(DEFAULT_REPORTS_DIR))
+    status.add_argument("--markdown")
+    status.add_argument("--html")
+    status.add_argument("--since", default="", help="Only count reports from this date on, as YYYYMMDD.")
+    status.add_argument("--stamp", default="")
 
     latency = subparsers.add_parser("latency", help="Report command latency stats from the action log.")
     latency.add_argument(
@@ -161,6 +184,15 @@ def _run(
     if settings.output_device:
         os.environ.setdefault("GST_AUDIOSINK", settings.output_device)
 
+    if settings.voxa_echo_mode and settings.voxa_echo_mode != "off" and not settings.output_device:
+        print(
+            "Voxa echo cancellation is enabled, so it will remove VoxaTest's spoken prompts. "
+            "In Voxa, set Preferences > Speech > Echo cancellation to Off before running acoustic tests.",
+            file=sys.stderr,
+            flush=True,
+        )
+        return 2
+
     client = settings.make_client()
 
     try:
@@ -224,7 +256,14 @@ def _run(
             except Exception as exc:  # noqa: BLE001 - device discovery is a hardware boundary
                 print(f"Microphone device discovery failed: {exc}", file=sys.stderr, flush=True)
 
-        speech = SpeechService()
+        # A robotic offline voice is not a valid end-to-end recognition test. If both natural providers are
+        # unavailable, report the setup failure instead of grading Voxa against synthetic speech it cannot hear.
+        # A substituted provider can silently change both voice and rate, which
+        # invalidates an acoustic comparison. Fail the case instead.
+        speech = SpeechService(
+            allow_online_fallback=False,
+            allow_offline_fallback=False,
+        )
         started = time.monotonic()
         total = len(cases)
         silent_streak = 0
@@ -235,6 +274,8 @@ def _run(
                 deadline_hit = True
                 break
 
+            emit_event("case_start", index=first_index + index - 1, total=first_index + total - 1,
+                       id=case.id, category=case.category, prompt=case.prompt)
             result = _run_case_safely(case, settings, client, whisper, capture, speech, log)
             attempts = 0
             while not result.transcript and result.grade.method == "empty" and attempts < settings.retries:
@@ -252,6 +293,10 @@ def _run(
                 complete=False,
             )
             status = "ERROR" if result.error else ("PASS" if result.grade.passed else "FAIL")
+            emit_event("case_result", index=first_index + index - 1, total=first_index + total - 1,
+                       id=case.id, category=case.category, prompt=case.prompt, status=status,
+                       reply=result.transcript, heard=result.heard, notes=result.grade.notes,
+                       seconds=round(result.duration_seconds, 1))
             log(
                 f"[{first_index + index - 1}/{first_index + total - 1}] "
                 f"{status} {result.case_id} score {result.grade.score} ({result.duration_seconds:.1f}s)"
@@ -315,18 +360,40 @@ def _command_result_dict(result) -> dict:
     }
 
 
-def _run_command_bench(cases_path: Path, reports_dir: Path, action_log: str | None) -> int:
+def _run_command_bench(
+    cases_path: Path,
+    reports_dir: Path,
+    action_log: str | None,
+    *,
+    repeats: int,
+    minimum_checks_per_hour: float,
+    capability_report: str | None,
+) -> int:
     cases, wishlist = load_command_cases(cases_path)
     if not cases:
         print(f"No command cases found in {cases_path}.", file=sys.stderr, flush=True)
         return 1
+    if repeats < 1:
+        print("--repeat must be at least 1.", file=sys.stderr, flush=True)
+        return 2
+    if minimum_checks_per_hour < 0:
+        print("--min-checks-per-hour cannot be negative.", file=sys.stderr, flush=True)
+        return 2
 
     from voxa.agent.tools import default_registry
 
     registry = default_registry()
-    results = run_commands(cases, registry)
+    started = time.perf_counter()
+    results = run_commands(cases * repeats, registry)
+    elapsed_seconds = time.perf_counter() - started
     wishlist_results = run_commands(wishlist, registry)
-    summary = summarize(results)
+    summary = summarize(
+        results,
+        elapsed_seconds=elapsed_seconds,
+        unique_cases=len(cases),
+        repeats=repeats,
+        minimum_checks_per_hour=minimum_checks_per_hour,
+    )
     markdown = format_markdown(summary, wishlist_results)
 
     if action_log:
@@ -367,8 +434,14 @@ def _run_command_bench(cases_path: Path, reports_dir: Path, action_log: str | No
     (reports_dir / "command-bench.json").write_text(
         json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
+    if capability_report:
+        capability_path = Path(capability_report)
+        capability_path.parent.mkdir(parents=True, exist_ok=True)
+        capability_path.write_text(markdown, encoding="utf-8")
 
-    return 0 if summary["failed"] == 0 else 1
+    if summary["failed"]:
+        return 1
+    return 0 if summary["throughput_passed"] else 2
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -404,7 +477,27 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     if args.command == "commands":
-        return _run_command_bench(Path(args.cases), Path(args.report_dir), args.action_log)
+        return _run_command_bench(
+            Path(args.cases),
+            Path(args.report_dir),
+            args.action_log,
+            repeats=args.repeat,
+            minimum_checks_per_hour=args.min_checks_per_hour,
+            capability_report=args.capability_report,
+        )
+
+    if args.command == "capabilities":
+        from .capabilities import write_status
+
+        info = write_status(
+            Path(args.reports),
+            Path(args.markdown) if args.markdown else None,
+            Path(args.html) if args.html else None,
+            since=args.since,
+            stamp=args.stamp,
+        )
+        print(json.dumps(info["counts"]), f"{info['passed']}/{info['runs']} spoken checks passed", flush=True)
+        return 0
 
     if args.command == "latency":
         report = latency_report(load_records(Path(args.action_log), args.last))

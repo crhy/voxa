@@ -12,6 +12,7 @@ import re
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
+from datetime import date
 
 SEARCH_URL = "https://html.duckduckgo.com/html/"
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) Voxa"
@@ -209,14 +210,19 @@ def _site(url: str) -> str:
     return host[4:] if host.startswith("www.") else host
 
 
-def format_for_prompt(query: str, results: list[SearchResult]) -> str:
+def format_for_prompt(
+    query: str,
+    results: list[SearchResult],
+    today: date | None = None,
+) -> str:
     """Instruction first, then numbered results, today's date, question last."""
+    current_date = today or date.today()
     lines = [
         "Answer ONLY from these search results. Do not add facts from memory."
     ]
     for number, item in enumerate(results[:MAX_RESULTS], 1):
         lines.append(f"{number}. {item.title} — {item.snippet[:300]} ({item.url})")
-    lines.append("Today is 6 October 2026.")
+    lines.append(f"Today is {current_date.day} {current_date.strftime('%B %Y')}.")
     lines.append(f"Question: {query}")
     return "\n".join(lines)
 
@@ -226,6 +232,75 @@ def source_line(results: list[SearchResult]) -> str:
     if not results:
         return ""
     return f"Source: {_site(results[0].url)}"
+
+
+_GROUNDED_OVERLAP = 0.3
+_GROUNDED_MAX_WORDS = 40
+_GROUNDED_KEEP_SENTENCES = 2
+_GROUNDED_KEEP_WORDS = 45
+_STOPWORDS = frozenset(
+    """
+    a about above across after again against all almost alone already also always
+    and any anything around as at away back be because been before begin behind being
+    below best better big bigger both bottom buy can cannot cant could day days deal
+    did do does doing done down each early enough every everyone first five four free
+    full get getting got great half hand happen happy has have head hear hearing heard
+    hello help here high him his hold home house how however i if in inside into is
+    it its itself just keep kept kind know known knows large last late least left less
+    let like likely line little long look looking made make making man many may mean
+    means might more most move moved much must name near next no not nothing now off
+    old on once one only other our out over own part people person place possible put
+    quite rather real right run same say saying says second see seen she should side
+    simple since small so some something soon still such sure system take taken tell
+    tells than that the their them there these they thing things think this those three
+    through time to told too top toward two under until up upon us use used very voice
+    wait want wanted was watch water way ways well went were what when where whether
+    which while who whom whose why will with within without work working world year
+    yes you your
+    """.split()
+)
+
+
+def _content_words(text: str) -> set[str]:
+    """Lower-case content words: numbers count, stop words are dropped."""
+    return {word for word in re.findall(r"[a-z0-9]+", text.lower()) if word not in _STOPWORDS}
+
+
+def _sentences(text: str) -> list[str]:
+    """Split into trimmed sentences on terminal punctuation."""
+    return [part.strip() for part in re.split(r"(?<=[.!?])\s+", text) if part.strip()]
+
+
+def _trim_words(text: str, limit: int) -> str:
+    words = text.split()
+    return " ".join(words[:limit])
+
+
+def grounded_answer(reply: str, results: list[SearchResult], query: str) -> str:
+    """Keep a faithful reply (shortened); replace an ungrounded one with snippets."""
+    if not results or not reply.strip():
+        return reply
+    reply_words = _content_words(reply)
+    source_text = " ".join(f"{item.title} {item.snippet}" for item in results)
+    source_words = _content_words(source_text)
+    overlap = len(reply_words & source_words) / len(reply_words) if reply_words else 1.0
+    reply_numbers = set(re.findall(r"\d+", reply))
+    source_numbers = set(re.findall(r"\d+", source_text))
+    ungrounded = overlap < _GROUNDED_OVERLAP or bool(reply_numbers - source_numbers)
+    if not ungrounded:
+        kept = " ".join(_sentences(reply)[:_GROUNDED_KEEP_SENTENCES])
+        return _trim_words(kept, _GROUNDED_KEEP_WORDS)
+    query_words = _content_words(query)
+    scored: list[tuple[int, str, str]] = []
+    for item in results:
+        site = _site(item.url)
+        for sentence in _sentences(item.snippet):
+            score = len(_content_words(sentence) & query_words)
+            scored.append((score, sentence, site))
+    scored.sort(key=lambda entry: -entry[0])
+    chosen = [entry for entry in scored if entry[0] > 0][:2] or scored[:1]
+    text = _trim_words(" ".join(sentence for _, sentence, _ in chosen), _GROUNDED_MAX_WORDS)
+    return f"{text} — from {chosen[0][2]}"
 
 
 def search_record_fields(query: str, results: list[SearchResult], failed: bool) -> dict:

@@ -128,8 +128,8 @@ def test_open_file_routing():
 
 def test_open_file_preserves_existing_phrases():
     assert route("open file") == ToolCall("file_dialog", {"action": "load"})
-    assert route("open the file manager") == ToolCall("open_app", {"name": "file manager"})
-    assert route("open my file manager") == ToolCall("open_app", {"name": "my file manager"})
+    assert route("open the file manager") == ToolCall("open_app", {"name": "file browser"})
+    assert route("open my file manager") == ToolCall("open_app", {"name": "file browser"})
     assert route("open LibreOffice") == ToolCall("open_app", {"name": "LibreOffice"})
     assert route("open my email") == ToolCall("open_site", {"name": "gmail"})
     assert route("open the downloads folder") == ToolCall("open_folder", {"folder": "downloads"})

@@ -30,7 +30,7 @@ def test_step_text_model():
 def test_step_text_ready():
     headline, explanation, label = step_text("ready")
     assert headline == "You're all set"
-    assert explanation.startswith("Press ACTIVE")
+    assert explanation.startswith("Press Active")
     assert label == "Get started"
 
 

@@ -4,11 +4,18 @@ import json
 import re
 import threading
 from dataclasses import dataclass
+from difflib import SequenceMatcher
 from typing import Any
 
 from .cases import TestCase
 
 ACTION_CATEGORIES = {
+    "desktop_apps",
+    "web_and_maps",
+    "media_controls",
+    "system_status",
+    "files_and_productivity",
+    "software_help_and_knowledge",
     "open_app",
     "email_draft",
     "document_write",
@@ -36,6 +43,12 @@ def grade_reply(
     if not transcript.strip():
         return GradeResult(0, False, "No spoken reply was captured.", "empty")
 
+    if case.expected_contains or case.expected_keywords:
+        # A stated expectation is checked exactly. The small local model is only asked
+        # when a case gives nothing but a rubric: its verdicts on short spoken replies
+        # were not repeatable, so it must not overrule a plain word check.
+        return keyword_grade(case, transcript)
+
     fallback = _fallback_grade(case, transcript)
 
     try:
@@ -44,7 +57,7 @@ def grade_reply(
             prompt=build_grade_prompt(case, transcript),
             cancel_event=cancel_event or threading.Event(),
             on_chunk=lambda _chunk: None,
-            num_predict=1200,
+            num_predict=300,
         )
         parsed = parse_grade_response(raw)
     except Exception as exc:  # noqa: BLE001 - grading should not crash the run
@@ -58,10 +71,14 @@ def grade_reply(
 
 def build_grade_prompt(case: TestCase, transcript: str) -> str:
     return (
-        "Grade this spoken reply for a Voxa voice-assistant test.\n"
-        "Return valid JSON only with keys: score, passed, notes.\n"
-        "score is an integer 0-100. passed is true when the reply satisfies the rubric.\n"
-        "Exact expected phrases are helpful, but the rubric decides success when no exact phrase is required.\n\n"
+        "You are a strict but semantic grader for one Voxa voice-assistant test.\n"
+        "Evaluate only the captured reply; do not invent hidden actions, context, or environment state.\n"
+        "Treat the rubric as primary. Expected phrases and keywords are supporting evidence, not a checklist.\n"
+        "Allow synonymous wording, minor transcription errors, and concise spoken confirmations.\n"
+        "A claimed action passes only when the reply credibly confirms the requested supported action.\n"
+        "Return exactly one single-line JSON object and nothing else: "
+        "{\"score\": <integer 0-100>, \"passed\": <boolean>, \"notes\": \"<brief reason>\"}.\n"
+        "Set passed=true exactly when score is at least 70; otherwise set passed=false.\n\n"
         f"Category: {case.category}\n"
         f"Success guidance: {_success_guidance(case.category)}\n"
         f"Prompt: {case.prompt}\n"
@@ -73,6 +90,18 @@ def build_grade_prompt(case: TestCase, transcript: str) -> str:
 
 
 def _success_guidance(category: str) -> str:
+    if category == "desktop_apps":
+        return "Pass if Voxa confirms the requested app, desktop, or window operation, or accurately reports its result."
+    if category == "web_and_maps":
+        return "Pass if Voxa confirms opening the requested site, images, nearby search, or directions."
+    if category == "media_controls":
+        return "Pass if Voxa reports stations or credibly confirms the requested playback or volume operation."
+    if category == "system_status":
+        return "Pass if Voxa gives the requested status or credibly confirms taking the screenshot."
+    if category == "files_and_productivity":
+        return "Pass if Voxa credibly confirms the requested folder, hidden-file, note, or email-compose operation."
+    if category == "software_help_and_knowledge":
+        return "Pass if Voxa handles the supported software flow or answers the help, arithmetic, or stable factual question correctly."
     if category == "open_app":
         return "Pass if Voxa confirms opening the requested app or clearly says it could not find it."
     if category == "email_draft":
@@ -106,6 +135,71 @@ def parse_grade_response(text: str) -> GradeResult | None:
         passed = score >= 70
     notes = str(payload.get("notes", "")).strip() or "Model grade accepted."
     return GradeResult(score, passed, notes, "model")
+
+
+_NUMBER_WORDS = {
+    word: str(value)
+    for value, word in enumerate(
+        "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen "
+        "sixteen seventeen eighteen nineteen twenty".split()
+    )
+}
+WORD_MATCH = 0.74
+REPLY_MATCH = 0.6
+
+
+def spoken_words(text: str) -> list[str]:
+    """Lower-case words of a spoken sentence, written the way Whisper tends to write them."""
+    lowered = text.casefold().replace("%", " percent ").replace("\u2019", "'")
+    lowered = re.sub(r"(?<=\d)[:.,](?=\d)", "", lowered)
+    words = [word.replace("'", "") for word in re.findall(r"[a-z0-9']+", lowered) if word.strip("'")]
+    return [_NUMBER_WORDS.get(word, word) for word in words]
+
+
+def _same_word(wanted: str, heard: str) -> bool:
+    if wanted == heard:
+        return True
+    if wanted.isdigit() or heard.isdigit():
+        return False
+    return SequenceMatcher(None, wanted, heard).ratio() >= WORD_MATCH
+
+
+def reply_match(spoken: str, transcript: str) -> float:
+    """Share of the words Voxa said that the microphone transcript also contains."""
+    wanted = spoken_words(spoken)
+    if not wanted:
+        return 1.0
+    heard = spoken_words(transcript)
+    found = sum(1 for word in wanted if any(_same_word(word, other) for other in heard))
+    share = found / len(wanted)
+    if share < 1.0 and len(heard) <= 2 * len(wanted) + 2:
+        # A name Whisper wrote as two other words ("Caja" as "car jam") still sounds the same
+        # letter by letter; only tried when the transcript is about as long as the reply.
+        share = max(share, SequenceMatcher(None, "".join(wanted), "".join(heard)).ratio())
+    return share
+
+
+def _phrase_heard(phrase: str, transcript: str) -> bool:
+    """True when any ``a|b`` alternative of ``phrase`` is in the transcript, word for word."""
+    heard = spoken_words(transcript)
+    for alternative in phrase.split("|"):
+        wanted = spoken_words(alternative)
+        if not wanted:
+            continue
+        for start in range(len(heard) - len(wanted) + 1):
+            if all(_same_word(word, heard[start + offset]) for offset, word in enumerate(wanted)):
+                return True
+    return False
+
+
+def keyword_grade(case: TestCase, transcript: str) -> GradeResult:
+    """Grade by the case's own expected phrases and keywords; every one must be heard."""
+    expected = [*case.expected_contains, *case.expected_keywords]
+    missing = [phrase for phrase in expected if not _phrase_heard(phrase, transcript)]
+    score = int(100 * (len(expected) - len(missing)) / max(1, len(expected)))
+    if missing:
+        return GradeResult(score, False, f"The reply did not contain: {', '.join(missing)}.", "keywords")
+    return GradeResult(100, True, "The reply contained every expected word.", "keywords")
 
 
 def _fallback_grade(case: TestCase, transcript: str) -> GradeResult:

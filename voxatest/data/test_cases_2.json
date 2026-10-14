@@ -1,0 +1,481 @@
+{
+  "cases": [
+    {
+      "id": "desktop2-01",
+      "category": "desktop_apps",
+      "prompt": "Launch the text editor",
+      "expected_contains": [],
+      "expected_keywords": [
+        "opening"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "open_app",
+      "expected_args": {
+        "name": "text editor"
+      },
+      "after": "",
+      "capability": 81,
+      "verify": {}
+    },
+    {
+      "id": "desktop2-02",
+      "category": "desktop_apps",
+      "prompt": "Start the calculator",
+      "expected_contains": [],
+      "expected_keywords": [
+        "calculator"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "open_app",
+      "expected_args": {
+        "name": "calculator"
+      },
+      "after": "",
+      "capability": 81,
+      "verify": {}
+    },
+    {
+      "id": "desktop2-03",
+      "category": "desktop_apps",
+      "prompt": "Close the calculator",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "close_app",
+      "expected_args": {
+        "name": "calculator"
+      },
+      "after": "",
+      "capability": 81,
+      "verify": {}
+    },
+    {
+      "id": "desktop2-04",
+      "category": "desktop_apps",
+      "prompt": "Open the control center",
+      "expected_contains": [],
+      "expected_keywords": [
+        "control"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "open_app",
+      "expected_args": {
+        "name": "control center"
+      },
+      "after": "",
+      "capability": 81,
+      "verify": {}
+    },
+    {
+      "id": "desktop2-05",
+      "category": "desktop_apps",
+      "prompt": "What's open",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "list_open_windows",
+      "expected_args": {},
+      "after": "",
+      "capability": 82,
+      "verify": {}
+    },
+    {
+      "id": "web2-01",
+      "category": "web_and_maps",
+      "prompt": "Open YouTube",
+      "expected_contains": [],
+      "expected_keywords": [
+        "youtube|you tube"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "open_site",
+      "expected_args": {
+        "name": "YouTube"
+      },
+      "after": "",
+      "capability": 88,
+      "verify": {}
+    },
+    {
+      "id": "web2-02",
+      "category": "web_and_maps",
+      "prompt": "Open Wikipedia",
+      "expected_contains": [],
+      "expected_keywords": [
+        "wikipedia"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "open_site",
+      "expected_args": {
+        "name": "Wikipedia"
+      },
+      "after": "",
+      "capability": 88,
+      "verify": {}
+    },
+    {
+      "id": "web2-03",
+      "category": "web_and_maps",
+      "prompt": "Find the nearest coffee shop",
+      "expected_contains": [],
+      "expected_keywords": [
+        "coffee"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "find_nearby",
+      "expected_args": {
+        "what": "coffee shop"
+      },
+      "after": "",
+      "capability": 47,
+      "verify": {}
+    },
+    {
+      "id": "web2-04",
+      "category": "web_and_maps",
+      "prompt": "Get walking directions to the park",
+      "expected_contains": [],
+      "expected_keywords": [
+        "walking",
+        "park"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "directions",
+      "expected_args": {
+        "destination": "the park|park",
+        "mode": "walking"
+      },
+      "after": "",
+      "capability": 48,
+      "verify": {}
+    },
+    {
+      "id": "web2-05",
+      "category": "web_and_maps",
+      "prompt": "Show me pictures of golden retrievers",
+      "expected_contains": [],
+      "expected_keywords": [
+        "golden"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "image_search",
+      "expected_args": {
+        "query": "golden retrievers"
+      },
+      "after": "",
+      "capability": 88,
+      "verify": {}
+    },
+    {
+      "id": "system2-01",
+      "category": "system_status",
+      "prompt": "What day is it",
+      "expected_contains": [],
+      "expected_keywords": [
+        "2026"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "tell_date",
+      "expected_args": {},
+      "after": "",
+      "capability": 82,
+      "verify": {}
+    },
+    {
+      "id": "system2-02",
+      "category": "system_status",
+      "prompt": "Tell me the time",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "tell_time",
+      "expected_args": {},
+      "after": "",
+      "capability": 82,
+      "verify": {}
+    },
+    {
+      "id": "system2-03",
+      "category": "system_status",
+      "prompt": "How much battery is left",
+      "expected_contains": [],
+      "expected_keywords": [
+        "battery"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "battery_level",
+      "expected_args": {},
+      "after": "",
+      "capability": 86,
+      "verify": {}
+    },
+    {
+      "id": "system2-04",
+      "category": "system_status",
+      "prompt": "How much storage space do I have",
+      "expected_contains": [],
+      "expected_keywords": [
+        "gigabytes|gigabyte"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "disk_space",
+      "expected_args": {},
+      "after": "",
+      "capability": 86,
+      "verify": {}
+    },
+    {
+      "id": "system2-05",
+      "category": "system_status",
+      "prompt": "What version of Spaced Linux is this",
+      "expected_contains": [],
+      "expected_keywords": [
+        "linux"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "check_system_version",
+      "expected_args": {},
+      "after": "",
+      "capability": 84,
+      "verify": {}
+    },
+    {
+      "id": "files2-01",
+      "category": "files_and_productivity",
+      "prompt": "Remind me to stretch in two hours",
+      "expected_contains": [],
+      "expected_keywords": [
+        "stretch"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "set_reminder",
+      "expected_args": {
+        "when": "two hours|2 hours",
+        "text": "stretch"
+      },
+      "after": "",
+      "capability": 24,
+      "verify": {}
+    },
+    {
+      "id": "files2-02",
+      "category": "files_and_productivity",
+      "prompt": "What are my reminders",
+      "expected_contains": [],
+      "expected_keywords": [
+        "stretch"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "list_reminders",
+      "expected_args": {},
+      "after": "",
+      "capability": 24,
+      "verify": {}
+    },
+    {
+      "id": "files2-03",
+      "category": "files_and_productivity",
+      "prompt": "Cancel my reminders",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cancelled|canceled|cancel"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "cancel_reminders",
+      "expected_args": {},
+      "after": "",
+      "capability": 24,
+      "verify": {}
+    },
+    {
+      "id": "files2-04",
+      "category": "files_and_productivity",
+      "prompt": "Take a note to call the vet",
+      "expected_contains": [],
+      "expected_keywords": [
+        "vet"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "take_note",
+      "expected_args": {
+        "text": "call the vet"
+      },
+      "after": "",
+      "capability": 30,
+      "verify": {}
+    },
+    {
+      "id": "files2-05",
+      "category": "files_and_productivity",
+      "prompt": "Read my notes",
+      "expected_contains": [],
+      "expected_keywords": [
+        "vet"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "read_notes",
+      "expected_args": {},
+      "after": "",
+      "capability": 30,
+      "verify": {}
+    },
+    {
+      "id": "files2-06",
+      "category": "files_and_productivity",
+      "prompt": "Delete my last note",
+      "expected_contains": [],
+      "expected_keywords": [
+        "deleted|delete"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "delete_last_note",
+      "expected_args": {},
+      "after": "",
+      "capability": 30,
+      "verify": {}
+    },
+    {
+      "id": "files2-07",
+      "category": "files_and_productivity",
+      "prompt": "Open my Pictures folder",
+      "expected_contains": [],
+      "expected_keywords": [
+        "pictures|picture"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "open_folder",
+      "expected_args": {
+        "folder": "Pictures|picture"
+      },
+      "after": "",
+      "capability": 83,
+      "verify": {}
+    },
+    {
+      "id": "files2-08",
+      "category": "files_and_productivity",
+      "prompt": "What is in my Documents folder",
+      "expected_contains": [],
+      "expected_keywords": [
+        "documents|document"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "list_folder",
+      "expected_args": {
+        "folder": "Documents|document"
+      },
+      "after": "",
+      "capability": 83,
+      "verify": {}
+    },
+    {
+      "id": "files2-09",
+      "category": "files_and_productivity",
+      "prompt": "Hide hidden files",
+      "expected_contains": [],
+      "expected_keywords": [
+        "hidden"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "hidden_files",
+      "expected_args": {
+        "show": "off"
+      },
+      "after": "",
+      "capability": 83,
+      "verify": {}
+    },
+    {
+      "id": "help2-01",
+      "category": "software_help_and_knowledge",
+      "prompt": "What is 15 percent of 80",
+      "expected_contains": [],
+      "expected_keywords": [
+        "12|twelve"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "capability": 32,
+      "verify": {}
+    },
+    {
+      "id": "help2-02",
+      "category": "software_help_and_knowledge",
+      "prompt": "What is 144 divided by 12",
+      "expected_contains": [],
+      "expected_keywords": [
+        "12|twelve"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "capability": 32,
+      "verify": {}
+    },
+    {
+      "id": "help2-03",
+      "category": "software_help_and_knowledge",
+      "prompt": "Convert 100 kilometers to miles",
+      "expected_contains": [],
+      "expected_keywords": [
+        "miles"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "capability": 32,
+      "verify": {}
+    },
+    {
+      "id": "help2-04",
+      "category": "software_help_and_knowledge",
+      "prompt": "What is the square root of 81",
+      "expected_contains": [],
+      "expected_keywords": [
+        "9|nine"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "capability": 32,
+      "verify": {}
+    },
+    {
+      "id": "help2-05",
+      "category": "software_help_and_knowledge",
+      "prompt": "Help with reminders",
+      "expected_contains": [],
+      "expected_keywords": [
+        "reminders|timers|timer"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "voxa_help",
+      "expected_args": {
+        "topic": "reminders"
+      },
+      "after": "",
+      "capability": 82,
+      "verify": {}
+    },
+    {
+      "id": "help2-06",
+      "category": "software_help_and_knowledge",
+      "prompt": "What is the largest planet in the solar system",
+      "expected_contains": [],
+      "expected_keywords": [
+        "jupiter"
+      ],
+      "rubric": "The reply names Jupiter.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "capability": 32,
+      "verify": {}
+    }
+  ]
+}

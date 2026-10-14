@@ -257,6 +257,13 @@ def _wait_for(condition, timeout: float = 4.0) -> bool:
 
 def test_a_hands_free_turn_flows_through_the_states_and_the_task_list(window, monkeypatch) -> None:
     monkeypatch.setattr(window, "_ai_client", lambda: FakeClient("It is noon."))
+    # Background playback is unrelated to this answer and must not disable conversational mode.
+    class PlayingMedia:
+        @staticmethod
+        def status() -> str:
+            return "Playing"
+
+    monkeypatch.setattr("voxa.window.active_player", lambda: PlayingMedia())
     window.settings.ollama_model = "test-model"
     window.assistant.activate()
     states: list[AssistantState] = []

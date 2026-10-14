@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
-import gi
+import pytest
+
+gi = pytest.importorskip("gi")
+
+if not hasattr(gi, "require_version"):
+    pytest.skip("PyGObject is not available", allow_module_level=True)
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk  # noqa: E402
@@ -40,7 +45,7 @@ def test_ready_rotation_by_tick():
 
 def test_offline_tips():
     tips = tips_for("OFFLINE", {})
-    assert tips[0] == "Press ACTIVE to start"
+    assert tips[0] == "Press Active to start"
     assert len(tips) == 2
 
 

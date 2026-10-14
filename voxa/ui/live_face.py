@@ -10,6 +10,8 @@ from __future__ import annotations
 import json
 import socket
 import threading
+import time
+from bisect import bisect_left, bisect_right, insort
 
 CHUNK = 65536
 
@@ -58,18 +60,36 @@ class MessageReader:
 class FrameBuffer:
     """Frames arriving for one utterance, addressable by playback seconds."""
 
-    def __init__(self, utterance_id, fps=25):
+    def __init__(self, utterance_id, fps=25, duration_seconds=0.0):
         self.utterance_id = utterance_id
         self.fps = fps
+        self.duration_seconds = max(0.0, float(duration_seconds))
         self._frames: dict[int, bytes] = {}
+        self._indices: list[int] = []
+        self._contiguous = 0
         self._lock = threading.Lock()
         self._done = False
         self._failed = False
         self._error = ""
+        self._started_at: float | None = None
+
+    def mark_started(self) -> None:
+        with self._lock:
+            self._started_at = time.monotonic()
+
+    def started_at(self) -> float | None:
+        with self._lock:
+            return self._started_at
 
     def put(self, index, jpeg) -> None:
+        index = int(index)
         with self._lock:
-            self._frames[int(index)] = jpeg
+            if index not in self._frames:
+                insort(self._indices, index)
+            self._frames[index] = jpeg
+            if index == self._contiguous:
+                while self._contiguous in self._frames:
+                    self._contiguous += 1
 
     def get(self, index):
         with self._lock:
@@ -87,27 +107,42 @@ class FrameBuffer:
     def index_at(self, seconds):
         want = int(float(seconds) * self.fps)
         with self._lock:
-            if not self._frames:
+            position = bisect_right(self._indices, want)
+            if position == 0:
                 return None
-            if want in self._frames:
-                return want
-            earlier = [index for index in self._frames if index <= want]
-            if not earlier:
-                return None
-            return max(earlier)
+            return self._indices[position - 1]
 
     def frame_at(self, seconds):
-        index = self.index_at(seconds)
-        if index is None:
-            return None
-        return self._frames.get(index)
+        _index, frame = self.frame_with_index_at(seconds, retain_behind=None)
+        return frame
+
+    def frame_with_index_at(self, seconds, retain_behind=2):
+        """Return the closest available frame and optionally discard played frames.
+
+        Live frames arrive in order, but lookup still needs to tolerate a missing
+        frame.  Keeping a sorted index makes this logarithmic instead of scanning
+        every frame on every GTK tick.  Once playback advances, only a tiny
+        rewind window is retained; future frames remain intact.
+        """
+        want = int(float(seconds) * self.fps)
+        with self._lock:
+            position = bisect_right(self._indices, want)
+            if position == 0:
+                return None, None
+            index = self._indices[position - 1]
+            frame = self._frames.get(index)
+            if retain_behind is not None:
+                cutoff = index - max(0, int(retain_behind))
+                discard = bisect_left(self._indices, cutoff)
+                for old in self._indices[:discard]:
+                    self._frames.pop(old, None)
+                if discard:
+                    del self._indices[:discard]
+            return index, frame
 
     def buffered_seconds(self) -> float:
         with self._lock:
-            count = 0
-            while count in self._frames:
-                count += 1
-            return count / float(self.fps)
+            return self._contiguous / float(self.fps)
 
     def done(self) -> bool:
         with self._lock:
@@ -176,9 +211,12 @@ class LiveFaceClient:
         self._sock = None
         self._reader = MessageReader()
         self._ready = False
+        self._protocol_version = 0
         self._characters: list[str] = []
         self._buffer = None
         self._buffers: dict[int, FrameBuffer] = {}
+        self._buffers_lock = threading.Lock()
+        self._send_lock = threading.Lock()
         self._next_id = 0
 
     def available(self) -> bool:
@@ -201,6 +239,7 @@ class LiveFaceClient:
                 messages = self._reader.feed(data)
             for msg, _payload in messages:
                 if msg.get("op") == "hello" and msg.get("ready"):
+                    self._protocol_version = int(msg.get("version", 0) or 0)
                     self._characters = list(msg.get("characters", []))
                     self._ready = True
                     self._sock = sock
@@ -214,42 +253,76 @@ class LiveFaceClient:
         if sock is not None:
             sock.close()
         self._ready = False
+        self._protocol_version = 0
         return False
+
+    def protocol_version(self) -> int:
+        return self._protocol_version
 
     def characters(self) -> list[str]:
         return list(self._characters)
 
-    def start_utterance(self, character, pcm16k, size=512):
+    def start_utterance(self, character, pcm16k, size=512, fps=25):
         if self._sock is None:
             return None
-        uid = self._next_id
-        self._next_id += 1
-        buffer = FrameBuffer(uid)
-        self._buffer = buffer
-        self._buffers[uid] = buffer
-        for old in [key for key in self._buffers if key < uid - 4]:
-            del self._buffers[old]  # keep only the last few: the current one and those being prepared
+        with self._buffers_lock:
+            uid = self._next_id
+            self._next_id += 1
+            buffer = FrameBuffer(uid, fps=fps, duration_seconds=len(pcm16k) / (16000.0 * 2.0))
+            self._buffer = buffer
+            self._buffers[uid] = buffer
         try:
-            self._sock.sendall(
-                encode(
-                    {
-                        "op": "utterance",
-                        "id": uid,
-                        "character": character,
-                        "size": size,
-                        "fps": 25,
-                        "sample_rate": 16000,
-                    }
+            # Prepared speech can finish on more than one worker. Keep each
+            # utterance's header/audio/end sequence together on the wire.
+            with self._send_lock:
+                self._sock.sendall(
+                    encode(
+                        {
+                            "op": "utterance",
+                            "id": uid,
+                            "character": character,
+                            "size": size,
+                            "fps": fps,
+                            "sample_rate": 16000,
+                        }
+                    )
                 )
-            )
-            for offset in range(0, max(1, len(pcm16k)), CHUNK):
-                self._sock.sendall(encode({"op": "audio", "id": uid}, pcm16k[offset:offset + CHUNK]))
-            self._sock.sendall(encode({"op": "end", "id": uid}))
+                for offset in range(0, max(1, len(pcm16k)), CHUNK):
+                    self._sock.sendall(encode({"op": "audio", "id": uid}, pcm16k[offset:offset + CHUNK]))
+                self._sock.sendall(encode({"op": "end", "id": uid}))
         except OSError:
             self._sock = None
             self._ready = False
+            with self._buffers_lock:
+                self._buffers.pop(uid, None)
+            buffer.fail("face server disconnected")
             return None
         return buffer
+
+    def report_playback(self, buffer: FrameBuffer, seconds: float) -> None:
+        """Tell the renderer how far this utterance's audio has actually played.
+
+        The server uses this clock to stop neural work when it gets more than a
+        small prebuffer ahead.  Progress is best-effort: losing a report must
+        never interrupt speech playback.
+        """
+        sock = self._sock
+        if sock is None:
+            return
+        try:
+            with self._send_lock:
+                sock.sendall(
+                    encode(
+                        {
+                            "op": "progress",
+                            "id": buffer.utterance_id,
+                            "seconds": max(0.0, min(float(seconds), buffer.duration_seconds)),
+                        }
+                    )
+                )
+        except (OSError, TypeError, ValueError):
+            self._sock = None
+            self._ready = False
 
     def _pump(self, sock) -> None:
         """One reader per connection: hands each message to the utterance it belongs to."""
@@ -259,35 +332,53 @@ class LiveFaceClient:
                 if not data:
                     break
                 for msg, payload in self._reader.feed(data):
-                    buffer = self._buffers.get(msg.get("id"))
+                    uid = msg.get("id")
+                    with self._buffers_lock:
+                        buffer = self._buffers.get(uid)
                     if buffer is None:
                         continue  # a frame of an utterance that was cancelled or is long gone
                     op = msg.get("op")
-                    if op == "frame":
+                    if op == "started":
+                        buffer.mark_started()
+                    elif op == "frame":
                         buffer.put(msg.get("index", 0), payload)
                     elif op == "done":
                         buffer.finish(msg.get("frames", 0))
+                        # The caller/renderer owns the completed buffer. The
+                        # client only needs in-flight buffers for dispatch.
+                        with self._buffers_lock:
+                            self._buffers.pop(uid, None)
                     elif op == "error":
                         buffer.fail(msg.get("message", "face server error"))
+                        with self._buffers_lock:
+                            self._buffers.pop(uid, None)
         except OSError:
             pass
         # The connection is gone: say so, so the next check reconnects and the mouth falls back at once.
+        buffers = []
         if self._sock is sock:
+            # Drain this connection's buffers before advertising that a new
+            # connection may be opened, or the old pump could clear new work.
+            with self._buffers_lock:
+                buffers, self._buffers = list(self._buffers.values()), {}
             self._sock = None
             self._ready = False
+            self._protocol_version = 0
             self._reader = MessageReader()
-        for buffer in list(self._buffers.values()):
+        for buffer in buffers:
             if not (buffer.done() if callable(buffer.done) else buffer.done):
                 buffer.fail("face server disconnected")
 
     def cancel(self) -> None:
         """Stop every utterance that is playing or being prepared."""
-        buffers, self._buffers = self._buffers, {}
+        with self._buffers_lock:
+            buffers, self._buffers = self._buffers, {}
         if self._sock is None:
             return
         try:
-            for uid in buffers:
-                self._sock.sendall(encode({"op": "cancel", "id": uid}))
+            with self._send_lock:
+                for uid in buffers:
+                    self._sock.sendall(encode({"op": "cancel", "id": uid}))
         except OSError:
             self._sock = None
             self._ready = False
@@ -304,6 +395,7 @@ class LiveFaceClient:
     def close(self) -> None:
         sock, self._sock = self._sock, None
         self._ready = False
+        self._protocol_version = 0
         if sock is not None:
             try:
                 sock.close()

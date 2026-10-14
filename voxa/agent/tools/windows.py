@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import re
 import subprocess
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -12,12 +13,14 @@ from voxa.agent.policy import RiskLevel
 from voxa.agent.registry import Tool
 from voxa.agent.result import ToolResult
 from voxa.agent.tools.applications import open_app
+from voxa.ui.avatars import describe_characters, find_character
 
 log = logging.getLogger("voxa.agent.tools.windows")
 
 _THE_PREFIX = re.compile(r"^the\s+", re.IGNORECASE)
 
 ON_LOCK: Callable | None = None
+QUIT: Callable | None = None
 
 _LOCKERS = (
     ("mate-screensaver-command", "--lock"),
@@ -230,24 +233,88 @@ def _close_own_browser(name: str) -> ToolResult | None:
     return ToolResult.failure("My browser isn't open. Say the browser's name, like “close Brave”, to close yours.")
 
 
+_BROWSER_NAMES = frozenset({
+    "brave", "brave browser", "firefox", "chrome", "google chrome", "chromium", "edge", "vivaldi", "opera", "librewolf",
+})
+
+# Desktop components such as docks do not necessarily publish an ordinary
+# application window, so wmctrl cannot find them.  Keep this list deliberately
+# narrow: stopping a process is only safe when the spoken name maps to one exact,
+# well-known executable.
+_WINDOWLESS_APPS = {
+    "cairodock": ("Cairo Dock", "cairo-dock"),
+}
+
+
+def _close_named_browser(name: str) -> ToolResult | None:
+    """"Close Brave" closes the browser window Voxa opened and never the user's own windows.
+
+    Voxa's controlled browser is the same program as the user's, so closing every matching window
+    (or killing the app) took the user's windows and tabs with it. Returns None for other programs.
+    """
+    if name.lower() not in _BROWSER_NAMES:
+        return None
+    try:
+        from ..browser_session import browser_socket
+        from .web import get_session
+
+        session = get_session()
+        if browser_socket(session._port) is not None:
+            session.close_browser()
+            return ToolResult.success("Closing my browser window. Yours are untouched.")
+    except Exception as exc:  # noqa: BLE001 - fall through to the honest answer below
+        log.debug("could not close the controlled browser: %s", exc)
+    count = len(match_windows(name, list_windows()))
+    if count:
+        plural = "window" if count == 1 else "windows"
+        return ToolResult.failure(
+            f"I only close the browser I opened. {name.capitalize()} has {count} {plural} of yours open; "
+            "say “close this window” to close the one in front."
+        )
+    return ToolResult.failure(f"{name} doesn't seem to be open.")
+
+
+def _close_windowless_app(name: str) -> ToolResult | None:
+    """Close a known desktop component which is absent from wmctrl's window list."""
+    app = _WINDOWLESS_APPS.get(_normalize(name))
+    if app is None:
+        return None
+    label, process_name = app
+    running = _run(["pgrep", "-x", process_name], check=False)
+    if running.returncode != 0:
+        return ToolResult.failure(f"{label} doesn't seem to be open.")
+    # SIGTERM lets Cairo Dock save its state and shut its plug-ins down cleanly.
+    stopped = _run(["pkill", "-TERM", "-x", process_name], check=False)
+    if stopped.returncode == 0:
+        return ToolResult.success(f"Closing {label}.")
+    return ToolResult.failure(f"I couldn't close {label}.")
+
+
 def close_app(args: dict[str, str]) -> ToolResult:
     name = _THE_PREFIX.sub("", args["name"].strip())
     own = _close_own_browser(name)
     if own is not None:
         return own
+    browser = _close_named_browser(name)
+    if browser is not None:
+        return browser
     windows = match_windows(name, list_windows())
-    app = apps.match_app(name, apps.list_apps())
-    app_id = flatpak_app_id(app.path) if app is not None else None
 
     if windows:
+        # Ask each window to close and stop there: the program may need to ask about unsaved work,
+        # and killing it afterwards threw that work away.
         for window in windows:
             _run(["wmctrl", "-i", "-c", window.id])
-        # A Flatpak app can linger behind a "save changes?" prompt, so kill it too.
-        if app_id is not None:
-            _run(["flatpak", "kill", app_id], check=False)
         return ToolResult.success(f"Closing {name}.")
 
+    windowless = _close_windowless_app(name)
+    if windowless is not None:
+        return windowless
+
+    app = apps.match_app(name, apps.list_apps())
+    app_id = flatpak_app_id(app.path) if app is not None else None
     if app_id is not None:
+        # No window at all: a background program, which only a kill can stop.
         result = _run(["flatpak", "kill", app_id], check=False)
         if result.returncode == 0:
             return ToolResult.success(f"Closing {app.name}.")
@@ -297,6 +364,10 @@ def maximize_app(args: dict[str, str]) -> ToolResult:
         window_id = _active_window_id()
         if not window_id:
             return ToolResult.failure("Nothing seems to be open.")
+        title = _run(["xdotool", "getactivewindow", "getwindowname"], check=False).stdout.strip().lower()
+        if "vlc" in title:
+            _run(["xdotool", "getactivewindow", "key", "f"], check=False)
+            return ToolResult.success("Maximized.")
         _run(["wmctrl", "-i", "-r", window_id, "-b", "add,maximized_vert,maximized_horz"], check=False)
         return ToolResult.success("Maximized.")
     windows = match_windows(name, list_windows())
@@ -325,9 +396,192 @@ def restore_app(args: dict[str, str]) -> ToolResult:
     return ToolResult.success(f"Restored {name}.")
 
 
+_MINIMIZED_IDS: list[str] = []
+
+
 def minimize_all(args: dict[str, str]) -> ToolResult:
-    _run(["wmctrl", "-k", "on"], check=False)
+    windows = list_windows()
+    ordinary = [w for w in windows if not any(marker in w.wm_class.casefold() for marker in _DESKTOP_MARKERS)]
+    own = [w for w in ordinary if w.title.strip() == "Voxa"]
+    ordered = [w for w in ordinary if w.title.strip() != "Voxa"] + own
+    _MINIMIZED_IDS.clear()
+    failed: list[str] = []
+    for window in ordered:
+        result = _run(["xdotool", "windowminimize", window.id], check=False)
+        if result.returncode == 0:
+            _MINIMIZED_IDS.append(window.id)
+        else:
+            failed.append(window.title or window.id)
+    if failed:
+        return ToolResult.failure(
+            "I couldn't minimize every window.", detail=", ".join(failed)
+        )
     return ToolResult.success("Minimized everything.")
+
+
+def restore_all(args: dict[str, str]) -> ToolResult:
+    for window_id in reversed(_MINIMIZED_IDS):
+        _run(["wmctrl", "-i", "-a", window_id], check=False)
+    _MINIMIZED_IDS.clear()
+    return ToolResult.success("Restored everything.")
+
+
+def vlc_geometry(monitor: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
+    """Centre a compact 16:9 VLC window within one monitor.
+
+    ``monitor`` is (x, y, width, height), including a monitor's offset in a
+    multi-monitor desktop. The normal 640x360 video size matches Voxa's compact
+    media-player size. Small monitors retain a 20 px margin and the aspect ratio.
+    """
+    mx, my, sw, sh = monitor
+    w = min(640, max(1, sw - 40)) if sw > 0 else 640
+    h = round(w * 9 / 16)
+    if sh > 0 and h > sh - 40:
+        h = max(1, sh - 40)
+        w = round(h * 16 / 9)
+    if sw > 0 and w > sw - 40:
+        w = max(1, sw - 40)
+        h = round(w * 9 / 16)
+    x = mx + max(0, (sw - w) // 2) if sw > 0 else mx
+    y = my + max(0, (sh - h) // 2) if sh > 0 else my
+    return (x, y, w, h)
+
+
+def _voxa_geometry() -> tuple[int, int, int, int] | None:
+    """Voxa's window geometry (x, y, w, h) from xdotool, or None when it cannot be read."""
+    windows = match_windows("voxa", list_windows())
+    if not windows:
+        return None
+    result = _run(["xdotool", "getwindowgeometry", "--shell", windows[0].id], check=False)
+    values: dict[str, int] = {}
+    for line in result.stdout.splitlines():
+        key, sep, value = line.partition("=")
+        if sep and value.strip().lstrip("-").isdigit():
+            values[key.strip()] = int(value)
+    try:
+        return (values["X"], values["Y"], values["WIDTH"], values["HEIGHT"])
+    except KeyError:
+        return None
+
+
+def parse_monitors(listing: str) -> list[tuple[int, int, int, int]]:
+    """Return (x, y, width, height) records from ``xrandr --query`` output."""
+    monitors: list[tuple[int, int, int, int]] = []
+    for line in listing.splitlines():
+        if " connected" not in line:
+            continue
+        match = re.search(r"\b(\d+)x(\d+)([+-]\d+)([+-]\d+)\b", line)
+        if match:
+            width, height, x, y = (int(value) for value in match.groups())
+            monitors.append((x, y, width, height))
+    return monitors
+
+
+def monitor_at(
+    point: tuple[int, int], monitors: list[tuple[int, int, int, int]]
+) -> tuple[int, int, int, int] | None:
+    """The monitor containing a desktop point, if there is one."""
+    px, py = point
+    return next(
+        (monitor for monitor in monitors
+         if monitor[0] <= px < monitor[0] + monitor[2] and monitor[1] <= py < monitor[1] + monitor[3]),
+        None,
+    )
+
+
+def _pointer_position() -> tuple[int, int] | None:
+    result = _run(["xdotool", "getmouselocation", "--shell"], check=False)
+    values: dict[str, int] = {}
+    for line in result.stdout.splitlines():
+        key, sep, value = line.partition("=")
+        if sep and value.strip().lstrip("-").isdigit():
+            values[key.strip()] = int(value)
+    return (values["X"], values["Y"]) if "X" in values and "Y" in values else None
+
+
+def _current_monitor_geometry() -> tuple[int, int, int, int]:
+    monitors = parse_monitors(_run(["xrandr", "--query"], check=False).stdout)
+    pointer = _pointer_position()
+    if pointer is not None:
+        pointed = monitor_at(pointer, monitors)
+        if pointed is not None:
+            return pointed
+    voxa = _voxa_geometry()
+    if voxa is not None:
+        centred = monitor_at((voxa[0] + voxa[2] // 2, voxa[1] + voxa[3] // 2), monitors)
+        if centred is not None:
+            return centred
+    if monitors:
+        return monitors[0]
+    result = _run(["xdotool", "getdisplaygeometry"], check=False)
+    parts = result.stdout.split()
+    if len(parts) >= 2 and parts[0].isdigit() and parts[1].isdigit():
+        return (0, 0, int(parts[0]), int(parts[1]))
+    return (0, 0, 0, 0)
+
+
+def frame_vlc_window() -> None:
+    """Restore VLC and centre its compact video window on the current monitor."""
+    if simulation.actions_simulated():
+        log.info("simulated action: would frame the VLC window")
+        return
+    window = None
+    deadline = time.monotonic() + 5.0
+    while window is None:
+        matches = match_windows("vlc", list_windows())
+        if matches:
+            window = matches[0]
+            break
+        if time.monotonic() >= deadline:
+            return
+        time.sleep(0.25)
+    x, y, w, h = vlc_geometry(_current_monitor_geometry())
+    # The window is placed again once the stream has started: VLC and the window manager both
+    # move it when the first picture arrives.
+    for wait in (0.0, 1.5, 3.0):
+        time.sleep(wait)
+        _run(["xdotool", "windowmap", window.id], check=False)
+        _run(["wmctrl", "-i", "-r", window.id, "-b", "remove,hidden,maximized_vert,maximized_horz,fullscreen"], check=False)
+        _run(["wmctrl", "-i", "-r", window.id, "-e", f"0,{x},{y},{w},{h}"], check=False)
+    _run(["xdotool", "windowraise", window.id], check=False)
+    _run(["wmctrl", "-i", "-a", window.id], check=False)
+
+
+def minimize_self(args: dict[str, str]) -> ToolResult:
+    windows = match_windows("voxa", list_windows())
+    if not windows:
+        return ToolResult.failure("I can't find my own window to minimize.")
+    for window in windows:
+        _run(["xdotool", "windowminimize", window.id], check=False)
+    return ToolResult.success("Minimized myself.")
+
+
+def maximize_self(args: dict[str, str]) -> ToolResult:
+    windows = match_windows("voxa", list_windows())
+    if not windows:
+        return ToolResult.failure("I can't find my own window to maximize.")
+    for window in windows:
+        _run(["wmctrl", "-i", "-r", window.id, "-b", "add,maximized_vert,maximized_horz"], check=False)
+        _run(["wmctrl", "-i", "-a", window.id], check=False)
+    return ToolResult.success("Maximized.")
+
+
+def close_yourself(args: dict[str, str]) -> ToolResult:
+    if QUIT is not None:
+        QUIT()
+    return ToolResult.success("Goodbye.")
+
+
+def list_characters(args: dict[str, str]) -> ToolResult:
+    lines = describe_characters()
+    return ToolResult.success(" ".join(lines) if lines else "No characters to choose from.")
+
+
+def change_character(args: dict[str, str]) -> ToolResult:
+    name = (args.get("name") or "").strip()
+    if find_character(name) is None:
+        return ToolResult.failure("I don't know that character.")
+    return ToolResult.success(f"{name.title()} here!")
 
 
 def lock_screen(args: dict[str, str]) -> ToolResult:
@@ -374,6 +628,40 @@ def active_window_name(args: dict[str, str]) -> ToolResult:
     if not title:
         return ToolResult.failure("I cannot tell which window is in front.")
     return ToolResult.success(f"This is {title[:80]}.")
+
+
+def scroll_keys(direction: str, amount: str) -> list[str]:
+    """The xdotool key names for a scroll, as a pure function of direction and amount."""
+    if amount == "page":
+        return ["Page_Up"] if direction == "up" else ["Page_Down"]
+    if amount == "little":
+        return ["Up"] * 3 if direction == "up" else ["Down"] * 3
+    if amount == "top":
+        return ["ctrl+Home"]
+    if amount == "bottom":
+        return ["ctrl+End"]
+    return []
+
+
+def scroll(args: dict[str, str]) -> ToolResult:
+    """Send scroll keys to the most recently active window that is not Voxa."""
+    direction = args["direction"]
+    amount = args.get("amount") or "page"
+    keys = scroll_keys(direction, amount)
+    if not keys:
+        return ToolResult.failure(f"I don't know how to scroll {direction} {amount}.")
+    window_id = _active_window_id()
+    if not window_id:
+        return ToolResult.failure("Nothing seems to be open.")
+    title = _run(["xdotool", "getactivewindow", "getwindowname"], check=False).stdout.strip()
+    if title == "Voxa":
+        others = [w for w in list_windows() if not _is_desktop(w)]
+        if not others:
+            return ToolResult.failure("Nothing seems to be open.")
+        window_id = others[0].id
+    _run(["wmctrl", "-i", "-a", window_id], check=False)
+    _run(["xdotool", "key", "--window", window_id, *keys], check=False)
+    return ToolResult.success(f"Scrolled {direction}.")
 
 
 def window_tools() -> list[Tool]:
@@ -435,6 +723,54 @@ def window_tools() -> list[Tool]:
             required=(),
         ),
         Tool(
+            name="restore_all",
+            description="Restore every window minimized by minimize_all.",
+            parameters={},
+            risk=RiskLevel.REVERSIBLE,
+            handler=restore_all,
+            required=(),
+        ),
+        Tool(
+            name="minimize_self",
+            description="Minimize Voxa's own window.",
+            parameters={},
+            risk=RiskLevel.REVERSIBLE,
+            handler=minimize_self,
+            required=(),
+        ),
+        Tool(
+            name="maximize_self",
+            description="Maximize Voxa's own window.",
+            parameters={},
+            risk=RiskLevel.REVERSIBLE,
+            handler=maximize_self,
+            required=(),
+        ),
+        Tool(
+            name="close_yourself",
+            description="Close Voxa itself: shut the assistant's own window down cleanly.",
+            parameters={},
+            risk=RiskLevel.REVERSIBLE,
+            handler=close_yourself,
+            required=(),
+        ),
+        Tool(
+            name="change_character",
+            description="Change the assistant's character to a named avatar.",
+            parameters={"name": "the character name"},
+            risk=RiskLevel.REVERSIBLE,
+            handler=change_character,
+            required=("name",),
+        ),
+        Tool(
+            name="list_characters",
+            description="Say which characters can be chosen.",
+            parameters={},
+            risk=RiskLevel.READ_ONLY,
+            handler=list_characters,
+            required=(),
+        ),
+        Tool(
             name="list_open_windows",
             description="Say which windows are open.",
             parameters={},
@@ -457,5 +793,13 @@ def window_tools() -> list[Tool]:
             risk=RiskLevel.REVERSIBLE,
             handler=lock_screen,
             required=(),
+        ),
+        Tool(
+            name="scroll",
+            description="Scroll the window in front up or down, by a page, a little, to the top, or to the bottom.",
+            parameters={"direction": "up or down", "amount": "page, little, top, or bottom"},
+            risk=RiskLevel.REVERSIBLE,
+            handler=scroll,
+            required=("direction",),
         ),
     ]

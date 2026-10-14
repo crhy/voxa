@@ -72,6 +72,26 @@ def test_frame_buffer_buffered_seconds():
     assert buf.buffered_seconds() == 10 / 25.0
 
 
+def test_frame_buffer_sparse_lookup_is_ordered():
+    buf = FrameBuffer(1, fps=10)
+    for index in (20, 0, 10, 5):
+        buf.put(index, str(index).encode())
+    assert buf.index_at(1.9) == 10
+    assert buf.frame_at(0.7) == b"5"
+
+
+def test_frame_buffer_discards_frames_behind_playback():
+    buf = FrameBuffer(1, fps=25)
+    for index in range(100):
+        buf.put(index, b"frame")
+    index, frame = buf.frame_with_index_at(3.0, retain_behind=2)
+    assert (index, frame) == (75, b"frame")
+    assert sorted(buf._frames) == list(range(73, 100))
+    # Startup buffering is a high-water mark and remains meaningful after old
+    # playback frames have been released.
+    assert buf.buffered_seconds() == 4.0
+
+
 def test_frame_buffer_done_fail():
     buf = FrameBuffer(1)
     buf.finish(394)
@@ -81,6 +101,36 @@ def test_frame_buffer_done_fail():
     buf2.fail("bad")
     assert buf2.failed()
     assert buf2.error() == "bad"
+
+
+def test_frame_buffer_records_renderer_start():
+    buf = FrameBuffer(3)
+    assert buf.started_at() is None
+    before = time.monotonic()
+    buf.mark_started()
+    assert buf.started_at() is not None
+    assert buf.started_at() >= before
+
+
+def test_frame_buffer_records_audio_duration():
+    buf = FrameBuffer(3, duration_seconds=2.5)
+    assert buf.duration_seconds == 2.5
+
+
+def test_live_client_reports_bounded_playback_progress():
+    class RecordingSocket:
+        def __init__(self):
+            self.messages = []
+
+        def sendall(self, data):
+            line, _separator, _payload = data.partition(b"\n")
+            self.messages.append(json.loads(line))
+
+    client = LiveFaceClient()
+    client._sock = RecordingSocket()
+    buffer = FrameBuffer(17, duration_seconds=3.0)
+    client.report_playback(buffer, 9.0)
+    assert client._sock.messages == [{"op": "progress", "id": 17, "seconds": 3.0}]
 
 
 def test_live_client_available():
@@ -134,12 +184,14 @@ def test_live_client_start_utterance():
             time.sleep(0.02)
         assert client.available()
         silence = b"\x00" * (2 * 16000 * 2)
-        buf = client.start_utterance("aoife", silence, size=512)
+        buf = client.start_utterance("aoife", silence, size=384, fps=20)
         assert buf is not None
         deadline = time.monotonic() + 5.0
         while not buf.done() and time.monotonic() < deadline:
             time.sleep(0.01)
         assert buf.done()
+        assert buf.utterance_id not in client._buffers
+        assert buf.fps == 20
         assert buf.buffered_seconds() == 2.0
         frame = buf.frame_at(0.5)
         assert frame is not None

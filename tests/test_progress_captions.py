@@ -60,7 +60,7 @@ def test_open_site():
 
 
 def test_browse():
-    assert working_caption("browse", {"url": "https://example.com"}) == "Opening https://example.com…"
+    assert working_caption("browse", {"url": "https://example.com"}) == "Opening website…"
 
 
 def test_web_search():

@@ -744,18 +744,18 @@
       "id": "key-16",
       "category": "keys",
       "say": "fullscreen",
-      "tool": "press_key",
+      "tool": "maximize_app",
       "args": {
-        "key": "fullscreen"
+        "name": ""
       }
     },
     {
       "id": "key-17",
       "category": "keys",
       "say": "full screen",
-      "tool": "press_key",
+      "tool": "maximize_app",
       "args": {
-        "key": "full screen"
+        "name": ""
       }
     },
     {
@@ -881,7 +881,7 @@
       "say": "start notepad",
       "tool": "open_app",
       "args": {
-        "name": "notepad"
+        "name": "text editor"
       }
     },
     {
@@ -917,7 +917,7 @@
       "say": "open the terminal",
       "tool": "open_app",
       "args": {
-        "name": "the terminal"
+        "name": "terminal"
       }
     },
     {
@@ -1277,7 +1277,7 @@
       "say": "open the file manager",
       "tool": "open_app",
       "args": {
-        "name": "file manager"
+        "name": "file browser"
       }
     },
     {
@@ -1752,7 +1752,8 @@
       "say": "scroll down",
       "tool": "scroll",
       "args": {
-        "direction": "down"
+        "direction": "down",
+        "amount": "page"
       }
     },
     {
@@ -1761,7 +1762,8 @@
       "say": "scroll up",
       "tool": "scroll",
       "args": {
-        "direction": "up"
+        "direction": "up",
+        "amount": "page"
       }
     },
     {
@@ -1770,7 +1772,8 @@
       "say": "go to the top",
       "tool": "scroll",
       "args": {
-        "direction": "top"
+        "direction": "up",
+        "amount": "top"
       }
     },
     {
@@ -1779,7 +1782,8 @@
       "say": "go to the bottom of the page",
       "tool": "scroll",
       "args": {
-        "direction": "bottom"
+        "direction": "down",
+        "amount": "bottom"
       }
     },
     {
@@ -3229,6 +3233,49 @@
       "category": "typing",
       "say": "proofread this",
       "tool": "cleanup_text",
+      "args": {}
+    },
+    {
+      "id": "anc-1",
+      "category": "settings",
+      "say": "turn noise cancellation on",
+      "tool": "set_noise_cancellation",
+      "args": {
+        "state": "on"
+      }
+    },
+    {
+      "id": "anc-2",
+      "category": "settings",
+      "say": "turn noise cancellation off",
+      "tool": "set_noise_cancellation",
+      "args": {
+        "state": "off"
+      }
+    },
+    {
+      "id": "anc-3",
+      "category": "settings",
+      "say": "enable adaptive noise cancellation",
+      "tool": "set_noise_cancellation",
+      "args": {
+        "state": "on"
+      }
+    },
+    {
+      "id": "anc-4",
+      "category": "settings",
+      "say": "disable adaptive noise cancellation",
+      "tool": "set_noise_cancellation",
+      "args": {
+        "state": "off"
+      }
+    },
+    {
+      "id": "anc-5",
+      "category": "settings",
+      "say": "is noise cancellation on",
+      "tool": "get_noise_cancellation",
       "args": {}
     }
   ],

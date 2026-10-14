@@ -14,15 +14,30 @@ Say **“Voxa”** first, then the request (or speak straight away in the follow
 | ⚠️ | Partly working — see the note |
 | ❌ | Known not to work yet |
 
-Last updated: 7 October 2026 (development build after 0.1.5).
+Last updated: 13 October 2026 (development build after 0.1.5).
 
 ---
+
+## Automated evidence
+
+[VoxaTest's generated capability audit](VOXATEST_CAPABILITY_AUDIT.md) runs 384
+deterministic command phrases across 20 categories. A 38,400-check benchmark
+records the measured rate and lists every router failure and unimplemented
+wishlist phrase. This covers text routing and tool argument validation.
+
+The status tables below remain the source for desktop, audio, model, network,
+and hardware behavior. Those paths need the 30-case focused spoken VoxaTest suite
+or a real desktop check. Current known limitations remain marked below: the
+High neural face needs its developer service, lip sync can trail slightly,
+echo can recur at high speaker volume, and speech over loud music still lacks
+adaptive noise cancellation.
 
 ## Talking to Voxa
 
 | Try saying | What should happen | Status |
 | --- | --- | --- |
 | “Voxa” … then a question | Caption goes **Ready → Listening → Thinking → Speaking → Ready** | ✅ |
+| Ask another question just after her answer | She listens during the follow-up window; no second “Voxa” needed | 🧪 |
 | Ask anything while she is answering | She stops and listens (barge-in) | ✅ |
 | “Voxa, pause” / press **PAUSE** | Caption **Paused**; everything is ignored until you say “Voxa” | ✅ |
 | “Voxa” (while paused) | Back to **Ready/Listening** | ✅ |
@@ -33,6 +48,9 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | “Volume up” … “again” … “do that again” | Repeats the last command (never a delete, a send or a lock) | 🧪 |
 | A short reply | She starts speaking while the answer is still being written | ✅ |
 | “What can you do?” / “What can you do with files?” | A short spoken list, with phrases to try | 🧪 |
+| “How do I say where is the station in Japanese?” | Translates and says it in that language's voice | 🧪 |
+| “Good morning” / “brief me” | Date, weather and today's reminders in one short summary | 🧪 |
+| Change the wake word in Preferences | Every hint and tip names your word instead of “Voxa” | 🧪 |
 
 ## The face
 
@@ -48,6 +66,8 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 
 | Try saying | What should happen | Status |
 | --- | --- | --- |
+| “What is Tesla's stock price?” | Speaks the current Nasdaq quote, including after-hours trading when available | ✅ |
+| “What is the British pound in USD?” | Speaks the latest GBP-to-USD reference exchange rate | ✅ |
 | “What is the current price of Bitcoin?” | Searches the web, answers from the results, shows **Source:** under the answer | 🧪 |
 | “Tell me about Spaced Linux” | Searches for the named thing instead of guessing | 🧪 |
 | “How many wins do they have?” (after a sports question) | Follow-up search using the previous topic | 🧪 |
@@ -73,6 +93,8 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | “Take a screenshot” | Saves a picture of the screen to Pictures | 🧪 |
 | “Install the most popular SNES emulator” / “Install GIMP” | Finds it on Flathub, opens it in Spaced Bazaar, presses Install there, and checks it is really installed before saying so | 🧪 |
 | “Uninstall Snes9x” | Removes an installed Flatpak app | 🧪 |
+| “Spin cube” … “stop” | The cube slowly rotates while zoomed out (like holding ctrl+alt and dragging) until you say stop or give any command, then returns to where it started | 🧪 needs the owner's check on a real desktop |
+| “Take a picture” / “show me the picture” | A webcam photo saved to Pictures | 🧪 |
 
 ## Music and video
 
@@ -86,6 +108,8 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | “Set the volume to 40 percent” | Computer volume set exactly | 🧪 |
 | “My YouTube channel is …” | Remembers your channel | 🧪 |
 | “Play the latest video from my channel” | Plays your newest upload in VLC | 🧪 |
+| “Play Groove Salad” / “play some ska radio” / “put on the radio” | Internet radio in VLC: SomaFM's ten most listened stations, Bob's Ska Radio, Cowpoke Radio | 🧪 |
+| “What stations do you have?” / “what station is this?” | Names the stations; says the one playing and its genre | 🧪 |
 
 ## Finding and buying
 
@@ -175,6 +199,9 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | Situation | What should happen | Status |
 | --- | --- | --- |
 | Voxa speaking at normal volume | She does not hear and interrupt herself (system echo cancellation) | ⚠️ still happens at higher volume |
+| Her own voice leaks into the mic while she speaks | The echoed words are dropped, not heard as the user | 🧪 (#88) |
+| Adaptive noise cancellation switch on/off | Saves setting and takes effect immediately on running capture | 🧪 |
+| Echo mode "WebRTC (recommended test)" | One pipeline with the WebRTC canceller; hidden when unavailable; falls back if it fails | 🧪 experimental (#88) |
 | Loud music playing, you say “Voxa, stop music” | Heard correctly | ❌ adaptive noise cancellation is not built yet (#72) |
 | “Fox, stop music”, “Xa, pause” (mis-heard wake word) | Treated as the command you meant | 🧪 |
 | Background words (“Music”, “As”, “Up”) | Ignored, not sent to the AI | 🧪 |
@@ -188,6 +215,7 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | Backend → Strata | Shows Strata's model when Strata is running | 🧪 |
 | Backend → llama.cpp | Lists model files even before the server starts | 🧪 |
 | High selected with a large model | Warns when the two will not fit on the graphics card | 🧪 |
+| Look beside the backend selector | A dot and a word: Online, Starting… or Offline | 🧪 |
 
 ## On the screen
 
@@ -195,6 +223,7 @@ Last updated: 7 October 2026 (development build after 0.1.5).
 | --- | --- | --- |
 | Top-left tips | Change with what you are doing (dictating, paused, music playing …) | 🧪 |
 | Small face when Voxa is not in focus | A round talking head floats in the top-right corner of the screen, above other programs, with a one-line status; click it to bring Voxa back. X11 only | 🧪 |
+| Whisper model that fits this computer | At the first-run welcome Voxa checks the hardware and switches a too-heavy Whisper model to one this computer runs comfortably (Turbo only with a usable graphics card; otherwise Base, or Tiny on small machines); Preferences show the recommendation and a heavy manual choice warns. (#94) | 🧪 |
 
 ---
 

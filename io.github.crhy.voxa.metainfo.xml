@@ -21,11 +21,34 @@
   <screenshots>
     <screenshot type="default">
       <image type="source">https://raw.githubusercontent.com/crhy/voxa/main/docs/screenshots/main-window.png</image>
-      <caption>The Voxa assistant: ACTIVE and OFFLINE controls, a local model picker, and a compact task list</caption>
+      <caption>Voxa ready to listen, with facial quality, local AI and ACTIVE, PAUSE and OFFLINE controls</caption>
+    </screenshot>
+    <screenshot>
+      <image type="source">https://raw.githubusercontent.com/crhy/voxa/main/docs/screenshots/characters.png</image>
+      <caption>Choose from 22 photoreal characters</caption>
+    </screenshot>
+    <screenshot>
+      <image type="source">https://raw.githubusercontent.com/crhy/voxa/main/docs/screenshots/voxa-hiroshi.png</image>
+      <caption>Every character speaks with an animated face</caption>
     </screenshot>
   </screenshots>
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="0.1.6" date="2026-10-14">
+      <description>
+        <p>Voxa 0.1.6 makes everyday voice use more reliable and expands the local assistant with practical desktop capabilities.</p>
+        <ul>
+          <li>The High neural face stays in sync with her voice through long replies, animates at 15 frames per second, and uses less GPU.</li>
+          <li>Dictation starts typing within seconds, and she no longer interrupts herself when her own words are misheard.</li>
+          <li>WebRTC echo cancellation is now the default, voice activity detection finds pauses more accurately, and wake-word and interruption handling are more dependable.</li>
+          <li>Voice-driven documents now support safe save prompts, long-text cleanup, selection and clipboard read-back, and better focus handling.</li>
+          <li>New local tools cover calendars, lists, expenses, meals, world time, backups, file conversion, system health, radio and live TV.</li>
+          <li>Application and window actions are safer: closing an app preserves unrelated windows and unsaved work, while minimize, restore and show-desktop commands are more predictable.</li>
+          <li>VoxaTest now includes a deterministic 384-capability audit and broader regression coverage for assistant actions.</li>
+          <li>Flatpak dependencies and packaging are refreshed for reliable installation on the GNOME 50 runtime.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.5" date="2026-10-06">
       <description>
         <p>Voxa gets a face and learns to act. This release adds photoreal characters, hands-free actions and a much faster, more natural conversation.</p>

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from voxa import wakelabel
+
 TOPICS: dict[str, tuple[str, tuple[str, ...]]] = {
     "apps": (
         "I can open, close, minimize and switch between your programs.",
@@ -118,4 +120,4 @@ def topic_help(key: str) -> str:
     text = f"{summary} Try saying: {tried}"
     if text[-1] not in ".?":
         text += "."
-    return text
+    return wakelabel.apply(text)

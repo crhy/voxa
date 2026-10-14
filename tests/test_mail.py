@@ -11,6 +11,7 @@ def test_parse_email_command_extracts_recipient_and_topic() -> None:
         ("email to my landlord", ("my landlord", "")),
         ("draft an email", ("", "")),
         ("email", ("", "")),
+        ("Send an email to my boss right now.", ("my boss", "")),
     ]
     for prompt, expected in cases:
         request = mail.parse_email_command(prompt)
@@ -57,6 +58,7 @@ def test_parse_draft_falls_back_to_the_whole_reply() -> None:
 def test_compose_builds_the_xdg_email_command(monkeypatch) -> None:
     launched = []
     monkeypatch.setattr(mail.subprocess, "Popen", lambda command, **kwargs: launched.append(command))
+    monkeypatch.setattr(mail, "IN_FLATPAK", False)
     mail.compose("mom@example.com", "Dinner on Friday", "Hi Mom!")
     assert launched[0] == ["xdg-email", "--subject", "Dinner on Friday", "--body", "Hi Mom!", "mom@example.com"]
     launched.clear()

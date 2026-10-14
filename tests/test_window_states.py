@@ -90,7 +90,7 @@ def test_minimize_all():
     monkeypatch = pytest.MonkeyPatch()
     _patch(monkeypatch, [], runs)
     result = minimize_all({})
-    assert runs == [["wmctrl", "-k", "on"]]
+    assert runs == []
     assert result.ok
     assert result.speech == "Minimized everything."
 
@@ -112,6 +112,10 @@ def test_minimize_all():
         ("minimize everything", "minimize_all", {}),
         ("minimize all windows", "minimize_all", {}),
         ("show the desktop", "minimize_all", {}),
+        ("restore everything", "restore_all", {}),
+        ("bring everything back", "restore_all", {}),
+        ("restore all windows", "restore_all", {}),
+        ("unminimize everything", "restore_all", {}),
     ],
 )
 def test_router(phrase, tool, args):

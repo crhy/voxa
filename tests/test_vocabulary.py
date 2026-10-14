@@ -95,3 +95,12 @@ def test_refresh_app_names_returns_empty_on_error(monkeypatch) -> None:
     monkeypatch.setattr("voxa.vocabulary.list_apps", boom)
     monkeypatch.setattr("voxa.vocabulary._cache", None)
     assert refresh_app_names() == []
+
+
+def test_refresh_app_names_leaves_out_short_launcher_aliases(monkeypatch) -> None:
+    import voxa.vocabulary as vocabulary
+
+    apps = [DesktopApp(name="VLC", path="/x", aliases=("vlc", "nvp", "ai", "player"))]
+    monkeypatch.setattr("voxa.vocabulary.list_apps", lambda: apps)
+    monkeypatch.setattr(vocabulary, "_cache", None)
+    assert refresh_app_names() == ["VLC", "player"]

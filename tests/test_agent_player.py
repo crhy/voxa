@@ -9,16 +9,15 @@ from voxa.agent.player import AudaciousPlayer, AudioPlayer, VlcPlayer, active_pl
 def captured(monkeypatch):
     calls: list[list[str]] = []
     monkeypatch.setattr("voxa.agent.player.spawn", lambda argv: calls.append(list(argv)))
+    monkeypatch.setattr("voxa.agent.tools.windows.frame_vlc_window", lambda: None)
     return calls
 
 
-def _vlc_argv(media, fullscreen=False):
+def _vlc_argv(media):
     main = media.video_url or media.audio_url
-    argv = ["flatpak", "run", "org.videolan.VLC", "--one-instance", "--control", "dbus", "--meta-title", media.title, main]
+    argv = ["flatpak", "run", "org.videolan.VLC", "--one-instance", "--control", "dbus", "--no-fullscreen", "--no-qt-video-autoresize", "--meta-title", media.title, main]
     if media.video_url and media.audio_url:
         argv += ["--input-slave", media.audio_url]
-    if fullscreen:
-        argv += ["--fullscreen"]
     return argv
 
 
@@ -34,10 +33,11 @@ def test_vlc_argv_without_audio_companion(captured):
     assert captured[0] == _vlc_argv(media)
 
 
-def test_vlc_argv_fullscreen(captured):
+def test_vlc_argv_never_maximizes(captured):
     media = _media("V", "vid", "aud")
-    VlcPlayer().play(media, fullscreen=True)
-    assert captured[0] == _vlc_argv(media, fullscreen=True)
+    VlcPlayer().play(media)
+    assert captured[0] == _vlc_argv(media)
+    assert "--fullscreen" not in captured[0]
 
 
 def test_audacious_argv_flatpak(captured, monkeypatch):
@@ -58,7 +58,7 @@ def test_mpris_pause_argv(monkeypatch):
     seen: list[list[str]] = []
     monkeypatch.setattr("voxa.agent.player.subprocess.run", lambda *a, **k: seen.append(a[0]) or _completed(a[0]))
     VlcPlayer().pause()
-    assert seen[0] == [
+    assert seen[-1] == [
         "gdbus", "call", "--session", "--dest", "org.mpris.MediaPlayer2.vlc",
         "--object-path", "/org/mpris/MediaPlayer2", "--method", "org.mpris.MediaPlayer2.Player.Pause",
     ]
@@ -69,10 +69,24 @@ def test_mpris_seek_argv(monkeypatch):
     monkeypatch.setattr("voxa.agent.player.subprocess.run", lambda *a, **k: seen.append(a[0]) or _completed(a[0]))
     VlcPlayer().seek(5.0)
     # gdbus takes each argument on its own (there is no --params flag); MPRIS seeks in microseconds.
-    assert seen[0] == [
+    assert seen[-1] == [
         "gdbus", "call", "--session", "--dest", "org.mpris.MediaPlayer2.vlc",
         "--object-path", "/org/mpris/MediaPlayer2", "--method", "org.mpris.MediaPlayer2.Player.Seek", "5000000",
     ]
+
+
+def test_mpris_pause_reaches_vlc_instance_bus(monkeypatch):
+    seen: list[list[str]] = []
+
+    def fake_run(argv, **_k):
+        seen.append(argv)
+        stdout = "['org.mpris.MediaPlayer2.vlc.instance1234']\n" if argv[-1] == "org.freedesktop.DBus.ListNames" else ""
+        return _completed(argv, stdout=stdout)
+
+    monkeypatch.setattr("voxa.agent.player.subprocess.run", fake_run)
+    VlcPlayer().pause()
+    pause_calls = [argv for argv in seen if argv[-1] == "org.mpris.MediaPlayer2.Player.Pause"]
+    assert pause_calls[0][pause_calls[0].index("--dest") + 1] == "org.mpris.MediaPlayer2.vlc.instance1234"
 
 
 def test_mpris_set_volume_argv(monkeypatch):

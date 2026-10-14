@@ -49,4 +49,4 @@ def test_list_then_cancel() -> None:
 
 def test_reminders_tools_registered() -> None:
     names = {t.name for t in reminders_tools()}
-    assert names == {"set_timer", "set_reminder", "list_reminders", "cancel_reminders"}
+    assert names == {"set_timer", "set_reminder", "list_reminders", "cancel_reminders", "focus_start", "focus_status", "focus_stop"}

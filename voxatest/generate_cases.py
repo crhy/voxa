@@ -10,69 +10,39 @@ from typing import Any
 from .cases import TestCase
 
 CATEGORIES = (
-    "open_app",
-    "email_draft",
-    "document_write",
-    "web_search",
-    "conversation_followup",
-    "ambiguous_or_underspecified",
-    "capability_boundaries",
-    "multi_step",
-    "offline_or_error",
-    "general_knowledge",
+    "desktop_apps",
+    "web_and_maps",
+    "media_controls",
+    "system_status",
+    "files_and_productivity",
+    "software_help_and_knowledge",
 )
 
 CATEGORY_GUIDANCE = {
-    "open_app": (
-        "Use realistic desktop app-launch commands such as opening a browser, "
-        "calculator, file manager, terminal, mail client, or document editor. "
-        "Include both common installed apps and one clearly missing app. "
-        "Expected behavior is either 'Opening <app>.' or 'I couldn't find an app called <app>.'"
+    "desktop_apps": (
+        "Test one supported desktop operation: launch a common app, show the desktop, "
+        "or report open windows. Use generic app names that Voxa's desktop router recognizes."
     ),
-    "email_draft": (
-        "Use clear requests like 'draft an email to Bob about the meeting'. "
-        "Voxa does not send email; it drafts text and opens the mail client. "
-        "Expected confirmation should mention drafting an email, recipient, subject, "
-        "or reviewing/sending it."
+    "web_and_maps": (
+        "Test one supported browser operation: open a known site, search for images, "
+        "find a nearby place, or request directions. Do not depend on current web facts."
     ),
-    "document_write": (
-        "Use clear requests like 'write a memo about project updates' or 'draft a letter to my landlord'. "
-        "Voxa should write a new document and open it in LibreOffice. "
-        "Expected confirmation should mention written, opened, LibreOffice, or saved."
+    "media_controls": (
+        "Test one supported radio or audio operation: list stations, play a named genre, "
+        "or pause playback. Never change, mute or set the volume: the prompts are heard through the "
+        "speakers, so a quieter volume silences every later case. Do not require a particular station to be online."
     ),
-    "web_search": (
-        "Use questions that benefit from current or online information, such as weather, "
-        "latest score, current price, recent news, or 'search for'. "
-        "Expected behavior is that Voxa uses web context or gives a clear factual answer."
+    "system_status": (
+        "Test one supported system operation: report time/date, disk or memory usage, "
+        "or take a screenshot. Accept concise spoken confirmations and equivalent wording."
     ),
-    "conversation_followup": (
-        "Make prompts that are natural follow-ups such as 'what about that one?', "
-        "'why?', 'explain that', or 'change it to something shorter'. "
-        "The rubric should state what the prior context or assumed context must make the reply sensible."
+    "files_and_productivity": (
+        "Test one supported file or productivity operation: open/list a standard folder, "
+        "toggle hidden files, create a note, or compose an email. Do not send or delete anything."
     ),
-    "ambiguous_or_underspecified": (
-        "Make prompts that are vague or incomplete, such as 'fix it', 'open the thing', "
-        "or 'email him'. Success is asking for missing details, stating an assumption, "
-        "or explaining that more information is needed."
-    ),
-    "capability_boundaries": (
-        "Use requests outside Voxa's real abilities, such as sending mail, deleting files, "
-        "making calls, installing software, or changing settings without a supported command. "
-        "Success is a safe limitation, refusal, or request for clarification."
-    ),
-    "multi_step": (
-        "Use requests with two actions, such as open Firefox and search for news, or draft "
-        "a memo and open the calculator. Because the current Voxa parser usually handles "
-        "one intent, the rubric should check for a partial action plus a sensible limitation."
-    ),
-    "offline_or_error": (
-        "Use prompts that trigger unavailable web search, a missing app, unsupported hardware, "
-        "or a failed local action. Success is a clear error, limitation, or fallback answer."
-    ),
-    "general_knowledge": (
-        "Use short factual, math, reasoning, or explanatory questions a local assistant "
-        "can answer from its own knowledge, such as capital cities, arithmetic, definitions, "
-        "or simple cause-and-effect questions."
+    "software_help_and_knowledge": (
+        "Test one supported software-management, help, arithmetic, or stable general-knowledge "
+        "request. Installing software and checking updates are supported flows."
     ),
 }
 
@@ -102,13 +72,21 @@ def build_generation_prompt(count: int, seed: int = 0) -> str:
         f"{count} short Voxa voice-assistant test cases.\n"
         "Return valid JSON only: a list of objects.\n"
         "Each object must have these keys:\n"
-        "id, category, prompt, expected_contains, expected_keywords, rubric.\n"
+        "id, category, prompt, expected_contains, expected_keywords, rubric, expected_tool, expected_args.\n"
         f"Every object's category field must be exactly {category}.\n"
         f"Category guidance: {guidance}\n"
-        "Each prompt must be one sentence and no longer than 18 words.\n"
-        "expected_contains should be exact phrases from the expected spoken reply when useful; use an empty list if no exact phrase is required.\n"
-        "expected_keywords should be 1-4 words that should appear in the reply.\n"
-        "rubric should be a short grading hint that states what success means for this Voxa behavior.\n"
+        "Every case is run independently with a fresh, unknown conversation state. It must not depend on another case.\n"
+        "Test exactly one operation per case; do not combine commands.\n"
+        "Each prompt must be one natural, speakable sentence of 4-18 words with no markdown.\n"
+        "Avoid politeness filler, unnecessary urgency, ambiguous pronouns, and facts whose answer changes over time.\n"
+        "expected_contains must contain only complete contiguous phrases that are essential and deterministic; otherwise use an empty list.\n"
+        "expected_keywords must contain 1-3 stable semantic terms, not every word in an ideal answer.\n"
+        "For an action request, expected_tool must be the exact Voxa tool name and expected_args must contain its deterministic arguments.\n"
+        "For a pure knowledge question, expected_tool must be an empty string and expected_args an empty object.\n"
+        "Do not require a particular network state, installed optional app, date, officeholder, price, score, or current event.\n"
+        "Do not ask for the volume to be changed or muted.\n"
+        "Do not request phone calls, smart-home control, purchases, destructive file operations, or other unsupported features.\n"
+        "The rubric must describe one observable property of the captured spoken reply and allow equivalent wording.\n"
     )
 
 

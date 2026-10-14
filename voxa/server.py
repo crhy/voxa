@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import json
 import logging
 import os
 import subprocess
@@ -146,6 +147,8 @@ class AiServerManager:
 
         was_running = process.poll() is None
         if was_running:
+            if self.settings.ai_backend == "ollama":
+                self._unload_ollama_model()
             try:
                 process.terminate()
                 process.wait(timeout=5)
@@ -256,7 +259,15 @@ class AiServerManager:
             command = ["ollama", "serve"]
             listen_address = self._host_port(host, port)
             if self._flatpak:
-                command = ["flatpak-spawn", "--host", "--directory=/", "env", f"OLLAMA_HOST={listen_address}", *command]
+                command = [
+                    "flatpak-spawn",
+                    "--host",
+                    "--directory=/",
+                    "--watch-bus",
+                    "env",
+                    f"OLLAMA_HOST={listen_address}",
+                    *command,
+                ]
             return command, {"OLLAMA_HOST": listen_address}
 
         model = self.settings.llamacpp_model
@@ -265,8 +276,32 @@ class AiServerManager:
 
         command = ["llama-server", "--model", model, "--host", host, "--port", str(port)]
         if self._flatpak:
-            command = ["flatpak-spawn", "--host", "--directory=/", *command]
+            command = ["flatpak-spawn", "--host", "--directory=/", "--watch-bus", *command]
         return command, None
+
+    def _unload_ollama_model(self) -> None:
+        """Release the runner before stopping our Ollama daemon.
+
+        A host process launched through ``flatpak-spawn`` can outlive its
+        sandbox-side proxy.  Asking Ollama to unload first prevents its GPU
+        runner from being reparented and retaining several gigabytes of VRAM.
+        """
+        target = self._target()
+        model = self.settings.ollama_model.strip()
+        if target is None or not model:
+            return
+        _, _, url = target
+        request = urllib.request.Request(
+            f"{url}/api/generate",
+            data=json.dumps({"model": model, "keep_alive": 0}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with open_url(request, timeout=2.0) as response:
+                response.read(1)
+        except (urllib.error.URLError, TimeoutError, OSError):
+            log.debug("could not unload Ollama model before shutdown", exc_info=True)
 
     @staticmethod
     def _default_is_reachable(url: str) -> bool:

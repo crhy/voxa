@@ -1,18 +1,94 @@
 # Voxa changelog
 
-## 0.1.6 — in development
+## 0.1.6 — 2026-10-14
 
 Everything below is on `main` after the 0.1.5 release. Items marked 🧪 pass their automated tests and still need
 checking by ear and eye on a real desktop; `docs/CAPABILITIES.md` is the checklist with a phrase to try for each.
 
+### Changes from the second hands-on test round (13–14 October)
+
+Found in a real desktop session; each traced in Voxa's own logs before it was changed.
+
+- **Dictation starts typing within seconds.** After “start dictation”, the first thing said was collected with the
+  20-second command limit (the listener had already begun that utterance before dictation mode switched on), so
+  nothing was typed until 20 seconds of speech had piled up. The utterance in progress now switches to dictation's
+  6-second limit at once. Traced in the 13 October Writer and Pluma tests (first text after 19 s and 10 s).
+- **High facial quality uses less GPU.** The face server's warp and decode passes run in fp16 with the portrait's
+  features kept on the GPU and are compiled once (cached on disk): about 22 ms a frame instead of 32 ms. Measured
+  while talking at 12 fps: whole-GPU use fell from about 50% to 36–41% (the idle desktop is about 9%).
+- **She no longer interrupts herself when her own sentence is misheard with “stop” or “Voxa” in it.** Traced on
+  14 October: “3. Do not steal” heard as “3. Do not stop”, and “Voxa.” added three times to her own line by the
+  transcription hint. Replaying all 485 recorded barge-in checks, only those two decisions change.
+- **High's face no longer falls behind the voice on long replies.** The face server drew every frame on a fixed
+  schedule from its first frame, so a late start or a slow moment (the GPU shared with the language model) kept the
+  face late for the rest of the reply, and each sentence inherited the last one's delay. Frames whose moment has
+  already played are now skipped so the face catches up, and the next sentence's audio is prepared while the
+  current one is drawn. Simulated five-sentence reply with the GPU shared: median lag 2.0 s growing to 4.5 s before,
+  0.03 s for every sentence after.
+- **High animates at 15 frames per second instead of 12**, at less GPU than 12 used to take.
+- **The High face server is in the repository** (`face-server/`), with Voxa's patch to Ditto and an installer that
+  links it into `~/voxa-neural`. It was previously only on one machine.
+
+### Changes from the first hands-on test round (8 October)
+
+Found by using a local build on a real desktop, each traced to a cause before it was changed.
+
+- **WebRTC echo cancellation is now the default echo setting** (it was opt-in). With music playing, Voxa's own
+  canceller left so much sound that the end of a sentence was never detected. The mode's pipeline was rebuilt with
+  the correct GStreamer calls and checked inside the Flatpak; a missing loopback falls back to the plain microphone.
+- **A real voice detector finds pauses** instead of loudness alone, with the loudness rule as the fallback. On a
+  recording of speech over music the loudness rule marked 36% of the non-speech time as voice; the detector, 0%.
+- **Interrupting her works again, and she no longer interrupts herself.** The check now waits for a word or two
+  before judging (it used to look after a third of a second, when there was nothing to read); the loudness gate
+  tolerates the dips between syllables; a lone “stop” is no longer thrown away as echo; and her own voice misheard
+  into different words (“BLC doesn't seem” heard as “Bmc, done, themes”) is recognised by its letters.
+- **Wake word in one breath.** “Voxa open Pluma” said without a pause is matched when Whisper gets the first
+  consonant wrong (“Box open Pluma”). On 59 recorded lines: 55 woke her before, 57 now, no false wake on 43 others.
+- **“Close Brave” closes only the browser window Voxa opened.** It used to close every matching window and then
+  kill the whole app, taking the user's own windows with it. No program is force-killed after being asked to
+  close any more, so unsaved work is not thrown away.
+- **Save by voice.** “Save file” on a new document asks “What should I save the file as?”, types the answer into
+  the save window and saves; an existing name asks before replacing; “never mind” cancels. New documents go to
+  Documents. She no longer says “Saved the file” after merely opening the save window.
+- **“Clean up the text” works on long documents.** Text is edited in pieces of up to 500 characters; a piece whose
+  edit looks wrong is left as it was. (Sent whole, a 7,000-character document made the small model return 110,000.)
+- **Honest “Listening”.** The caption also covers the follow-up window, which has one length (the setting, default
+  now 10 s) instead of two timers. After the wake word alone she waits 12 s.
+- **Smaller fixes:** the dictation reminder is spoken only the first two times and dictation ends with “Stopping
+  dictation”; a character change answers “Jack here!”; turning the cube is silent; “maximize yourself”,
+  “minimize all apps”, “show desktop” and “restore everything”; folders open in the file manager; a web address
+  said as words (“open air ships dot com”) opens; walking, biking and transit directions; “open the website” after a
+  search; “open CNN” opens the site when no app matches, and a weak match no longer opens the wrong app; answers
+  after a web search are taken from the results; VLC keeps a window smaller than Voxa's; the main window no longer
+  changes size on ACTIVE; the keyboard goes to a new document so dictation types into it; a slow cube spin.
+- **Start-up noise removed:** the GTK theme warning about `overflow`, and the “Unclosed client session” messages
+  when the app closed during a voice download.
+- **Per-stage timings** (hearing, routing, acting, first audio) are written to the action log, to find lag.
+- 🧪 Not yet confirmed on a desktop: the voice detector in daily use, the slow cube spin (needs Compiz), new-document
+  focus in LibreOffice, and save-by-voice in LibreOffice.
+
 ### Hearing and turn-taking
 
+- **WebRTC echo cancellation as a new echo mode "webrtc"** (now the default; see above): one capture pipeline
+  where the loopback monitor of the default output feeds a `webrtcechoprobe` and the microphone branch runs
+  `webrtcdsp` inside the app; falls back to the plain capture pipeline if the monitor or pipeline fails, and to
+  "off" when the elements are missing. (`voxa/audio.py`, `voxa/config.py`, `voxa/window.py`) (#88) 🧪
+
+- **Voxa picks a Whisper model that fits this computer** at the first-run welcome and in Preferences: Turbo only when
+  a graphics card is usable, otherwise Base (Tiny on small machines); a heavy manual choice still loads but warns.
+  (`voxa/speechfit.py`) (#94)
+- **Voxa watches how fast dictation really runs** and, when a Whisper model can't keep up on a machine with no
+  usable graphics card, offers a lighter model with a "Switch" toast; the median real-time factor is remembered
+  per model and saved at most once a minute. (`voxa/speechfit.py`, `voxa/conversation.py`, `voxa/window.py`) (#94) 🧪
 - **Voxa no longer interrupts herself.** A barge-in now needs two things: the microphone must be clearly louder
   than Voxa's own voice for six frames in a row (the level is learned while she speaks), and the words that were
   heard must not be her own sentence. The first 400 ms of every spoken piece ignore barge-in altogether, because
   the speaker onset is the loudest moment. (`voxa/bargein.py`)
 - **A single "stop", "wait" or "Voxa" always counts as you interrupting**, unless she is saying that very word
   herself.
+- **Voxa throws away echoes of her own voice** (`voxa/ownspeech.py`): she knows the sentence she is saying, so a
+  mic transcript that is (part of) that sentence is dropped before it reaches the wake check, a prompt or a barge-in
+  candidate; a real sentence spoken over her voice keeps its own words. (#88) 🧪
 - **"Say …" is no longer typed into the focused window.** "Say hello to Bob" is spoken; only "type …", "write …",
   "dictate …" and "enter …" type.
 - **Voxa's own echo canceller** (`voxa/anc.py`): estimates the delay between what the computer plays and what the
@@ -33,6 +109,16 @@ checking by ear and eye on a real desktop; `docs/CAPABILITIES.md` is the checkli
   try; "what can you do with files?", "help with music" and so on go into one area. 🧪
 - **Read-back**: "read the selection to me", "what's on my clipboard?", "summarize this" (three sentences, from the
   text you selected), "what's open?", "what window is this?". (#68) 🧪
+
+### New commands (quick wins)
+
+- Internet radio by name or genre: "play Groove Salad", "play some ska radio", "what stations do you have?". (#91) 🧪
+- "Spin cube" keeps the desktop cube turning until you stop it, then returns to the starting desktop. (#90) 🧪
+- "Take a picture" with the webcam; "show me the picture". (#92) 🧪
+- "How do I say … in Japanese?" — translated and spoken in that language's voice. (#66) 🧪
+- "Good morning" / "brief me": date, weather and today's reminders. (#57) 🧪
+- The hints, tips, welcome and help text name your own wake word after you change it. (#93) 🧪
+- A status indicator beside the backend selector: Online, Starting… or Offline. (#27) 🧪
 
 ### Sound devices
 

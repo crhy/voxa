@@ -4,15 +4,28 @@ import re
 from dataclasses import dataclass
 from datetime import date
 
-from voxa.agent import calc
+from voxa.agent import calc, dates, livetv, lookups, radio, worldtime
+from voxa.agent.calendar_local import parse_time, split_when
+from voxa.agent.convert import target_extension
 from voxa.agent.deals import parse_request
 from voxa.agent.filematch import folder_key
 from voxa.agent.hearing import normalize
 from voxa.agent.helptext import topic_for
 from voxa.agent.mailflow import spoken_address
+from voxa.agent.tools import translate
 from voxa.agent.tools.browser import site_url
+from voxa.apps import clean_spoken_app_name
+from voxa.ui.avatars import find_character
 
-__all__ = ["ToolCall", "route", "is_compound", "ROUTED_TOOLS"]
+__all__ = [
+    "ToolCall",
+    "route",
+    "route_spoken",
+    "is_compound",
+    "is_start_dictation",
+    "dictation_target",
+    "ROUTED_TOOLS",
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -22,7 +35,7 @@ class ToolCall:
 
 
 _LEADING = re.compile(
-    r"^(?:please|can you|could you|would you|hey|hi|ok|okay)\s*[,:]?\s*",
+    r"^(?:please|can you|could you|would you|hey|hi|ok|okay)\b\s*[,:]?\s*",
     re.IGNORECASE,
 )
 _TRAILING = re.compile(r"\s+(?:please|for me|thanks|thank you)$", re.IGNORECASE)
@@ -55,9 +68,20 @@ _TELL_TIME = re.compile(
     r"|tell me the time|time please)",
     re.IGNORECASE,
 )
+_WORLD_TIME = re.compile(
+    r"(?:what(?:'s| is) the time|what time is it|what time is it right now|tell me the time|current time)"
+    r" (?:in|at) (?:the )?(.+)",
+    re.IGNORECASE,
+)
+_TIME_DIFF = re.compile(
+    r"(?:what(?:'s| is) the time difference (?:between here and|with|to|from here to) (?:the )?(.+)"
+    r"|how many hours (?:ahead|behind) is (?:the )?(.+)"
+    r"|how far ahead is (?:the )?(.+))",
+    re.IGNORECASE,
+)
 _TELL_DATE = re.compile(
-    r"(?:what(?:'s| is) (?:the|today's) date(?: today)?|what day is it(?: today)?"
-    r"|what(?:'s| is) today(?:'s date)?|what day of the week is it)",
+    r"(?:what(?:'s| is) (?:the|today'?s) date(?: today)?|what day is it(?: today)?"
+    r"|what(?:'s| is) today(?:'?s date)?|what day of the week is it)",
     re.IGNORECASE,
 )
 _DISK_SPACE = re.compile(
@@ -69,19 +93,97 @@ _MEMORY_FREE = re.compile(
     r"how much (?:memory|ram) (?:is (?:free|left|available)|do i have(?: free| left)?)",
     re.IGNORECASE,
 )
+_GPU_STATUS = re.compile(
+    r"how hot is (?:my|the) (?:gpu|graphics card|video card)"
+    r"|what(?:'s| is) (?:my|the) (?:gpu|graphics card) (?:temperature|temp|usage|doing|status)"
+    r"|how is (?:my|the) (?:gpu|graphics card)(?: doing)?"
+    r"|gpu (?:temperature|status|usage)",
+    re.IGNORECASE,
+)
+_CPU_STATUS = re.compile(
+    r"how hot is (?:my|the) (?:cpu|processor|computer)"
+    r"|what(?:'s| is) (?:my|the) (?:cpu|processor) (?:temperature|temp|usage|load)"
+    r"|cpu (?:temperature|usage|load)"
+    r"|how busy is (?:my|the) (?:cpu|processor|computer)",
+    re.IGNORECASE,
+)
+_SYSTEM_HEALTH = re.compile(
+    r"how is (?:my|the|this) (?:computer|pc|system|machine)(?: (?:doing|running))?"
+    r"|system (?:health|status)(?: (?:check|report))?"
+    r"|is (?:my|the) (?:computer|pc) (?:ok|okay|healthy|overheating)"
+    r"|(?:run )?(?:a )?health check",
+    re.IGNORECASE,
+)
 _BATTERY_LEVEL = re.compile(
     r"(?:how much battery (?:is left|do i have(?: left)?)|what(?:'s| is) (?:the|my) battery"
     r"(?: level| percentage)?|battery (?:level|status))",
+    re.IGNORECASE,
+)
+_WHY_SLOW = re.compile(
+    r"why (?:is|are) (?:my |the |this )?(?:computer|pc|machine|system|it|everything|things|stuff|performance) (?:so |very |too |really |extremely )?(?:slow|laggy|sluggish|lagging|slowing(?: down)?)"
+    r"|why (?:is|are)? ?(?:everything|things|it) (?:so )?slow"
+    r"|why so slow"
+    r"|what(?:'s| is) (?:slowing|lagging)(?: down)?(?: (?:my|the|this)? ?(?:computer|pc|machine|system|it|everything|things|stuff))?"
+    r"|what(?:'s| is) (?:using|eating|hogging|consuming) (?:all |all of )?(?:the|my|this)? ?(?:cpu|processor)(?: (?:usage|power|time|load))?",
+    re.IGNORECASE,
+)
+_WHY_MEMORY = re.compile(
+    r"what(?:'s| is) (?:using|eating|hogging|consuming|taking(?: up)?|using up) (?:all |all of )?(?:my|the) (?:memory|ram)",
+    re.IGNORECASE,
+)
+_TROUBLE = re.compile(
+    r"(?:is |do you (?:see|notice|think) )?(?:anything|something) (?:wrong|unusual|odd|weird|amiss)(?: with (?:my|the|this) (?:computer|pc|system|machine))?"
+    r"|(?:is|do you (?:see|notice) )?there (?:anything|something) (?:wrong|unusual|odd|weird)"
+    r"|any (?:problems|issues|trouble|errors|warnings)(?: with (?:my|the|this) (?:computer|pc|system|machine))?"
+    r"|(?:diagnose|troubleshoot|check for problems|check for issues) (?:the|my|this)? ?(?:pc|computer|system|machine|it)?",
     re.IGNORECASE,
 )
 _SET_GITHUB_OWNER = re.compile(
     r"my (?:git ?hub|get hub) (?:user ?name|name|account|handle)(?: is)? (?:called )?(.+)",
     re.IGNORECASE,
 )
+_NOISE_ON = re.compile(
+    r"(?:(?:turn|switch|set)\s+(?:the\s+)?(?:adaptive\s+)?noise\s+cancellation\s+on"
+    r"|(?:enable)\s+(?:the\s+)?(?:adaptive\s+)?noise\s+cancellation)",
+    re.IGNORECASE,
+)
+_NOISE_OFF = re.compile(
+    r"(?:(?:turn|switch|set)\s+(?:the\s+)?(?:adaptive\s+)?noise\s+cancellation\s+off"
+    r"|(?:disable)\s+(?:the\s+)?(?:adaptive\s+)?noise\s+cancellation)",
+    re.IGNORECASE,
+)
+_NOISE_GET = re.compile(
+    r"is\s+(?:the\s+)?(?:adaptive\s+)?noise\s+cancellation\s+on",
+    re.IGNORECASE,
+)
 _SET_EMAIL = re.compile(r"(?:my )?(.+?)(?:'s|s')? e-?mail(?: address)? is (.+)", re.IGNORECASE)
 _GET_EMAIL = re.compile(r"what(?:'s| is) (?:my )?(.+?)(?:'s|s')? e-?mail(?: address)?", re.IGNORECASE)
 _FORGET_EMAIL = re.compile(r"forget (?:my )?(.+?)(?:'s|s')? e-?mail(?: address)?", re.IGNORECASE)
 _PLAY_YT_ON = re.compile(r"(?:play|watch|put on)\s+(.+?)\s+on\s+youtube", re.IGNORECASE)
+_BRIEFING = re.compile(
+    r"good\s+(?:morning|afternoon|evening)|brief\s+me|(?:give\s+me\s+)?(?:my\s+|the\s+)?(?:daily\s+|morning\s+)?briefing"
+    r"|what\s+does\s+my\s+day\s+look\s+like|what(?:'s|\s+is)\s+on\s+(?:for\s+)?today",
+    re.IGNORECASE,
+)
+_SAY_IN = re.compile(
+    r"(?:how\s+(?:do\s+(?:i|you)|would\s+(?:i|you))\s+say|say|translate|what(?:'s|\s+is))\s+(.+?)\s+(?:in|into|to)\s+([a-z]+)",
+    re.IGNORECASE,
+)
+_RADIO_PLAY = re.compile(
+    r"(?:play|put\s+on|turn\s+on|listen\s+to|tune\s+(?:in\s+)?to)\s+(?:the\s+|some\s+|me\s+some\s+)?"
+    r"(?:(.+?)\s+)?(?:internet\s+)?radio(?:\s+station)?",
+    re.IGNORECASE,
+)
+_PLAY_ANY = re.compile(r"(?:play|put\s+on|listen\s+to)\s+(.+)", re.IGNORECASE)
+_RADIO_LIST = re.compile(
+    r"(?:what|which)\s+(?:radio\s+)?stations\s+(?:do\s+you\s+have|are\s+there|can\s+you\s+play)"
+    r"|list\s+(?:the\s+|your\s+)?(?:radio\s+)?stations",
+    re.IGNORECASE,
+)
+_RADIO_WHAT = re.compile(
+    r"(?:what|which)\s+(?:radio\s+)?station\s+is\s+(?:this|playing|that)|what\s+genre\s+is\s+this(?:\s+station)?",
+    re.IGNORECASE,
+)
 _PLAY_MUSIC_QUERY = re.compile(r"play\s+music\s+(.+)", re.IGNORECASE)
 _PLAY_SOME_MUSIC = re.compile(r"play\s+(?:some\s+)?music", re.IGNORECASE)
 _LISTEN_TO = re.compile(r"listen\s+to\s+(.+)", re.IGNORECASE)
@@ -114,11 +216,69 @@ _IMAGE_LOOK_LIKE = re.compile(r"what\s+does\s+(.+?)\s+look\s+like", re.IGNORECAS
 # "Give me directions to X", "how do I get to X", "navigate to X", "take me to X" -> Google Maps directions.
 _DIRECTIONS = re.compile(
     r"(?:(?:can you |could you |please )?(?:give me|get me|get|show me|show|find|i need|i want)\s+)?"
-    r"(?:driving |walking |the )?directions?\s+(?:to|for)\s+(.+)"
+    r"(?:driving |walking |biking |cycling |transit |bus |the )?directions?\s+(?:to|for)\s+(.+)"
     r"|how do i get to\s+(?:the\s+)?(.+)|navigate (?:me )?to\s+(.+)|take me to\s+(.+)",
     re.IGNORECASE,
 )
 # "Where is the nearest X", "find the closest X", "nearest X" and "X near me" -> Google Maps search.
+# Channel names distinctive enough to play without the word "TV" ("watch Al Jazeera").
+_TV_NAMES = frozenset(
+    livetv.clean_request(name) for channel in livetv.CHANNELS for name in (channel.name, *channel.aliases)
+) - {"news", "world news", "space", "dw", "d w"}
+_DIRECTIONS_FROM = re.compile(
+    r"(?:(?:can you |could you |please )?(?:give me|get me|get|show me|show|find|i need|i want)\s+)?"
+    r"(?:(?:driving |walking |biking |cycling |transit |bus |the )?(?:directions?|route|way)|navigate(?: me)?"
+    r"|how (?:do|can|would) i get|how to get|take me|drive(?: me)?)"
+    r"\s+from\s+(?:the\s+)?(.+?)\s+to\s+(?:the\s+)?(.+)",
+    re.IGNORECASE,
+)
+_DIRECTIONS_LOOSE = re.compile(
+    r"(?:(?:can you |could you |please )?(?:give me|get me|show me|show|find|i need|i want)\s+)?"
+    r"(?:(?:the\s+)?(?:route|way|best way|fastest way|quickest way)\s+to|how (?:can|would) i get to|how to get to"
+    r"|drive (?:me )?to|guide me to|map (?:me )?(?:a route )?to)\s+(?:the\s+)?(.+)",
+    re.IGNORECASE,
+)
+_TV_LIST = re.compile(
+    r"(?:what|which)\s+(?:live\s+)?(?:tv\s+|television\s+)?channels\s+(?:do\s+you\s+have|are\s+there|can\s+you\s+play)"
+    r"|(?:list|show(?:\s+me)?)\s+(?:the\s+|your\s+)?(?:live\s+)?(?:tv|television)\s+(?:channels|stations)",
+    re.IGNORECASE,
+)
+_TV_PLAY = re.compile(
+    r"(?:open|play|watch|put\s+on|turn\s+on|show(?:\s+me)?|start)\s+(?:the\s+|some\s+)?"
+    r"(?:live\s+|internet\s+)*(?:tv|television)",
+    re.IGNORECASE,
+)
+_TV_CHANNEL = re.compile(r"(?:open|play|watch|put\s+on|turn\s+on|show(?:\s+me)?|start)\s+(?:the\s+)?(.+)", re.IGNORECASE)
+_LOCAL_WEATHER = re.compile(
+    r"(?:(?:show|tell|give)(?:\s+me)?\s+|what(?:'s| is)\s+|how(?:'s| is)\s+|check\s+|open\s+)?(?:the\s+|my\s+)?"
+    r"(?:local\s+)?(?:weather|forecast|weather\s+forecast)(?:\s+(?:like|report))?"
+    r"(?:\s+(?:today|tonight|tomorrow|right\s+now|outside|here|near\s+me|in\s+my\s+area|for\s+today))?",
+    re.IGNORECASE,
+)
+_WEATHER_IN = re.compile(
+    r"(?:(?:show|tell|give)(?:\s+me)?\s+|what(?:'s| is)\s+|how(?:'s| is)\s+|check\s+)?(?:the\s+)?"
+    r"(?:weather|forecast)(?:\s+like)?\s+(?:in|for|at)\s+(.+)",
+    re.IGNORECASE,
+)
+_WHERE_AM_I = re.compile(
+    r"where\s+am\s+i(?:\s+(?:right\s+now|now))?|what(?:'s| is)\s+my\s+location|what\s+(?:city|town)\s+am\s+i\s+in"
+    r"|where\s+do\s+you\s+think\s+i\s+am",
+    re.IGNORECASE,
+)
+_LOCAL_NEWS = re.compile(
+    r"(?:play|show(?:\s+me)?|open|watch|put\s+on|what(?:'s| is))\s+(?:the\s+|my\s+|some\s+|a\s+)?local\s+news"
+    r"(?:\s+(?:today|tonight|now|near\s+me|in\s+my\s+area))?",
+    re.IGNORECASE,
+)
+_LOCAL_EVENTS = re.compile(
+    r"(?:(?:show(?:\s+me)?|find(?:\s+me)?|what(?:'s| is)|is\s+there(?:\s+any)?|any)\s+)?(?:the\s+|some\s+)?"
+    r"(live\s+music|concerts?|events|shows|things\s+to\s+do|comedy(?:\s+shows?)?|farmers\s+markets?)"
+    r"(?:\s+(?:on|happening|playing|going\s+on))?"
+    r"(?:\s+(tonight|today|tomorrow|this\s+weekend|this\s+week))?"
+    r"\s+(?:in\s+my\s+area|near\s+me|around\s+here|nearby|in\s+town|locally)"
+    r"(?:\s+(tonight|today|tomorrow|this\s+weekend|this\s+week))?",
+    re.IGNORECASE,
+)
 _NEAREST = re.compile(
     r"(?:where(?:'s| is| are)\s+|find\s+(?:me\s+)?|show\s+(?:me\s+)?|what(?:'s| is)\s+)?"
     r"(?:the\s+|a\s+)?(?:nearest|closest)\s+(.+)",
@@ -145,28 +305,40 @@ _LOCATION_SET = re.compile(
 _LOCATION_USE = re.compile(r"use\s+(.+?)\s+as\s+my\s+location", re.IGNORECASE)
 _LOCATION_FORGET = re.compile(r"forget\s+my\s+location", re.IGNORECASE)
 _URL = re.compile(r"(?:open|go to|visit|navigate to)\s+([^\s]+)", re.IGNORECASE)
+# "Open open air ships dot com", "go to spaced linux .org": a spoken web address, words run together.
+_SPOKEN_URL = re.compile(
+    r"(?:open|go to|visit|navigate to|bring up|show me)\s+(?:the\s+website\s+)?(.+?)\s*(?:\s+dot\s+|\.)\s*"
+    r"(com|org|net|io|edu|gov|co|us|uk|ca|de|info|tv|app|dev|ai|me|xyz)",
+    re.IGNORECASE,
+)
 _SITE = re.compile(r"(?:open|go to|visit)\s+(.+)", re.IGNORECASE)
 _PLAY_PAUSE = re.compile(
-    r"(?:pause|resume)(?:\s+(?:the\s+)?(?:music|video|song|playback))?", re.IGNORECASE
+    r"(?:pause|resume)(?:\s+(?:the\s+)?(?:music|video|song|playback|radio|tv|television|vlc))?",
+    re.IGNORECASE,
 )
 _NEXT = re.compile(
     r"(?:next|skip)(?:\s+(?:the\s+)?(?:song|track|video))?", re.IGNORECASE
 )
 _CLEANUP_TEXT = re.compile(
-    r"clean\s+up\s+(?:the\s+|this\s+|my\s+)?text", re.IGNORECASE
+    r"clean\s+up\s+(?:the|this|that|my|it)(?:\s+(?:text|writing|paragraph|sentence|selection|document|email))?",
+    re.IGNORECASE,
 )
 _FIX_TEXT = re.compile(
-    r"fix\s+(?:the\s+|this\s+|my\s+)?(?:text|writing|grammar|spelling)", re.IGNORECASE
+    r"fix\s+(?:the|this|that|my|it)(?:\s+(?:text|writing|grammar|spelling|paragraph|sentence|selection|document|email))?",
+    re.IGNORECASE,
 )
-_PROOFREAD = re.compile(r"proofread\s+(?:this|it)", re.IGNORECASE)
+_PROOFREAD = re.compile(
+    r"proofread\s+(?:this|it|that|(?:the\s+)?(?:text|writing|paragraph|sentence|selection|document|email))",
+    re.IGNORECASE,
+)
 _EDIT_CLARITY = re.compile(r"edit\s+(?:this|it)\s+for\s+clarity", re.IGNORECASE)
 _CLEANUP_SELECTION = re.compile(
-    r"clean\s+up\s+(?:this|the|my)\s+(?:selection|paragraph|sentence)", re.IGNORECASE
+    r"clean\s+up\s+(?:this|the|my|that)\s+(?:selection|paragraph|sentence)", re.IGNORECASE
 )
 _FIX_SELECTION = re.compile(
-    r"fix\s+(?:this|the|my)\s+(?:selection|paragraph|sentence)", re.IGNORECASE
+    r"fix\s+(?:this|the|my|that)\s+(?:selection|paragraph|sentence)", re.IGNORECASE
 )
-_CLEAN_IT_UP = re.compile(r"clean\s+(?:this|it)\s+up", re.IGNORECASE)
+_CLEAN_IT_UP = re.compile(r"clean\s+(?:this|it|that)\s+up", re.IGNORECASE)
 _READ_SELECTION = re.compile(
     r"read (?:that|this|it|the selection|the selected text|what i selected)(?: to me| out loud| aloud)?",
     re.IGNORECASE,
@@ -208,6 +380,10 @@ _MAKE_FOLDER = re.compile(
     r"(?:create|make|add) (?:a )?(?:new )?(?:folder|directory) (?:called |named )?(.+?) in (.+)",
     re.IGNORECASE,
 )
+_HIDDEN_FILES = re.compile(
+    r"(show|check|turn on|hide|uncheck|turn off|toggle) hidden files",
+    re.IGNORECASE,
+)
 _PREVIOUS = re.compile(
     r"previous\s+(?:song|track|video)|go\s+back\s+a\s+song", re.IGNORECASE
 )
@@ -219,17 +395,19 @@ _VOLUME_DOWN = re.compile(
     r"volume\s+down|quieter|turn\s+(?:it|the\s+volume)\s+down|turn\s+down\s+(?:the\s+)?volume",
     re.IGNORECASE,
 )
-_STOP = re.compile(r"stop\s+(?:the\s+)?(?:music|video|playback)", re.IGNORECASE)
+_STOP = re.compile(r"stop\s+(?:the\s+)?(?:music|video|playback|radio)", re.IGNORECASE)
 _SKIP_AHEAD = re.compile(r"skip\s+ahead|forward\s+(?:30\s+)?seconds?", re.IGNORECASE)
 _GO_BACK_30 = re.compile(r"go\s+back\s+(?:30\s+)?seconds", re.IGNORECASE)
 _MUTE = re.compile(r"(?:un)?mute(?:\s+(?:the\s+)?(?:music|video|computer|sound|pc))?", re.IGNORECASE)
-_SET_VOLUME = re.compile(r"set\s+(?:the\s+)?volume\s+to\s+(\d{1,3})\s*(?:percent|%)?", re.IGNORECASE)
+_SET_VOLUME = re.compile(r"set\s+(?:the\s+)?volume\s+(?:to|of|at)\s+(\d{1,3})\s*(?:percent|%)?", re.IGNORECASE)
 _VOLUME_NUM = re.compile(r"volume\s+(\d{1,3})(?:\s*(?:percent|%))?", re.IGNORECASE)
 _MAX_VOLUME = re.compile(r"max(?:imum)?\s+volume", re.IGNORECASE)
 _HALF_VOLUME = re.compile(r"half\s+volume", re.IGNORECASE)
 _GET_VOLUME = re.compile(r"what(?:'s| is)?\s+the\s+volume|current\s+volume", re.IGNORECASE)
-_CUBE_RIGHT = re.compile(r"rotate\s+(?:the\s+)?cube\s+right", re.IGNORECASE)
-_CUBE_LEFT = re.compile(r"rotate\s+(?:the\s+)?cube\s+left", re.IGNORECASE)
+_CUBE_RIGHT = re.compile(r"(?:rotate|spin|turn)\s+(?:the\s+)?cube\s+(?:to\s+the\s+)?right", re.IGNORECASE)
+_CUBE_LEFT = re.compile(r"(?:rotate|spin|turn)\s+(?:the\s+)?cube\s+(?:to\s+the\s+)?left", re.IGNORECASE)
+_CUBE_SPIN = re.compile(r"(?:spin|start\s+spinning|keep\s+spinning)\s+(?:the\s+)?cube", re.IGNORECASE)
+_CUBE_SPIN_STOP = re.compile(r"stop\s+(?:spinning|the\s+cube|spinning\s+the\s+cube)", re.IGNORECASE)
 _ZOOM_IN_MORE = re.compile(r"zoom\s+in\s+more", re.IGNORECASE)
 _ZOOM_IN = re.compile(r"zoom\s+in", re.IGNORECASE)
 _ZOOM_LEFT = re.compile(r"zoom\s+left", re.IGNORECASE)
@@ -255,8 +433,6 @@ _BARE_KEYS = {
     "save",
     "new tab",
     "close tab",
-    "full screen",
-    "fullscreen",
 }
 _TYPE = re.compile(r"(?:type|write|dictate|enter)\s+(.+)", re.IGNORECASE)
 _SAY_TEXT = re.compile(r"say\s+(.+)", re.IGNORECASE)
@@ -281,8 +457,9 @@ _DOCUMENT = re.compile(
     re.IGNORECASE,
 )
 _SEND = re.compile(r"send\s+(?:it|the\s+email|this\s+email|the\s+message)", re.IGNORECASE)
-_OPEN_APP = re.compile(r"(?:open|launch|start|run)\s+(\w+(?:\s+\w+){0,4})", re.IGNORECASE)
-_APP_NAME_FIXES = {"the file manager": "file manager"}
+_OPEN_APP = re.compile(
+    r"(?:(?:i\s+need\s+to|try\s+to)\s+)?(?:open|launch|start|run)\s+(.+)", re.IGNORECASE
+)
 _OPEN_FILE_FOLDER = re.compile(
     r"open (?:the |my )?(?:file|document) (?:called |named )?(.+?) (?:in|from|on) (.+)",
     re.IGNORECASE,
@@ -319,6 +496,12 @@ _CLOSE_WINDOW = re.compile(
 _CLOSE_APP = re.compile(
     r"(?:close|quit|exit|kill|shut down)\s+(?:the\s+)?(\w+(?:\s+\w+){0,4})", re.IGNORECASE
 )
+_CLOSE_YOURSELF = re.compile(
+    r"(?:close|quit|exit)\s+(?:yourself|voxa)"
+    r"|shut\s+yourself\s+down"
+    r"|goodbye\s+voxa",
+    re.IGNORECASE,
+)
 _LOCK_SCREEN = re.compile(
     r"lock (?:the |my )?(?:screen|computer|pc|desktop)|lock it|lock up", re.IGNORECASE
 )
@@ -328,9 +511,28 @@ _SWITCH_TO = re.compile(
     r"(\w+(?:\s+\w+){0,2})",
     re.IGNORECASE,
 )
+_CHARACTER_CHANGE = re.compile(
+    r"(?:change\s+(?:the\s+)?characters?\s*(?:to\s+)?|be\s+)([a-z][\w'-]*)",
+    re.IGNORECASE,
+)
+_LIST_CHARACTERS = re.compile(
+    r"(?:list|show)\s+(?:the\s+)?(?:available\s+)?characters?"
+    r"|who can you be"
+    r"|what characters (?:can|do) you (?:be|have)",
+    re.IGNORECASE,
+)
 
 _MINIMIZE_ALL = re.compile(
-    r"(?:minimi[sz]e)\s+(?:everything|all windows)|show the desktop", re.IGNORECASE
+    r"(?:minimi[sz]e|hide)\s+(?:everything|all(?:\s+(?:of\s+)?(?:the|my))?(?:\s+open)?"
+    r"\s+(?:windows|apps|applications|programs))"
+    r"|show\s+(?:me\s+)?(?:the\s+|my\s+)?desktop",
+    re.IGNORECASE,
+)
+_RESTORE_ALL = re.compile(
+    r"(?:restore|unminimi[sz]e)\s+(?:everything|all(?:\s+(?:of\s+)?(?:the|my))?(?:\s+open)?"
+    r"\s+(?:windows|apps|applications|programs))"
+    r"|bring\s+(?:everything|all)\s+back",
+    re.IGNORECASE,
 )
 _MINIMIZE_APP = re.compile(
     r"(?:minimi[sz]e|hide)\s+(\w+(?:\s+\w+){0,4})", re.IGNORECASE
@@ -344,6 +546,14 @@ _RESTORE_APP = re.compile(
 )
 _MINIMIZE_ACTIVE = re.compile(
     r"(?:minimi[sz]e|hide)\s+(?:this|it|that|the window|the app|window|app)", re.IGNORECASE
+)
+_MINIMIZE_SELF = re.compile(
+    r"(?:minimi[sz]e|hide)\s+(?:yourself|your\s+window|voxa|the\s+voxa\s+window)", re.IGNORECASE
+)
+_MAXIMIZE_SELF = re.compile(
+    r"(?:maximi[sz]es?)\s+(?:yourself|your\s+window|voxa|the\s+voxa\s+window)"
+    r"|make\s+(?:yourself|your\s+window)\s+(?:bigger|full\s+(?:size|screen))",
+    re.IGNORECASE,
 )
 _WHATS_OPEN = re.compile(
     r"(?:what(?:'s| is) open"
@@ -361,7 +571,8 @@ _WHICH_WINDOW = re.compile(
 )
 _MAXIMIZE_ACTIVE = re.compile(
     r"(?:maximi[sz]e)\s+(?:this|it|that|the window|the app|window|app)"
-    r"|make\s+(?:this|it|that|the window|the app|window|app)\s+(?:bigger|full size)",
+    r"|make\s+(?:this|it|that|the window|the app|window|app)\s+(?:bigger|full\s+(?:size|screen))"
+    r"|full\s*screen",
     re.IGNORECASE,
 )
 _RESTORE_ACTIVE = re.compile(
@@ -378,13 +589,16 @@ _UNDO_FILE = re.compile(
 )
 
 _TIMER_SET = re.compile(
-    r"(?:set\s+(?:a\s+|the\s+|an\s+)?timer|start\s+(?:a\s+|the\s+)?timer|timer)\s*(?:for\s+|of\s+)?(.+)",
+    r"(?:(?:set|start)\s+(?:a\s+|the\s+|an\s+)?)?"
+    r"(?:(?P<dur>(?:\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|fifteen|twenty|thirty)\s+(?:minutes?|hours?|seconds?))\s+timer"
+    r"|timer\s*(?:for\s+|of\s+)?(?P<dur2>.+))",
     re.IGNORECASE,
 )
 _REMIND_TO = re.compile(r"remind\s+me\s+to\s+(.+?)\s+(?:in|at)\s+(.+)", re.IGNORECASE)
 _REMIND_WHEN = re.compile(r"remind\s+me\s+(in|at)\s+(.+?)\s+to\s+(.+)", re.IGNORECASE)
 _LIST_REMINDERS = re.compile(
-    r"(?:what|any|list|show(?:\s+me)?)\s+(?:the\s+|my\s+)?(?:timers?\s*(?:and|or)\s*)?reminders?\s*(?:do\s+i\s+have)?",
+    r"(?:what(?:\s+are)?|any|list|show(?:\s+me)?|read(?:\s+me)?)\s+(?:the\s+|my\s+)?(?:timers?\s*(?:and|or)\s*)?"
+    r"(?:reminders?|timers?)\s*(?:do\s+i\s+have|are\s+(?:set|running))?",
     re.IGNORECASE,
 )
 _CANCEL_REMINDERS = re.compile(
@@ -392,7 +606,7 @@ _CANCEL_REMINDERS = re.compile(
     re.IGNORECASE,
 )
 _TAKE_NOTE = re.compile(
-    r"(?:take|make|write|add|save) (?:a |this |down a )?note(?: that| saying| to| of|:)? (.+)",
+    r"(?:take|make|write|add|save) (?:a |this |down a )?note(?:,|:)?(?: that| saying| to| of)?(?:,|:)? (.+)",
     re.IGNORECASE,
 )
 _NOTE_SAYS = re.compile(r"note (?:that |down )?(.+)", re.IGNORECASE)
@@ -403,6 +617,308 @@ _READ_NOTES = re.compile(
 )
 _DELETE_LAST_NOTE = re.compile(r"(?:delete|remove|erase|scratch) (?:my |the )?last note", re.IGNORECASE)
 _OPEN_NOTES = re.compile(r"open (?:my )?notes", re.IGNORECASE)
+# A list is named either by a word that can only mean one ("shopping", "to-do") or by any word followed
+# by "list" ("packing list"). A bare unknown word is not a list: "what's on TV", "what's on my calendar".
+_LIST_KNOWN = r"to[- ]?do|todo|task|tasks|shopping|grocery|groceries"
+_LIST = rf"(?:my |the )?(?:(?:{_LIST_KNOWN})(?: list)?|(?!clipboard\b)[a-z]+ list)"
+_LIST_NAMED = rf"(?:my |the )?(?:{_LIST_KNOWN}|(?!clipboard\b)[a-z]+) list"
+_LIST_ADD = re.compile(rf"(?:add|put) (?P<item>.+?) (?:to|on) (?P<list>{_LIST})", re.IGNORECASE)
+_BACKUP_NOW = re.compile(
+    r"back up (?:my |voxa(?:'s)? )?(?:data|notes|lists|files|everything)"
+    r"|(?:make|create) a backup",
+    re.IGNORECASE,
+)
+_BACKUP_LAST = re.compile(
+    r"when (?:was|did) (?:my |the )?last backup(?: run| happen)?"
+    r"|do i have a backup",
+    re.IGNORECASE,
+)
+_SORT_PREVIEW = re.compile(
+    r"(?:how|what) (?:do|does|would|will|should) (?:my |the )?(.+?) (?:folder|directory)? (?:sort|sorts|sorted)"
+    r"|(?:preview|sort) (?:my |the )?(.+?) (?:folder|directory)?",
+    re.IGNORECASE,
+)
+_MEAL_IDEA = re.compile(
+    r"what(?:'s| is| should we have| should i make| can i cook) for dinner(?: tonight)?"
+    r"|(?:give me|suggest) (?:a |an )?(?P<tag>quick|vegetarian|chicken|beef|fish|pasta|soup|salad)? ?(?:dinner|meal|recipe)(?: idea)?"
+    r"|what should i cook(?: tonight)?",
+    re.IGNORECASE,
+)
+_MEAL_PLAN = re.compile(
+    r"plan (?:my |our |the )?(?:meals|dinners)(?: for (?:the|this) week)?"
+    r"|(?:make|give me) a meal plan",
+    re.IGNORECASE,
+)
+_MEAL_SHOP = re.compile(
+    r"add (?:the |its |those )?ingredients(?: for (?P<name>.+?))? to (?:my |the )?shopping list"
+    r"|i(?:'ll| will) make (?P<name2>that|.+)",
+    re.IGNORECASE,
+)
+_PROJECT_STATUS = re.compile(
+    r"what(?:'s| is) the git status of (?:the |my )?(?P<n1>.+?)"
+    r"|what(?:'s| is) the status of (?:the |my )?(?P<n2>.+?)(?: project| repo(?:sitory)?)"
+    r"|how is (?:the |my )?(?P<n3>.+?) (?:project| repo(?:sitory)?)(?: doing)?",
+    re.IGNORECASE,
+)
+_MODEL_STATUS = re.compile(
+    r"is (?:the local model|strata|the coding model) (?:running|up|working|busy)"
+    r"|what is (?:the local model|strata) (?:doing|working on)"
+    r"|(?:local model|strata) status",
+    re.IGNORECASE,
+)
+_HEADS_UP = re.compile(
+    r"what should i know(?: today| about today)?|what(?:'s| is) (?:important|going on) today"
+    r"|anything i should know|(?:give me )?a heads up",
+    re.IGNORECASE,
+)
+_FORGOTTEN = re.compile(
+    r"what am i forgetting|(?:did|have) i forg(?:et|otten)? anything|what have i missed",
+    re.IGNORECASE,
+)
+_SUGGEST_NEXT = re.compile(
+    r"what do you (?:recommend|suggest)(?: i do)?(?: next| now)?|what would you do(?: next| now)?",
+    re.IGNORECASE,
+)
+_MEETING_BRIEF = re.compile(
+    r"(?:brief me on|prepare me for|what do i need for|tell me about) (?:my |the )?(?P<title>.+?)"
+    r"(?: appointment| meeting)",
+    re.IGNORECASE,
+)
+_CAL_WEEK_Q = re.compile(
+    r"what(?:'s| is) (?:on |happening )?this week"
+    r"|what does (?:my|the|our) week look like"
+    r"|what(?:'s| is) (?:the|our) family schedule(?: this week)?",
+    re.IGNORECASE,
+)
+_CAL_WEEK_PERSON = re.compile(
+    r"what does (?P<name>[a-z]+) have(?: on)? this week"
+    r"|what(?:'s| is) (?P<name2>[a-z]+) doing this week"
+    r"|what(?:'s| is) on (?P<name3>[a-z]+)'s (?:calendar|schedule)(?: this week)?",
+    re.IGNORECASE,
+)
+_CAL_BUSY = re.compile(
+    r"how busy (?:am i|is my week|is this week)|how many appointments do i have this week",
+    re.IGNORECASE,
+)
+_CAL_CONFLICTS = re.compile(
+    r"(?:do i have|are there) any (?:conflicts|clashes)(?: on my calendar| this week)?"
+    r"|check my calendar for (?:conflicts|clashes)",
+    re.IGNORECASE,
+)
+_WEEKDAY_WORD = r"monday|tuesday|wednesday|thursday|friday|saturday|sunday"
+_CAL_WEEKLY1 = re.compile(rf"(?:add|put|schedule) (?P<title>.+?) every (?P<day>{_WEEKDAY_WORD}) at (?P<time>.+?)(?: (?:on|to|in) my calendar)?", re.IGNORECASE)
+_CAL_WEEKLY2 = re.compile(rf"i have (?P<title>.+?) every (?P<day>{_WEEKDAY_WORD}) at (?P<time>.+)", re.IGNORECASE)
+_CAL_WEEKLY3 = re.compile(rf"(?P<title>.+?) is every (?P<day>{_WEEKDAY_WORD}) at (?P<time>.+)", re.IGNORECASE)
+_CONVERT_TO = re.compile(
+    r"convert (?:the |my )?(?:file |document )?(?P<name>.+?) (?:into|in|to) (?:a |an )?(?P<fmt>.+?)"
+    r"(?: file| document)?(?: in (?:the |my )?(?P<folder>.+?)(?: folder)?)?",
+    re.IGNORECASE,
+)
+_CONVERT_AS = re.compile(r"(?:save|export) (?:the |my )?(?P<name>.+?) as (?:a |an )?(?P<fmt>.+?)", re.IGNORECASE)
+_CONVERT_MAKE = re.compile(r"make (?:a |an )?(?P<fmt>.+?) (?:of|from) (?:the |my )?(?P<name>.+?)", re.IGNORECASE)
+_TRANSCRIBE = re.compile(
+    r"transcrib(?:e|ption) (?:the |my |this )?(?:file |recording |audio |clip |voice ?memo )?(?P<name>.+?)"
+    r"(?: in (?:the |my )?(?P<folder>.+?)(?: folder)?)?",
+    re.IGNORECASE,
+)
+_FOCUS_DURATION = r"(?:\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|fifteen|twenty|thirty)\s+(?:minutes?|hours?)"
+_FOCUS_START = re.compile(
+    rf"(?:start|begin)\s+(?:a |an |at )?(?:(?P<dur1>{_FOCUS_DURATION})\s+)?focus\s+(?:session|time|timer|block)"
+    rf"(?:\s+for\s+(?P<dur2>{_FOCUS_DURATION}))?(?:\s+(?:on|for)\s+(?P<what>.+))?",
+    re.IGNORECASE,
+)
+_FOCUS_NEED = re.compile(rf"i\s+need\s+to\s+focus(?:\s+for\s+(?P<dur>{_FOCUS_DURATION}))?", re.IGNORECASE)
+_FOCUS_POMODORO = re.compile(r"(?:start|begin)\s+(?:a\s+)?pomm?[ao]doro(?:\s+(?:timer|session))?", re.IGNORECASE)
+_FOCUS_PROTECT = re.compile(rf"protect\s+(?:the\s+next\s+)?(?P<dur>{_FOCUS_DURATION})(?:\s+for\s+(?P<what>.+))?", re.IGNORECASE)
+_FOCUS_STATUS = re.compile(
+    r"how\s+much\s+focus\s+time\s+(?:is|do\s+i\s+have)\s+left"
+    r"|how\s+long\s+(?:is\s+left|until\s+my\s+break)"
+    r"|am\s+i\s+(?:still\s+)?in\s+(?:a\s+)?focus(?:\s+(?:session|time))?",
+    re.IGNORECASE,
+)
+_FOCUS_STOP = re.compile(
+    r"(?:stop|end|cancel)\s+(?:the\s+|my\s+)?focus(?:\s+(?:session|time|timer))?"
+    r"|i'?m\s+done\s+focusing",
+    re.IGNORECASE,
+)
+_LIST_READ = re.compile(
+    rf"(?:what's|what is) on (?P<a>{_LIST})|read(?: me)? (?P<b>{_LIST_NAMED})|show (?:me )?(?P<c>{_LIST_NAMED})",
+    re.IGNORECASE,
+)
+_LIST_DONE = re.compile(
+    rf"check(?:ed)? off (?P<i1>.+?) (?:on|from) (?P<l1>{_LIST})|mark(?:ed)? (?P<i2>.+?) (?:as |is )?done(?: (?:on|from) (?P<l2>{_LIST}))?"
+    rf"|i finished (?P<i3>.+?)(?: (?:on|from) (?P<l3>{_LIST}))?|cross(?:ed)? off (?P<i4>.+?)(?: (?:on|from) (?P<l4>{_LIST}))?",
+    re.IGNORECASE,
+)
+_LIST_REMOVE = re.compile(rf"(?:remove|take) (?P<item>.+?) (?:from|off) (?P<list>{_LIST})", re.IGNORECASE)
+_LIST_CLEAR = re.compile(rf"(?:clear|empty) (?P<list>{_LIST_NAMED})", re.IGNORECASE)
+_LIST_PROGRESS = re.compile(
+    r"how am i doing(?: on my (?P<list>to[- ]?do|todo|task|tasks)? ?list)?"
+    r"|(?:give me )?(?:a |my )?progress report"
+    r"|what have i (?:finished|done|completed)(?: today)?",
+    re.IGNORECASE,
+)
+_LIST_PENDING = re.compile(
+    r"what(?:'s| is) (?:still )?(?:pending|left|outstanding)(?: on my lists?)?"
+    r"|what(?:'s| is) still open(?: on my lists)?"
+    r"|what do i still have to do"
+    r"|what(?:'s| is) left to do",
+    re.IGNORECASE,
+)
+_LIST_NEXT = re.compile(
+    r"what should i (?:do|work on)(?: next| first| now)?"
+    r"|what(?:'s| is) (?:my )?(?:next task|top priority|most important)(?: today)?"
+    r"|what do i do next",
+    re.IGNORECASE,
+)
+_MEMORY_REMEMBER = re.compile(
+    r"(?:remember|don't forget|keep in mind) (?:that )?(?!to\b)(?P<fact>.+)",
+    re.IGNORECASE,
+)
+_MEMORY_RECALL = re.compile(
+    r"what do you (?:remember|know) about (?P<t1>.+)"
+    r"|do you remember (?:anything about )?(?P<t2>.+)"
+    r"|what did i (?:tell you|say) about (?P<t3>.+)",
+    re.IGNORECASE,
+)
+_MEMORY_LIST = re.compile(
+    r"what do you remember|what have i told you|show (?:me )?(?:your|my) memory",
+    re.IGNORECASE,
+)
+_MEMORY_FORGET = re.compile(
+    r"forget (?:what i said |what i told you )?about (?P<t1>.+)|forget that (?P<t2>.+)",
+    re.IGNORECASE,
+)
+_CAL = r"calendar|schedule|agenda"
+_CAL_DAY = (
+    r"today|tomorrow|on (?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)"
+    r"|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)"
+)
+_CAL_ADD1 = re.compile(r"(?:add|put|book|plan) (?P<title>.+?) (?:on|to|in) my calendar(?: (?:for|on )?(?P<when>.+))?", re.IGNORECASE)
+_CAL_ADD2 = re.compile(r"(?:add|put|book|plan) (?P<title>.+?) (?P<when>.+?) (?:on|to|in) my calendar", re.IGNORECASE)
+_CAL_ADD3 = re.compile(r"(?:schedule|book|plan) (?P<title>.+?) (?:for|on) (?P<when>.+)", re.IGNORECASE)
+_CAL_ADD4 = re.compile(r"i have (?P<title>.+?) (?P<when>.+)", re.IGNORECASE)
+_CAL_DAY1 = re.compile(rf"what(?:'s| is) on my (?:{_CAL})(?: (?P<day>{_CAL_DAY}))?", re.IGNORECASE)
+_CAL_DAY2 = re.compile(rf"what do i have (?:on )?(?P<day>{_CAL_DAY})", re.IGNORECASE)
+_CAL_DAY3 = re.compile(rf"what(?:'s| is) my (?:schedule|agenda|day)(?: look like)?(?: (?P<day>{_CAL_DAY}))?", re.IGNORECASE)
+_CAL_DAY4 = re.compile(rf"do i have anything(?: (?P<day>{_CAL_DAY}))?", re.IGNORECASE)
+_CAL_NEXT = re.compile(
+    r"what(?:'s| is) (?:my )?next(?: appointment| meeting| event)?|what(?:'s| is) next on my calendar",
+    re.IGNORECASE,
+)
+_CAL_CANCEL = re.compile(
+    r"(?:cancel|remove|delete) (?:my |the )?(?P<title>.+?)(?: appointment| meeting)?(?: from my calendar)?",
+    re.IGNORECASE,
+)
+_CAL_NAMED = re.compile(r"calendar|appointment|meeting", re.IGNORECASE)
+_EXPENSE_CATEGORY = r"food|transport|home|fun|health|other"
+_EXPENSE_PERIOD = r"today|this week|this month|this year"
+_EXPENSE_ADD = re.compile(
+    r"i spent (?P<a1>.+?) on (?P<w1>.+)|i paid (?P<a2>.+?) for (?P<w2>.+)"
+    r"|add an expense of (?P<a3>.+?) for (?P<w3>.+)|log (?P<a4>.+?) for (?P<w4>.+)",
+    re.IGNORECASE,
+)
+_EXPENSE_TOTAL = re.compile(
+    rf"how much (have i|did i) spen[dt](?: on (?P<c1>{_EXPENSE_CATEGORY}))?(?: (?P<p1>{_EXPENSE_PERIOD}))?"
+    rf"|what did i spend(?: on (?P<c2>{_EXPENSE_CATEGORY}))?(?: (?P<p2>{_EXPENSE_PERIOD}))?",
+    re.IGNORECASE,
+)
+_EXPENSE_BREAKDOWN = re.compile(
+    rf"(?:show|give me|what is|what's) my (?:spending|expenses|budget)(?: breakdown)?(?: (?P<p1>{_EXPENSE_PERIOD}))?"
+    rf"|where (?:did|does) my money go(?: (?P<p2>{_EXPENSE_PERIOD}))?",
+    re.IGNORECASE,
+)
+_EXPENSE_UNDO = re.compile(r"(?:remove|delete|undo) (?:the |my )?last expense", re.IGNORECASE)
+_EXPENSE_SHEET = re.compile(
+    r"(?:make|create|open) (?:a |my )?(?:spreadsheet|sheet) (?:of|with|from) my (?:expenses|spending)"
+    r"|export my (?:expenses|spending)(?: to a spreadsheet)?",
+    re.IGNORECASE,
+)
+_BUDGET_SET = re.compile(
+    rf"set (?:my |the )?(?P<c1>{_EXPENSE_CATEGORY}) budget to (?P<a1>.+?)(?: a month)?"
+    rf"|my (?P<c2>{_EXPENSE_CATEGORY}) budget is (?P<a2>.+)",
+    re.IGNORECASE,
+)
+_BUDGET_STATUS = re.compile(
+    rf"how am i doing on my(?: (?P<c1>{_EXPENSE_CATEGORY}))? budget"
+    rf"|how much is left in my (?P<c2>{_EXPENSE_CATEGORY}) budget"
+    rf"|(?:show|what is|what's) my budgets?",
+    re.IGNORECASE,
+)
+_TRIP_ADD = re.compile(r"i spent (?P<a1>.+?) on (?P<w1>.+?) (?:for|on) the (?P<t1>.+) trip", re.IGNORECASE)
+_TRIP_COST = re.compile(
+    r"how much (?:did|has) the (?P<n1>.+?) trip cost(?: so far)?"
+    r"|what did i spend on the (?P<n2>.+?) trip",
+    re.IGNORECASE,
+)
+_DATE_KIND = r"birthday|anniversary"
+_DATE_REMEMBER = re.compile(
+    rf"(?:remember (?:that )?)?(?P<name>.+?)'s (?P<kind>{_DATE_KIND}) is (?:on )?(?P<when>.+)",
+    re.IGNORECASE,
+)
+_DATE_DUE = re.compile(r"(?:the )?(?P<name>.+?) is due (?:on |by )?(?P<when>.+)", re.IGNORECASE)
+_DATE_DEADLINE = re.compile(r"(?P<name>.+?) deadline is (?:on )?(?P<when>.+)", re.IGNORECASE)
+_DATE_WHEN = re.compile(
+    rf"when is (?P<name>.+?)'s (?P<kind>{_DATE_KIND})|when is (?:the )?(?P<due>.+?) due",
+    re.IGNORECASE,
+)
+_DATE_UPCOMING = re.compile(
+    r"(?:what|any|which) (?:birthdays|anniversaries|deadlines|dates)(?: (?:are|do i have))?(?: (?:coming up|this week|this month|soon))?"
+    r"|what(?:'s| is) (?:coming up|due)(?: (?:this week|this month|soon))?",
+    re.IGNORECASE,
+)
+_DATE_FORGET = re.compile(
+    r"forget (?P<name>.+?)'s (?:birthday|anniversary)|forget the (?P<deadline>.+?) deadline"
+    r"|forget the (?P<bill>.+?) bill"
+    r"|forget the (?P<subscription>.+?) subscription"
+    r"|forget the (?P<service>.+?\b(?:service|inspection|registration|maintenance|oil change|check-?up))",
+    re.IGNORECASE,
+)
+_DATE_BILL = re.compile(
+    r"(?:the |my )?(?P<name>.+?) bill is due (?:on |by )?(?P<when>.+)"
+    r"|i pay (?:the |my )?(?P<pay>.+?)(?: bill)? (?:on |by )(?P<paywhen>.+)",
+    re.IGNORECASE,
+)
+_DATE_SUBSCRIPTION = re.compile(
+    r"(?:the |my )?(?P<name>.+?) subscription (?:renews|is due|bills|charges) (?:on |by )?(?P<when>.+)"
+    r"|(?P<renew>.+?) renews (?:on |by )?(?P<renewwhen>.+)",
+    re.IGNORECASE,
+)
+_DATE_SERVICE = re.compile(
+    r"(?:the |my )?(?P<name>.+?\b(?:service|inspection|registration|oil change|check-?up|maintenance)) is due (?:on |in )?(?P<when>.+)",
+    re.IGNORECASE,
+)
+_DATE_BILLS_QUESTION = re.compile(
+    r"what bills (?:are|do i have)(?: coming up| due)?(?: this week| this month)?",
+    re.IGNORECASE,
+)
+_DATE_SUBSCRIPTIONS_QUESTION = re.compile(
+    r"what subscriptions do i have|(?:list|show) my subscriptions",
+    re.IGNORECASE,
+)
+_DATE_WHEN_BILL = re.compile(r"when is (?:the |my )?(?P<name>.+?) bill due", re.IGNORECASE)
+_DATE_WHEN_RENEW = re.compile(r"when does (?:the |my )?(?P<name>.+?)(?: subscription)? renew", re.IGNORECASE)
+
+
+def _date_name(phrase: str) -> str:
+    """"my mom" -> "mom": the bare name the date tools expect."""
+    return re.sub(r"^(?:my|the)\s+", "", (phrase or "").strip(), flags=re.IGNORECASE)
+
+
+def _list_word(phrase: str | None) -> str:
+    """"my shopping list" -> "shopping": the bare name the list tools expect."""
+    return re.sub(r"\s+list$", "", re.sub(r"^(?:my|the)\s+", "", (phrase or "").strip(), flags=re.IGNORECASE), flags=re.IGNORECASE)
+
+
+_TAKE_PICTURE = re.compile(
+    r"(?:take|snap|shoot|grab)\s+(?:a\s+|my\s+|me\s+a\s+)?(?:picture|photo|photograph|selfie|pic)"
+    r"(?:\s+of\s+me|\s+with\s+the\s+(?:web\s?cam|camera))?(?:\s+please)?",
+    re.IGNORECASE,
+)
+_SHOW_PICTURE = re.compile(
+    r"(?:show|open)(?:\s+me)?\s+(?:the|that|my)\s+(?:picture|photo|selfie)|let\s+me\s+see\s+(?:it|the\s+(?:picture|photo))",
+    re.IGNORECASE,
+)
 _TAKE_SCREENSHOT = re.compile(
     r"(?:take|grab|capture|make) (?:a |me a )?(?:screen ?shot|picture of (?:the|my) screen)"
     r"(?: of (?:the|my) screen)?(?: please)?|screen ?shot(?: this| that| the screen)?",
@@ -438,8 +954,13 @@ _SEARCH_SITE = re.compile(
     r"search (?:this site|here|this page) for (.+)", re.IGNORECASE
 )
 _SCROLL = re.compile(
-    r"scroll (down|up)|go to the (top|bottom)(?: of the page)?", re.IGNORECASE
+    r"(?:scroll|page)\s+(down|up)(?:\s+a\s+little)?"
+    r"|scroll\s+to\s+the\s+(top|bottom)"
+    r"|go\s+to\s+the\s+(top|bottom)(?:\s+of\s+the\s+page)?",
+    re.IGNORECASE,
 )
+_KEEP_SCROLLING = re.compile(r"keep scrolling", re.IGNORECASE)
+_LAST_SCROLL_DIRECTION = "down"
 _GO_BACK = re.compile(r"go back|previous page", re.IGNORECASE)
 _UPDATE_SYSTEM = re.compile(
     r"(?:please )?(?:update|upgrade) (?:spaced(?: linux)?|the (?:system|computer|os|operating system)"
@@ -468,6 +989,8 @@ ROUTED_TOOLS = frozenset(
         "set_youtube_channel",
         "voxa_help",
         "set_github_owner",
+        "set_noise_cancellation",
+        "get_noise_cancellation",
         "set_contact_email",
         "get_contact_email",
         "forget_contact_email",
@@ -491,6 +1014,7 @@ ROUTED_TOOLS = frozenset(
         "rename_file",
         "make_folder",
         "undo_file_action",
+        "hidden_files",
         "type_text",
         "file_dialog",
         "send_gmail",
@@ -505,6 +1029,10 @@ ROUTED_TOOLS = frozenset(
         "maximize_app",
         "restore_app",
         "minimize_all",
+        "minimize_self",
+        "maximize_self",
+        "change_character",
+        "list_characters",
         "list_open_windows",
         "active_window_name",
         "browse",
@@ -524,7 +1052,74 @@ ROUTED_TOOLS = frozenset(
         "read_notes",
         "delete_last_note",
         "open_notes",
+        "list_add",
+        "backup_now",
+        "backup_last",
+        "sort_folder_preview",
+        "meal_idea",
+        "meal_plan",
+        "meal_shop",
+        "project_status",
+        "model_status",
+        "flight_status",
+        "track_package",
+        "compare_prices",
+        "look_up",
+        "market",
+        "exchange_rate",
+        "fact_check",
+        "convert_file",
+        "list_done",
+        "list_remove",
+        "list_clear",
+        "list_progress",
+        "list_pending",
+        "list_next",
+        "focus_start",
+        "focus_status",
+        "focus_stop",
+        "remember_fact",
+        "recall_fact",
+        "list_facts",
+        "forget_fact",
+        "calendar_add",
+        "calendar_day",
+        "calendar_next",
+        "calendar_cancel",
+        "calendar_conflicts",
+        "calendar_add_weekly",
+        "calendar_busy",
+        "calendar_week",
+        "expense_add",
+        "expense_total",
+        "expense_breakdown",
+        "expense_undo",
+        "expense_spreadsheet",
+        "budget_set",
+        "budget_status",
+        "trip_cost",
+        "date_remember",
+        "date_when",
+        "date_upcoming",
+        "date_forget",
+        "heads_up",
+        "what_did_i_forget",
+        "suggest_next_action",
+        "meeting_brief",
         "take_screenshot",
+        "take_picture",
+        "say_in_language",
+        "daily_briefing",
+        "play_radio",
+        "list_radio",
+        "radio_genre",
+        "play_tv",
+        "list_tv",
+        "local_weather",
+        "where_am_i",
+        "local_news",
+        "local_events",
+        "show_picture",
         "home_turn",
         "home_set",
         "home_scene",
@@ -532,11 +1127,20 @@ ROUTED_TOOLS = frozenset(
         "find_deal",
         "set_location",
         "tell_time",
+        "transcribe_file",
         "tell_date",
+        "world_time",
+        "time_difference",
         "calculate",
         "disk_space",
         "memory_free",
+        "gpu_status",
+        "cpu_status",
+        "system_health",
         "battery_level",
+        "top_cpu",
+        "top_memory",
+        "system_problems",
     }
 )
 
@@ -574,13 +1178,33 @@ _DICTATION_STARTS = frozenset(
 )
 
 
+def _dictation_request(text: str) -> tuple[bool, str | None]:
+    """Return whether this starts dictation and its optional destination app."""
+    s = _prepare(normalize(text))
+    folded = s.casefold()
+    if folded in _DICTATION_STARTS:
+        return True, None
+    # Keep this deliberately narrower than a general prefix match: for example,
+    # "start typing the email" is an editing request, not a mode switch.
+    for command in sorted(_DICTATION_STARTS, key=len, reverse=True):
+        for separator in (" into the ", " in the ", " into ", " in "):
+            prefix = command + separator
+            if folded.startswith(prefix):
+                target = s[len(prefix) :].strip()
+                if target:
+                    return True, clean_spoken_app_name(target)
+    return False, None
+
+
 def is_start_dictation(text: str) -> bool:
-    """True when the utterance asks the assistant to start dictating into the window."""
-    s = normalize(text).strip().casefold()
-    if s.startswith("please "):
-        s = s[len("please ") :].strip()
-    s = s.strip(".,!?;:\"'")
-    return s in _DICTATION_STARTS
+    """True when the utterance asks the assistant to start dictation."""
+    return _dictation_request(text)[0]
+
+
+def dictation_target(text: str) -> str | None:
+    """The named destination app in a dictation request, if one was supplied."""
+    matched, target = _dictation_request(text)
+    return target if matched else None
 
 
 _COMPOUND_JOIN = re.compile(r"\s*(?:and then|then|after that|and also|and|,)\s+")
@@ -598,8 +1222,63 @@ def is_compound(text: str) -> bool:
     return False
 
 
+_FLIGHT_STATUS = re.compile(
+    r"(?:what(?:'s| is) the status of|track|is) flight (?P<flight>.+?)(?: on time| delayed)?"
+    r"|flight status (?:for |of )?(?P<flight2>.+)",
+    re.IGNORECASE,
+)
+_TRACK_PACKAGE = re.compile(
+    r"track (?:my |the )?(?:package|parcel|order|delivery)(?: number)? (?P<tracking>.+)"
+    r"|where is (?:my )?(?:package|parcel) (?P<tracking2>.+)",
+    re.IGNORECASE,
+)
+_COMPARE_PRICES = re.compile(
+    r"compare prices (?:for |of |on )?(?P<item>.+)"
+    r"|who has the (?:best |lowest |cheapest )?price (?:for |on )?(?P<item2>.+)"
+    r"|where is (?P<item3>.+) cheapest",
+    re.IGNORECASE,
+)
+_LOOK_UP_COMPANY = re.compile(
+    r"(?:look up|research|tell me about|who is|what is) (?:the )?company (?P<name>.+)",
+    re.IGNORECASE,
+)
+_LOOK_UP_WIKI = re.compile(
+    r"(?:look up|research) (?:the person )?(?P<name>.+?) on wikipedia",
+    re.IGNORECASE,
+)
+_LOOK_UP_PERSON = re.compile(r"who is (?P<name>.+)", re.IGNORECASE)
+_EXCHANGE_RATE = re.compile(
+    r"(?:what(?:'s| is) (?:the )?(?:price|value) of|what(?:'s| is)|how much is|convert) "
+    r"(?:one |a |the )?(?P<base>.+?) (?:worth )?(?:in|to) (?P<quote>.+)"
+    r"|(?:what(?:'s| is) )?(?:the )?exchange rate (?:from |for )?(?P<base2>.+?) (?:to|in) (?P<quote2>.+)",
+    re.IGNORECASE,
+)
+_MARKET = re.compile(
+    r"how is the (?:stock )?market(?: doing)?(?: today)?"
+    r"|what(?:'s| is) (?:the )?(?:current )?price (?:of|for) (?P<what>.+)"
+    r"|what(?:'s| is) (?:the )?(?:current )?(?:stock|share) price (?:of|for) (?P<what9>.+)"
+    r"|what(?:'s| is) (?:the )?(?:current )?(?P<what_missing>(?:stock|share) price)(?: right now| today| currently)?"
+    r"|what(?:'s| is) (?P<what3>.+?) (?:stock price|trading at)"
+    r"|how much is (?P<what4>.+?) stock"
+    r"|(?:tell me )?(?:the )?stock price (?:of|for) (?P<what5>.+)"
+    r"|tell me (?P<what6>.+?) (?:stock|share) price"
+    r"|how is (?P<what7>.+?) (?:stock|shares?)(?: doing)?"
+    r"|what(?:'s| is) (?P<what8>.+?) (?:stock |shares? )?at"
+    r"|how much is (?:a |one )?(?P<what2>bitcoin|ethereum|gold|silver)",
+    re.IGNORECASE,
+)
+_FACT_CHECK = re.compile(
+    r"fact check (?:that )?(?P<claim>.+)"
+    r"|is it true that (?P<claim2>.+)"
+    r"|verify (?:that )?(?P<claim3>.+)",
+    re.IGNORECASE,
+)
+
+
 def route(text: str) -> ToolCall | None:
     """Map a spoken command to a tool call, or None when no rule matches."""
+    global _LAST_SCROLL_DIRECTION
+
     s = _prepare(normalize(text))
     if not s:
         return None
@@ -609,6 +1288,8 @@ def route(text: str) -> ToolCall | None:
 
     if is_start_dictation(s):
         return None
+    if _BRIEFING.fullmatch(s):
+        return call("daily_briefing")
     if is_compound(s):
         type_match = _TYPE.fullmatch(s)
         if type_match and not _DOCUMENT.match(type_match.group(1)):
@@ -617,6 +1298,9 @@ def route(text: str) -> ToolCall | None:
 
     if _REPEAT_LAST.fullmatch(s):
         return call("repeat_last")
+    say_in_match = _SAY_IN.fullmatch(s)
+    if say_in_match and translate.language_name(say_in_match.group(2)) is not None:
+        return call("say_in_language", phrase=say_in_match.group(1).strip("\"'“”"), language=say_in_match.group(2))
     after_me_match = _REPEAT_AFTER_ME.fullmatch(s)
     if after_me_match:
         return call("say_text", text=after_me_match.group(1))
@@ -626,7 +1310,7 @@ def route(text: str) -> ToolCall | None:
 
     timer_match = _TIMER_SET.fullmatch(s)
     if timer_match:
-        return call("set_timer", duration=timer_match.group(1))
+        return call("set_timer", duration=(timer_match.group("dur") or timer_match.group("dur2") or "").strip())
     remind_to = _REMIND_TO.fullmatch(s)
     if remind_to:
         return call("set_reminder", when=remind_to.group(2), text=remind_to.group(1))
@@ -637,6 +1321,241 @@ def route(text: str) -> ToolCall | None:
         return call("list_reminders")
     if _CANCEL_REMINDERS.fullmatch(s):
         return call("cancel_reminders")
+    date_remember = _DATE_REMEMBER.fullmatch(s)
+    if date_remember:
+        return call("date_remember", kind=date_remember.group("kind").lower(), name=_date_name(date_remember.group("name")), when=date_remember.group("when"))
+    date_bill = _DATE_BILL.fullmatch(s)
+    if date_bill:
+        bill_when = date_bill.group("when") or date_bill.group("paywhen")
+        if dates.parse_monthly(bill_when) is None and dates.parse_day(bill_when, date.today()) is None:
+            date_bill = None
+    if date_bill:
+        return call("date_remember", kind="bill", name=_date_name(date_bill.group("name") or date_bill.group("pay")), when=bill_when)
+    date_subscription = _DATE_SUBSCRIPTION.fullmatch(s)
+    if date_subscription:
+        sub_when = date_subscription.group("when") or date_subscription.group("renewwhen")
+        if dates.parse_monthly(sub_when) is None and dates.parse_day(sub_when, date.today()) is None:
+            date_subscription = None
+    if date_subscription:
+        return call("date_remember", kind="subscription", name=_date_name(date_subscription.group("name") or date_subscription.group("renew")), when=sub_when)
+    date_service = _DATE_SERVICE.fullmatch(s)
+    if date_service and dates.parse_monthly(date_service.group("when")) is None and dates.parse_day(date_service.group("when"), date.today()) is None:
+        date_service = None
+    if date_service:
+        return call("date_remember", kind="service", name=_date_name(date_service.group("name")), when=date_service.group("when"))
+    date_due = _DATE_DUE.fullmatch(s)
+    if date_due and (
+        dates.parse_day(date_due.group("when"), date.today()) is None
+        or re.match(r"(?:what|who|when|where|why|how)\b", date_due.group("name"), re.IGNORECASE)
+    ):
+        date_due = None  # "what is due process": not a deadline unless a real date follows
+    if date_due:
+        return call("date_remember", kind="deadline", name=_date_name(date_due.group("name")), when=date_due.group("when"))
+    date_deadline = _DATE_DEADLINE.fullmatch(s)
+    if date_deadline:
+        return call("date_remember", kind="deadline", name=_date_name(date_deadline.group("name")), when=date_deadline.group("when"))
+    if _DATE_BILLS_QUESTION.fullmatch(s):
+        return call("date_upcoming", kind="bill")
+    if _DATE_SUBSCRIPTIONS_QUESTION.fullmatch(s):
+        return call("date_upcoming", kind="subscription", days="365")
+    when_bill = _DATE_WHEN_BILL.fullmatch(s)
+    if when_bill:
+        return call("date_when", name=_date_name(when_bill.group("name")))
+    when_renew = _DATE_WHEN_RENEW.fullmatch(s)
+    if when_renew:
+        return call("date_when", name=_date_name(when_renew.group("name")))
+    date_when = _DATE_WHEN.fullmatch(s)
+    if date_when:
+        return call("date_when", name=_date_name(date_when.group("name") or date_when.group("due")))
+    if _DATE_UPCOMING.fullmatch(s):
+        return call("date_upcoming")
+    date_forget = _DATE_FORGET.fullmatch(s)
+    if date_forget:
+        return call("date_forget", name=_date_name(date_forget.group("name") or date_forget.group("deadline") or date_forget.group("bill") or date_forget.group("subscription") or date_forget.group("service")))
+    trip_add = _TRIP_ADD.fullmatch(s)
+    if trip_add:
+        return call("expense_add", amount=trip_add.group("a1"), what=trip_add.group("w1"), tag=trip_add.group("t1"))
+    trip_cost = _TRIP_COST.fullmatch(s)
+    if trip_cost:
+        return call("trip_cost", name=trip_cost.group("n1") or trip_cost.group("n2"))
+    budget_set = _BUDGET_SET.fullmatch(s)
+    if budget_set:
+        return call(
+            "budget_set",
+            category=budget_set.group("c1") or budget_set.group("c2"),
+            amount=budget_set.group("a1") or budget_set.group("a2"),
+        )
+    budget_status = _BUDGET_STATUS.fullmatch(s)
+    if budget_status:
+        return call("budget_status", category=budget_status.group("c1") or budget_status.group("c2") or "")
+    expense_add = _EXPENSE_ADD.fullmatch(s)
+    if expense_add:
+        return call(
+            "expense_add",
+            amount=expense_add.group("a1") or expense_add.group("a2") or expense_add.group("a3") or expense_add.group("a4"),
+            what=expense_add.group("w1") or expense_add.group("w2") or expense_add.group("w3") or expense_add.group("w4"),
+        )
+    expense_total = _EXPENSE_TOTAL.fullmatch(s)
+    if expense_total:
+        return call(
+            "expense_total",
+            period=expense_total.group("p1") or expense_total.group("p2") or "",
+            category=expense_total.group("c1") or expense_total.group("c2") or "",
+        )
+    expense_breakdown = _EXPENSE_BREAKDOWN.fullmatch(s)
+    if expense_breakdown:
+        return call("expense_breakdown", period=expense_breakdown.group("p1") or expense_breakdown.group("p2") or "")
+    expense_undo = _EXPENSE_UNDO.fullmatch(s)
+    if expense_undo:
+        return call("expense_undo")
+    if _EXPENSE_SHEET.fullmatch(s):
+        return call("expense_spreadsheet")
+    for _cal_add in (_CAL_ADD1, _CAL_ADD2, _CAL_ADD3, _CAL_ADD4):
+        _cal_m = _cal_add.fullmatch(s)
+        if _cal_m and _cal_m.group("when") and split_when(_cal_m.group("when"), date.today()) is not None:
+            return call("calendar_add", title=_cal_m.group("title").strip(), when=_cal_m.group("when").strip())
+    cal_day = _CAL_DAY1.fullmatch(s) or _CAL_DAY2.fullmatch(s) or _CAL_DAY3.fullmatch(s) or _CAL_DAY4.fullmatch(s)
+    if cal_day:
+        return call("calendar_day", day=cal_day.group("day") or "")
+    if _CAL_NEXT.fullmatch(s):
+        return call("calendar_next")
+    cal_cancel = _CAL_CANCEL.fullmatch(s)
+    if cal_cancel and _CAL_NAMED.search(s):
+        return call("calendar_cancel", title=cal_cancel.group("title"))
+    mem_remember = _MEMORY_REMEMBER.fullmatch(s)
+    if mem_remember:
+        return call("remember_fact", fact=mem_remember.group("fact"))
+    mem_recall = _MEMORY_RECALL.fullmatch(s)
+    if mem_recall:
+        return call("recall_fact", topic=mem_recall.group("t1") or mem_recall.group("t2") or mem_recall.group("t3"))
+    if _MEMORY_LIST.fullmatch(s):
+        return call("list_facts")
+    mem_forget = _MEMORY_FORGET.fullmatch(s)
+    if mem_forget:
+        return call("forget_fact", topic=mem_forget.group("t1") or mem_forget.group("t2"))
+    list_progress = _LIST_PROGRESS.fullmatch(s)
+    if list_progress:
+        return call("list_progress", list=_list_word(list_progress.group("list")))
+    if _LIST_PENDING.fullmatch(s):
+        return call("list_pending")
+    if _LIST_NEXT.fullmatch(s):
+        return call("list_next")
+    focus_start = _FOCUS_START.fullmatch(s)
+    if focus_start:
+        return call(
+            "focus_start",
+            duration=focus_start.group("dur1") or focus_start.group("dur2") or "",
+            what=focus_start.group("what") or "",
+        )
+    focus_need = _FOCUS_NEED.fullmatch(s)
+    if focus_need:
+        return call("focus_start", duration=focus_need.group("dur") or "", what="")
+    if _FOCUS_POMODORO.fullmatch(s):
+        return call("focus_start", duration="", what="")
+    focus_protect = _FOCUS_PROTECT.fullmatch(s)
+    if focus_protect:
+        return call("focus_start", duration=focus_protect.group("dur"), what=focus_protect.group("what") or "")
+    if _FOCUS_STATUS.fullmatch(s):
+        return call("focus_status")
+    if _FOCUS_STOP.fullmatch(s):
+        return call("focus_stop")
+    convert_to = _CONVERT_TO.fullmatch(s)
+    if convert_to and target_extension(convert_to.group("fmt")) is not None:
+        return call("convert_file", name=convert_to.group("name"), format=convert_to.group("fmt"), folder=convert_to.group("folder") or "")
+    convert_as = _CONVERT_AS.fullmatch(s)
+    if convert_as and target_extension(convert_as.group("fmt")) is not None:
+        return call("convert_file", name=convert_as.group("name"), format=convert_as.group("fmt"), folder="")
+    convert_make = _CONVERT_MAKE.fullmatch(s)
+    if convert_make and target_extension(convert_make.group("fmt")) is not None:
+        return call("convert_file", name=convert_make.group("name"), format=convert_make.group("fmt"), folder="")
+    transcribe = _TRANSCRIBE.fullmatch(s)
+    if transcribe:
+        return call("transcribe_file", name=transcribe.group("name"), folder=transcribe.group("folder") or "")
+    if _CAL_CONFLICTS.fullmatch(s):
+        return call("calendar_conflicts")
+    for _cal_weekly in (_CAL_WEEKLY1, _CAL_WEEKLY2, _CAL_WEEKLY3):
+        _cal_w = _cal_weekly.fullmatch(s)
+        if _cal_w and parse_time(_cal_w.group("time")) is not None:
+            return call(
+                "calendar_add_weekly",
+                title=_cal_w.group("title").strip(),
+                weekday=_cal_w.group("day").lower(),
+                time=_cal_w.group("time").strip(),
+            )
+    if _CAL_WEEK_Q.fullmatch(s):
+        return call("calendar_week", person="")
+    week_person = _CAL_WEEK_PERSON.fullmatch(s)
+    if week_person:
+        return call(
+            "calendar_week",
+            person=week_person.group("name") or week_person.group("name2") or week_person.group("name3"),
+        )
+    if _CAL_BUSY.fullmatch(s):
+        return call("calendar_busy")
+    if _WHY_SLOW.fullmatch(s):
+        return call("top_cpu")
+    if _WHY_MEMORY.fullmatch(s):
+        return call("top_memory")
+    if _TROUBLE.fullmatch(s):
+        return call("system_problems")
+    if _HEADS_UP.fullmatch(s):
+        return call("heads_up")
+    if _FORGOTTEN.fullmatch(s):
+        return call("what_did_i_forget")
+    if _SUGGEST_NEXT.fullmatch(s):
+        return call("suggest_next_action")
+    meeting_brief = _MEETING_BRIEF.fullmatch(s)
+    if meeting_brief:
+        return call(
+            "meeting_brief",
+            title=meeting_brief.group("title") or meeting_brief.group("title2"),
+        )
+    project_status = _PROJECT_STATUS.fullmatch(s)
+    if project_status:
+        name = project_status.group("n1") or project_status.group("n2") or project_status.group("n3")
+        return call("project_status", name=name)
+    if _MODEL_STATUS.fullmatch(s):
+        return call("model_status")
+    meal_shop = _MEAL_SHOP.fullmatch(s)
+    if meal_shop:
+        return call("meal_shop", name=meal_shop.group("name") or meal_shop.group("name2") or "")
+    meal_plan = _MEAL_PLAN.fullmatch(s)
+    if meal_plan:
+        return call("meal_plan")
+    meal_idea = _MEAL_IDEA.fullmatch(s)
+    if meal_idea:
+        return call("meal_idea", tag=meal_idea.group("tag") or "")
+    backup_now = _BACKUP_NOW.fullmatch(s)
+    if backup_now:
+        return call("backup_now")
+    backup_last = _BACKUP_LAST.fullmatch(s)
+    if backup_last:
+        return call("backup_last")
+    sort_preview = _SORT_PREVIEW.fullmatch(s)
+    if sort_preview:
+        spoken = sort_preview.group(1) or sort_preview.group(2) or ""
+        if folder_key(spoken) is not None:
+            return call("sort_folder_preview", folder=spoken)
+    list_add = _LIST_ADD.fullmatch(s)
+    if list_add:
+        return call("list_add", item=list_add.group("item"), list=_list_word(list_add.group("list")))
+    list_read = _LIST_READ.fullmatch(s)
+    if list_read:
+        return call("list_read", list=_list_word(list_read.group("a") or list_read.group("b") or list_read.group("c")))
+    list_done = _LIST_DONE.fullmatch(s)
+    if list_done:
+        found = list_done.groupdict()
+        return call(
+            "list_done",
+            item=next(found[key] for key in ("i1", "i2", "i3", "i4") if found[key]),
+            list=_list_word(next((found[key] for key in ("l1", "l2", "l3", "l4") if found[key]), "")),
+        )
+    list_remove = _LIST_REMOVE.fullmatch(s)
+    if list_remove:
+        return call("list_remove", item=list_remove.group("item"), list=_list_word(list_remove.group("list")))
+    list_clear = _LIST_CLEAR.fullmatch(s)
+    if list_clear:
+        return call("list_clear", list=_list_word(list_clear.group("list")))
     take_note = _TAKE_NOTE.fullmatch(s)
     if take_note:
         return call("take_note", text=take_note.group(1))
@@ -654,6 +1573,10 @@ def route(text: str) -> ToolCall | None:
         return call("open_notes")
     if _TAKE_SCREENSHOT.fullmatch(s):
         return call("take_screenshot")
+    if _TAKE_PICTURE.fullmatch(s):
+        return call("take_picture")
+    if _SHOW_PICTURE.fullmatch(s):
+        return call("show_picture")
 
     browse_match = _BROWSE.fullmatch(s)
     if browse_match and "." in browse_match.group(1):
@@ -685,16 +1608,62 @@ def route(text: str) -> ToolCall | None:
         return call("search_site", query=search_match.group(1))
     scroll_match = _SCROLL.fullmatch(s)
     if scroll_match:
-        direction = next(g for g in scroll_match.groups() if g is not None)
-        return call("scroll", direction=direction)
+        if scroll_match.group(2) or scroll_match.group(3):
+            amount = scroll_match.group(2) or scroll_match.group(3)
+        elif "a little" in s:
+            amount = "little"
+        else:
+            amount = "page"
+        if amount == "top":
+            direction = "up"
+        elif amount == "bottom":
+            direction = "down"
+        else:
+            direction = "up" if "up" in s else "down"
+        _LAST_SCROLL_DIRECTION = direction
+        return call("scroll", direction=direction, amount=amount)
+    if _KEEP_SCROLLING.fullmatch(s):
+        return call("scroll", direction=_LAST_SCROLL_DIRECTION, amount="page")
     if _GO_BACK.fullmatch(s):
         return call("go_back")
 
+    if _TV_LIST.fullmatch(s):
+        return call("list_tv")
+    if _TV_PLAY.fullmatch(s):
+        return call("play_tv", name="")
+    tv_match = _TV_CHANNEL.fullmatch(s)
+    if tv_match and livetv.is_channel(tv_match.group(1)) and re.search(
+        r"\b(?:tv|television|channel|live)\b", s, re.IGNORECASE
+    ) or (tv_match and livetv.clean_request(tv_match.group(1)) in _TV_NAMES):
+        return call("play_tv", name=livetv.find(tv_match.group(1)).name)
+    if _WHERE_AM_I.fullmatch(s):
+        return call("where_am_i")
+    if _LOCAL_NEWS.fullmatch(s):
+        return call("local_news")
+    events_match = _LOCAL_EVENTS.fullmatch(s)
+    if events_match:
+        when = (events_match.group(2) or events_match.group(3) or "").casefold()
+        return call("local_events", what=" ".join(events_match.group(1).casefold().split()), when=" ".join(when.split()))
+    weather_in = _WEATHER_IN.fullmatch(s)
+    if weather_in and not re.fullmatch(r"my\s+area|here|town", weather_in.group(1), re.IGNORECASE):
+        return call("local_weather", place=weather_in.group(1).strip())
+    if _LOCAL_WEATHER.fullmatch(s) or weather_in:
+        return call("local_weather")
+
+    from_match = _DIRECTIONS_FROM.fullmatch(s)
+    if from_match:
+        return call("directions", origin=from_match.group(1).strip(), destination=from_match.group(2).strip())
+    loose_match = _DIRECTIONS_LOOSE.fullmatch(s)
+    if loose_match:
+        return call("directions", destination=loose_match.group(1).strip())
     directions_match = _DIRECTIONS.fullmatch(s)
     if directions_match:
         destination = next(g for g in directions_match.groups() if g).strip()
         # "navigate to github.com" is a web address, not a place: leave it to the URL rules below.
         if not re.fullmatch(r"[\w-]+(?:\.[\w-]+)+(?:/\S*)?", destination):
+            mode = re.search(r"\b(walking|walk|on foot|biking|bike|cycling|transit|bus|train)\b", s, re.IGNORECASE)
+            if mode:
+                return call("directions", destination=destination, mode=mode.group(1).casefold())
             return call("directions", destination=destination)
     nearby_match = _NEAREST.fullmatch(s) or _NEAR_ME.fullmatch(s)
     if nearby_match:
@@ -733,8 +1702,12 @@ def route(text: str) -> ToolCall | None:
         return call("find_file", name=where_file_match.group(1))
 
     set_email_match = _SET_EMAIL.fullmatch(s)
-    if set_email_match and spoken_address(set_email_match.group(2)):
-        return call("set_contact_email", name=set_email_match.group(1), address=set_email_match.group(2))
+    if set_email_match:
+        spoken_email = spoken_address(set_email_match.group(2))
+        if spoken_email:
+            raw_email = set_email_match.group(2)
+            address = spoken_email if " " not in raw_email else raw_email
+            return call("set_contact_email", name=set_email_match.group(1), address=address)
     get_email_match = _GET_EMAIL.fullmatch(s)
     if get_email_match:
         return call("get_contact_email", name=get_email_match.group(1))
@@ -742,6 +1715,10 @@ def route(text: str) -> ToolCall | None:
     if forget_email_match:
         return call("forget_contact_email", name=forget_email_match.group(1))
 
+    if _RADIO_LIST.fullmatch(s):
+        return call("list_radio")
+    if _RADIO_WHAT.fullmatch(s):
+        return call("radio_genre")
     if _HELP_ASK.fullmatch(s):
         return call("voxa_help")
     help_topic = _HELP_TOPIC.fullmatch(s)
@@ -750,6 +1727,14 @@ def route(text: str) -> ToolCall | None:
         if topic_for(topic) is not None:
             return call("voxa_help", topic=topic)
 
+    world_time_match = _WORLD_TIME.fullmatch(s)
+    if world_time_match and worldtime.zone_for(world_time_match.group(1)) is not None:
+        return call("world_time", place=world_time_match.group(1))
+    time_diff_match = _TIME_DIFF.fullmatch(s)
+    if time_diff_match:
+        place = time_diff_match.group(1) or time_diff_match.group(2) or time_diff_match.group(3)
+        if worldtime.zone_for(place) is not None:
+            return call("time_difference", place=place)
     if _TELL_TIME.fullmatch(s):
         return call("tell_time")
     if _TELL_DATE.fullmatch(s):
@@ -760,6 +1745,12 @@ def route(text: str) -> ToolCall | None:
         return call("disk_space")
     if _MEMORY_FREE.fullmatch(s):
         return call("memory_free")
+    if _GPU_STATUS.fullmatch(s):
+        return call("gpu_status")
+    if _CPU_STATUS.fullmatch(s):
+        return call("cpu_status")
+    if _SYSTEM_HEALTH.fullmatch(s):
+        return call("system_health")
     if _BATTERY_LEVEL.fullmatch(s):
         return call("battery_level")
 
@@ -770,6 +1761,26 @@ def route(text: str) -> ToolCall | None:
 
     if _CHECK_VERSION.fullmatch(s):
         return call("check_system_version")
+
+    if _LIST_CHARACTERS.fullmatch(s):
+        return call("list_characters")
+
+    # Live quote questions must be handled before the general-question handoff below.
+    exchange_match = _EXCHANGE_RATE.fullmatch(s)
+    if exchange_match:
+        base_text = exchange_match.group("base") or exchange_match.group("base2")
+        quote_text = exchange_match.group("quote") or exchange_match.group("quote2")
+        base = lookups.currency_code(base_text)
+        quote = lookups.currency_code(quote_text)
+        if base and quote:
+            return call("exchange_rate", base=base, quote=quote)
+    market_match = _MARKET.fullmatch(s)
+    if market_match:
+        return call("market", what=(market_match.group("what") or market_match.group("what2")
+                                    or market_match.group("what3") or market_match.group("what4")
+                                    or market_match.group("what5") or market_match.group("what6")
+                                    or market_match.group("what7") or market_match.group("what8")
+                                    or market_match.group("what9") or market_match.group("what_missing") or ""))
 
     if _QUESTION.match(s):
         return None
@@ -786,6 +1797,20 @@ def route(text: str) -> ToolCall | None:
     set_owner_match = _SET_GITHUB_OWNER.fullmatch(s)
     if set_owner_match:
         return call("set_github_owner", name=set_owner_match.group(1))
+
+    if _NOISE_ON.fullmatch(s):
+        return call("set_noise_cancellation", state="on")
+    if _NOISE_OFF.fullmatch(s):
+        return call("set_noise_cancellation", state="off")
+    if _NOISE_GET.fullmatch(s):
+        return call("get_noise_cancellation")
+
+    radio_match = _RADIO_PLAY.fullmatch(s)
+    if radio_match:
+        return call("play_radio", name=radio.clean_request(radio_match.group(1) or ""))
+    station_match = _PLAY_ANY.fullmatch(s)
+    if station_match and radio.is_station(station_match.group(1)):
+        return call("play_radio", name=radio.clean_request(station_match.group(1)))
 
     for pattern, tool in (
         (_PLAY_YT_MUSIC, "play_youtube"),
@@ -857,6 +1882,12 @@ def route(text: str) -> ToolCall | None:
     ):
         return call("open_file", name=open_file_match.group(1), folder="")
 
+    spoken_url = _SPOKEN_URL.fullmatch(s)
+    # Only for an address said as words ("open air ships dot com"); a typed one is left to the rules below.
+    if spoken_url and (" " in spoken_url.group(1).strip() or re.search(r"\sdot\s", s, re.IGNORECASE)):
+        site = re.sub(r"[^a-z0-9-]", "", spoken_url.group(1).casefold())
+        if site:
+            return call("open_url", url=f"{site}.{spoken_url.group(2).casefold()}")
     url_match = _URL.fullmatch(s)
     if url_match and "." in url_match.group(1):
         return call("open_url", url=url_match.group(1))
@@ -896,6 +1927,10 @@ def route(text: str) -> ToolCall | None:
         return call("system_volume", action="get")
     if _VOLUME_NUM.fullmatch(s):
         return call("system_volume", action="set", percent=_VOLUME_NUM.fullmatch(s).group(1))
+    if _CUBE_SPIN.fullmatch(s):
+        return call("compiz_control", action="spin")
+    if _CUBE_SPIN_STOP.fullmatch(s):
+        return call("compiz_control", action="spin_stop")
     if _CUBE_RIGHT.fullmatch(s):
         return call("compiz_control", action="cube_right")
     if _CUBE_LEFT.fullmatch(s):
@@ -921,6 +1956,15 @@ def route(text: str) -> ToolCall | None:
         return call("press_key", key=key_match.group(1))
     if s.casefold() in _BARE_KEYS:
         return call("press_key", key=s.casefold())
+
+    hidden_files_match = _HIDDEN_FILES.fullmatch(s)
+    if hidden_files_match:
+        verb = hidden_files_match.group(1).casefold()
+        if verb in ("show", "check", "turn on"):
+            return call("hidden_files", show="on")
+        if verb in ("hide", "uncheck", "turn off"):
+            return call("hidden_files", show="off")
+        return call("hidden_files", show="toggle")
 
     home_on = _HOME_TURN_ON.fullmatch(s)
     home_off = _HOME_TURN_OFF.fullmatch(s)
@@ -950,6 +1994,8 @@ def route(text: str) -> ToolCall | None:
     if status_match:
         return call("home_status", name=status_match.group(1))
 
+    if _CLOSE_YOURSELF.fullmatch(s) or _CLOSE_YOURSELF.fullmatch(_prepare(text)):
+        return call("close_yourself")
     if _CLOSE_WINDOW.fullmatch(s):
         return call("close_window")
     if _LOCK_SCREEN.fullmatch(s):
@@ -963,13 +2009,29 @@ def route(text: str) -> ToolCall | None:
     switch_match = _SWITCH_TO.fullmatch(s)
     if switch_match:
         name = switch_match.group(1) or switch_match.group(2)
+        character = find_character(name)
+        if character is not None:
+            return call("change_character", name=character)
         if site_url(name) is not None and "." not in name:
             return call("open_site", name=name.casefold())
         return call("switch_to", name=name)
+    character_match = _CHARACTER_CHANGE.fullmatch(s)
+    if character_match:
+        character = find_character(character_match.group(1))
+        if character is not None:
+            return call("change_character", name=character)
+    if _LIST_CHARACTERS.fullmatch(s):
+        return call("list_characters")
     if _MINIMIZE_ALL.fullmatch(s):
         return call("minimize_all")
+    if _RESTORE_ALL.fullmatch(s):
+        return call("restore_all")
     if _MINIMIZE_ACTIVE.fullmatch(s):
         return call("minimize_app", name="")
+    if _MINIMIZE_SELF.fullmatch(s):
+        return call("minimize_self")
+    if _MAXIMIZE_SELF.fullmatch(s):
+        return call("maximize_self")
     minimize_match = _MINIMIZE_APP.fullmatch(s)
     if minimize_match:
         return call("minimize_app", name=minimize_match.group(1))
@@ -1066,8 +2128,49 @@ def route(text: str) -> ToolCall | None:
         return call("file_dialog", action="new")
     if _NEW_TAB.fullmatch(s):
         return call("press_key", key="new tab")
+    flight_match = _FLIGHT_STATUS.fullmatch(s)
+    if flight_match:
+        return call("flight_status", flight=flight_match.group("flight") or flight_match.group("flight2"))
+    package_match = _TRACK_PACKAGE.fullmatch(s)
+    if package_match:
+        return call("track_package", tracking=package_match.group("tracking") or package_match.group("tracking2"))
+    price_match = _COMPARE_PRICES.fullmatch(s)
+    if price_match:
+        return call("compare_prices",
+                    item=price_match.group("item") or price_match.group("item2") or price_match.group("item3"))
+    company_match = _LOOK_UP_COMPANY.fullmatch(s)
+    if company_match:
+        return call("look_up", name=company_match.group("name"), kind="company")
+    wiki_match = _LOOK_UP_WIKI.fullmatch(s)
+    if wiki_match:
+        return call("look_up", name=wiki_match.group("name"), kind="person")
+    person_match = _LOOK_UP_PERSON.fullmatch(s)
+    if person_match and lookups.person_words_ok(person_match.group("name")):
+        return call("look_up", name=person_match.group("name"), kind="person")
+    fact_match = _FACT_CHECK.fullmatch(s)
+    if fact_match:
+        return call("fact_check",
+                    claim=fact_match.group("claim") or fact_match.group("claim2") or fact_match.group("claim3"))
     app_match = _OPEN_APP.fullmatch(s)
     if app_match:
-        name = app_match.group(1)
-        return call("open_app", name=_APP_NAME_FIXES.get(name.casefold(), name))
+        return call("open_app", name=clean_spoken_app_name(app_match.group(1)))
     return None
+
+
+def route_spoken(text: str) -> tuple[ToolCall | None, str]:
+    """route(), forgiving of someone else talking in the room.
+
+    The microphone sometimes delivers the request together with a sentence that was not meant for
+    Voxa ("Add pay the rent to my to-do list. Dude, it's bothering you."). When the whole text is
+    not a command but exactly one of its sentences is, that sentence is the request. Returns the
+    call and the words it was made from.
+    """
+    call = route(text)
+    if call is not None:
+        return call, text
+    parts = [part.strip(" ,") for part in re.split(r"(?<=[.!?])\s+|\s+,\s+", text) if len(part.split()) >= 2]
+    if len(parts) < 2:
+        return None, text
+    found = [(route(part), part) for part in parts]
+    found = [(call, part) for call, part in found if call is not None]
+    return found[0] if len(found) == 1 else (None, text)

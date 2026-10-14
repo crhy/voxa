@@ -7,6 +7,9 @@ from collections.abc import Callable, Iterator
 
 from .transcription import WhisperService
 
+PRE_ROLL_BYTES = int(0.6 * 16000) * 2  # 0.6 s of 16 kHz 16-bit audio kept before the first loud moment
+DICTATION_CHUNK_SECONDS = 6.0
+
 
 def segment_stream(
     input_queue: queue.Queue[tuple[bytes, float] | None],
@@ -14,12 +17,13 @@ def segment_stream(
     *,
     threshold: int,
     silence_seconds: float,
-    max_segment_seconds: float,
+    max_segment_seconds: float | Callable[[], float],
     idle_timeout_seconds: float | None = None,
     on_idle_timeout: Callable[[], None] | None = None,
     trailing_silence_seconds: float | None = None,
     early_silence_seconds: float | None = None,
     early_check: Callable[[bytes], bool] | None = None,
+    is_voice: Callable[[bytes, float], bool] | None = None,
 ) -> Iterator[bytes]:
     """Yield PCM segments split at speech pauses from a live audio queue.
 
@@ -39,6 +43,13 @@ def segment_stream(
     boundary) ``early_check`` is called once for that pause with the audio heard
     so far; if it returns True the segment is yielded immediately. The check
     runs at most once per pause, and a new burst of voice arms it again.
+
+    If ``is_voice`` is given it replaces the ``level >= threshold`` loudness rule:
+    a chunk counts as voice only when ``level >= threshold / 2`` (so pure silence
+    stays cheap) and ``is_voice(pcm, level)`` returns True.
+
+    ``max_segment_seconds`` may be a callable, read on every chunk, so a mode
+    switched on mid-utterance (dictation) applies to the segment already in progress.
     """
     segment = bytearray()
     heard_voice = False
@@ -60,7 +71,11 @@ def segment_stream(
         else:
             pcm, level = item
             segment.extend(pcm)
-            if level >= threshold:
+            if is_voice is not None:
+                voiced = level >= threshold / 2 and is_voice(pcm, level)
+            else:
+                voiced = level >= threshold
+            if voiced:
                 heard_voice = True
                 heard_any_voice = True
                 last_voice = now
@@ -88,7 +103,8 @@ def segment_stream(
                 last_voice = now
                 early_checked = False
         pause_ready = heard_voice and duration >= min_content and now - last_voice >= silence_seconds
-        max_ready = heard_voice and duration >= max_segment_seconds
+        limit = max_segment_seconds() if callable(max_segment_seconds) else max_segment_seconds
+        max_ready = heard_voice and duration >= limit
         if pause_ready or max_ready:
             yield bytes(segment)
             segment = bytearray()
@@ -96,7 +112,9 @@ def segment_stream(
             last_voice = now
 
         if not heard_voice and duration > 2.0:
-            segment = bytearray()
+            # Keep the last moments instead of emptying the buffer: a soft first syllable ("Vo…")
+            # that arrived just before the buffer was emptied was lost with it.
+            del segment[:-PRE_ROLL_BYTES]
 
         if (
             trailing_silence_seconds is not None
@@ -138,7 +156,9 @@ class DictationController:
         self.language = language
         self.threshold = threshold
         self.silence_seconds = silence_ms / 1000.0
-        self.max_segment_seconds = max_segment_seconds
+        # Dictation should put text on screen while somebody is still speaking.
+        # The general command limit can be much longer, so cap only this mode.
+        self.max_segment_seconds = min(max_segment_seconds, DICTATION_CHUNK_SECONDS)
         self.on_text = on_text
         self.on_status = on_status
         self.on_auto_stop = on_auto_stop

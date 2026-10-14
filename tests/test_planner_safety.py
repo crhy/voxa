@@ -46,7 +46,7 @@ def test_open_site_dotted_name():
     result = open_site({"name": "spacedlinux.com"})
     assert result.ok
     assert result.detail == "https://spacedlinux.com"
-    assert result.speech == "Opening spacedlinux.com."
+    assert result.speech == "Opening website."
 
 
 def test_open_site_known_site():

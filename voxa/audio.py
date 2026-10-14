@@ -33,6 +33,16 @@ REFERENCE_SECONDS = 3
 REFERENCE_RATE = 16000
 
 
+def webrtc_available() -> bool:
+    """True when both WebRTC echo cancellation elements exist in this GStreamer runtime."""
+    try:
+        gst = _ensure_gstreamer()
+        factory = gst.ElementFactory
+        return all(factory.find(name) is not None for name in ("webrtcdsp", "webrtcechoprobe"))
+    except Exception:
+        return False
+
+
 class ReferenceRing:
     """Thread-safe ring buffer of the most recent reference samples with a running counter.
 
@@ -75,15 +85,21 @@ class ReferenceRing:
         return self._total
 
 
-def mix_chunk(mic_bytes: bytes, ref_ring: ReferenceRing, counter: int, canceller) -> bytes:
+def mix_chunk(mic_bytes: bytes, ref_ring: ReferenceRing, counter: int, canceller,
+              ref_offset: int = 0) -> bytes:
     """Clean one microphone chunk against the reference samples covering the same span.
 
-    ``counter`` is the global sample position where this microphone chunk begins; the reference
-    samples for that same span are taken from ``ref_ring`` (zero-padded when the reference has not
-    produced enough yet). Returns the cleaned chunk as int16 bytes. Raises if the canceller raises.
+    ``counter`` is the global sample position where this microphone chunk begins; ``ref_offset``
+    is the microphone position that corresponds to the reference stream's position 0, so the
+    reference samples for the same wall-clock span start at ``counter - ref_offset`` (zero-padded
+    when the reference has not produced enough yet). An idle monitor delivers nothing, so a chunk
+    whose reference span is silence is passed through untouched (bypass). Returns the cleaned
+    chunk as int16 bytes. Raises if the canceller raises.
     """
     mic = np.frombuffer(mic_bytes, dtype="<i2").astype(np.float32) / 32768.0
-    ref = ref_ring.window(counter, mic.size)
+    ref = ref_ring.window(counter - ref_offset, mic.size)
+    if float(np.mean(ref * ref)) < 1e-9:
+        return mic_bytes
     cleaned = canceller.process(mic, ref)
     cleaned = np.clip(np.rint(np.asarray(cleaned, dtype=np.float32) * 32767.0), -32768, 32767)
     return cleaned.astype("<i2").tobytes()
@@ -151,11 +167,16 @@ class AudioCapture:
         self._last_level_emit = 0.0
         self._ref_ring: ReferenceRing | None = None
         self._mic_counter = 0
+        # How far the reference stream's position 0 sits ahead of the microphone stream's,
+        # or None until the monitor has produced its first sample. The monitor delivers
+        # nothing while the sink is idle, so the two streams do not start together.
+        self._ref_anchor: int | None = None
         self._canceller_enabled = True
         self._canceller_logged = False
         self._delay_done = True
         self._delay_mic: list = []
         self._delay_ref: list = []
+        self._start_args: tuple | None = None
 
     def list_devices(self) -> list[AudioDevice]:
         gst = _ensure_gstreamer()
@@ -201,6 +222,7 @@ class AudioCapture:
 
     def start(self, device_id: str, on_audio, on_level, on_error) -> None:
         self.stop()
+        self._start_args = (device_id, on_audio, on_level, on_error)
         self._on_audio = on_audio
         self._on_error = on_error
 
@@ -210,6 +232,10 @@ class AudioCapture:
         if selected is not None and is_monitor_source(selected.properties, selected.name):
             raise RuntimeError("The selected source is a monitor stream and cannot capture your voice.")
         gst = _ensure_gstreamer()
+        if self.reference_source and self.canceller is None and webrtc_available():
+            # "webrtc" mode: one pipeline with both branches, no numpy canceller.
+            if self._start_webrtc(gst, device_id, on_audio, on_level):
+                return
         source = None
         if self.pulse_source:
             # The echo-cancelled microphone (see voxa/echo.py): the computer's own sound is already removed.
@@ -254,6 +280,7 @@ class AudioCapture:
 
         # Both counters start together now that the microphone is actually playing.
         self._mic_counter = 0
+        self._ref_anchor = None
         self._canceller_enabled = True
         self._canceller_logged = False
         self._delay_done = self.canceller is None
@@ -274,6 +301,10 @@ class AudioCapture:
             log.info("reference capture unavailable: GStreamer elements missing")
             return
         src.set_property("device", self.reference_source)
+        if src.find_property("latency") is not None:
+            # Default PulseAudio latency delivers huge late chunks; a small latency
+            # keeps the monitor stream flowing in near-real-time pieces.
+            src.set_property("latency", 20)
         capsfilter.set_property("caps", gst.Caps.from_string("audio/x-raw,format=S16LE,channels=1,rate=16000"))
         sink.set_property("emit-signals", True)
         sink.connect("new-sample", self._on_ref_sample, None)
@@ -286,6 +317,81 @@ class AudioCapture:
             return
         pipeline.set_state(gst.State.PLAYING)
         self._ref_pipeline = pipeline
+
+    def _start_webrtc(self, gst, device_id: str, on_audio, on_level) -> bool:
+        """Build ONE pipeline: the monitor branch feeds the probe, the mic branch runs webrtcdsp.
+
+        Returns True when the pipeline is playing; False means the caller must fall back to the
+        plain capture pipeline (never leaving the user without a microphone).
+        """
+        make = gst.ElementFactory.make
+        monitor_src = make("pulsesrc")
+        # The microphone is opened exactly as the plain capture pipeline opens it.
+        selected = next((item for item in self._devices if item.identifier == device_id), None)
+        mic_src = selected.device.create_element(None) if selected is not None else make("pulsesrc")
+        convert_m, resample_m, caps_m = make("audioconvert"), make("audioresample"), make("capsfilter")
+        probe, probe_sink = make("webrtcechoprobe"), make("fakesink")
+        convert, resample, capsfilter = make("audioconvert"), make("audioresample"), make("capsfilter")
+        dsp, sink = make("webrtcdsp"), make("appsink")
+        monitor_branch = (monitor_src, convert_m, resample_m, caps_m, probe, probe_sink)
+        mic_branch = (mic_src, convert, resample, capsfilter, dsp, sink)
+        if not all(monitor_branch + mic_branch):
+            log.info("webrtc echo cancellation unavailable: GStreamer elements missing")
+            return False
+        monitor_src.set_property("device", self.reference_source)
+        for src in (monitor_src, mic_src):
+            # Default PulseAudio latency delivers huge late chunks; both branches need small ones.
+            for key, value in (("latency-time", 20000), ("buffer-time", 40000)):
+                if src.find_property(key) is not None:
+                    src.set_property(key, value)
+        # The probe and the processor must see the same format (verified live: 16 kHz mono S16LE).
+        caps = gst.Caps.from_string("audio/x-raw,format=S16LE,layout=interleaved,channels=1,rate=16000")
+        caps_m.set_property("caps", caps)
+        capsfilter.set_property("caps", caps)
+        probe.set_property("name", "probe")
+        probe_sink.set_property("sync", False)
+        dsp.set_property("probe", "probe")
+        for key, value in (("echo-cancel", True), ("echo-suppression-level", 1), ("noise-suppression", False),
+                           ("gain-control", False), ("high-pass-filter", False), ("voice-detection", False),
+                           ("limiter", False)):
+            if dsp.find_property(key) is not None:
+                dsp.set_property(key, value)
+        sink.set_property("emit-signals", True)
+        sink.set_property("sync", False)
+        sink.set_property("max-buffers", 12)
+        if sink.find_property("drop") is not None:
+            sink.set_property("drop", True)
+        sink.connect("new-sample", self._on_sample, on_level)
+
+        pipeline = gst.Pipeline.new("voxa-webrtc")
+        for element in monitor_branch + mic_branch:
+            pipeline.add(element)
+        linked = all(a.link(b) for branch in (monitor_branch, mic_branch) for a, b in zip(branch, branch[1:], strict=False))
+        if not linked:
+            pipeline.set_state(gst.State.NULL)
+            log.info("webrtc echo cancellation unavailable: could not connect pipeline")
+            return False
+        bus = pipeline.get_bus()
+        bus.add_signal_watch()
+        bus.connect("message::error", self._on_bus_error)
+        result = pipeline.set_state(gst.State.PLAYING)
+        if result == gst.StateChangeReturn.ASYNC:
+            # Live sources report NO_PREROLL; anything else still pending gets 3 s to settle.
+            result = pipeline.get_state(3 * gst.SECOND)[0]
+        if result == gst.StateChangeReturn.FAILURE or result == gst.StateChangeReturn.ASYNC:
+            pipeline.set_state(gst.State.NULL)
+            log.info("webrtc echo cancellation failed: pipeline did not start (monitor or microphone unavailable)")
+            return False
+        self._mic_counter = 0
+        self._ref_anchor = None
+        self._canceller_enabled = False
+        self._canceller_logged = False
+        self._delay_done = True
+        self._delay_mic = []
+        self._delay_ref = []
+        self._ref_ring = None
+        self.pipeline = pipeline
+        return True
 
     def _on_ref_sample(self, sink, _on_level):
         gst = _ensure_gstreamer()
@@ -303,6 +409,10 @@ class AudioCapture:
         if self._ref_ring is not None:
             ref = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
             self._ref_ring.append(ref)
+            if self._ref_anchor is None:
+                # The monitor only starts producing when the sink wakes; anchor its
+                # position 0 to the microphone position of the same moment.
+                self._ref_anchor = self._mic_counter - self._ref_ring.total
         return gst.FlowReturn.OK
 
     def _on_sample(self, sink, on_level):
@@ -343,7 +453,8 @@ class AudioCapture:
             self._mic_counter += len(pcm) // 2
             return pcm
         try:
-            cleaned = mix_chunk(pcm, self._ref_ring, self._mic_counter, self.canceller)
+            cleaned = mix_chunk(pcm, self._ref_ring, self._mic_counter, self.canceller,
+                                self._ref_anchor or 0)
         except Exception as exc:  # noqa: BLE001 - recording must never break
             if not self._canceller_logged:
                 log.warning("echo canceller failed; using raw microphone: %s", exc)
@@ -359,7 +470,7 @@ class AudioCapture:
         if self._delay_done or self._ref_ring is None:
             return
         mic = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
-        ref = self._ref_ring.window(self._mic_counter, mic.size)
+        ref = self._ref_ring.window(self._mic_counter - (self._ref_anchor or 0), mic.size)
         if float(np.mean(ref * ref)) < 1e-6:
             return  # the reference is not loud enough yet
         self._delay_mic.append(mic)
@@ -404,3 +515,69 @@ class AudioCapture:
             pipeline.set_state(gst.State.NULL)
         if ref_pipeline is not None:
             ref_pipeline.set_state(gst.State.NULL)
+
+    def set_echo_mode(self, mode: str | bool = "voxa", reference_source: str | None = None) -> None:
+        """Switch echo cancellation mode ("voxa", "webrtc" or "off"), applying immediately if capture is running.
+
+        A boolean is accepted for the old call style: ``True`` maps to "voxa", ``False`` to "off".
+        """
+        if isinstance(mode, bool):
+            mode = "voxa" if mode else "off"
+        if mode == "webrtc" and not webrtc_available():
+            log.info("webrtc echo cancellation unavailable: running with echo off")
+            mode = "off"
+        if mode == "webrtc":
+            self.pulse_source = None
+            self.reference_source = reference_source
+            self.canceller = None
+            self._canceller_enabled = False
+            self._canceller_logged = False
+            self._delay_done = True
+            self._delay_mic = []
+            self._delay_ref = []
+            self._ref_ring = None
+            self._ref_anchor = None
+            if self._ref_pipeline is not None:
+                gst = _ensure_gstreamer()
+                self._ref_pipeline.set_state(gst.State.NULL)
+                self._ref_pipeline = None
+            if self.is_active and self._start_args is not None:
+                device_id, on_audio, on_level, on_error = self._start_args
+                self.stop()
+                self.start(device_id, on_audio, on_level, on_error)
+            return
+        if mode != "voxa":
+            self.pulse_source = None
+            self.reference_source = None
+            self.canceller = None
+            self._canceller_enabled = False
+            self._delay_done = True
+            self._delay_mic = []
+            self._delay_ref = []
+            self._ref_ring = None
+            self._ref_anchor = None
+            if self._ref_pipeline is not None:
+                gst = _ensure_gstreamer()
+                self._ref_pipeline.set_state(gst.State.NULL)
+                self._ref_pipeline = None
+            return
+        self.pulse_source = None
+        self.reference_source = reference_source
+        if self.canceller is None:
+            self.canceller = EchoCanceller()
+        self._canceller_enabled = True
+        self._canceller_logged = False
+        if not self.is_active:
+            self._delay_done = False
+            self._delay_mic = []
+            self._delay_ref = []
+            self._ref_ring = None
+            return
+        if self._ref_ring is None:
+            self._ref_ring = ReferenceRing(REFERENCE_SECONDS * REFERENCE_RATE)
+        if self._ref_pipeline is None and reference_source:
+            gst = _ensure_gstreamer()
+            self._start_reference(gst)
+        self._delay_done = False
+        self._delay_mic = []
+        self._delay_ref = []

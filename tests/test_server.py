@@ -156,6 +156,7 @@ def test_ollama_start_prefixes_with_flatpak_spawn_in_flatpak() -> None:
         "flatpak-spawn",
         "--host",
         "--directory=/",
+        "--watch-bus",
         "env",
         "OLLAMA_HOST=127.0.0.1:11434",
         "ollama",
@@ -213,6 +214,7 @@ def test_llamacpp_start_prefixes_with_flatpak_spawn_in_flatpak() -> None:
         "flatpak-spawn",
         "--host",
         "--directory=/",
+        "--watch-bus",
         "llama-server",
         "--model",
         "model.gguf",
@@ -294,7 +296,13 @@ def test_stop_terminates_running_process_and_clears_handle() -> None:
     )
     manager._process = process
 
-    assert manager.stop() is True
+    with patch("voxa.server.open_url") as opener:
+        opener.return_value = FakeResponse(b"{}")
+        assert manager.stop() is True
+    request = opener.call_args.args[0]
+    assert request.full_url == "http://127.0.0.1:11434/api/generate"
+    assert request.method == "POST"
+    assert request.data == b'{"model": "qwen2.5:0.5b", "keep_alive": 0}'
     assert process.terminate_called is True
     assert process.wait_timeout == 5
     assert manager._process is None

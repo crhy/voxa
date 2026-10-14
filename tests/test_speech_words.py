@@ -129,6 +129,18 @@ def test_position_falls_back_to_wall_clock() -> None:
     assert service.position() == pytest.approx(2.0, abs=0.05)
 
 
+def test_position_falls_back_when_stream_pipeline_reports_zero(monkeypatch) -> None:
+    """A successful-but-zero appsrc query must not freeze High's mouth."""
+    import voxa.speech as speech_module
+
+    monkeypatch.setattr(speech_module, "Gst", types.SimpleNamespace(Format=types.SimpleNamespace(TIME=3)))
+    service = SpeechService()
+    service._started_emitted = True
+    service._started_at = time.monotonic() - 2.0
+    service.pipeline = types.SimpleNamespace(query_position=lambda fmt: (True, 0))
+    assert service.position() == pytest.approx(2.0, abs=0.05)
+
+
 def test_position_is_zero_until_sound_plays_and_after_it_ends() -> None:
     service = SpeechService()
     service._started_at = time.monotonic() - 2.0

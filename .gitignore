@@ -13,3 +13,6 @@ repo/
 .local-flatpak-build-*/
 .local-flatpak-repo-*/
 .flatpak-validation-*/
+.tmp-validation/
+.claude/
+.ollama-runtime/

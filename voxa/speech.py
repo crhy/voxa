@@ -2,13 +2,18 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import logging
 import os
+import re
 import subprocess
 import tempfile
+import textwrap
 import threading
 import time
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 
 try:
     import edge_tts
@@ -17,6 +22,35 @@ except ImportError:  # The offline fallback still works in source-only installs.
 
 Gst: Any = None  # Initialized lazily so importing this module needs no GStreamer or PyGObject.
 GLib: Any = None
+
+NATURAL_VOICE_ATTEMPTS = 2
+NATURAL_VOICE_RETRY_SECONDS = 0.35
+LOGGER = logging.getLogger(__name__)
+
+# Speech engines may pronounce Markdown emphasis and list markers as
+# "asterisk".  Leave the displayed reply untouched, but remove those marks
+# at the common speech boundary so streamed, prepared, and fallback voices
+# all receive the same speakable text.  An optional backslash removes the
+# Markdown escape along with the mark rather than making Voxa say "backslash".
+_ASTERISK_MARKS = re.compile(r"\\?[*\u2217\uff0a]")
+
+
+def _speakable_text(text: str) -> str:
+    return _ASTERISK_MARKS.sub("", text)
+
+
+def _download_google_voice(text: str, path: str) -> None:
+    """Download natural MP3 speech without pulling in gTTS's conflicting CLI dependencies."""
+    chunks = textwrap.wrap(text, width=180, break_long_words=True, replace_whitespace=True)
+    if not chunks:
+        raise RuntimeError("No text was provided for speech")
+    headers = {"User-Agent": "Mozilla/5.0"}
+    with open(path, "wb") as audio:
+        for chunk in chunks:
+            query = urlencode({"ie": "UTF-8", "client": "tw-ob", "tl": "en", "q": chunk})
+            request = Request(f"https://translate.google.com/translate_tts?{query}", headers=headers)
+            with urlopen(request, timeout=10) as response:  # noqa: S310 - fixed HTTPS host
+                audio.write(response.read())
 
 
 def _word_timing_option() -> dict:
@@ -104,9 +138,16 @@ class Prepared:
 
 
 class SpeechService:
-    """Stream natural speech immediately, with an offline eSpeak NG fallback."""
+    """Stream natural speech, with optional online and eSpeak NG fallbacks."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        allow_online_fallback: bool = True,
+        allow_offline_fallback: bool = True,
+    ) -> None:
+        self.allow_online_fallback = allow_online_fallback
+        self.allow_offline_fallback = allow_offline_fallback
         self.pipeline: Any | None = None
         self.appsrc: Any | None = None
         self.temp_path: str | None = None
@@ -132,6 +173,7 @@ class SpeechService:
         on_words=None,
         before_play=None,
     ) -> None:
+        text = _speakable_text(text)
         self.stop()
         cancel_event = threading.Event()
         self.cancel_event = cancel_event
@@ -158,7 +200,7 @@ class SpeechService:
         else:
             natural_error = "Edge TTS is unavailable"
 
-        self._start_offline_worker(text, rate, cancel_event, natural_error)
+        self._start_fallback_worker(text, rate, cancel_event, natural_error)
 
     def prepare(self, text: str, rate: int, voice: str, on_ready=None) -> Prepared:
         """Fetch the voice for ``text`` in the background, without touching what is playing now.
@@ -166,21 +208,32 @@ class SpeechService:
         ``on_ready(item)`` runs in the worker thread once the audio file exists (used to start the neural face
         on it early). Play the result with :meth:`speak_prepared`.
         """
+        text = _speakable_text(text)
         item = Prepared(text=text, rate=rate, voice=voice)
 
         def worker() -> None:
             try:
                 if edge_tts is None:
                     raise RuntimeError("Edge TTS is unavailable")
-                item.path, item.words = _run_quietly(
-                    self._fetch_to_file(text, rate, voice, item.cancelled.is_set)
-                )
-                if on_ready is not None and item.path and not item.cancelled.is_set():
+                for attempt in range(NATURAL_VOICE_ATTEMPTS):
                     try:
-                        on_ready(item)
-                    except Exception:  # noqa: BLE001 - preparation extras must never lose the audio
-                        pass
-            except Exception as exc:  # noqa: BLE001 - network/service boundary
+                        item.path, item.words = _run_quietly(
+                            self._fetch_to_file(text, rate, voice, item.cancelled.is_set)
+                        )
+                        item.error = ""
+                        if on_ready is not None and item.path and not item.cancelled.is_set():
+                            try:
+                                on_ready(item)
+                            except Exception:  # noqa: BLE001 - preparation extras must never lose the audio
+                                LOGGER.warning("Prepared-speech callback failed", exc_info=True)
+                        break
+                    except Exception as exc:  # noqa: BLE001 - network/service boundary
+                        item.error = str(exc)
+                        if item.cancelled.is_set() or attempt + 1 == NATURAL_VOICE_ATTEMPTS:
+                            break
+                        LOGGER.info("Natural voice preparation failed; retrying: %s", exc)
+                        time.sleep(NATURAL_VOICE_RETRY_SECONDS)
+            except Exception as exc:  # noqa: BLE001 - missing dependency boundary
                 item.error = str(exc)
             finally:
                 item.ready.set()
@@ -213,7 +266,7 @@ class SpeechService:
                 try:
                     before_play(item)
                 except Exception:  # noqa: BLE001 - callback must not prevent speech
-                    pass
+                    LOGGER.warning("Prepared-speech playback callback failed", exc_info=True)
             _ui_once(self._play_file, item.path, cancel_event)
 
         threading.Thread(target=worker, name="natural-speech-prepared", daemon=True).start()
@@ -243,6 +296,10 @@ class SpeechService:
                     elif kind == "audio" and message.get("data"):
                         handle.write(message["data"])
                         wrote = True
+            except BaseException:
+                with contextlib.suppress(OSError):
+                    os.unlink(path)
+                raise
             finally:
                 with contextlib.suppress(Exception):
                     await stream.aclose()
@@ -264,13 +321,18 @@ class SpeechService:
 
     def _natural_file_worker(self, text: str, rate: int, voice: str, cancel_event: threading.Event) -> None:
         path = ""
-        try:
-            path = _run_quietly(self._fetch_natural_audio(text, rate, voice, cancel_event))
-        except Exception as exc:  # noqa: BLE001 - network/service boundary
-            if cancel_event.is_set() or cancel_event is not self.cancel_event:
-                return
-            _ui_once(self._begin_offline_fallback, text, rate, cancel_event, str(exc))
-            return
+        for attempt in range(NATURAL_VOICE_ATTEMPTS):
+            try:
+                path = _run_quietly(self._fetch_natural_audio(text, rate, voice, cancel_event))
+                break
+            except Exception as exc:  # noqa: BLE001 - network/service boundary
+                if cancel_event.is_set() or cancel_event is not self.cancel_event:
+                    return
+                if attempt + 1 == NATURAL_VOICE_ATTEMPTS:
+                    _ui_once(self._begin_offline_fallback, text, rate, cancel_event, str(exc))
+                    return
+                LOGGER.info("Natural voice download failed; retrying: %s", exc)
+                time.sleep(NATURAL_VOICE_RETRY_SECONDS)
         if not path or cancel_event.is_set() or cancel_event is not self.cancel_event:
             if path:
                 with contextlib.suppress(OSError):
@@ -308,6 +370,10 @@ class SpeechService:
                     elif kind == "audio" and message.get("data"):
                         handle.write(message["data"])
                         wrote = True
+            except BaseException:
+                with contextlib.suppress(OSError):
+                    os.unlink(path)
+                raise
             finally:
                 with contextlib.suppress(Exception):
                     await stream.aclose()
@@ -365,34 +431,40 @@ class SpeechService:
     ) -> None:
         _ensure_gstreamer()
         received_audio = threading.Event()
-        try:
-            _run_quietly(
-                self._push_natural_audio(
-                    text,
-                    rate,
-                    voice,
-                    appsrc,
-                    cancel_event,
-                    lambda: self._mark_audio_received(cancel_event, received_audio),
+        for attempt in range(NATURAL_VOICE_ATTEMPTS):
+            try:
+                _run_quietly(
+                    self._push_natural_audio(
+                        text,
+                        rate,
+                        voice,
+                        appsrc,
+                        cancel_event,
+                        lambda: self._mark_audio_received(cancel_event, received_audio),
+                    )
                 )
-            )
-        except Exception as exc:  # noqa: BLE001 - network/service boundary
-            if cancel_event.is_set() or cancel_event is not self.cancel_event:
                 return
-            if received_audio.is_set():
-                _ui_once(
-                    self._emit_error_for,
-                    f"Natural voice was interrupted: {exc}",
-                    cancel_event,
-                )
-            else:
-                _ui_once(
-                    self._begin_offline_fallback,
-                    text,
-                    rate,
-                    cancel_event,
-                    str(exc),
-                )
+            except Exception as exc:  # noqa: BLE001 - network/service boundary
+                if cancel_event.is_set() or cancel_event is not self.cancel_event:
+                    return
+                if received_audio.is_set():
+                    _ui_once(
+                        self._emit_error_for,
+                        f"Natural voice was interrupted: {exc}",
+                        cancel_event,
+                    )
+                    return
+                if attempt + 1 == NATURAL_VOICE_ATTEMPTS:
+                    _ui_once(
+                        self._begin_offline_fallback,
+                        text,
+                        rate,
+                        cancel_event,
+                        str(exc),
+                    )
+                    return
+                LOGGER.info("Natural voice stream failed; retrying: %s", exc)
+                time.sleep(NATURAL_VOICE_RETRY_SECONDS)
 
     async def _push_natural_audio(
         self,
@@ -474,10 +546,10 @@ class SpeechService:
         if not self._is_current(cancel_event):
             return False
         self._finish_media()
-        self._start_offline_worker(text, rate, cancel_event, natural_error)
+        self._start_fallback_worker(text, rate, cancel_event, natural_error)
         return False
 
-    def _start_offline_worker(
+    def _start_fallback_worker(
         self,
         text: str,
         rate: int,
@@ -485,11 +557,55 @@ class SpeechService:
         natural_error: str,
     ) -> None:
         threading.Thread(
-            target=self._synthesize_offline,
+            target=self._synthesize_fallback,
             args=(text, rate, cancel_event, natural_error),
-            name="offline-speech-synthesis",
+            name="backup-speech-synthesis",
             daemon=True,
         ).start()
+
+    def _synthesize_fallback(
+        self,
+        text: str,
+        rate: int,
+        cancel_event: threading.Event,
+        natural_error: str,
+    ) -> None:
+        """Try a natural Google voice before considering the robotic offline voice."""
+        fallback_error = f"Edge TTS failed ({natural_error})"
+        if self.allow_online_fallback:
+            path = ""
+            try:
+                with tempfile.NamedTemporaryFile(
+                    prefix="voxa-google-", suffix=".mp3", delete=False
+                ) as handle:
+                    path = handle.name
+                _download_google_voice(text, path)
+                if cancel_event.is_set() or cancel_event is not self.cancel_event:
+                    with contextlib.suppress(OSError):
+                        os.unlink(path)
+                    return
+                if not os.path.getsize(path):
+                    raise RuntimeError("Google TTS returned no audio")
+                if self._before_play is not None:
+                    try:
+                        self._before_play(path)
+                    except Exception:  # noqa: BLE001 - callback must not prevent speech
+                        pass
+                _ui_once(self._play_file, path, cancel_event)
+                return
+            except Exception as exc:  # noqa: BLE001 - network/service boundary
+                if path:
+                    with contextlib.suppress(OSError):
+                        os.unlink(path)
+                fallback_error += f"; Google TTS failed ({exc})"
+
+        if not self.allow_offline_fallback:
+            message = f"Natural test voice unavailable; acoustic test was not run. {fallback_error}"
+            _ui_once(self._emit_error_for, message, cancel_event)
+            return
+
+        LOGGER.warning("Natural voices unavailable; using eSpeak NG fallback: %s", fallback_error)
+        self._synthesize_offline(text, rate, cancel_event, fallback_error)
 
     def _synthesize_offline(
         self,
@@ -583,7 +699,11 @@ class SpeechService:
         if pipeline is not None:
             try:
                 ok, nanoseconds = pipeline.query_position(Gst.Format.TIME)
-                if ok and nanoseconds >= 0:
+                # appsrc pipelines can report a successful TIME query with a
+                # permanent zero position even while their audio sink is
+                # playing.  Treat that as unknown so the lip-sync clock keeps
+                # advancing from the actual playback-start callback.
+                if ok and nanoseconds > 0:
                     return nanoseconds / 1_000_000_000
             except Exception:  # noqa: BLE001 - a clock that cannot answer falls back to the wall clock
                 pass

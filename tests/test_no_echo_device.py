@@ -77,7 +77,7 @@ def test_pactl_failing_is_false_and_never_raises() -> None:
 
 def test_system_mode_is_gone_from_the_config() -> None:
     assert "system" not in ECHO_MODES
-    assert Settings().echo_mode == "voxa"
+    assert Settings().echo_mode == "webrtc"
     assert Settings(echo_mode="system").normalized().echo_mode == "voxa"
     assert Settings(echo_cancel=False).normalized().echo_mode == "off"
 

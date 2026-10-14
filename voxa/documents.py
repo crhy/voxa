@@ -24,10 +24,13 @@ log = logging.getLogger(__name__)
 IN_FLATPAK = os.path.exists("/.flatpak-info")
 
 _DOCUMENT = re.compile(
-    r"^\s*(?:please\s+)?(?:draft|write|compose|create|make)\s+(?:me\s+)?(?:a|the)?\s*"
-    r"(?P<kind>document|doc|letter|report|memo|note|essay)"
+    r"^\s*(?:please\s+)?(?:draft|write|compose|create|make)\s+(?:me\s+)?(?:a|an|the)?\s*"
+    r"(?P<kind>weekly\s+status\s+report|thank\s+you\s+note|email\s+reply|"
+    r"meeting\s+summary|grocery\s+list|blog\s+post\s+draft|job\s+description|"
+    r"resume|document|doc|letter|report|memo|note|essay)"
     r"(?:\s+(?:called|titled|named)\s+(?P<title>.+?))?"
-    r"(?:\s+(?:about|regarding|on)\s+(?P<topic>.+?))?"
+    r"(?:\s+(?:about|regarding|on|to)\s+(?P<topic>.+?))?"
+    r"(?:\s+(?:in|using|with)\s+LibreOffice(?:\s+Writer)?)?"
     r"\s*[.!?]*\s*$",
     re.I,
 )
@@ -107,7 +110,8 @@ def parse_draft(text: str, requested_title: str = "") -> tuple[str, str]:
     if requested_title:
         return requested_title, text
     first, _, rest = text.partition("\n")
-    return first.strip(), rest.strip()
+    title = re.sub(r"^(?:#{1,6}\s*)|(?:\*\*|__)(.*?)(?:\*\*|__)$", r"\1", first.strip())
+    return title.strip(), rest.strip()
 
 
 def _slug(text: str) -> str:

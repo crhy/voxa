@@ -8,11 +8,13 @@ installer, and ``face_mode == "live"`` adds nothing extra.
 
 from __future__ import annotations
 
+from . import wakelabel
+
 MAX_TIPS = 3
 
 _STATE_TIPS: dict[str, tuple[str, ...]] = {
     "OFFLINE": (
-        "Press ACTIVE to start",
+        "Press Active to start",
         "Voxa sleeps until you activate it",
     ),
     "READY": (
@@ -44,6 +46,11 @@ _NO_MODELS_TIP = "Open Preferences → Local AI to install a model"
 
 
 def tips_for(state: str, context: dict) -> list[str]:
+    """The tips for ``state``, naming the user's own wake word."""
+    return [wakelabel.apply(tip) for tip in _tips_for(state, context)]
+
+
+def _tips_for(state: str, context: dict) -> list[str]:
     """At most three short tip lines for ``state`` given ``context`` flags."""
     base = list(_STATE_TIPS.get(state, ()))
     if state == "READY" and base:

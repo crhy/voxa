@@ -16,6 +16,12 @@ finish-args:
   # for both a host install of Voxa and the Voxa Flatpak.
   - --filesystem=xdg-config/voxa:ro
   - --filesystem=~/.var/app/io.github.crhy.voxa/config/voxa:ro
+  # Voxa's action log, read-only: a spoken case passes only when the log shows
+  # the right tool really ran.
+  - --filesystem=~/.local/state/voxa:ro
+  # Stop a radio or TV stream that a spoken case started (see TestCase.after).
+  - --talk-name=org.mpris.MediaPlayer2.*
+  - --filesystem=~/.var/app/io.github.crhy.voxa/.local/state/voxa:ro
 
 modules:
   - name: espeak-ng
@@ -70,8 +76,24 @@ modules:
   - name: voxatest
     buildsystem: simple
     sources:
+      # Keep local build trees, reports, and caches out of the Flatpak source
+      # snapshot by listing only the files used by this application.
       - type: dir
-        path: .
+        path: voxa
+        dest: voxa
+      - type: dir
+        path: voxatest
+        dest: voxatest
+      - type: dir
+        path: packaging/flatpak
+        dest: packaging/flatpak
+      - type: file
+        path: io.github.crhy.voxatest.desktop
+      - type: file
+        path: io.github.crhy.voxatest.metainfo.xml
+      - type: dir
+        path: icons
+        dest: icons
     build-commands:
       - install -d /app/lib/voxa
       - cp -r voxa voxatest /app/lib/voxa/

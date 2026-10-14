@@ -1,0 +1,216 @@
+{
+  "cases": [
+    {
+      "id": "feat-directions-01",
+      "category": "web_and_maps",
+      "prompt": "Give me directions from Portland to Seattle",
+      "expected_contains": [],
+      "expected_keywords": [
+        "portland",
+        "seattle"
+      ],
+      "rubric": "Issue 96: directions with a starting point.",
+      "expected_tool": "directions",
+      "expected_args": {
+        "origin": "Portland",
+        "destination": "Seattle"
+      },
+      "after": "",
+      "capability": 48,
+      "verify": {}
+    },
+    {
+      "id": "feat-directions-02",
+      "category": "web_and_maps",
+      "prompt": "Show me the way to the airport",
+      "expected_contains": [],
+      "expected_keywords": [
+        "airport"
+      ],
+      "rubric": "Issue 96: forgiving wording.",
+      "expected_tool": "directions",
+      "expected_args": {
+        "destination": "airport|the airport"
+      },
+      "after": "",
+      "capability": 48,
+      "verify": {}
+    },
+    {
+      "id": "feat-directions-03",
+      "category": "web_and_maps",
+      "prompt": "Route to Denver",
+      "expected_contains": [],
+      "expected_keywords": [
+        "denver"
+      ],
+      "rubric": "Issue 96: forgiving wording.",
+      "expected_tool": "directions",
+      "expected_args": {
+        "destination": "Denver"
+      },
+      "after": "",
+      "capability": 48,
+      "verify": {}
+    },
+    {
+      "id": "feat-local-01",
+      "category": "web_and_maps",
+      "prompt": "Show the local weather",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "Issue 101: the weather where the user is.",
+      "expected_tool": "local_weather",
+      "expected_args": {},
+      "after": "",
+      "capability": 93,
+      "verify": {}
+    },
+    {
+      "id": "feat-local-02",
+      "category": "web_and_maps",
+      "prompt": "What's the weather in Tokyo",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tokyo"
+      ],
+      "rubric": "Issue 101: weather for a named place.",
+      "expected_tool": "local_weather",
+      "expected_args": {
+        "place": "Tokyo"
+      },
+      "after": "",
+      "capability": 93,
+      "verify": {}
+    },
+    {
+      "id": "feat-local-03",
+      "category": "web_and_maps",
+      "prompt": "Play the local news",
+      "expected_contains": [],
+      "expected_keywords": [
+        "local news"
+      ],
+      "rubric": "Issue 101: local news.",
+      "expected_tool": "local_news",
+      "expected_args": {},
+      "after": "",
+      "capability": 33,
+      "verify": {}
+    },
+    {
+      "id": "feat-local-04",
+      "category": "web_and_maps",
+      "prompt": "Live music tonight in my area",
+      "expected_contains": [],
+      "expected_keywords": [
+        "live music"
+      ],
+      "rubric": "Issue 101: what is on nearby.",
+      "expected_tool": "local_events",
+      "expected_args": {
+        "what": "live music",
+        "when": "tonight"
+      },
+      "after": "",
+      "capability": 47,
+      "verify": {}
+    },
+    {
+      "id": "feat-tv-01",
+      "category": "media_controls",
+      "prompt": "Open live TV",
+      "expected_contains": [],
+      "expected_keywords": [
+        "channel"
+      ],
+      "rubric": "Issue 100: asks which channel and shows the list.",
+      "expected_tool": "play_tv",
+      "expected_args": {},
+      "after": "",
+      "capability": 82,
+      "verify": {}
+    },
+    {
+      "id": "feat-tv-02",
+      "category": "media_controls",
+      "prompt": "Put on France 24",
+      "expected_contains": [],
+      "expected_keywords": [
+        "france"
+      ],
+      "rubric": "Issue 100: plays a named channel.",
+      "expected_tool": "play_tv",
+      "expected_args": {
+        "name": "France 24"
+      },
+      "after": "stop_media",
+      "capability": 82,
+      "verify": {}
+    },
+    {
+      "id": "feat-tv-03",
+      "category": "media_controls",
+      "prompt": "Play DW News",
+      "expected_contains": [],
+      "expected_keywords": [
+        "news"
+      ],
+      "rubric": "Issue 100: plays a named channel.",
+      "expected_tool": "play_tv",
+      "expected_args": {
+        "name": "DW News"
+      },
+      "after": "stop_media",
+      "capability": 82,
+      "verify": {}
+    },
+    {
+      "id": "feat-radio-01",
+      "category": "media_controls",
+      "prompt": "Play Illinois Street Lounge",
+      "expected_contains": [],
+      "expected_keywords": [
+        "lounge"
+      ],
+      "rubric": "Issues 98 and 99: the added station plays.",
+      "expected_tool": "play_radio",
+      "expected_args": {
+        "name": "illinois street lounge"
+      },
+      "after": "stop_media",
+      "capability": 82,
+      "verify": {}
+    },
+    {
+      "id": "feat-radio-02",
+      "category": "media_controls",
+      "prompt": "What radio stations do you have",
+      "expected_contains": [],
+      "expected_keywords": [
+        "stations"
+      ],
+      "rubric": "Issue 98: the list opens as a pop-up and she asks which one.",
+      "expected_tool": "list_radio",
+      "expected_args": {},
+      "after": "",
+      "capability": 82,
+      "verify": {}
+    },
+    {
+      "id": "feat-radio-03",
+      "category": "media_controls",
+      "prompt": "Number two",
+      "expected_contains": [],
+      "expected_keywords": [
+        "playing"
+      ],
+      "rubric": "Issue 98: a spoken number picks from the open list.",
+      "expected_tool": "play_radio",
+      "expected_args": {},
+      "after": "stop_media",
+      "capability": 82,
+      "verify": {}
+    }
+  ]
+}

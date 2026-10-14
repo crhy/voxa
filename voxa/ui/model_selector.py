@@ -15,6 +15,18 @@ BACKENDS = ["llama.cpp", "Ollama", "Strata"]
 BACKEND_VALUES = ["llamacpp", "ollama", "strata"]
 MAX_BUTTON_CHARS = 24
 
+AI_STATUS = {"online": "● Online", "starting": "● Starting…", "offline": "● Offline"}
+AI_STATUS_HINTS = {
+    "online": "The AI engine is running and has a model ready",
+    "starting": "The AI engine is starting up",
+    "offline": "The AI engine is not running, or has no model",
+}
+
+
+def ai_status_for(models: list[str]) -> str:
+    """"online" when the list holds real model names (they never contain spaces), else "offline"."""
+    return "online" if any(name and " " not in name for name in models) else "offline"
+
 
 class ModelSelector(Gtk.Box):
     """Dropdowns over the available local models and the AI backend.
@@ -27,8 +39,13 @@ class ModelSelector(Gtk.Box):
         self,
         on_model_selected: Callable[[str], None] | None = None,
         on_backend_selected: Callable[[str], None] | None = None,
+        stacked: bool = False,
     ) -> None:
-        super().__init__(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        # ``stacked`` gives three short lines (label, model, engine + status): a narrow block for the left column.
+        super().__init__(
+            orientation=Gtk.Orientation.VERTICAL if stacked else Gtk.Orientation.HORIZONTAL,
+            spacing=6 if stacked else 8,
+        )
 
         label = Gtk.Label(label="Local AI")
         label.add_css_class("voxa-section")
@@ -49,6 +66,7 @@ class ModelSelector(Gtk.Box):
 
         self._backend_items = Gtk.StringList.new(BACKENDS)
         self._backend_dropdown = Gtk.DropDown(model=self._backend_items)
+        self._backend_dropdown.set_selected(BACKEND_VALUES.index("ollama"))
 
         self.on_model_selected = on_model_selected
         self.on_backend_selected = on_backend_selected
@@ -58,9 +76,45 @@ class ModelSelector(Gtk.Box):
         self._dropdown.connect("notify::selected", self._on_selected)
         self._backend_dropdown.connect("notify::selected", self._on_backend_selected)
 
-        self.append(label)
-        self.append(self._dropdown)
-        self.append(self._backend_dropdown)
+        # Whether the chosen AI engine is answering: a coloured dot and one word.
+        self._status = Gtk.Label(label="")
+        self._status.add_css_class("voxa-ai-status")
+        self._status.set_visible(False)
+        if stacked:
+            # Same look as the FACIAL QUALITY caption above it.
+            label.set_label("LOCAL AI")
+            label.remove_css_class("voxa-section")
+            label.add_css_class("voxa-control-caption")
+            label.set_xalign(0)
+            label.set_halign(Gtk.Align.START)
+            self._dropdown.set_halign(Gtk.Align.START)
+            engine_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            engine_row.append(self._backend_dropdown)
+            engine_row.append(self._status)
+            self.append(label)
+            self.append(self._dropdown)
+            self.append(engine_row)
+        else:
+            self.append(label)
+            self.append(self._dropdown)
+            self.append(self._backend_dropdown)
+            self.append(self._status)
+        self._status_state = ""
+
+    def set_status(self, state: str) -> None:
+        """Show "online", "starting" or "offline"; anything else hides the indicator."""
+        text = AI_STATUS.get(state, "")
+        for name in AI_STATUS:
+            self._status.remove_css_class(f"voxa-ai-{name}")
+        self._status_state = state if text else ""
+        self._status.set_text(text)
+        self._status.set_visible(bool(text))
+        if text:
+            self._status.add_css_class(f"voxa-ai-{state}")
+            self._status.set_tooltip_text(AI_STATUS_HINTS[state])
+
+    def get_status(self) -> str:
+        return self._status_state
 
     def _setup_button_label(self, _factory, list_item: Gtk.ListItem) -> None:
         lbl = Gtk.Label(xalign=0)
@@ -113,7 +167,7 @@ class ModelSelector(Gtk.Box):
 
     def set_backend(self, backend: str) -> None:
         """Select the backend ("llamacpp", "ollama" or "strata") without triggering the callback."""
-        index = BACKEND_VALUES.index(backend) if backend in BACKEND_VALUES else 0
+        index = BACKEND_VALUES.index(backend) if backend in BACKEND_VALUES else BACKEND_VALUES.index("ollama")
         self._backend_updating = True
         try:
             self._backend_dropdown.set_selected(index)
@@ -126,7 +180,7 @@ class ModelSelector(Gtk.Box):
         for label, value in zip(BACKENDS, BACKEND_VALUES, strict=True):
             if text == label:
                 return value
-        return "llamacpp"
+        return "ollama"
 
     def _on_selected(self, *_args) -> None:
         self._dropdown.set_tooltip_text(self.get_selected() or None)
@@ -138,5 +192,5 @@ class ModelSelector(Gtk.Box):
         if self._backend_updating or self.on_backend_selected is None:
             return
         index = self._backend_dropdown.get_selected()
-        backend = BACKEND_VALUES[index] if 0 <= index < len(BACKEND_VALUES) else "llamacpp"
+        backend = BACKEND_VALUES[index] if 0 <= index < len(BACKEND_VALUES) else "ollama"
         self.on_backend_selected(backend)

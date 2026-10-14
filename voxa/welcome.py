@@ -2,14 +2,21 @@
 
 import time
 
+from . import wakelabel
+
 SMALLEST_MODEL = "qwen2.5:0.5b"
 TUTORIAL_URL = ""  # filled in when the tutorial video exists; empty hides the link
 
 HOW_TO = (
-    "Press ACTIVE, then say Voxa, followed by what you need. "
+    "Press Active, then say Voxa, followed by what you need. "
     "For example: Voxa, what's the weather today? "
     "Say Voxa, pause, when you want me to wait."
 )
+
+
+def how_to() -> str:
+    """HOW_TO with the user's own wake word."""
+    return wakelabel.apply(HOW_TO)
 
 
 def greeting(name: str) -> str:
@@ -46,7 +53,7 @@ def step_text(step: str) -> tuple[str, str, str]:
             "runs on any computer and downloads in a minute.",
             "Download a model",
         )
-    return ("You're all set", HOW_TO, "Get started")
+    return ("You're all set", how_to(), "Get started")
 
 
 def spoken(step: str, name: str) -> str:

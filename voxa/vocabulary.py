@@ -19,6 +19,10 @@ _COMMAND_VERBS = (
 )
 
 MAX_NAME_CHARS = 40
+# Launcher aliases shorter than this ("ai", "at", "adv", "nvp") are command names nobody
+# says. Listed first (the hint is filled shortest name first) they crowded out real
+# programs and made Whisper write "Bazaar," for a spoken "Voxa,".
+MIN_ALIAS_CHARS = 4
 CACHE_SECONDS = 600.0
 
 _WORDISH = re.compile(r"[A-Za-z][A-Za-z'-]*\Z")
@@ -86,7 +90,11 @@ def refresh_app_names() -> list[str]:
     seen: set[str] = set()
     for app in apps:
         wordish = [app.name.strip()]
-        wordish += [alias.strip() for alias in app.aliases if _WORDISH.match(alias.strip())]
+        wordish += [
+            alias.strip()
+            for alias in app.aliases
+            if len(alias.strip()) >= MIN_ALIAS_CHARS and _WORDISH.match(alias.strip())
+        ]
         for candidate in wordish:
             if not candidate or len(candidate) > MAX_NAME_CHARS:
                 continue
