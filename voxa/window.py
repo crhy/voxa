@@ -16,7 +16,7 @@ gi.require_version("Adw", "1")
 gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
-from . import apps, documents, mail, speechfit, wakelabel, websearch, welcome  # noqa: E402
+from . import apps, documents, mail, speechfit, spellings, wakelabel, websearch, welcome  # noqa: E402
 from .agent import hearing, host, intents, issueflow, livetv, mailflow, planner, radio, repeat, saveflow, ui  # noqa: E402
 from .agent.actionlog import ActionLog, ActionRecord  # noqa: E402
 from .agent.claims import claims_action, first_sentences  # noqa: E402
@@ -3218,6 +3218,21 @@ class MainWindow(Adw.ApplicationWindow):
         if not prompt:
             self._toast("Speak or type something first.")
             return
+        # "Rhy is spelled R-H-Y" corrects the previous request and runs it again; "... spelled
+        # R-H-Y" inside a request corrects that request. Learned names are fixed in every request.
+        heard = prompt
+        lesson = spellings.teach(prompt, getattr(self, "_last_request", None))
+        if lesson is not None:
+            kind, prompt = lesson
+            if kind == "previous":
+                self._toast(f"Got it. Running it again: {prompt}")
+        prompt = spellings.apply(prompt)
+        if prompt != heard:
+            # Show what will actually run, in place of what was heard.
+            shown = self._get_text(self.transcript_view)
+            head, sep, last = shown.rpartition("\n")
+            self._set_text(self.transcript_view, f"{head}{sep}{prompt}" if last == heard else prompt)
+        self._last_request = prompt
         original = prompt
         prompt = hearing.normalize(prompt) or prompt
         if self._radio_reply(prompt):
@@ -3661,6 +3676,8 @@ class MainWindow(Adw.ApplicationWindow):
         if previous is not None and time.time() - self._last_search_at > 180:
             previous = None
         query = websearch.search_query_for(prompt, self.settings.web_search, previous)
+        if query:
+            query = spellings.quote(query)
         if not query:
             return ""
         self._last_search_query = query
@@ -3704,7 +3721,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._open_stored_website(kind, original)
 
     def _search_for_website(self, kind: str, words: str, original: str) -> None:
-        query = websearch.search_query_for(words, self.settings.web_search, None) or words
+        query = spellings.quote(websearch.search_query_for(words, self.settings.web_search, None) or words)
         try:
             results = websearch.search(query)
         except Exception:  # noqa: BLE001 - offline or blocked: fall back to what is stored
