@@ -336,6 +336,7 @@ def test_registry_lists_all_tools():
             "read_notes",
             "read_page",
             "read_selection",
+            "read_text_file",
             "read_window",
             "recall_fact",
             "remember_fact",

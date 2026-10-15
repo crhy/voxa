@@ -343,6 +343,13 @@ _READ_SELECTION = re.compile(
     r"read (?:that|this|it|the selection|the selected text|what i selected)(?: to me| out loud| aloud)?",
     re.IGNORECASE,
 )
+_READ_THIS_FILE = re.compile(
+    r"read (?:this|that|the selected|the) (?:text )?file(?: to me| out loud| aloud)?", re.IGNORECASE
+)
+_READ_FILE = re.compile(
+    r"read (?:me )?(?:the |my )?(?:text )?file (?:called |named )?(.+?)(?: to me| out loud| aloud)?",
+    re.IGNORECASE,
+)
 _READ_CLIPBOARD = re.compile(
     r"(?:what(?:'s| is) (?:on|in) (?:my |the )?clipboard|read (?:my |the )?clipboard(?: to me)?)",
     re.IGNORECASE,
@@ -1581,6 +1588,12 @@ def route(text: str) -> ToolCall | None:
     browse_match = _BROWSE.fullmatch(s)
     if browse_match and "." in browse_match.group(1):
         return call("browse", url=browse_match.group(1))
+    # Before read_page: "read this text file" must not read the web page.
+    if _READ_THIS_FILE.fullmatch(s):
+        return call("read_text_file")
+    read_file_match = _READ_FILE.fullmatch(s)
+    if read_file_match:
+        return call("read_text_file", name=read_file_match.group(1))
     if _READ_PAGE.fullmatch(s):
         return call("read_page")
     if _READ_CLIPBOARD.fullmatch(s):

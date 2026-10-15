@@ -33,6 +33,7 @@ from voxa.agent.tools.media import media_tools
 from voxa.agent.tools.memory_facts import memory_facts_tools
 from voxa.agent.tools.notes import notes_tools
 from voxa.agent.tools.radio import radio_tools
+from voxa.agent.tools.readfile import readfile_tools
 from voxa.agent.tools.reminders import reminders_tools
 from voxa.agent.tools.screenshot import screenshot_tools
 from voxa.agent.tools.system import system_tools
@@ -87,6 +88,7 @@ def default_registry() -> ToolRegistry:
         *compiz_tools(),
         *file_dialog_tools(),
         *textedit_tools(),
+        *readfile_tools(),
         *file_manage_tools(),
         *hidden_files_tools(),
         *system_tools(),

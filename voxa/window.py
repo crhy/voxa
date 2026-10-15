@@ -2643,6 +2643,16 @@ class MainWindow(Adw.ApplicationWindow):
             return female if gender == "Female" else male
         return self.settings.tts_voice
 
+    def read_text_file_aloud(self, path: str) -> None:
+        """Speak a text file through the normal reply path, so the face moves with the words."""
+        from voxa.agent.tools import readfile
+
+        def work() -> None:
+            result = readfile.read_text_file({"name": path})
+            idle(self._conversation_speak, result.speech)
+
+        threading.Thread(target=work, daemon=True).start()
+
     def _conversation_speak(self, text: str) -> None:
         typing.LAST_REPLY = text
         self._recent_spoken = self._speaking_text
