@@ -350,6 +350,10 @@ _READ_FILE = re.compile(
     r"read (?:me )?(?:the |my )?(?:text )?file (?:called |named )?(.+?)(?: to me| out loud| aloud)?",
     re.IGNORECASE,
 )
+_RECITE_BY = re.compile(
+    r"(?:recite|read|say)\s+(?:me\s+)?(?:a|an|some|one|another)\s+poem\s+(?:by|from)\s+(.+)", re.IGNORECASE
+)
+_RECITE_TITLE = re.compile(r"recite\s+(?:me\s+)?(?!(?:a|an|some|one|another)\s+poem\b)(.+?)(?:\s+by\s+(.+))?", re.IGNORECASE)
 _READ_CLIPBOARD = re.compile(
     r"(?:what(?:'s| is) (?:on|in) (?:my |the )?clipboard|read (?:my |the )?clipboard(?: to me)?)",
     re.IGNORECASE,
@@ -1588,6 +1592,16 @@ def route(text: str) -> ToolCall | None:
     browse_match = _BROWSE.fullmatch(s)
     if browse_match and "." in browse_match.group(1):
         return call("browse", url=browse_match.group(1))
+    recite_by = _RECITE_BY.fullmatch(s)
+    if recite_by:
+        return call("recite_poem", author=recite_by.group(1))
+    if re.fullmatch(r"(?:recite|read|say)\s+(?:me\s+)?(?:a|some|another)\s+poem", s, re.IGNORECASE):
+        return call("recite_poem")
+    recite_title = _RECITE_TITLE.fullmatch(s)
+    if recite_title:
+        if recite_title.group(2):
+            return call("recite_poem", title=recite_title.group(1), author=recite_title.group(2))
+        return call("recite_poem", title=recite_title.group(1))
     # Before read_page: "read this text file" must not read the web page.
     if _READ_THIS_FILE.fullmatch(s):
         return call("read_text_file")

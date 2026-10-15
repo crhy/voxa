@@ -339,6 +339,7 @@ def test_registry_lists_all_tools():
             "read_text_file",
             "read_window",
             "recall_fact",
+            "recite_poem",
             "remember_fact",
             "rename_file",
             "repeat_last",

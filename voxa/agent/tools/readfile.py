@@ -93,7 +93,7 @@ def plain_text(raw: bytes) -> str | None:
         return None
     lines = [" ".join(_INLINE.sub("", _MARKUP.sub("", line)).split()) for line in text.splitlines()]
     # A line break is a pause: headings, list items and lines of a poem get a full stop.
-    spoken = [line if line[-1] in ".!?:;," else line + "." for line in lines if line]
+    spoken = [line if line[-1] in ".!?:;,-\"')”’" else line + "." for line in lines if line]
     return " ".join(spoken)
 
 
