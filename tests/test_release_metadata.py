@@ -90,7 +90,7 @@ def test_package_exposes_voxatest_and_includes_its_cases() -> None:
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
 
     assert project["project"]["scripts"]["voxatest"] == "voxatest.__main__:main"
-    assert project["tool"]["setuptools"]["package-data"]["voxatest"] == ["data/*.json"]
+    assert project["tool"]["setuptools"]["package-data"]["voxatest"] == ["data/*.json", "data/samples/*"]
 
 
 def test_license_metadata_matches_license_file() -> None:

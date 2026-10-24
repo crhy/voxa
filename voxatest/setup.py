@@ -1,0 +1,64 @@
+from __future__ import annotations
+
+import subprocess
+import time
+from collections.abc import Callable
+from pathlib import Path
+
+
+def _default_host(cmd: list[str], *, stdin: bytes | None = None) -> subprocess.CompletedProcess:
+    if Path("/.flatpak-info").exists():
+        cmd = ["flatpak-spawn", "--host", *cmd]
+    return subprocess.run(cmd, input=stdin, timeout=20, check=False, capture_output=True)
+
+
+def _host_path(path: str) -> str:
+    if path.startswith("~"):
+        return "$HOME" + path[1:]
+    return path
+
+
+def run_setup(
+    steps: list[dict[str, object]],
+    *,
+    data_dir: Path,
+    host: Callable[..., subprocess.CompletedProcess] | None = None,
+    sleep: Callable[[float], None] = time.sleep,
+) -> str:
+    if host is None:
+        host = _default_host
+    for step in steps:
+        if "copy" in step:
+            src = data_dir / str(step["copy"])
+            dest = _host_path(str(step["to"]))
+            try:
+                content = src.read_bytes()
+            except OSError as exc:
+                return f"Could not read sample {step['copy']}: {exc}."
+            cmd = ["sh", "-c", f'mkdir -p "$(dirname "{dest}")"; cat > "{dest}"']
+            result = host(cmd, stdin=content)
+            if result.returncode != 0:
+                return f"Copy to {step['to']} failed (exit {result.returncode})."
+        elif "open" in step:
+            path = _host_path(str(step["open"]))
+            app = str(step.get("with", "xdg-open"))
+            cmd = ["sh", "-c", f"setsid -f {app} \"{path}\""]
+            result = host(cmd)
+            if result.returncode != 0:
+                return f"Could not open {step['open']} with {app}."
+        elif "keys" in step:
+            cmd = ["xdotool", "key", "--clearmodifiers", str(step["keys"])]
+            result = host(cmd)
+            if result.returncode != 0:
+                return f"Keys {step['keys']} failed (exit {result.returncode})."
+        elif "remove" in step:
+            path = _host_path(str(step["remove"]))
+            cmd = ["sh", "-c", f"rm -f \"{path}\""]
+            result = host(cmd)
+            if result.returncode != 0:
+                return f"Remove {step['remove']} failed (exit {result.returncode})."
+        elif "wait" in step:
+            sleep(float(step["wait"]))
+        else:
+            return f"Unknown setup step: {step}."
+    return ""

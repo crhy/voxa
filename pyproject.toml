@@ -43,7 +43,7 @@ voxatest-gui = "voxatest.application:main"
 include = ["voxa*"]
 
 [tool.setuptools.package-data]
-voxatest = ["data/*.json"]
+voxatest = ["data/*.json", "data/samples/*"]
 
 [tool.setuptools.dynamic]
 # Name the package initializer explicitly.  The repository also has a legacy
