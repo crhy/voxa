@@ -66,6 +66,7 @@ from .hardware import (  # noqa: E402
     MODEL_CATALOG,
     GpuUsage,
     detect_available_model_memory_gb,
+    no_gpu_suggestions,
     reserved_gpu_gb,
     sample_gpu_usage,
     suggest_models,
@@ -1434,15 +1435,21 @@ class MainWindow(Adw.ApplicationWindow):
 
         def worker() -> None:
             available_gb, source = detect_available_model_memory_gb()
-            reserved = reserved_gpu_gb(self.settings.face_mode, True) if source == "GPU VRAM" else 0.0
+            has_gpu = source == "GPU VRAM"
+            reserved = reserved_gpu_gb(self.settings.face_mode, True) if has_gpu else 0.0
             # Show something immediately from the built-in or cached catalog,
             # so the suggestion never waits on the network.
             catalog = load_catalog()
+            suggestions = (
+                suggest_models(available_gb, catalog=catalog, reserved_gb=reserved)
+                if has_gpu
+                else no_gpu_suggestions(catalog)
+            )
             idle(
                 self._apply_hardware_summary,
                 available_gb,
                 source,
-                suggest_models(available_gb, catalog=catalog, reserved_gb=reserved),
+                suggestions,
                 reserved,
                 gpu_fit_warning(available_gb, reserved) if reserved else False,
             )
@@ -1457,7 +1464,11 @@ class MainWindow(Adw.ApplicationWindow):
                     self._apply_hardware_summary,
                     available_gb,
                     source,
-                    suggest_models(available_gb, catalog=refreshed, reserved_gb=reserved),
+                    (
+                        suggest_models(available_gb, catalog=refreshed, reserved_gb=reserved)
+                        if has_gpu
+                        else no_gpu_suggestions(refreshed)
+                    ),
                     reserved,
                     False,  # One toast per detection run.
                 )
@@ -1656,6 +1667,9 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def _show_model_manager(self) -> None:
+        if self.settings.ai_backend == "llamacpp":
+            self._show_brain_manager()
+            return
         dialog = Adw.Dialog(title="Manage Ollama Models", content_width=560, content_height=520)
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         dialog.set_child(root)
@@ -1859,6 +1873,90 @@ class MainWindow(Adw.ApplicationWindow):
             threading.Thread(target=worker, name="ollama-pull", daemon=True).start()
 
         pull_button.connect("clicked", start_pull)
+        dialog.present(self)
+
+    def _show_brain_manager(self) -> None:
+        dialog = Adw.Dialog(title="Voxa's brains", content_width=480, content_height=320)
+        root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        dialog.set_child(root)
+        root.append(Adw.HeaderBar())
+
+        page = Adw.PreferencesPage()
+        scroller = Gtk.ScrolledWindow(vexpand=True)
+        scroller.set_child(page)
+        root.append(scroller)
+
+        group = Adw.PreferencesGroup(
+            title="Brains",
+            description="Download a brain, pick which one Voxa thinks with, or remove one.",
+        )
+        page.add(group)
+
+        cancel_event = threading.Event()
+        dialog.connect("closed", lambda *_: cancel_event.set())
+        in_use = self.settings.llamacpp_model
+
+        def select_brain(model: smallbrain.ModelFile) -> None:
+            self.settings.llamacpp_model = str(smallbrain.path_for(model))
+            self.config_store.save(self.settings)
+            self._restart_ai_server_async()
+            self._toast(f"Now thinking with {model.label}.")
+
+        for model in smallbrain.BRAINS:
+            row = Adw.ActionRow(title=model.label)
+            state = smallbrain.row_state(model, in_use)
+            if state == "in use":
+                row.set_subtitle("In use")
+            elif state == "downloaded":
+                row.set_subtitle("Downloaded")
+            else:
+                row.set_subtitle(f"About {model.bytes / 1e6:.0f} MB")
+
+            if state == "missing":
+                def start_download(_btn, model=model, row=row) -> None:
+                    def on_progress(done: int, total: int) -> None:
+                        if total > 0:
+                            idle(row.set_subtitle, f"Downloading… {done / total * 100:.0f}%")
+
+                    def finish(path: Path) -> None:
+                        select_brain(model)
+                        row.set_subtitle("In use")
+
+                    def worker() -> None:
+                        try:
+                            path = smallbrain.download(model, on_progress=on_progress, cancel=cancel_event)
+                        except smallbrain.DownloadCancelled:
+                            idle(row.set_subtitle, f"About {model.bytes / 1e6:.0f} MB")
+                            return
+                        except smallbrain.DownloadError as exc:
+                            idle(self._toast, str(exc))
+                            return
+                        idle(finish, path)
+
+                    threading.Thread(target=worker, name="brain-download", daemon=True).start()
+
+                download_button = Gtk.Button(label="Download", valign=Gtk.Align.CENTER)
+                download_button.connect("clicked", start_download)
+                row.add_suffix(download_button)
+            elif state == "downloaded":
+                def use_brain(_btn, model=model, dialog=dialog) -> None:
+                    select_brain(model)
+                    dialog.close()
+                    self._show_brain_manager()
+
+                def remove_brain(_btn, model=model) -> None:
+                    smallbrain.path_for(model).unlink(missing_ok=True)
+                    self._toast(f"Removed {model.label}.")
+
+                use_button = Gtk.Button(label="Use", valign=Gtk.Align.CENTER)
+                use_button.connect("clicked", use_brain)
+                row.add_suffix(use_button)
+                remove_button = Gtk.Button(label="Remove", valign=Gtk.Align.CENTER)
+                remove_button.connect("clicked", remove_brain)
+                row.add_suffix(remove_button)
+
+            group.add(row)
+
         dialog.present(self)
 
     def _confirm_delete_model(self, parent_dialog: Adw.Dialog, model: str) -> None:

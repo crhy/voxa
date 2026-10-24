@@ -703,6 +703,7 @@ def _fast_model_wait(monkeypatch):
 
 def test_dialog_shows_starting_then_the_installed_models(window, monkeypatch) -> None:
     _fast_model_wait(monkeypatch)
+    window.settings.ai_backend = "ollama"
     shared = FlakyClient()
     monkeypatch.setattr("voxa.window.OllamaClient", lambda *a, **k: shared)
     dialogs = _capture_dialogs(monkeypatch)
@@ -716,6 +717,7 @@ def test_dialog_shows_starting_then_the_installed_models(window, monkeypatch) ->
 
 def test_pull_keeps_the_dialog_open_and_lists_the_model(window, monkeypatch) -> None:
     _fast_model_wait(monkeypatch)
+    window.settings.ai_backend = "ollama"
     shared = PullClient()
     monkeypatch.setattr("voxa.window.OllamaClient", lambda *a, **k: shared)
     window.settings.ollama_model = ""
@@ -732,6 +734,7 @@ def test_pull_keeps_the_dialog_open_and_lists_the_model(window, monkeypatch) -> 
 
 def test_smallest_chip_present_when_not_installed(window, monkeypatch) -> None:
     smallest = MODEL_CATALOG[0].name
+    window.settings.ai_backend = "ollama"
     window._suggested_models = ["gemma3:1b"]
     window.ollama_models = []
     dialogs = _capture_dialogs(monkeypatch)

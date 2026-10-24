@@ -66,6 +66,25 @@ def _fits(available_gb: float, model: ModelSuggestion) -> bool:
     return available_gb >= model.approx_gb * _HEADROOM_FACTOR + _HEADROOM_FLOOR_GB
 
 
+# The only brains a machine without a graphics card is ever offered: the two
+# small GGUF brains Voxa ships, never an 8-12B model that would thrash system
+# RAM. Names match the Ollama-style tags used in the catalog.
+SMALL_BRAIN_NAMES = ("qwen2.5:0.5b", "qwen3.5:0.8b")
+
+
+def no_gpu_suggestions(
+    catalog: tuple[ModelSuggestion, ...] | None = None,
+) -> list[ModelSuggestion]:
+    """The small brains to offer a machine with no GPU, in SMALL_BRAIN_NAMES order.
+
+    Falls back to the smallest catalog entry when the catalog holds neither name,
+    so the summary is never empty."""
+    entries = catalog or MODEL_CATALOG
+    by_name = {model.name: model for model in entries}
+    found = [by_name[name] for name in SMALL_BRAIN_NAMES if name in by_name]
+    return found or [entries[0]]
+
+
 def suggest_models(
     available_gb: float,
     *,

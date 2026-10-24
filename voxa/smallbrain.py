@@ -68,6 +68,18 @@ def is_installed(model: ModelFile, directory: Path | None = None) -> bool:
     return path.is_file() and path.stat().st_size == model.bytes
 
 
+def row_state(model: ModelFile, in_use_path: str) -> str:
+    """How a brain row reads in the manager: "in use", "downloaded", or "missing".
+
+    Pure so it can be tested without a window; ``in_use_path`` is the configured
+    ``llamacpp_model`` (empty when none is selected)."""
+    if in_use_path and in_use_path == str(path_for(model)):
+        return "in use"
+    if is_installed(model):
+        return "downloaded"
+    return "missing"
+
+
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
