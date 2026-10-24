@@ -3044,6 +3044,135 @@
       "after": "",
       "verify": {},
       "capability": 99
-    }
+    },
+    {
+    "id": "cap38-s1",
+    "category": "files_and_productivity",
+    "prompt": "summarize this",
+    "expected_contains": [],
+    "expected_keywords": [
+      "bees"
+    ],
+    "rubric": "The reply summarizes the open article and mentions bees.",
+    "expected_tool": "summarize_selection",
+    "expected_args": {},
+    "after": "",
+    "verify": {},
+    "capability": 38,
+    "vm_only": true,
+    "setup": [
+      {
+        "copy": "samples/article-sample.txt",
+        "to": "~/Documents/article-sample.txt"
+      },
+      {
+        "open": "~/Documents/article-sample.txt",
+        "with": "gedit"
+      },
+      {
+        "keys": "ctrl+a"
+      },
+      {
+        "wait": 1.0
+      }
+    ]
+  },
+    {
+    "id": "cap72-s1",
+    "category": "files_and_productivity",
+    "prompt": "fix the spelling",
+    "expected_contains": [],
+    "expected_keywords": [
+      "clarity"
+    ],
+    "rubric": "The reply confirms the text was edited for clarity.",
+    "expected_tool": "cleanup_text",
+    "expected_args": {},
+    "after": "",
+    "verify": {},
+    "capability": 72,
+    "vm_only": true,
+    "setup": [
+      {
+        "copy": "samples/typos-sample.txt",
+        "to": "~/Documents/typos-sample.txt"
+      },
+      {
+        "open": "~/Documents/typos-sample.txt",
+        "with": "gedit"
+      },
+      {
+        "wait": 1.0
+      }
+    ]
+  },
+    {
+    "id": "cap71-s1",
+    "category": "files_and_productivity",
+    "prompt": "write a letter about the garden party",
+    "expected_contains": [],
+    "expected_keywords": [],
+    "rubric": "The reply drafts a short letter about a garden party.",
+    "expected_tool": "",
+    "expected_args": {},
+    "after": "",
+    "verify": {},
+    "capability": 71,
+    "vm_only": true
+  },
+    {
+    "id": "cap75-s1",
+    "category": "files_and_productivity",
+    "prompt": "convert notes sample to pdf",
+    "expected_contains": [],
+    "expected_keywords": [
+      "converted"
+    ],
+    "rubric": "The reply confirms the notes file was converted to a PDF.",
+    "expected_tool": "convert_file",
+    "expected_args": {
+      "name": "notes sample",
+      "format": "pdf"
+    },
+    "after": "",
+    "verify": {
+      "file": "~/Documents/notes-sample.pdf"
+    },
+    "capability": 75,
+    "vm_only": true,
+    "setup": [
+      {
+        "copy": "samples/notes-sample.txt",
+        "to": "~/Documents/notes-sample.txt"
+      }
+    ]
+  },
+    {
+    "id": "cap78-s1",
+    "category": "files_and_productivity",
+    "prompt": "transcribe hello sample",
+    "expected_contains": [],
+    "expected_keywords": [
+      "transcribed",
+      "words"
+    ],
+    "rubric": "The reply confirms the recording was transcribed into a text file.",
+    "expected_tool": "transcribe_file",
+    "expected_args": {
+      "name": "hello sample"
+    },
+    "after": "",
+    "verify": {
+      "file": "~/Documents/hello-sample.txt"
+    },
+    "capability": 78,
+    "vm_only": true,
+    "setup": [
+      {
+        "copy": "samples/hello-sample.wav",
+        "to": "~/Documents/hello-sample.wav"
+      }
+    ]
+  }
   ]
 }
