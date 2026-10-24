@@ -2809,6 +2809,96 @@
         "file_lacks": "Emma: soccer practice"
       },
       "capability": 66
+    },
+    {
+      "id": "cap60-01",
+      "category": "files_and_productivity",
+      "prompt": "organize my financial documents",
+      "expected_contains": [],
+      "expected_keywords": [
+        "filed"
+      ],
+      "rubric": "The reply confirms financial documents were filed into folders.",
+      "expected_tool": "finance_sort",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 60,
+      "vm_only": true,
+      "setup": [
+        {
+          "copy": "samples/invoice-acme-2026.txt",
+          "to": "~/Downloads/invoice-acme-2026.txt"
+        },
+        {
+          "copy": "samples/receipt-hardware-store.txt",
+          "to": "~/Downloads/receipt-hardware-store.txt"
+        }
+      ]
+    },
+    {
+      "id": "cap60-02",
+      "category": "files_and_productivity",
+      "prompt": "how many invoices do I have",
+      "expected_contains": [],
+      "expected_keywords": [
+        "invoice"
+      ],
+      "rubric": "The reply reports the number of invoices in the Finance folder.",
+      "expected_tool": "finance_count",
+      "expected_args": {
+        "kind": "invoices"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 60,
+      "vm_only": true,
+      "setup": [
+        {
+          "copy": "samples/invoice-acme-2026.txt",
+          "to": "~/Documents/Finance/Invoices/invoice-acme-2026.txt"
+        }
+      ]
+    },
+    {
+      "id": "cap60-03",
+      "category": "files_and_productivity",
+      "prompt": "undo the filing",
+      "expected_contains": [],
+      "expected_keywords": [
+        "moved|undo"
+      ],
+      "rubric": "The reply confirms the filing was undone or there was nothing to undo.",
+      "expected_tool": "finance_undo",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 60,
+      "vm_only": true
+    },
+    {
+      "id": "cap60-04",
+      "category": "files_and_productivity",
+      "prompt": "organize my financial documents",
+      "expected_contains": [],
+      "expected_keywords": [
+        "nothing"
+      ],
+      "rubric": "The reply reports there is nothing left to file after cleanup.",
+      "expected_tool": "finance_sort",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 60,
+      "vm_only": true,
+      "setup": [
+        {
+          "remove": "~/Downloads/invoice-acme-2026.txt"
+        },
+        {
+          "remove": "~/Downloads/receipt-hardware-store.txt"
+        }
+      ]
     }
   ]
 }

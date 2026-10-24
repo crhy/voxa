@@ -649,6 +649,19 @@ _LIST_KNOWN = r"to[- ]?do|todo|task|tasks|shopping|grocery|groceries"
 _LIST = rf"(?:my |the )?(?:(?:{_LIST_KNOWN})(?: list)?|(?!clipboard\b)[a-z]+ list)"
 _LIST_NAMED = rf"(?:my |the )?(?:{_LIST_KNOWN}|(?!clipboard\b)[a-z]+(?: plan)?) list"
 _LIST_ADD = re.compile(rf"(?:add|put) (?P<item>.+?) (?:to|on) (?P<list>{_LIST})", re.IGNORECASE)
+_FINANCE_SORT = re.compile(
+    r"(?:organise|organize|sort|file) (?:my |the )?(?:financial|finance) (?:documents?|docs?|papers?)",
+    re.IGNORECASE,
+)
+_FINANCE_UNDO = re.compile(r"undo (?:the |my )?(?:filing|sorting|sort)", re.IGNORECASE)
+_FINANCE_KIND = r"(?:invoices?|receipts?|warrant(?:y|ies)|tax|(?:(?:bank )?statements?))"
+_FINANCE_COUNT = re.compile(
+    rf"(?:"
+    rf"how many (?P<kind1>{_FINANCE_KIND})(?: (?:do i have|are there))?"
+    rf"|where (?:are|is) (?:my |the )?(?P<kind2>{_FINANCE_KIND})"
+    rf")",
+    re.IGNORECASE,
+)
 _FAMILY_ADD = re.compile(
     r"(?:add|put) (?P<event>.+?) for (?P<person>[a-z]+) (?:on |for )?(?P<when>.+)",
     re.IGNORECASE,
@@ -1164,6 +1177,9 @@ ROUTED_TOOLS = frozenset(
         "delete_last_note",
         "open_notes",
         "list_add",
+        "finance_sort",
+        "finance_undo",
+        "finance_count",
         "family_add",
         "family_week",
         "family_remove",
@@ -1733,6 +1749,16 @@ def route(text: str) -> ToolCall | None:
             person=family_remove.group("person").strip(),
             event=family_remove.group("event").strip(),
         )
+    finance_sort = _FINANCE_SORT.fullmatch(s)
+    if finance_sort:
+        return call("finance_sort")
+    finance_undo = _FINANCE_UNDO.fullmatch(s)
+    if finance_undo:
+        return call("finance_undo")
+    finance_count = _FINANCE_COUNT.fullmatch(s)
+    if finance_count:
+        kind = finance_count.group("kind1") or finance_count.group("kind2")
+        return call("finance_count", kind=kind)
     list_add = _LIST_ADD.fullmatch(s)
     if list_add:
         return call("list_add", item=list_add.group("item"), list=_list_word(list_add.group("list")))
