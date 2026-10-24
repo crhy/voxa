@@ -3760,6 +3760,32 @@
       "capability": 92
     },
     {
+      "id": "cap92-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "Anything I should know",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply summarizes what needs attention today.",
+      "expected_tool": "heads_up",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 92
+    },
+    {
+      "id": "cap92-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "What is going on today",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply summarizes what needs attention today.",
+      "expected_tool": "heads_up",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 92
+    },
+    {
       "id": "cap94-01",
       "category": "files_and_productivity",
       "prompt": "What am I forgetting",
@@ -3773,9 +3799,61 @@
       "capability": 94
     },
     {
+      "id": "cap94-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "Did I forget anything",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply reports overdue or forgotten commitments.",
+      "expected_tool": "what_did_i_forget",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 94
+    },
+    {
+      "id": "cap94-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "What have I missed",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply reports overdue or forgotten commitments.",
+      "expected_tool": "what_did_i_forget",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 94
+    },
+    {
       "id": "cap95-01",
       "category": "files_and_productivity",
       "prompt": "What do you recommend",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply recommends the next action to take.",
+      "expected_tool": "suggest_next_action",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 95
+    },
+    {
+      "id": "cap95-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "What would you do next",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply recommends the next action to take.",
+      "expected_tool": "suggest_next_action",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 95
+    },
+    {
+      "id": "cap95-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "What do you suggest I do next",
       "expected_contains": [],
       "expected_keywords": [],
       "rubric": "The reply recommends the next action to take.",
@@ -3867,9 +3945,69 @@
       "capability": 89
     },
     {
+      "id": "cap89-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "What is the status of the Voxa repo",
+      "expected_contains": [],
+      "expected_keywords": [
+        "voxa"
+      ],
+      "rubric": "The reply reports the git branch and changes for the Voxa project.",
+      "expected_tool": "project_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 89
+    },
+    {
+      "id": "cap89-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "How is the Voxa project doing",
+      "expected_contains": [],
+      "expected_keywords": [
+        "voxa"
+      ],
+      "rubric": "The reply reports the git branch and changes for the Voxa project.",
+      "expected_tool": "project_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 89
+    },
+    {
       "id": "cap90-01",
       "category": "files_and_productivity",
       "prompt": "Is the local model running",
+      "expected_contains": [],
+      "expected_keywords": [
+        "model"
+      ],
+      "rubric": "The reply says whether the local model is running and its last task.",
+      "expected_tool": "model_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 90
+    },
+    {
+      "id": "cap90-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "Is Strata running",
+      "expected_contains": [],
+      "expected_keywords": [
+        "model"
+      ],
+      "rubric": "The reply says whether the local model is running and its last task.",
+      "expected_tool": "model_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 90
+    },
+    {
+      "id": "cap90-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "Is the coding model up",
       "expected_contains": [],
       "expected_keywords": [
         "model"
