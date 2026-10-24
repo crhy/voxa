@@ -3179,9 +3179,69 @@
       "capability": 14
     },
     {
+      "id": "cap14-01-p1",
+      "category": "calendar_and_scheduling",
+      "prompt": "are there any conflicts this week",
+      "expected_contains": [],
+      "expected_keywords": [
+        "clashes|close"
+      ],
+      "rubric": "The reply reports whether there are clashes in the next 7 days.",
+      "expected_tool": "calendar_conflicts",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 14
+    },
+    {
+      "id": "cap14-01-p2",
+      "category": "calendar_and_scheduling",
+      "prompt": "do i have any clashes this week",
+      "expected_contains": [],
+      "expected_keywords": [
+        "clashes|close"
+      ],
+      "rubric": "The reply reports whether there are clashes in the next 7 days.",
+      "expected_tool": "calendar_conflicts",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 14
+    },
+    {
       "id": "cap14-02",
       "category": "calendar_and_scheduling",
       "prompt": "Check my calendar for clashes",
+      "expected_contains": [],
+      "expected_keywords": [
+        "clashes|close"
+      ],
+      "rubric": "The reply reports whether there are clashes in the next 7 days.",
+      "expected_tool": "calendar_conflicts",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 14
+    },
+    {
+      "id": "cap14-02-p1",
+      "category": "calendar_and_scheduling",
+      "prompt": "hey can you check my calendar for clashes",
+      "expected_contains": [],
+      "expected_keywords": [
+        "clashes|close"
+      ],
+      "rubric": "The reply reports whether there are clashes in the next 7 days.",
+      "expected_tool": "calendar_conflicts",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 14
+    },
+    {
+      "id": "cap14-02-p2",
+      "category": "calendar_and_scheduling",
+      "prompt": "check my calendar for conflicts",
       "expected_contains": [],
       "expected_keywords": [
         "clashes|close"
@@ -3261,6 +3321,42 @@
       "capability": 22
     },
     {
+      "id": "cap22-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "can you add buy paint to my kitchen list please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "paint"
+      ],
+      "rubric": "The reply confirms the item was added to the kitchen list.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "Buy paint"
+      },
+      "capability": 22
+    },
+    {
+      "id": "cap22-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey can you add buy paint to my kitchen list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "paint"
+      ],
+      "rubric": "The reply confirms the item was added to the kitchen list.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "Buy paint"
+      },
+      "capability": 22
+    },
+    {
       "id": "cap22-02",
       "category": "files_and_productivity",
       "prompt": "What's on my kitchen list",
@@ -3276,9 +3372,75 @@
       "capability": 22
     },
     {
+      "id": "cap22-02-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what is on my kitchen list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "paint"
+      ],
+      "rubric": "The reply reads back the kitchen list.",
+      "expected_tool": "list_read",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 22
+    },
+    {
+      "id": "cap22-02-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you read my kitchen list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "paint"
+      ],
+      "rubric": "The reply reads back the kitchen list.",
+      "expected_tool": "list_read",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 22
+    },
+    {
       "id": "cap22-03",
       "category": "files_and_productivity",
       "prompt": "Clear my kitchen list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared|clear"
+      ],
+      "rubric": "The reply confirms the kitchen list was cleared.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_lacks": "paint"
+      },
+      "capability": 22
+    },
+    {
+      "id": "cap22-03-p1",
+      "category": "files_and_productivity",
+      "prompt": "please clear my kitchen list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared|clear"
+      ],
+      "rubric": "The reply confirms the kitchen list was cleared.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_lacks": "paint"
+      },
+      "capability": 22
+    },
+    {
+      "id": "cap22-03-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey can you clear my kitchen list",
       "expected_contains": [],
       "expected_keywords": [
         "cleared|clear"
@@ -3758,9 +3920,69 @@
       "capability": 25
     },
     {
+      "id": "cap25-x1-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what is still pending",
+      "expected_contains": [],
+      "expected_keywords": [
+        "open"
+      ],
+      "rubric": "The reply counts the open items over every list.",
+      "expected_tool": "list_pending",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 25
+    },
+    {
+      "id": "cap25-x1-p2",
+      "category": "files_and_productivity",
+      "prompt": "what do i still have to do",
+      "expected_contains": [],
+      "expected_keywords": [
+        "open"
+      ],
+      "rubric": "The reply counts the open items over every list.",
+      "expected_tool": "list_pending",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 25
+    },
+    {
       "id": "cap27-x1",
       "category": "files_and_productivity",
       "prompt": "What is my top priority",
+      "expected_contains": [],
+      "expected_keywords": [
+        "next|waiting|clear"
+      ],
+      "rubric": "The reply names the most important open task.",
+      "expected_tool": "list_next",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 27
+    },
+    {
+      "id": "cap27-x1-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what is my top priority",
+      "expected_contains": [],
+      "expected_keywords": [
+        "next|waiting|clear"
+      ],
+      "rubric": "The reply names the most important open task.",
+      "expected_tool": "list_next",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 27
+    },
+    {
+      "id": "cap27-x1-p2",
+      "category": "files_and_productivity",
+      "prompt": "what should i work on next",
       "expected_contains": [],
       "expected_keywords": [
         "next|waiting|clear"
