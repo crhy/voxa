@@ -15,6 +15,7 @@ from voxa.agent.tools.convert import convert_tools
 from voxa.agent.tools.databackup import databackup_tools
 from voxa.agent.tools.dates import date_tools
 from voxa.agent.tools.deals import deal_tools
+from voxa.agent.tools.desktoptheme import desktoptheme_tools
 from voxa.agent.tools.devstatus import devstatus_tools
 from voxa.agent.tools.expenses import expense_tools
 from voxa.agent.tools.filemanage import file_manage_tools
@@ -57,6 +58,7 @@ def default_registry() -> ToolRegistry:
         *calc_tools(),
         *deal_tools(),
         *application_tools(),
+        *desktoptheme_tools(),
         *local_music_tools(),
         *contact_tools(),
         *media_tools(),

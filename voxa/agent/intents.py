@@ -183,6 +183,12 @@ _RADIO_PLAY = re.compile(
     r"(?:(.+?)\s+)?(?:internet\s+)?radio(?:\s+station)?",
     re.IGNORECASE,
 )
+# "change to Windows 7 dark theme", "switch the desktop theme to mac", "use the ubuntu theme" (#115)
+_CHANGE_THEME = re.compile(
+    r"(?:change|switch|set)\s+(?:the\s+|my\s+)?(?:desktop\s+)?theme\s+to\s+(?:the\s+)?(.+?)(?:\s+theme)?"
+    r"|(?:change|switch)\s+to\s+(?:the\s+)?(.+?)\s+theme|(?:use|apply)\s+(?:the\s+)?(.+?)\s+theme",
+    re.IGNORECASE,
+)
 _PLAY_ANY = re.compile(r"(?:play|put\s+on|listen\s+to)\s+(.+)", re.IGNORECASE)
 _RADIO_LIST = re.compile(
     r"(?:what|which)\s+(?:radio\s+)?stations\s+(?:do\s+you\s+have|are\s+there|can\s+you\s+play)"
@@ -1844,6 +1850,10 @@ def route(text: str) -> ToolCall | None:
     on_app = _PLAY_ON_APP.fullmatch(s)
     if on_app and on_app.group(2).casefold() not in _NOT_AN_APP and len(on_app.group(2).split()) <= 3:
         return call("play_on_app", query=on_app.group(1).strip(), app=on_app.group(2).strip())
+
+    theme_match = _CHANGE_THEME.fullmatch(s)
+    if theme_match:
+        return call("change_theme", name=next(g for g in theme_match.groups() if g).strip())
 
     radio_match = _RADIO_PLAY.fullmatch(s)
     if radio_match:

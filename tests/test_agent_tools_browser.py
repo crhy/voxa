@@ -226,6 +226,7 @@ def test_registry_lists_all_tools():
             "calendar_week",
             "cancel_reminders",
             "change_character",
+            "change_theme",
             "check_system_version",
             "cleanup_text",
             "click_on",
