@@ -649,6 +649,15 @@ _LIST_KNOWN = r"to[- ]?do|todo|task|tasks|shopping|grocery|groceries"
 _LIST = rf"(?:my |the )?(?:(?:{_LIST_KNOWN})(?: list)?|(?!clipboard\b)[a-z]+ list)"
 _LIST_NAMED = rf"(?:my |the )?(?:{_LIST_KNOWN}|(?!clipboard\b)[a-z]+(?: plan)?) list"
 _LIST_ADD = re.compile(rf"(?:add|put) (?P<item>.+?) (?:to|on) (?P<list>{_LIST})", re.IGNORECASE)
+_DOC_EXTRACT = re.compile(
+    r"(?:"
+    r"what (?:are|is) the (?:dates?|amounts?|details?|important details?)"
+    r"(?: and (?:amounts?|dates?|details?))? in (?P<n1>.+)"
+    r"|read the (?:important )?details? (?:from|in|of) (?P<n2>.+)"
+    r"|what does (?P<n3>.+?) say about .+"
+    r")",
+    re.IGNORECASE,
+)
 _TRAVEL_DOC_NOUN = (
     r"passport|visa|licen[cs]e|id|identification|insurance|registration|"
     r"green card|credit card|sim card|certificate|health certificate|vaccination"
@@ -1140,6 +1149,7 @@ ROUTED_TOOLS = frozenset(
         "delete_last_note",
         "open_notes",
         "list_add",
+        "doc_extract",
         "event_plan",
         "conversation_summary",
         "trip_plan",
@@ -1676,6 +1686,11 @@ def route(text: str) -> ToolCall | None:
         return call("trip_forget", place=trip_forget.group("place").strip())
     if _CONVO_SUMMARY.fullmatch(s):
         return call("conversation_summary")
+    doc_extract = _DOC_EXTRACT.fullmatch(s)
+    if doc_extract:
+        found = doc_extract.groupdict()
+        name = next(found[key] for key in ("n1", "n2", "n3") if found[key])
+        return call("doc_extract", name=name.strip())
     list_add = _LIST_ADD.fullmatch(s)
     if list_add:
         return call("list_add", item=list_add.group("item"), list=_list_word(list_add.group("list")))

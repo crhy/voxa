@@ -248,6 +248,7 @@ def test_registry_lists_all_tools():
             "delete_last_note",
             "directions",
             "disk_space",
+            "doc_extract",
             "empty_trash",
             "event_plan",
             "exchange_rate",

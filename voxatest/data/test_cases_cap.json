@@ -2667,6 +2667,33 @@
         "file_lacks": "- Passport:"
       },
       "capability": 46
+    },
+    {
+      "id": "cap79-01",
+      "category": "files_and_productivity",
+      "prompt": "what are the dates and amounts in invoice-sample.txt",
+      "expected_contains": [],
+      "expected_keywords": [
+        "01/15/2024",
+        "2024-02-01",
+        "1,234.56",
+        "45.00",
+        "invoice-sample"
+      ],
+      "rubric": "The reply reports the dates and amounts found in the invoice file.",
+      "expected_tool": "doc_extract",
+      "expected_args": {
+        "name": "invoice-sample.txt"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 79,
+      "setup": [
+        {
+          "copy": "samples/invoice-sample.txt",
+          "to": "~/Documents/invoice-sample.txt"
+        }
+      ]
     }
   ]
 }
