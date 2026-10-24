@@ -4197,12 +4197,640 @@
       },
       "capability": 78,
       "vm_only": true,
-      "setup": [
-        {
-          "copy": "samples/hello-sample.wav",
-          "to": "~/Documents/hello-sample.wav"
-        }
-      ]
+        "setup": [
+          {
+            "copy": "samples/hello-sample.wav",
+            "to": "~/Documents/hello-sample.wav"
+          }
+        ]
+    },
+    {
+      "id": "help2-01-p1",
+      "category": "software_help_and_knowledge",
+      "prompt": "15 percent of 80",
+      "expected_contains": [],
+      "expected_keywords": [
+        "12|twelve"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help2-01-p2",
+      "category": "software_help_and_knowledge",
+      "prompt": "what is 15 percent of 80 please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "12|twelve"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help2-02-p1",
+      "category": "software_help_and_knowledge",
+      "prompt": "144 divided by 12 please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "12|twelve"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help2-02-p2",
+      "category": "software_help_and_knowledge",
+      "prompt": "144 divided by 12",
+      "expected_contains": [],
+      "expected_keywords": [
+        "12|twelve"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help2-03-p1",
+      "category": "software_help_and_knowledge",
+      "prompt": "convert 100 kilometers into miles",
+      "expected_contains": [],
+      "expected_keywords": [
+        "miles"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help2-03-p2",
+      "category": "software_help_and_knowledge",
+      "prompt": "how many miles is 100 kilometers",
+      "expected_contains": [],
+      "expected_keywords": [
+        "miles"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help2-04-p1",
+      "category": "software_help_and_knowledge",
+      "prompt": "square root of 81 please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "9|nine"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help2-04-p2",
+      "category": "software_help_and_knowledge",
+      "prompt": "what is the square root of 81 please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "9|nine"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-help-01-p1",
+      "category": "software_help_and_knowledge",
+      "prompt": "250 plus 175",
+      "expected_contains": [],
+      "expected_keywords": [
+        "425"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-help-01-p2",
+      "category": "software_help_and_knowledge",
+      "prompt": "what is 250 plus 175 please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "425"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-help-02-p1",
+      "category": "software_help_and_knowledge",
+      "prompt": "20 percent of 150",
+      "expected_contains": [],
+      "expected_keywords": [
+        "30|thirty"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-help-02-p2",
+      "category": "software_help_and_knowledge",
+      "prompt": "what is 20 percent of 150 please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "30|thirty"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-help-03-p1",
+      "category": "software_help_and_knowledge",
+      "prompt": "convert 5 miles into kilometers",
+      "expected_contains": [],
+      "expected_keywords": [
+        "kilometers|kilometres"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-help-03-p2",
+      "category": "software_help_and_knowledge",
+      "prompt": "how many kilometers is 5 miles",
+      "expected_contains": [],
+      "expected_keywords": [
+        "kilometers|kilometres"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-help-04-p1",
+      "category": "software_help_and_knowledge",
+      "prompt": "12 squared",
+      "expected_contains": [],
+      "expected_keywords": [
+        "144"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-help-04-p2",
+      "category": "software_help_and_knowledge",
+      "prompt": "what is 12 squared please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "144"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help-04-p1",
+      "category": "software_help_and_knowledge",
+      "prompt": "seven times eight",
+      "expected_contains": [],
+      "expected_keywords": [
+        "56|fifty six"
+      ],
+      "rubric": "The reply gives the correct answer, fifty-six or 56.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help-04-p2",
+      "category": "software_help_and_knowledge",
+      "prompt": "what is seven times eight please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "56|fifty six"
+      ],
+      "rubric": "The reply gives the correct answer, fifty-six or 56.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-web-02-p1",
+      "category": "web_and_maps",
+      "prompt": "look up recipes for banana bread",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "web_search",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-web-02-p2",
+      "category": "web_and_maps",
+      "prompt": "search the web for banana bread recipes",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "web_search",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help2-06-p1",
+      "category": "software_help_and_knowledge",
+      "prompt": "what is the biggest planet",
+      "expected_contains": [],
+      "expected_keywords": [
+        "jupiter"
+      ],
+      "rubric": "The reply names Jupiter.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help2-06-p2",
+      "category": "software_help_and_knowledge",
+      "prompt": "which planet is the largest",
+      "expected_contains": [],
+      "expected_keywords": [
+        "jupiter"
+      ],
+      "rubric": "The reply names Jupiter.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help-05-p1",
+      "category": "software_help_and_knowledge",
+      "prompt": "whats the capital of France",
+      "expected_contains": [],
+      "expected_keywords": [
+        "paris"
+      ],
+      "rubric": "The reply correctly identifies Paris as the capital of France.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help-05-p2",
+      "category": "software_help_and_knowledge",
+      "prompt": "name the capital of France",
+      "expected_contains": [],
+      "expected_keywords": [
+        "paris"
+      ],
+      "rubric": "The reply correctly identifies Paris as the capital of France.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-help-06-p1",
+      "category": "software_help_and_knowledge",
+      "prompt": "what is the tallest mountain",
+      "expected_contains": [],
+      "expected_keywords": [
+        "everest"
+      ],
+      "rubric": "The reply names Mount Everest.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-help-06-p2",
+      "category": "software_help_and_knowledge",
+      "prompt": "which mountain is the highest",
+      "expected_contains": [],
+      "expected_keywords": [
+        "everest"
+      ],
+      "rubric": "The reply names Mount Everest.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "feat-local-03-p1",
+      "category": "web_and_maps",
+      "prompt": "play the local news please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "local news"
+      ],
+      "rubric": "Issue 101: local news.",
+      "expected_tool": "local_news",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 33
+    },
+    {
+      "id": "feat-local-03-p2",
+      "category": "web_and_maps",
+      "prompt": "can you play the local news",
+      "expected_contains": [],
+      "expected_keywords": [
+        "local news"
+      ],
+      "rubric": "Issue 101: local news.",
+      "expected_tool": "local_news",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 33
+    },
+    {
+      "id": "cap36-e1-p1",
+      "category": "files_and_productivity",
+      "prompt": "cheapest flight to Hawaii",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cheapest"
+      ],
+      "rubric": "The reply offers the cheapest flights.",
+      "expected_tool": "find_deal",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 36
+    },
+    {
+      "id": "cap36-e1-p2",
+      "category": "files_and_productivity",
+      "prompt": "whats the cheapest ticket to Hawaii",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cheapest"
+      ],
+      "rubric": "The reply offers the cheapest flights.",
+      "expected_tool": "find_deal",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 36
+    },
+    {
+      "id": "cap36-e2-p1",
+      "category": "files_and_productivity",
+      "prompt": "cheapest 4070 Ti Super",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cheapest"
+      ],
+      "rubric": "The reply offers the cheapest product results.",
+      "expected_tool": "find_deal",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 36
+    },
+    {
+      "id": "cap36-e2-p2",
+      "category": "files_and_productivity",
+      "prompt": "best price on the 4070 Ti Super",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cheapest"
+      ],
+      "rubric": "The reply offers the cheapest product results.",
+      "expected_tool": "find_deal",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 36
+    },
+    {
+      "id": "cap37-e1-p1",
+      "category": "files_and_productivity",
+      "prompt": "look up how to fix a null pointer exception please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "searching"
+      ],
+      "rubric": "The reply searches the web for the fix.",
+      "expected_tool": "web_search",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 37
+    },
+    {
+      "id": "cap37-e1-p2",
+      "category": "files_and_productivity",
+      "prompt": "search the web for how to fix a null pointer exception",
+      "expected_contains": [],
+      "expected_keywords": [
+        "searching"
+      ],
+      "rubric": "The reply searches the web for the fix.",
+      "expected_tool": "web_search",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 37
+    },
+    {
+      "id": "web2-03-p1",
+      "category": "web_and_maps",
+      "prompt": "where is the nearest coffee shop",
+      "expected_contains": [],
+      "expected_keywords": [
+        "coffee"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "find_nearby",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 47
+    },
+    {
+      "id": "web2-03-p2",
+      "category": "web_and_maps",
+      "prompt": "find the closest coffee shop",
+      "expected_contains": [],
+      "expected_keywords": [
+        "coffee"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "find_nearby",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 47
+    },
+    {
+      "id": "web-04-p1",
+      "category": "web_and_maps",
+      "prompt": "where is the nearest pharmacy",
+      "expected_contains": [],
+      "expected_keywords": [
+        "pharmacy"
+      ],
+      "rubric": "The reply confirms a nearby search for a pharmacy.",
+      "expected_tool": "find_nearby",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 47
+    },
+    {
+      "id": "web-04-p2",
+      "category": "web_and_maps",
+      "prompt": "find the closest pharmacy",
+      "expected_contains": [],
+      "expected_keywords": [
+        "pharmacy"
+      ],
+      "rubric": "The reply confirms a nearby search for a pharmacy.",
+      "expected_tool": "find_nearby",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 47
+    },
+    {
+      "id": "web2-04-p1",
+      "category": "web_and_maps",
+      "prompt": "walking directions to the park",
+      "expected_contains": [],
+      "expected_keywords": [
+        "walking",
+        "park"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "directions",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 47
+    },
+    {
+      "id": "web2-04-p2",
+      "category": "web_and_maps",
+      "prompt": "how do I get to the park",
+      "expected_contains": [],
+      "expected_keywords": [
+        "walking",
+        "park"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "directions",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 47
+    },
+    {
+      "id": "feat-local-04-p1",
+      "category": "web_and_maps",
+      "prompt": "live music tonight near me",
+      "expected_contains": [],
+      "expected_keywords": [
+        "live music"
+      ],
+      "rubric": "Issue 101: what is on nearby.",
+      "expected_tool": "local_events",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 47
+    },
+    {
+      "id": "feat-local-04-p2",
+      "category": "web_and_maps",
+      "prompt": "any live music tonight in my area",
+      "expected_contains": [],
+      "expected_keywords": [
+        "live music"
+      ],
+      "rubric": "Issue 101: what is on nearby.",
+      "expected_tool": "local_events",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 47
     }
   ]
 }
