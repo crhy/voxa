@@ -2939,6 +2939,113 @@
       },
       "capability": 77,
       "vm_only": true
+    },
+    {
+      "id": "cap28-r1",
+      "category": "files_and_productivity",
+      "prompt": "when I say good morning, play the news and then make coffee",
+      "expected_contains": [],
+      "expected_keywords": [
+        "okay",
+        "morning"
+      ],
+      "rubric": "The reply confirms the routine was created and echoes its steps.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 28
+    },
+    {
+      "id": "cap28-r2",
+      "category": "files_and_productivity",
+      "prompt": "list my routines",
+      "expected_contains": [],
+      "expected_keywords": [
+        "routines"
+      ],
+      "rubric": "The reply lists the routine names.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 28
+    },
+    {
+      "id": "cap28-r3",
+      "category": "files_and_productivity",
+      "prompt": "run good morning",
+      "expected_contains": [],
+      "expected_keywords": [
+        "done"
+      ],
+      "rubric": "The reply says Done after running the routine steps.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 28
+    },
+    {
+      "id": "cap28-r4",
+      "category": "files_and_productivity",
+      "prompt": "delete the good morning routine",
+      "expected_contains": [],
+      "expected_keywords": [
+        "deleted"
+      ],
+      "rubric": "The reply confirms the routine was deleted.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 28
+    },
+    {
+      "id": "cap99-r1",
+      "category": "files_and_productivity",
+      "prompt": "when I say wind down, dim the lights and then play jazz",
+      "expected_contains": [],
+      "expected_keywords": [
+        "okay",
+        "wind"
+      ],
+      "rubric": "The reply confirms a second routine was created and echoes its steps.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 99
+    },
+    {
+      "id": "cap99-r2",
+      "category": "files_and_productivity",
+      "prompt": "run wind down",
+      "expected_contains": [],
+      "expected_keywords": [
+        "done"
+      ],
+      "rubric": "The reply says Done after running the routine steps.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 99
+    },
+    {
+      "id": "cap99-r3",
+      "category": "files_and_productivity",
+      "prompt": "delete the wind down routine",
+      "expected_contains": [],
+      "expected_keywords": [
+        "deleted"
+      ],
+      "rubric": "The reply confirms the routine was deleted.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 99
     }
   ]
 }

@@ -27,7 +27,16 @@ from .agent.progress import working_caption  # noqa: E402
 from .agent.registry import ToolError  # noqa: E402
 from .agent.reminders import ReminderStore, focus_phrase, reminder_phrase, timer_phrase  # noqa: E402
 from .agent.result import ToolResult  # noqa: E402
-from .agent.routines import Routine, RoutineStore, parse_create, parse_delete, parse_list  # noqa: E402
+from .agent.routines import (  # noqa: E402
+    Routine,
+    RoutineStore,
+    create_reply,
+    delete_reply,
+    list_reply,
+    parse_create,
+    parse_delete,
+    parse_list,
+)
 from .agent.spoken_text import format_dictation, parse_dictation_control  # noqa: E402
 from .agent.suggest import Suggestion, SuggestionState, suggest  # noqa: E402
 from .agent.tools import (  # noqa: E402
@@ -2806,7 +2815,7 @@ class MainWindow(Adw.ApplicationWindow):
         """Run the next queued step, or say Done when the queue is empty."""
         if not self._routine_queue:
             self._routine_active = False
-            self._toast("Done.")
+            self._say_notice("Done.")
             return
         step = self._routine_queue.pop(0)
         call = intents.route(step)
@@ -3567,19 +3576,18 @@ class MainWindow(Adw.ApplicationWindow):
             name, steps = created
             self.routine_store.add(Routine(name=name, phrases=(name,), steps=tuple(steps)))
             self._log_action(prompt, "routine", detail=f"created {name}")
-            joined = ", then ".join(steps)
-            self._toast(f"Okay. When you say “{name}” I'll {joined}.")
+            self._say_notice(create_reply(name, steps))
             return
         if parse_list(prompt):
             self._log_action(prompt, "routine", detail="list")
             names = [r.name for r in self.routine_store.all()]
-            self._toast("No routines yet." if not names else "Routines: " + ", ".join(names))
+            self._say_notice(list_reply(names))
             return
         deleted = parse_delete(prompt)
         if deleted is not None:
             ok = self.routine_store.remove(deleted)
             self._log_action(prompt, "routine", ok=ok, detail=f"delete {deleted}")
-            self._toast(f"Deleted the {deleted} routine." if ok else f"There is no {deleted} routine.")
+            self._say_notice(delete_reply(deleted, ok))
             return
         matched = self.routine_store.match(prompt)
         if matched is not None:
