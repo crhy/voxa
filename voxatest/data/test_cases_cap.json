@@ -4855,6 +4855,36 @@
       "capability": 34
     },
     {
+      "id": "cap34-y1-p1",
+      "prompt": "can you research the company Nvidia",
+      "expected_tool": "look_up",
+      "expected_args": {},
+      "expected_keywords": [
+        "found"
+      ],
+      "rubric": "The reply confirms the company lookup.",
+      "verify": {},
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 34
+    },
+    {
+      "id": "cap34-y1-p2",
+      "prompt": "hey please look up the company Nvidia",
+      "expected_tool": "look_up",
+      "expected_args": {},
+      "expected_keywords": [
+        "found"
+      ],
+      "rubric": "The reply confirms the company lookup.",
+      "verify": {},
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 34
+    },
+    {
       "id": "cap34-y2",
       "category": "files_and_productivity",
       "prompt": "research Ada Lovelace on wikipedia",
@@ -4867,6 +4897,36 @@
       "expected_args": {},
       "after": "",
       "verify": {},
+      "capability": 34
+    },
+    {
+      "id": "cap34-y2-p1",
+      "prompt": "can you research Ada Lovelace on wikipedia",
+      "expected_tool": "look_up",
+      "expected_args": {},
+      "expected_keywords": [
+        "found"
+      ],
+      "rubric": "The reply confirms the person lookup.",
+      "verify": {},
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 34
+    },
+    {
+      "id": "cap34-y2-p2",
+      "prompt": "hey please look up Ada Lovelace on wikipedia",
+      "expected_tool": "look_up",
+      "expected_args": {},
+      "expected_keywords": [
+        "found"
+      ],
+      "rubric": "The reply confirms the person lookup.",
+      "verify": {},
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
       "capability": 34
     },
     {
@@ -4885,6 +4945,36 @@
       "capability": 35
     },
     {
+      "id": "cap35-y1-p1",
+      "prompt": "can you compare prices for a cordless drill",
+      "expected_tool": "compare_prices",
+      "expected_args": {},
+      "expected_keywords": [
+        "prices"
+      ],
+      "rubric": "The reply confirms the price comparison.",
+      "verify": {},
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 35
+    },
+    {
+      "id": "cap35-y1-p2",
+      "prompt": "hey please compare prices on a cordless drill",
+      "expected_tool": "compare_prices",
+      "expected_args": {},
+      "expected_keywords": [
+        "prices"
+      ],
+      "rubric": "The reply confirms the price comparison.",
+      "verify": {},
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 35
+    },
+    {
       "id": "cap35-y2",
       "category": "files_and_productivity",
       "prompt": "find me a deal on headphones",
@@ -4897,6 +4987,36 @@
       "expected_args": {},
       "after": "",
       "verify": {},
+      "capability": 35
+    },
+    {
+      "id": "cap35-y2-p1",
+      "prompt": "can you find me a deal on headphones",
+      "expected_tool": "find_deal",
+      "expected_args": {},
+      "expected_keywords": [
+        "cheapest"
+      ],
+      "rubric": "The reply confirms the deal search.",
+      "verify": {},
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 35
+    },
+    {
+      "id": "cap35-y2-p2",
+      "prompt": "hey please find a deal on headphones",
+      "expected_tool": "find_deal",
+      "expected_args": {},
+      "expected_keywords": [
+        "cheapest"
+      ],
+      "rubric": "The reply confirms the deal search.",
+      "verify": {},
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
       "capability": 35
     },
     {
@@ -5230,6 +5350,48 @@
       "capability": 41
     },
     {
+      "id": "cap41-01-p1",
+      "prompt": "can you plan a three day vacation to Rome",
+      "expected_tool": "trip_plan",
+      "expected_args": {
+        "place": "Rome"
+      },
+      "expected_keywords": [
+        "planned",
+        "Rome"
+      ],
+      "rubric": "The reply plans three days in Rome and saves them in the Voxa Trips file.",
+      "verify": {
+        "file": "~/Documents/Voxa Trips.md",
+        "file_contains": "## Rome (3 days)"
+      },
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 41
+    },
+    {
+      "id": "cap41-01-p2",
+      "prompt": "hey please make a three day trip to Rome",
+      "expected_tool": "trip_plan",
+      "expected_args": {
+        "place": "Rome"
+      },
+      "expected_keywords": [
+        "planned",
+        "Rome"
+      ],
+      "rubric": "The reply plans three days in Rome and saves them in the Voxa Trips file.",
+      "verify": {
+        "file": "~/Documents/Voxa Trips.md",
+        "file_contains": "## Rome (3 days)"
+      },
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 41
+    },
+    {
       "id": "cap41-02",
       "category": "files_and_productivity",
       "prompt": "read my trip to Rome",
@@ -5248,6 +5410,48 @@
         "file": "~/Documents/Voxa Trips.md",
         "file_contains": "## Rome (3 days)"
       },
+      "capability": 41
+    },
+    {
+      "id": "cap41-02-p1",
+      "prompt": "show me my trip to Rome",
+      "expected_tool": "trip_read",
+      "expected_args": {
+        "place": "Rome"
+      },
+      "expected_keywords": [
+        "trip",
+        "Rome"
+      ],
+      "rubric": "The reply reads back the saved trip to Rome.",
+      "verify": {
+        "file": "~/Documents/Voxa Trips.md",
+        "file_contains": "## Rome (3 days)"
+      },
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 41
+    },
+    {
+      "id": "cap41-02-p2",
+      "prompt": "can you read my vacation to Rome",
+      "expected_tool": "trip_read",
+      "expected_args": {
+        "place": "Rome"
+      },
+      "expected_keywords": [
+        "trip",
+        "Rome"
+      ],
+      "rubric": "The reply reads back the saved trip to Rome.",
+      "verify": {
+        "file": "~/Documents/Voxa Trips.md",
+        "file_contains": "## Rome (3 days)"
+      },
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
       "capability": 41
     },
     {
@@ -5287,6 +5491,36 @@
       "capability": 9
     },
     {
+      "id": "cap09-01-p1",
+      "prompt": "what's the capital of Italy",
+      "expected_tool": "",
+      "expected_args": {},
+      "expected_keywords": [
+        "Rome"
+      ],
+      "rubric": "The reply answers the knowledge question so the conversation has something to summarise.",
+      "verify": {},
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 9
+    },
+    {
+      "id": "cap09-01-p2",
+      "prompt": "can you tell me the capital of Italy",
+      "expected_tool": "",
+      "expected_args": {},
+      "expected_keywords": [
+        "Rome"
+      ],
+      "rubric": "The reply answers the knowledge question so the conversation has something to summarise.",
+      "verify": {},
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 9
+    },
+    {
       "id": "cap09-02",
       "category": "files_and_productivity",
       "prompt": "summarize our conversation",
@@ -5299,6 +5533,36 @@
       "expected_args": {},
       "after": "",
       "verify": {},
+      "capability": 9
+    },
+    {
+      "id": "cap09-02-p1",
+      "prompt": "can you summarize our conversation",
+      "expected_tool": "conversation_summary",
+      "expected_args": {},
+      "expected_keywords": [
+        "talked|decided"
+      ],
+      "rubric": "The reply reads back decisions and action items from the conversation, or says there is not much to summarise yet.",
+      "verify": {},
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 9
+    },
+    {
+      "id": "cap09-02-p2",
+      "prompt": "hey please recap our conversation",
+      "expected_tool": "conversation_summary",
+      "expected_args": {},
+      "expected_keywords": [
+        "talked|decided"
+      ],
+      "rubric": "The reply reads back decisions and action items from the conversation, or says there is not much to summarise yet.",
+      "verify": {},
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
       "capability": 9
     },
     {
@@ -5321,6 +5585,44 @@
       "capability": 70
     },
     {
+      "id": "cap70-01-p1",
+      "prompt": "can you plan a wedding for Saturday",
+      "expected_tool": "event_plan",
+      "expected_args": {},
+      "expected_keywords": [
+        "plan",
+        "list"
+      ],
+      "rubric": "The reply says it made a wedding plan and saved it as a list.",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "## Wedding Plan"
+      },
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 70
+    },
+    {
+      "id": "cap70-01-p2",
+      "prompt": "hey please organize a wedding for Saturday",
+      "expected_tool": "event_plan",
+      "expected_args": {},
+      "expected_keywords": [
+        "plan",
+        "list"
+      ],
+      "rubric": "The reply says it made a wedding plan and saved it as a list.",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "## Wedding Plan"
+      },
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 70
+    },
+    {
       "id": "cap70-02",
       "category": "files_and_productivity",
       "prompt": "plan a barbecue",
@@ -5337,6 +5639,44 @@
         "file": "~/Documents/Voxa Lists.md",
         "file_contains": "## Barbecue Plan"
       },
+      "capability": 70
+    },
+    {
+      "id": "cap70-02-p1",
+      "prompt": "can you plan a barbecue",
+      "expected_tool": "event_plan",
+      "expected_args": {},
+      "expected_keywords": [
+        "plan",
+        "list"
+      ],
+      "rubric": "The reply says it made a barbecue plan and saved it as a list.",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "## Barbecue Plan"
+      },
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 70
+    },
+    {
+      "id": "cap70-02-p2",
+      "prompt": "hey please organize a bbq",
+      "expected_tool": "event_plan",
+      "expected_args": {},
+      "expected_keywords": [
+        "plan",
+        "list"
+      ],
+      "rubric": "The reply says it made a barbecue plan and saved it as a list.",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "## Barbecue Plan"
+      },
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
       "capability": 70
     },
     {

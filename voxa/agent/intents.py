@@ -220,7 +220,10 @@ _SEARCH_WEB = re.compile(
     r"search\s+(?:the\s+)?(?:web|google|online|internet)\s+for\s+(.+)", re.IGNORECASE
 )
 _GOOGLE = re.compile(r"google\s+(.+)", re.IGNORECASE)
-_LOOK_UP = re.compile(r"look\s+up\s+(.+)", re.IGNORECASE)
+_LOOK_UP = re.compile(
+    r"look\s+up\s+(?!the\s+company\b)(?!.*\bon\s+wikipedia$)(.+)",
+    re.IGNORECASE,
+)
 _IMAGE_SEARCH_FOR = re.compile(
     r"(?:image|picture|photo)\s+search\s+(?:for\s+)?(.+)", re.IGNORECASE
 )
