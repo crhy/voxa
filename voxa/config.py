@@ -26,8 +26,8 @@ class Settings:
     whisper_benchmarked: bool = False
     ollama_model: str = "qwen2.5:0.5b"
     ollama_url: str = "http://127.0.0.1:11434"
-    ai_backend: str = "ollama"
-    llamacpp_url: str = "http://127.0.0.1:8080"
+    ai_backend: str = "llamacpp"
+    llamacpp_url: str = "http://127.0.0.1:8781"
     llamacpp_model: str = ""
     strata_url: str = "http://127.0.0.1:8080"
     language: str = "en"
@@ -82,7 +82,7 @@ class Settings:
         self.max_segment_seconds = max(2.0, min(30.0, float(self.max_segment_seconds)))
         self.followup_seconds = max(0.0, min(20.0, float(self.followup_seconds)))
         self.ollama_url = self.ollama_url.rstrip("/") or "http://127.0.0.1:11434"
-        self.llamacpp_url = self.llamacpp_url.rstrip("/") or "http://127.0.0.1:8080"
+        self.llamacpp_url = self.llamacpp_url.rstrip("/") or "http://127.0.0.1:8781"
         self.strata_url = self.strata_url.rstrip("/") or "http://127.0.0.1:8080"
         if self.ai_backend not in {"llamacpp", "ollama", "strata"}:
             self.ai_backend = "ollama"

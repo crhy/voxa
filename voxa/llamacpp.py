@@ -24,6 +24,8 @@ GENERATE_TIMEOUT_SECONDS = 600
 class LlamaCppClient:
     """Talks to a llama.cpp server exposing the OpenAI-compatible API."""
 
+    disable_thinking: bool = True
+
     def __init__(
         self,
         base_url: str = "http://127.0.0.1:8080",
@@ -105,6 +107,8 @@ class LlamaCppClient:
             body["reasoning_effort"] = self.reasoning_effort
         if self.reasoning_budget_tokens:
             body["reasoning_budget_tokens"] = self.reasoning_budget_tokens
+        if self.disable_thinking:
+            body["chat_template_kwargs"] = {"enable_thinking": False}
         payload = json.dumps(body).encode("utf-8")
         request = urllib.request.Request(
             f"{self.base_url}/v1/chat/completions",
@@ -166,6 +170,8 @@ class LlamaCppClient:
 
 class StrataClient(LlamaCppClient):
     """Talks to a Strata server exposing the OpenAI-compatible API."""
+
+    disable_thinking = False
 
     def __init__(self, base_url: str = "http://127.0.0.1:8080", timeout: float = 5.0) -> None:
         super().__init__(

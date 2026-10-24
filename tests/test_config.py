@@ -59,12 +59,12 @@ def test_wake_word_falls_back_to_default_when_blank(tmp_path: Path) -> None:
     assert store.load().wake_word == "voxa"
 
 
-def test_ai_backend_defaults_to_ollama_and_qwen(tmp_path: Path) -> None:
+def test_ai_backend_defaults_to_llamacpp_and_qwen(tmp_path: Path) -> None:
     store = ConfigStore(tmp_path / "config.json")
-    assert store.load().ai_backend == "ollama"
+    assert store.load().ai_backend == "llamacpp"
     assert store.load().ollama_model == "qwen2.5:0.5b"
-    assert store.load().llamacpp_url == "http://127.0.0.1:8080"
-    assert Settings().ai_backend == "ollama"
+    assert store.load().llamacpp_url == "http://127.0.0.1:8781"
+    assert Settings().ai_backend == "llamacpp"
     assert Settings().ollama_model == "qwen2.5:0.5b"
 
 

@@ -77,7 +77,7 @@ def test_released_configs_keep_every_saved_value(tmp_path: Path, name: str) -> N
 def test_users_of_older_versions_stay_on_ollama(tmp_path: Path, name: str) -> None:
     loaded = _store(tmp_path, RELEASED_SCHEMAS[name]).load()
     assert loaded.ai_backend == "ollama"  # the backend they were using; llama.cpp is opt-in for them
-    assert loaded.llamacpp_url == "http://127.0.0.1:8080"
+    assert loaded.llamacpp_url == "http://127.0.0.1:8781"
 
 
 @pytest.mark.parametrize("name", list(RELEASED_SCHEMAS))
@@ -107,10 +107,10 @@ def test_legacy_avatar_key_maps_to_character_id(tmp_path: Path) -> None:
     assert loaded.character_id == "grace"
 
 
-def test_a_new_install_defaults_to_ollama_and_qwen(tmp_path: Path) -> None:
+def test_a_new_install_defaults_to_llamacpp_and_qwen(tmp_path: Path) -> None:
     path = tmp_path / "voxa" / "config.json"
     loaded = ConfigStore(path).load()
-    assert loaded.ai_backend == "ollama"
+    assert loaded.ai_backend == "llamacpp"
     assert loaded.ollama_model == "qwen2.5:0.5b"
 
 

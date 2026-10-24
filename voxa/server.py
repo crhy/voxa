@@ -14,6 +14,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from pathlib import Path
 
+from . import engine
 from .config import Settings
 from .installer import is_flatpak
 from .ollama import open_url
@@ -239,7 +240,7 @@ class AiServerManager:
             default_port = 11434
         else:
             url = self.settings.llamacpp_url
-            default_port = 8080
+            default_port = 8781
 
         try:
             parsed = urllib.parse.urlsplit(url)
@@ -273,6 +274,10 @@ class AiServerManager:
         model = self.settings.llamacpp_model
         if not model:
             return None, None
+
+        bundled = engine.bundled_server()
+        if bundled is not None:
+            return engine.server_command(model, host, port, server=bundled), None
 
         command = ["llama-server", "--model", model, "--host", host, "--port", str(port)]
         if self._flatpak:
