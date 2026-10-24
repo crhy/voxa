@@ -324,6 +324,7 @@ def test_registry_lists_all_tools():
             "page_outline",
             "play_latest",
             "play_music",
+            "play_on_app",
             "play_radio",
             "play_tv",
             "play_video",

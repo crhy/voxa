@@ -160,6 +160,15 @@ _SET_EMAIL = re.compile(r"(?:my )?(.+?)(?:'s|s')? e-?mail(?: address)? is (.+)",
 _GET_EMAIL = re.compile(r"what(?:'s| is) (?:my )?(.+?)(?:'s|s')? e-?mail(?: address)?", re.IGNORECASE)
 _FORGET_EMAIL = re.compile(r"forget (?:my )?(.+?)(?:'s|s')? e-?mail(?: address)?", re.IGNORECASE)
 _PLAY_YT_ON = re.compile(r"(?:play|watch|put on)\s+(.+?)\s+on\s+youtube", re.IGNORECASE)
+# "play boz skaggs on my audacious", "play UFO in my Audacious player" -> the Music folder, in that app (#109).
+_PLAY_ON_APP = re.compile(
+    r"(?:play|put on|listen to)\s+(.+?)\s+(?:on|in|with|using)\s+(?:my\s+|the\s+)?(.+?)"
+    r"(?:\s+(?:music\s+)?(?:player|app|application))?",
+    re.IGNORECASE,
+)
+_NOT_AN_APP = frozenset({"youtube", "you tube", "yt", "youtube music", "spotify", "radio", "tv", "television", "repeat", "loop",
+                        "shuffle", "speaker", "speakers", "headphones", "full screen", "fullscreen", "background",
+                        "volume", "low", "high"})
 _BRIEFING = re.compile(
     r"good\s+(?:morning|afternoon|evening)|brief\s+me|(?:give\s+me\s+)?(?:my\s+|the\s+)?(?:daily\s+|morning\s+)?briefing"
     r"|what\s+does\s+my\s+day\s+look\s+like|what(?:'s|\s+is)\s+on\s+(?:for\s+)?today",
@@ -1831,6 +1840,10 @@ def route(text: str) -> ToolCall | None:
         return call("set_noise_cancellation", state="off")
     if _NOISE_GET.fullmatch(s):
         return call("get_noise_cancellation")
+
+    on_app = _PLAY_ON_APP.fullmatch(s)
+    if on_app and on_app.group(2).casefold() not in _NOT_AN_APP and len(on_app.group(2).split()) <= 3:
+        return call("play_on_app", query=on_app.group(1).strip(), app=on_app.group(2).strip())
 
     radio_match = _RADIO_PLAY.fullmatch(s)
     if radio_match:

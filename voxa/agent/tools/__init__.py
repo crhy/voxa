@@ -27,6 +27,7 @@ from voxa.agent.tools.home import home_tools
 from voxa.agent.tools.lists import list_tools
 from voxa.agent.tools.livetv import livetv_tools
 from voxa.agent.tools.local import local_tools
+from voxa.agent.tools.localmusic import local_music_tools
 from voxa.agent.tools.lookups import lookups_tools
 from voxa.agent.tools.meals import meals_tools
 from voxa.agent.tools.media import media_tools
@@ -56,6 +57,7 @@ def default_registry() -> ToolRegistry:
         *calc_tools(),
         *deal_tools(),
         *application_tools(),
+        *local_music_tools(),
         *contact_tools(),
         *media_tools(),
         *github_tools(),
