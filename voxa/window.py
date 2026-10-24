@@ -16,7 +16,7 @@ gi.require_version("Adw", "1")
 gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
-from . import apps, documents, faceinstall, mail, speechfit, spellings, wakelabel, websearch, welcome  # noqa: E402
+from . import apps, documents, faceinstall, mail, smallbrain, speechfit, spellings, wakelabel, websearch, welcome  # noqa: E402
 from .agent import hearing, host, intents, issueflow, livetv, mailflow, planner, radio, repeat, saveflow, ui  # noqa: E402
 from .agent.actionlog import ActionLog, ActionRecord  # noqa: E402
 from .agent.claims import claims_action, first_sentences  # noqa: E402
@@ -1935,11 +1935,21 @@ class MainWindow(Adw.ApplicationWindow):
         self.config_store.save(self.settings)
 
         def worker() -> None:
-            step = welcome.probe(
-                self.settings.ai_backend,
-                ollama_installed,
-                OllamaClient(self.settings.ollama_url).list_models,
-            )
+            if self.settings.ai_backend == "llamacpp":
+                path = self.settings.llamacpp_model
+                ready = bool(path) and Path(path).is_file()
+                if not ready and smallbrain.is_installed(smallbrain.SMALL_BRAIN):
+                    self.settings.llamacpp_model = str(smallbrain.path_for(smallbrain.SMALL_BRAIN))
+                    self.config_store.save(self.settings)
+                    ready = True
+                    idle(self._restart_ai_server_async)
+                step = welcome.brain_step(ready)
+            else:
+                step = welcome.probe(
+                    self.settings.ai_backend,
+                    ollama_installed,
+                    OllamaClient(self.settings.ollama_url).list_models,
+                )
             idle(self._show_welcome, step)
 
         threading.Thread(target=worker, name="welcome-probe", daemon=True).start()
@@ -2080,12 +2090,53 @@ class MainWindow(Adw.ApplicationWindow):
             self._show_model_manager()      # let the user retry or pick another model by hand
         return False
 
+    def _download_small_brain(self) -> None:
+        """Fetch Voxa's small brain with no further click; then start the engine and say she is ready."""
+        if getattr(self, "_welcome_downloading", False):
+            return
+        self._welcome_downloading = True
+        cancel_event = threading.Event()
+        self._welcome_cancel = cancel_event
+        self._set_status(welcome.brain_status(0, 0), busy=True)
+
+        def finish(path: Path) -> None:
+            self._welcome_downloading = False
+            self.settings.llamacpp_model = str(path)
+            self.config_store.save(self.settings)
+            self._restart_ai_server_async()
+            self._set_status("")
+            self._toast("My brain is ready. Press Active and talk to me.")
+
+        def worker() -> None:
+            try:
+                path = smallbrain.download(
+                    smallbrain.SMALL_BRAIN,
+                    on_progress=lambda done, total: idle(
+                        self._set_status, welcome.brain_status(done, total), True
+                    ),
+                    cancel=cancel_event,
+                )
+            except smallbrain.DownloadCancelled:
+                self._welcome_downloading = False
+                idle(self._set_status, "")
+                return
+            except smallbrain.DownloadError as exc:
+                self._welcome_downloading = False
+                idle(self._toast, str(exc))
+                idle(self._set_status, "")
+                return
+            idle(finish, path)
+
+        threading.Thread(target=worker, name="welcome-brain", daemon=True).start()
+
     def _on_welcome_primary(self, step: str) -> None:
         self.speech.stop()
         if step == "install":
             self._start_ollama_install()
         elif step == "model":
             self._download_welcome_model()
+        elif step == "brain":
+            self._download_small_brain()
 
     def _on_welcome_tutorial(self) -> None:
         host.spawn(["xdg-open", welcome.TUTORIAL_URL])
