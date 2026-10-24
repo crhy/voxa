@@ -407,6 +407,38 @@
       "verify": {}
     },
     {
+      "id": "files-05-p1",
+      "category": "files_and_productivity",
+      "prompt": "write a new email",
+      "expected_contains": [],
+      "expected_keywords": [
+        "gmail|g mail",
+        "message"
+      ],
+      "rubric": "The reply confirms opening a new email composition flow.",
+      "expected_tool": "compose_gmail",
+      "expected_args": {},
+      "after": "",
+      "capability": 2,
+      "verify": {}
+    },
+    {
+      "id": "files-05-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey can you write a new email please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "gmail|g mail",
+        "message"
+      ],
+      "rubric": "The reply confirms opening a new email composition flow.",
+      "expected_tool": "compose_gmail",
+      "expected_args": {},
+      "after": "",
+      "capability": 2,
+      "verify": {}
+    },
+    {
       "id": "help-01",
       "category": "software_help_and_knowledge",
       "prompt": "What can you do",

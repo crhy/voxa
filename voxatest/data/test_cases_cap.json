@@ -202,9 +202,77 @@
       "capability": 18
     },
     {
+      "id": "cap18-01-p1",
+      "category": "system_status",
+      "prompt": "what's the time in Tokyo",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tokyo"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "world_time",
+      "expected_args": {
+        "place": "Tokyo"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 18
+    },
+    {
+      "id": "cap18-01-p2",
+      "category": "system_status",
+      "prompt": "hey can you tell me the time in Tokyo please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tokyo"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "world_time",
+      "expected_args": {
+        "place": "Tokyo"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 18
+    },
+    {
       "id": "cap18-02",
       "category": "system_status",
       "prompt": "What's the time in London",
+      "expected_contains": [],
+      "expected_keywords": [
+        "london"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "world_time",
+      "expected_args": {
+        "place": "London"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 18
+    },
+    {
+      "id": "cap18-02-p1",
+      "category": "system_status",
+      "prompt": "what time is it in London",
+      "expected_contains": [],
+      "expected_keywords": [
+        "london"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "world_time",
+      "expected_args": {
+        "place": "London"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 18
+    },
+    {
+      "id": "cap18-02-p2",
+      "category": "system_status",
+      "prompt": "hey can you tell me the time in London please",
       "expected_contains": [],
       "expected_keywords": [
         "london"
@@ -237,9 +305,81 @@
       "capability": 18
     },
     {
+      "id": "cap18-03-p1",
+      "category": "system_status",
+      "prompt": "what is the time difference between here and London",
+      "expected_contains": [],
+      "expected_keywords": [
+        "london",
+        "hours|hour"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "time_difference",
+      "expected_args": {
+        "place": "London"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 18
+    },
+    {
+      "id": "cap18-03-p2",
+      "category": "system_status",
+      "prompt": "hey what's the time difference with London please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "london",
+        "hours|hour"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "time_difference",
+      "expected_args": {
+        "place": "London"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 18
+    },
+    {
       "id": "cap18-04",
       "category": "system_status",
       "prompt": "How many hours ahead is Tokyo",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tokyo",
+        "hours|hour"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "time_difference",
+      "expected_args": {
+        "place": "Tokyo"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 18
+    },
+    {
+      "id": "cap18-04-p1",
+      "category": "system_status",
+      "prompt": "how far ahead is Tokyo",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tokyo",
+        "hours|hour"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "time_difference",
+      "expected_args": {
+        "place": "Tokyo"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 18
+    },
+    {
+      "id": "cap18-04-p2",
+      "category": "system_status",
+      "prompt": "hey how many hours ahead is Tokyo please",
       "expected_contains": [],
       "expected_keywords": [
         "tokyo",
@@ -336,9 +476,65 @@
       "capability": 17
     },
     {
+      "id": "cap17-02-p1",
+      "category": "files_and_productivity",
+      "prompt": "when is my mom's birthday",
+      "expected_contains": [],
+      "expected_keywords": [
+        "may"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_when",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 17
+    },
+    {
+      "id": "cap17-02-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey when is mom's birthday please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "may"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_when",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 17
+    },
+    {
       "id": "cap17-03",
       "category": "files_and_productivity",
       "prompt": "Any birthdays coming up",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_upcoming",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 17
+    },
+    {
+      "id": "cap17-03-p1",
+      "category": "files_and_productivity",
+      "prompt": "any birthdays this week",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_upcoming",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 17
+    },
+    {
+      "id": "cap17-03-p2",
+      "category": "files_and_productivity",
+      "prompt": "what birthdays are coming up",
       "expected_contains": [],
       "expected_keywords": [],
       "rubric": "The reply confirms or answers.",
@@ -578,9 +774,85 @@
       "capability": 15
     },
     {
+      "id": "cap15-01-p1",
+      "category": "calendar_and_scheduling",
+      "prompt": "what do i have tomorrow",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tomorrow",
+        "lunch",
+        "sam",
+        "noon"
+      ],
+      "rubric": "The reply reports what is on the calendar for that day.",
+      "expected_tool": "calendar_day",
+      "expected_args": {
+        "day": "tomorrow"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 15
+    },
+    {
+      "id": "cap15-01-p2",
+      "category": "calendar_and_scheduling",
+      "prompt": "hey what's on my calendar tomorrow please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tomorrow",
+        "lunch",
+        "sam",
+        "noon"
+      ],
+      "rubric": "The reply reports what is on the calendar for that day.",
+      "expected_tool": "calendar_day",
+      "expected_args": {
+        "day": "tomorrow"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 15
+    },
+    {
       "id": "cap15-02",
       "category": "calendar_and_scheduling",
       "prompt": "What's my next appointment",
+      "expected_contains": [],
+      "expected_keywords": [
+        "next",
+        "appointment",
+        "lunch",
+        "sam"
+      ],
+      "rubric": "The reply reports the next upcoming appointment.",
+      "expected_tool": "calendar_next",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 15
+    },
+    {
+      "id": "cap15-02-p1",
+      "category": "calendar_and_scheduling",
+      "prompt": "what is my next appointment",
+      "expected_contains": [],
+      "expected_keywords": [
+        "next",
+        "appointment",
+        "lunch",
+        "sam"
+      ],
+      "rubric": "The reply reports the next upcoming appointment.",
+      "expected_tool": "calendar_next",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 15
+    },
+    {
+      "id": "cap15-02-p2",
+      "category": "calendar_and_scheduling",
+      "prompt": "hey what's next on my calendar please",
       "expected_contains": [],
       "expected_keywords": [
         "next",
@@ -3046,133 +3318,133 @@
       "capability": 99
     },
     {
-    "id": "cap38-s1",
-    "category": "files_and_productivity",
-    "prompt": "summarize this",
-    "expected_contains": [],
-    "expected_keywords": [
-      "bees"
-    ],
-    "rubric": "The reply summarizes the open article and mentions bees.",
-    "expected_tool": "summarize_selection",
-    "expected_args": {},
-    "after": "",
-    "verify": {},
-    "capability": 38,
-    "vm_only": true,
-    "setup": [
-      {
-        "copy": "samples/article-sample.txt",
-        "to": "~/Documents/article-sample.txt"
-      },
-      {
-        "open": "~/Documents/article-sample.txt",
-        "with": "gedit"
-      },
-      {
-        "keys": "ctrl+a"
-      },
-      {
-        "wait": 1.0
-      }
-    ]
-  },
-    {
-    "id": "cap72-s1",
-    "category": "files_and_productivity",
-    "prompt": "fix the spelling",
-    "expected_contains": [],
-    "expected_keywords": [
-      "clarity"
-    ],
-    "rubric": "The reply confirms the text was edited for clarity.",
-    "expected_tool": "cleanup_text",
-    "expected_args": {},
-    "after": "",
-    "verify": {},
-    "capability": 72,
-    "vm_only": true,
-    "setup": [
-      {
-        "copy": "samples/typos-sample.txt",
-        "to": "~/Documents/typos-sample.txt"
-      },
-      {
-        "open": "~/Documents/typos-sample.txt",
-        "with": "gedit"
-      },
-      {
-        "wait": 1.0
-      }
-    ]
-  },
-    {
-    "id": "cap71-s1",
-    "category": "files_and_productivity",
-    "prompt": "write a letter about the garden party",
-    "expected_contains": [],
-    "expected_keywords": [],
-    "rubric": "The reply drafts a short letter about a garden party.",
-    "expected_tool": "",
-    "expected_args": {},
-    "after": "",
-    "verify": {},
-    "capability": 71,
-    "vm_only": true
-  },
-    {
-    "id": "cap75-s1",
-    "category": "files_and_productivity",
-    "prompt": "convert notes sample to pdf",
-    "expected_contains": [],
-    "expected_keywords": [
-      "converted"
-    ],
-    "rubric": "The reply confirms the notes file was converted to a PDF.",
-    "expected_tool": "convert_file",
-    "expected_args": {
-      "name": "notes sample",
-      "format": "pdf"
+      "id": "cap38-s1",
+      "category": "files_and_productivity",
+      "prompt": "summarize this",
+      "expected_contains": [],
+      "expected_keywords": [
+        "bees"
+      ],
+      "rubric": "The reply summarizes the open article and mentions bees.",
+      "expected_tool": "summarize_selection",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 38,
+      "vm_only": true,
+      "setup": [
+        {
+          "copy": "samples/article-sample.txt",
+          "to": "~/Documents/article-sample.txt"
+        },
+        {
+          "open": "~/Documents/article-sample.txt",
+          "with": "gedit"
+        },
+        {
+          "keys": "ctrl+a"
+        },
+        {
+          "wait": 1.0
+        }
+      ]
     },
-    "after": "",
-    "verify": {
-      "file": "~/Documents/notes-sample.pdf"
-    },
-    "capability": 75,
-    "vm_only": true,
-    "setup": [
-      {
-        "copy": "samples/notes-sample.txt",
-        "to": "~/Documents/notes-sample.txt"
-      }
-    ]
-  },
     {
-    "id": "cap78-s1",
-    "category": "files_and_productivity",
-    "prompt": "transcribe hello sample",
-    "expected_contains": [],
-    "expected_keywords": [
-      "transcribed",
-      "words"
-    ],
-    "rubric": "The reply confirms the recording was transcribed into a text file.",
-    "expected_tool": "transcribe_file",
-    "expected_args": {
-      "name": "hello sample"
+      "id": "cap72-s1",
+      "category": "files_and_productivity",
+      "prompt": "fix the spelling",
+      "expected_contains": [],
+      "expected_keywords": [
+        "clarity"
+      ],
+      "rubric": "The reply confirms the text was edited for clarity.",
+      "expected_tool": "cleanup_text",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 72,
+      "vm_only": true,
+      "setup": [
+        {
+          "copy": "samples/typos-sample.txt",
+          "to": "~/Documents/typos-sample.txt"
+        },
+        {
+          "open": "~/Documents/typos-sample.txt",
+          "with": "gedit"
+        },
+        {
+          "wait": 1.0
+        }
+      ]
     },
-    "after": "",
-    "verify": {
-      "file": "~/Documents/hello-sample.txt"
+    {
+      "id": "cap71-s1",
+      "category": "files_and_productivity",
+      "prompt": "write a letter about the garden party",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply drafts a short letter about a garden party.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 71,
+      "vm_only": true
     },
-    "capability": 78,
-    "vm_only": true,
-    "setup": [
-      {
-        "copy": "samples/hello-sample.wav",
-        "to": "~/Documents/hello-sample.wav"
-      }
-    ]
-  }
+    {
+      "id": "cap75-s1",
+      "category": "files_and_productivity",
+      "prompt": "convert notes sample to pdf",
+      "expected_contains": [],
+      "expected_keywords": [
+        "converted"
+      ],
+      "rubric": "The reply confirms the notes file was converted to a PDF.",
+      "expected_tool": "convert_file",
+      "expected_args": {
+        "name": "notes sample",
+        "format": "pdf"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/notes-sample.pdf"
+      },
+      "capability": 75,
+      "vm_only": true,
+      "setup": [
+        {
+          "copy": "samples/notes-sample.txt",
+          "to": "~/Documents/notes-sample.txt"
+        }
+      ]
+    },
+    {
+      "id": "cap78-s1",
+      "category": "files_and_productivity",
+      "prompt": "transcribe hello sample",
+      "expected_contains": [],
+      "expected_keywords": [
+        "transcribed",
+        "words"
+      ],
+      "rubric": "The reply confirms the recording was transcribed into a text file.",
+      "expected_tool": "transcribe_file",
+      "expected_args": {
+        "name": "hello sample"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/hello-sample.txt"
+      },
+      "capability": 78,
+      "vm_only": true,
+      "setup": [
+        {
+          "copy": "samples/hello-sample.wav",
+          "to": "~/Documents/hello-sample.wav"
+        }
+      ]
+    }
   ]
 }
