@@ -2423,6 +2423,69 @@
         "file_lacks": "## Paint"
       },
       "capability": 23
+    },
+    {
+      "id": "cap41-01",
+      "category": "files_and_productivity",
+      "prompt": "plan a three day trip to Rome",
+      "expected_contains": [],
+      "expected_keywords": [
+        "planned",
+        "Rome"
+      ],
+      "rubric": "The reply plans three days in Rome and saves them in the Voxa Trips file.",
+      "expected_tool": "trip_plan",
+      "expected_args": {
+        "place": "Rome"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Trips.md",
+        "file_contains": "## Rome (3 days)"
+      },
+      "capability": 41
+    },
+    {
+      "id": "cap41-02",
+      "category": "files_and_productivity",
+      "prompt": "read my trip to Rome",
+      "expected_contains": [],
+      "expected_keywords": [
+        "trip",
+        "Rome"
+      ],
+      "rubric": "The reply reads back the saved trip to Rome.",
+      "expected_tool": "trip_read",
+      "expected_args": {
+        "place": "Rome"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Trips.md",
+        "file_contains": "## Rome (3 days)"
+      },
+      "capability": 41
+    },
+    {
+      "id": "cap41-03",
+      "category": "files_and_productivity",
+      "prompt": "forget my trip to Rome",
+      "expected_contains": [],
+      "expected_keywords": [
+        "forgot",
+        "Rome"
+      ],
+      "rubric": "The reply removes the saved trip to Rome.",
+      "expected_tool": "trip_forget",
+      "expected_args": {
+        "place": "Rome"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Trips.md",
+        "file_lacks": "## Rome"
+      },
+      "capability": 41
     }
   ]
 }

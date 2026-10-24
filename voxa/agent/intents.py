@@ -649,6 +649,22 @@ _LIST_KNOWN = r"to[- ]?do|todo|task|tasks|shopping|grocery|groceries"
 _LIST = rf"(?:my |the )?(?:(?:{_LIST_KNOWN})(?: list)?|(?!clipboard\b)[a-z]+ list)"
 _LIST_NAMED = rf"(?:my |the )?(?:{_LIST_KNOWN}|(?!clipboard\b)[a-z]+) list"
 _LIST_ADD = re.compile(rf"(?:add|put) (?P<item>.+?) (?:to|on) (?P<list>{_LIST})", re.IGNORECASE)
+_TRIP_DAYS = r"one|two|three|four|five|six|seven|weekend"
+_TRIP_NOUN = r"trip|trips|itinerary|itineraries|getaway|getaways|vacation|vacations|holiday|holidays|weekend"
+_TRIP_PLAN = re.compile(
+    rf"(?:plan|make) (?:an? |my )?(?:(?P<days>{_TRIP_DAYS})|(?P<noun>{_TRIP_NOUN}))(?P<tail>.+)",
+    re.IGNORECASE,
+)
+_TRIP_DAY_WORD = re.compile(r"\b(one|two|three|four|five|six|seven|weekend)\b", re.IGNORECASE)
+_TRIP_CONNECTOR = re.compile(r"\b(?:to|in|for)\b", re.IGNORECASE)
+_TRIP_READ = re.compile(
+    r"(?:read|show) (?:me )?(?:my |the )?(?:trip|itinerary|getaway|vacation|holiday)(?: (?:to|for))? (?P<place>.+)",
+    re.IGNORECASE,
+)
+_TRIP_FORGET = re.compile(
+    r"(?:forget|delete|remove) (?:my |the )?(?:trip|itinerary|getaway|vacation|holiday)(?: (?:to|for))? (?P<place>.+)",
+    re.IGNORECASE,
+)
 _PROJECT_STEPS = re.compile(
     r"break down (?P<g1>.+?)(?: into steps)?"
     r"|help me plan (?P<g2>.+)"
@@ -1086,6 +1102,9 @@ ROUTED_TOOLS = frozenset(
         "delete_last_note",
         "open_notes",
         "list_add",
+        "trip_plan",
+        "trip_read",
+        "trip_forget",
         "backup_now",
         "backup_last",
         "sort_folder_preview",
@@ -1574,6 +1593,26 @@ def route(text: str) -> ToolCall | None:
     if project_steps:
         goal = project_steps.group("g1") or project_steps.group("g2") or project_steps.group("g3") or project_steps.group("g4")
         return call("project_steps", goal=goal)
+    trip_plan = _TRIP_PLAN.fullmatch(s)
+    if trip_plan:
+        days = (trip_plan.group("days") or "").lower()
+        tail = trip_plan.group("tail")
+        if not days:
+            day_match = _TRIP_DAY_WORD.search(tail)
+            if day_match:
+                days = day_match.group(1).lower()
+                tail = tail[: day_match.start()] + tail[day_match.end():]
+        tail = re.sub(rf"\b(?:{_TRIP_NOUN})\b", "", tail, flags=re.IGNORECASE)
+        tail = re.sub(r"^\s*days?\b", "", tail, flags=re.IGNORECASE)
+        place = _TRIP_CONNECTOR.split(tail)[-1]
+        place = re.sub(r"\s+", " ", place).strip()
+        return call("trip_plan", place=place, days=days)
+    trip_read = _TRIP_READ.fullmatch(s)
+    if trip_read:
+        return call("trip_read", place=trip_read.group("place").strip())
+    trip_forget = _TRIP_FORGET.fullmatch(s)
+    if trip_forget:
+        return call("trip_forget", place=trip_forget.group("place").strip())
     list_add = _LIST_ADD.fullmatch(s)
     if list_add:
         return call("list_add", item=list_add.group("item"), list=_list_word(list_add.group("list")))

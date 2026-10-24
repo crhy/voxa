@@ -45,6 +45,7 @@ from voxa.agent.tools.sysupdate import sysupdate_tools
 from voxa.agent.tools.textedit import textedit_tools
 from voxa.agent.tools.transcribe_file import transcribe_file_tools
 from voxa.agent.tools.translate import translate_tools
+from voxa.agent.tools.trips import trip_tools
 from voxa.agent.tools.typing import typing_tools
 from voxa.agent.tools.uicontrol import uicontrol_tools
 from voxa.agent.tools.volume import volume_tools
@@ -71,6 +72,7 @@ def default_registry() -> ToolRegistry:
         *reminders_tools(),
         *notes_tools(),
         *list_tools(),
+        *trip_tools(),
         *project_steps_tools(),
         *databackup_tools(),
         *meals_tools(),
