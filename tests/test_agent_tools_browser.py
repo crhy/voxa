@@ -249,6 +249,7 @@ def test_registry_lists_all_tools():
             "directions",
             "disk_space",
             "empty_trash",
+            "event_plan",
             "exchange_rate",
             "expense_add",
             "expense_breakdown",

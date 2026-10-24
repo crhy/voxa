@@ -647,8 +647,18 @@ _OPEN_NOTES = re.compile(r"open (?:my )?notes", re.IGNORECASE)
 # by "list" ("packing list"). A bare unknown word is not a list: "what's on TV", "what's on my calendar".
 _LIST_KNOWN = r"to[- ]?do|todo|task|tasks|shopping|grocery|groceries"
 _LIST = rf"(?:my |the )?(?:(?:{_LIST_KNOWN})(?: list)?|(?!clipboard\b)[a-z]+ list)"
-_LIST_NAMED = rf"(?:my |the )?(?:{_LIST_KNOWN}|(?!clipboard\b)[a-z]+) list"
+_LIST_NAMED = rf"(?:my |the )?(?:{_LIST_KNOWN}|(?!clipboard\b)[a-z]+(?: plan)?) list"
 _LIST_ADD = re.compile(rf"(?:add|put) (?P<item>.+?) (?:to|on) (?P<list>{_LIST})", re.IGNORECASE)
+_EVENT_NOUN = (
+    r"birthday party|birthday|dinner party|dinner|barbecue|barbeque|bbq|cookout|"
+    r"picnic|wedding|gathering|get[- ]?together|reunion|fundraiser|celebration|"
+    r"feast|banquet|party"
+)
+_EVENT_PLAN = re.compile(
+    rf"(?:help me )?(?:plan|organise|organize|arrange)\s+(?:an?\s+|the\s+|my\s+)?"
+    rf"(?P<event>{_EVENT_NOUN})\s*(?P<tail>.*)",
+    re.IGNORECASE,
+)
 _CONVO_SUMMARY = re.compile(
     r"(?:summarize|summarise|sum up|recap)(?: (?:our|the|this|my))? conversation"
     r"|what did we (?:decide|agree)(?: on)?"
@@ -1108,6 +1118,7 @@ ROUTED_TOOLS = frozenset(
         "delete_last_note",
         "open_notes",
         "list_add",
+        "event_plan",
         "conversation_summary",
         "trip_plan",
         "trip_read",
@@ -1470,6 +1481,12 @@ def route(text: str) -> ToolCall | None:
         return call("expense_undo")
     if _EXPENSE_SHEET.fullmatch(s):
         return call("expense_spreadsheet")
+    event_plan = _EVENT_PLAN.fullmatch(s)
+    if event_plan:
+        event = event_plan.group("event").strip()
+        tail = event_plan.group("tail").strip()
+        when = re.sub(r"^(?:for|on)\s+", "", tail, flags=re.IGNORECASE).strip()
+        return call("event_plan", event=event, when=when)
     for _cal_add in (_CAL_ADD1, _CAL_ADD2, _CAL_ADD3, _CAL_ADD4):
         _cal_m = _cal_add.fullmatch(s)
         if _cal_m and _cal_m.group("when") and split_when(_cal_m.group("when"), date.today()) is not None:

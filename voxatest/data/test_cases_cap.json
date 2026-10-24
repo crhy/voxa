@@ -2516,6 +2516,80 @@
       "after": "",
       "verify": {},
       "capability": 9
+    },
+    {
+      "id": "cap70-01",
+      "category": "files_and_productivity",
+      "prompt": "plan a wedding for Saturday",
+      "expected_contains": [],
+      "expected_keywords": [
+        "plan",
+        "list"
+      ],
+      "rubric": "The reply says it made a wedding plan and saved it as a list.",
+      "expected_tool": "event_plan",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "## Wedding Plan"
+      },
+      "capability": 70
+    },
+    {
+      "id": "cap70-02",
+      "category": "files_and_productivity",
+      "prompt": "plan a barbecue",
+      "expected_contains": [],
+      "expected_keywords": [
+        "plan",
+        "list"
+      ],
+      "rubric": "The reply says it made a barbecue plan and saved it as a list.",
+      "expected_tool": "event_plan",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "## Barbecue Plan"
+      },
+      "capability": 70
+    },
+    {
+      "id": "cap70-03",
+      "category": "files_and_productivity",
+      "prompt": "clear my wedding plan list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared|clear"
+      ],
+      "rubric": "The reply confirms the wedding plan list was cleared.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_lacks": "## Wedding Plan"
+      },
+      "capability": 70
+    },
+    {
+      "id": "cap70-04",
+      "category": "files_and_productivity",
+      "prompt": "clear my barbecue plan list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared|clear"
+      ],
+      "rubric": "The reply confirms the barbecue plan list was cleared.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_lacks": "## Barbecue Plan"
+      },
+      "capability": 70
     }
   ]
 }
