@@ -380,7 +380,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.tools = default_registry()
         windows.ON_LOCK = self._pause_now
         windows.QUIT = lambda: self.get_application().quit()
-        textedit.ask_model = lambda messages: self._ai_client().generate_stream(model=self.settings.ollama_model, prompt=messages[-1]["content"], cancel_event=threading.Event(), on_chunk=lambda chunk: None, messages=messages)
+        textedit.ask_model = lambda messages: self._ai_client().generate_stream(model=self._chat_model(), prompt=messages[-1]["content"], cancel_event=threading.Event(), on_chunk=lambda chunk: None, messages=messages)
         media.get_my_channel = lambda: self.settings.youtube_channel
         media.set_my_channel = self._save_youtube_channel
         github.set_owner = self._save_github_owner
@@ -1328,6 +1328,16 @@ class MainWindow(Adw.ApplicationWindow):
             return StrataClient(self.settings.strata_url)
         return LlamaCppClient(self.settings.llamacpp_url)
 
+    def _chat_model(self) -> str:
+        """The model name to send with a request for the chosen backend."""
+        if self.settings.ai_backend == "llamacpp":
+            if self.settings.ollama_model:
+                return self.settings.ollama_model
+            if self.settings.llamacpp_model:
+                return Path(self.settings.llamacpp_model).stem
+            return "local"
+        return self.settings.ollama_model
+
     def _backend_label(self) -> str:
         if self.settings.ai_backend == "ollama":
             return "Ollama"
@@ -1913,7 +1923,8 @@ class MainWindow(Adw.ApplicationWindow):
                 row.set_subtitle(f"About {model.bytes / 1e6:.0f} MB")
 
             if state == "missing":
-                def start_download(_btn, model=model, row=row) -> None:
+                def start_download(btn, model=model, row=row) -> None:
+                    btn.set_sensitive(False)  # one download at a time into the same .part file
                     def on_progress(done: int, total: int) -> None:
                         if total > 0:
                             idle(row.set_subtitle, f"Downloading… {done / total * 100:.0f}%")
@@ -1927,9 +1938,11 @@ class MainWindow(Adw.ApplicationWindow):
                             path = smallbrain.download(model, on_progress=on_progress, cancel=cancel_event)
                         except smallbrain.DownloadCancelled:
                             idle(row.set_subtitle, f"About {model.bytes / 1e6:.0f} MB")
+                            idle(btn.set_sensitive, True)
                             return
                         except smallbrain.DownloadError as exc:
                             idle(self._toast, str(exc))
+                            idle(btn.set_sensitive, True)
                             return
                         idle(finish, path)
 
@@ -1944,9 +1957,11 @@ class MainWindow(Adw.ApplicationWindow):
                     dialog.close()
                     self._show_brain_manager()
 
-                def remove_brain(_btn, model=model) -> None:
+                def remove_brain(_btn, model=model, dialog=dialog) -> None:
                     smallbrain.path_for(model).unlink(missing_ok=True)
                     self._toast(f"Removed {model.label}.")
+                    dialog.close()
+                    self._show_brain_manager()
 
                 use_button = Gtk.Button(label="Use", valign=Gtk.Align.CENTER)
                 use_button.connect("clicked", use_brain)
@@ -3733,7 +3748,7 @@ class MainWindow(Adw.ApplicationWindow):
                 if hasattr(client, "is_model_loaded") and client.is_model_loaded(self.settings.ollama_model) is False:
                     idle(self._on_model_loading, self.settings.ollama_model, generation, cancel_event)
                 answer = client.generate_stream(
-                    model=self.settings.ollama_model,
+                    model=self._chat_model(),
                     prompt=user_prompt,
                     cancel_event=cancel_event,
                     on_chunk=lambda chunk: None,
@@ -3890,7 +3905,7 @@ class MainWindow(Adw.ApplicationWindow):
             try:
                 def ask_model(messages: list[dict]) -> str:
                     return self._ai_client().generate_stream(
-                        model=self.settings.ollama_model,
+                        model=self._chat_model(),
                         prompt=messages[-1]["content"],
                         messages=messages,
                         cancel_event=cancel_event,
