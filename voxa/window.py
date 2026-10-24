@@ -168,7 +168,6 @@ def face_server_command() -> list[str] | None:
     home = os.path.expanduser("~")
     candidates = [override] if override else [
         f"{home}/.local/share/voxa/face-server/run-face-server.sh",
-        f"{home}/voxa-neural/run-face-server.sh",
     ]
     for path in candidates:
         try:

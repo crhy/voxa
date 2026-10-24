@@ -1,7 +1,10 @@
 #!/bin/bash
 # Runs Ditto inside bubblewrap when it is installed.  On systems without that
 # optional package, use only this project's dedicated Python environment.
-N=/home/rhy/voxa-neural; PYBASE=/home/rhy/.local/share/uv/python
+N=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# A downloaded face server brings its own Python in python/; a developer setup has a venv/.
+if [ -x "$N/python/bin/python3" ]; then PY=$N/python/bin/python3; PYBASE=$N/python
+else PY=$N/venv/bin/python; PYBASE=$(sed -n 's/^home = //p' "$N/venv/pyvenv.cfg" 2>/dev/null); PYBASE=${PYBASE%/bin}; fi
 
 # bubblewrap is preferred, but it is an optional host package.  Previously a
 # missing bwrap made the High face server exit immediately; Voxa then silently
@@ -13,9 +16,9 @@ if command -v bwrap >/dev/null 2>&1; then
     --unshare-net --unshare-pid --unshare-ipc --die-with-parent --new-session \
     --setenv HOME /tmp --setenv PATH /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
     --setenv PYTHONDONTWRITEBYTECODE 1 --chdir "$N/ditto-talkinghead" \
-    nice -n 10 "$N/venv/bin/python" "$@"
+    nice -n 10 "$PY" "$@"
 fi
 
 cd "$N/ditto-talkinghead" || exit 1
 export PYTHONDONTWRITEBYTECODE=1
-exec nice -n 10 "$N/venv/bin/python" "$@"
+exec nice -n 10 "$PY" "$@"
