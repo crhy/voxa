@@ -496,6 +496,11 @@ def test_prompt_transcription_gets_the_built_vocabulary_hint(monkeypatch) -> Non
     controller, prompts = _make_recording_controller(wake, prompt)
     controller.start()
     controller.hold_prompt()
+    # The vocabulary hint is built on a background thread started in start(); wait
+    # for it so the prompt pass is never transcribed before the hint exists.
+    hint_deadline = time.monotonic() + 2.0
+    while not controller._prompt_hint and time.monotonic() < hint_deadline:
+        time.sleep(0.01)
     _feed_utterance(controller)
     _drain(controller)
     assert prompts == ["open gimp"]

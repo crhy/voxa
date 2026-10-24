@@ -5,7 +5,6 @@ from voxa.endpoint import is_complete, is_followup
 COMPLETE = [
     "voxa open gmail",
     "close brutal chess",
-    "play some jazz",
     "turn it up",
     "start dictating",
     "cancel",
@@ -33,6 +32,7 @@ NOT_COMPLETE = [
     "voxa",
     "turn off the",
     "play some",
+    "play some jazz",
     "open",
     "what is the",
     "open gmail and then",

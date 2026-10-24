@@ -43,6 +43,10 @@ _TRAILING_PROMISE = frozenset(
 # Whole utterances that end things on their own.
 _STOP_PHRASES = frozenset({"stop", "cancel", "never mind", "go offline"})
 
+# Play commands often go on with "on/in <app>" ("play UFO ... on my Audacious player"), so they wait for
+# the full pause instead of finishing at the early one (#111).
+_WAIT_FOR_FULL_PAUSE = frozenset({"play_video", "play_youtube", "play_music", "play_latest", "play_on_app"})
+
 # Words and short phrases that clearly continue a previous exchange, so an
 # utterance without the wake word is still addressed to Voxa.
 _CONTINUATION_WORDS = frozenset(
@@ -103,6 +107,8 @@ def is_complete(text: str, wake_word: str = "voxa") -> bool:
 
     call = route(text)
     if call is None:
+        return False
+    if call.tool in _WAIT_FOR_FULL_PAUSE:
         return False
     if not all(value.strip() for value in call.args.values()):
         return False
