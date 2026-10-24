@@ -10,6 +10,8 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Pango", "1.0")
 from gi.repository import Gtk, Pango  # noqa: E402
 
+from ..server import SERVER_READY, SERVER_STARTING  # noqa: E402
+
 EMPTY_LABEL = "No models available"
 BACKENDS = ["llama.cpp", "Ollama", "Strata"]
 BACKEND_VALUES = ["llamacpp", "ollama", "strata"]
@@ -26,6 +28,22 @@ AI_STATUS_HINTS = {
 def ai_status_for(models: list[str]) -> str:
     """"online" when the list holds real model names (they never contain spaces), else "offline"."""
     return "online" if any(name and " " not in name for name in models) else "offline"
+
+
+def ai_status_for_backend(backend: str, models: list[str], server_status: str) -> str:
+    """The status dot for the chosen backend.
+
+    For llama.cpp the model list is GGUF paths (which never contain spaces), so
+    ``ai_status_for`` would wrongly read "online" even when the server is down;
+    the engine's own health decides instead. Other backends keep the list rule.
+    """
+    if backend == "llamacpp":
+        if server_status == SERVER_READY:
+            return "online"
+        if server_status == SERVER_STARTING:
+            return "starting"
+        return "offline"
+    return ai_status_for(models)
 
 
 class ModelSelector(Gtk.Box):

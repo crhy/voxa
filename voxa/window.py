@@ -16,7 +16,19 @@ gi.require_version("Adw", "1")
 gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
-from . import apps, documents, faceinstall, mail, smallbrain, speechfit, spellings, wakelabel, websearch, welcome  # noqa: E402
+from . import (  # noqa: E402
+    apps,
+    documents,
+    engine,
+    faceinstall,
+    mail,
+    smallbrain,
+    speechfit,
+    spellings,
+    wakelabel,
+    websearch,
+    welcome,
+)
 from .agent import hearing, host, intents, issueflow, livetv, mailflow, planner, radio, repeat, saveflow, ui  # noqa: E402
 from .agent.actionlog import ActionLog, ActionRecord  # noqa: E402
 from .agent.claims import claims_action, first_sentences  # noqa: E402
@@ -104,7 +116,7 @@ from .ui.avatars import character_choices, describe_characters, find_character, 
 from .ui.focus_window import overlay_supported  # noqa: E402
 from .ui.legacy_view import LegacyCallbacks, LegacyView  # noqa: E402
 from .ui.live_face import LiveFaceClient, decode_audio_to_pcm16k  # noqa: E402
-from .ui.model_selector import ai_status_for  # noqa: E402
+from .ui.model_selector import ai_status_for_backend  # noqa: E402
 from .ui.radio_picker import RadioPicker  # noqa: E402
 from .ui.shell import AssistantShell, build_header  # noqa: E402
 from .ui.state import AssistantModel, AssistantState  # noqa: E402
@@ -808,6 +820,14 @@ class MainWindow(Adw.ApplicationWindow):
             pass
 
     def _on_shell_model_selected(self, name: str) -> None:
+        if self.settings.ai_backend == "llamacpp":
+            path = smallbrain.path_for_label(name)
+            if path and path != self.settings.llamacpp_model:
+                self.settings.llamacpp_model = path
+                self.config_store.save(self.settings)
+                self._apply_model_combo(self.ollama_models)
+                self._restart_ai_server_async()
+            return
         if name and name != self.settings.ollama_model:
             self.settings.ollama_model = name
             self.config_store.save(self.settings)
@@ -1398,11 +1418,14 @@ class MainWindow(Adw.ApplicationWindow):
             client = self._ai_client()
             try:
                 if self.settings.ai_backend == "llamacpp":
-                    models_dir = str(Path(self.settings.llamacpp_model).parent) if self.settings.llamacpp_model else None
-                    try:
-                        return client.list_models(models_dir)
-                    except TypeError:
-                        return client.list_models()
+                    # Always pass a directory so the GGUF files on disk are listed
+                    # even when llama-server is not up yet (the picker must not read
+                    # "No models available" while a brain is downloaded).
+                    if self.settings.llamacpp_model:
+                        models_dir = str(Path(self.settings.llamacpp_model).parent)
+                    else:
+                        models_dir = str(engine.models_dir())
+                    return client.list_models(models_dir)
                 return client.list_models()
             except OllamaError:
                 raise
@@ -1566,25 +1589,44 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def _apply_ollama_models(self, models: list[str]) -> bool:
-        self.shell.model_selector.set_status(ai_status_for(models))
+        backend = self.settings.ai_backend
         if self._welcome_followup and welcome.real_models(models):
             self._welcome_followup = False
             self._say_welcome_how_to()
+        if backend == "llamacpp":
+            # The picker shows brain labels, not GGUF paths, and the dot follows
+            # the engine's health (paths never contain spaces, so ai_status_for
+            # would read "online" even with the server down).
+            models = smallbrain.available_labels(self.settings.llamacpp_model)
+        self.shell.model_selector.set_status(ai_status_for_backend(backend, models, self.ai_server.health().status))
         self.ollama_models = models
-        if models and self.settings.ollama_model not in models:
+        if backend == "llamacpp":
+            current = self.settings.llamacpp_model
+            if models and (not current or not Path(current).is_file()):
+                self.settings.llamacpp_model = str(smallbrain.path_for(smallbrain.BRAINS[0]))
+                self.config_store.save(self.settings)
+        elif models and self.settings.ollama_model not in models:
             self.settings.ollama_model = models[0]
             self.config_store.save(self.settings)
         self._apply_model_combo(models)
         return False
 
+    def _selected_model_label(self) -> str:
+        """The label the picker should show as selected for the current backend."""
+        if self.settings.ai_backend != "llamacpp":
+            return self.settings.ollama_model
+        label = smallbrain.label_for_path(self.settings.llamacpp_model)
+        return label or self.settings.llamacpp_model
+
     def _apply_model_combo(self, models: list[str]) -> None:
-        self.shell.set_models(models, self.settings.ollama_model, self.settings.ai_backend)
+        selected_label = self._selected_model_label()
+        self.shell.set_models(models, selected_label, self.settings.ai_backend)
         if not models:
             self.model_combo.set_visible(False)
             return
         selected = (
-            models.index(self.settings.ollama_model)
-            if self.settings.ollama_model in models
+            models.index(selected_label)
+            if selected_label in models
             else 0
         )
         self._model_combo_updating = True
@@ -1600,6 +1642,14 @@ class MainWindow(Adw.ApplicationWindow):
             return
         selected = min(self.model_combo.get_selected(), len(self.ollama_models) - 1)
         model = self.ollama_models[selected]
+        if self.settings.ai_backend == "llamacpp":
+            path = smallbrain.path_for_label(model)
+            if path and path != self.settings.llamacpp_model:
+                self.settings.llamacpp_model = path
+                self.config_store.save(self.settings)
+                self._set_status(f"Asking with {model} from now on.")
+                self._restart_ai_server_async()
+            return
         if model != self.settings.ollama_model:
             self.settings.ollama_model = model
             self.config_store.save(self.settings)

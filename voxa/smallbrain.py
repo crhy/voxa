@@ -80,6 +80,37 @@ def row_state(model: ModelFile, in_use_path: str) -> str:
     return "missing"
 
 
+def available_labels(in_use_path: str, directory: Path | None = None) -> list[str]:
+    """Labels of the brains the user can pick in the model drop-down.
+
+    A brain is offered when it is installed or already selected, so the picker
+    never reads "No models available" while a brain is on disk. Pure (takes the
+    directory) so it can be tested without a window."""
+    directory = directory or engine.models_dir()
+    labels: list[str] = []
+    for model in BRAINS:
+        path = path_for(model, directory)
+        if (in_use_path and in_use_path == str(path)) or is_installed(model, directory):
+            labels.append(model.label)
+    return labels
+
+
+def label_for_path(path: str) -> str:
+    """The brain label for a configured ``llamacpp_model`` path ("" if none match)."""
+    for model in BRAINS:
+        if str(path_for(model)) == path:
+            return model.label
+    return ""
+
+
+def path_for_label(label: str) -> str:
+    """The on-disk path for a brain label ("" if no brain has that label)."""
+    for model in BRAINS:
+        if model.label == label:
+            return str(path_for(model))
+    return ""
+
+
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:

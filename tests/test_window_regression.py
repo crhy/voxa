@@ -17,6 +17,7 @@ if not Gtk.init_check():
     pytest.skip("no GTK display available")
 Adw.init()
 
+from voxa import smallbrain  # noqa: E402
 from voxa.audio import AudioDevice  # noqa: E402
 from voxa.config import ConfigStore  # noqa: E402
 from voxa.ui.state import AssistantState  # noqa: E402
@@ -149,6 +150,7 @@ def test_every_appearance_setting_applies(window, appearance) -> None:
 
 
 def test_choosing_a_model_in_the_shell_is_saved_to_config(window) -> None:
+    window.settings.ai_backend = "ollama"  # this path persists to ollama_model
     window._apply_ollama_models(["a", "b"])
     window.shell.on_model_selected("b")
     assert window.settings.ollama_model == "b"
@@ -173,13 +175,16 @@ def test_choosing_a_backend_in_the_shell_is_saved_and_pushed_back(window) -> Non
     ("backend", "label"),
     [("llamacpp", "llama.cpp"), ("ollama", "Ollama")],
 )
-def test_model_picker_lists_models_with_the_backend_named(window, backend, label) -> None:
+def test_model_picker_lists_models_with_the_backend_named(window, backend, label, monkeypatch) -> None:
     class FakeClient:
-        def list_models(self) -> list[str]:
+        def list_models(self, models_dir=None) -> list[str]:
             return ["m1", "m2"]
 
     window.settings.ai_backend = backend
     window._ai_client = lambda: FakeClient()
+    if backend == "llamacpp":
+        # llama.cpp lists brain labels, not the raw client model names.
+        monkeypatch.setattr(smallbrain, "available_labels", lambda in_use_path, directory=None: ["m1", "m2"])
     _REAL_REFRESH(window)
     _pump(250)
 
