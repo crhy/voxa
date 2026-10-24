@@ -34,6 +34,7 @@ from voxa.agent.tools.meals import meals_tools
 from voxa.agent.tools.media import media_tools
 from voxa.agent.tools.memory_facts import memory_facts_tools
 from voxa.agent.tools.notes import notes_tools
+from voxa.agent.tools.projectsteps import project_steps_tools
 from voxa.agent.tools.radio import radio_tools
 from voxa.agent.tools.readfile import readfile_tools
 from voxa.agent.tools.recite import recite_tools
@@ -70,6 +71,7 @@ def default_registry() -> ToolRegistry:
         *reminders_tools(),
         *notes_tools(),
         *list_tools(),
+        *project_steps_tools(),
         *databackup_tools(),
         *meals_tools(),
         *devstatus_tools(),

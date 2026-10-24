@@ -649,6 +649,13 @@ _LIST_KNOWN = r"to[- ]?do|todo|task|tasks|shopping|grocery|groceries"
 _LIST = rf"(?:my |the )?(?:(?:{_LIST_KNOWN})(?: list)?|(?!clipboard\b)[a-z]+ list)"
 _LIST_NAMED = rf"(?:my |the )?(?:{_LIST_KNOWN}|(?!clipboard\b)[a-z]+) list"
 _LIST_ADD = re.compile(rf"(?:add|put) (?P<item>.+?) (?:to|on) (?P<list>{_LIST})", re.IGNORECASE)
+_PROJECT_STEPS = re.compile(
+    r"break down (?P<g1>.+?)(?: into steps)?"
+    r"|help me plan (?P<g2>.+)"
+    r"|what are the steps to (?P<g3>.+)"
+    r"|make a plan for (?P<g4>.+)",
+    re.IGNORECASE,
+)
 _BACKUP_NOW = re.compile(
     r"back up (?:my |voxa(?:'s)? )?(?:data|notes|lists|files|everything)"
     r"|(?:make|create) a backup",
@@ -1086,6 +1093,7 @@ ROUTED_TOOLS = frozenset(
         "meal_plan",
         "meal_shop",
         "project_status",
+        "project_steps",
         "model_status",
         "flight_status",
         "track_package",
@@ -1562,6 +1570,10 @@ def route(text: str) -> ToolCall | None:
         spoken = sort_preview.group(1) or sort_preview.group(2) or ""
         if folder_key(spoken) is not None:
             return call("sort_folder_preview", folder=spoken)
+    project_steps = _PROJECT_STEPS.fullmatch(s)
+    if project_steps:
+        goal = project_steps.group("g1") or project_steps.group("g2") or project_steps.group("g3") or project_steps.group("g4")
+        return call("project_steps", goal=goal)
     list_add = _LIST_ADD.fullmatch(s)
     if list_add:
         return call("list_add", item=list_add.group("item"), list=_list_word(list_add.group("list")))

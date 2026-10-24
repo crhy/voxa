@@ -333,6 +333,7 @@ def test_registry_lists_all_tools():
             "press_button",
             "press_key",
             "project_status",
+            "project_steps",
             "radio_genre",
             "read_clipboard_aloud",
             "read_notes",

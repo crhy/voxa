@@ -2363,6 +2363,66 @@
       "after": "",
       "verify": {},
       "capability": 76
+    },
+    {
+      "id": "cap23-01",
+      "category": "files_and_productivity",
+      "prompt": "break down paint into steps",
+      "expected_contains": [],
+      "expected_keywords": [
+        "steps",
+        "list"
+      ],
+      "rubric": "The reply breaks the goal into steps and saves them as a list.",
+      "expected_tool": "project_steps",
+      "expected_args": {
+        "goal": "paint"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "## Paint"
+      },
+      "capability": 23
+    },
+    {
+      "id": "cap23-02",
+      "category": "files_and_productivity",
+      "prompt": "make a plan for paint",
+      "expected_contains": [],
+      "expected_keywords": [
+        "steps",
+        "list"
+      ],
+      "rubric": "The reply breaks the goal into steps and saves them as a list.",
+      "expected_tool": "project_steps",
+      "expected_args": {
+        "goal": "paint"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "## Paint"
+      },
+      "capability": 23
+    },
+    {
+      "id": "cap23-03",
+      "category": "files_and_productivity",
+      "prompt": "clear my paint list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared|clear"
+      ],
+      "rubric": "The reply confirms the list was cleared.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_lacks": "## Paint"
+      },
+      "capability": 23
     }
   ]
 }
