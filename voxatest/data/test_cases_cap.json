@@ -2590,6 +2590,83 @@
         "file_lacks": "## Barbecue Plan"
       },
       "capability": 70
+    },
+    {
+      "id": "cap46-01",
+      "category": "files_and_productivity",
+      "prompt": "remember my passport expires on June 5 2028",
+      "expected_contains": [],
+      "expected_keywords": [
+        "passport",
+        "expires"
+      ],
+      "rubric": "The reply confirms the passport expiry was saved.",
+      "expected_tool": "travel_doc_add",
+      "expected_args": {
+        "document": "passport",
+        "expires": "June 5 2028"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Travel Documents.md",
+        "file_contains": "- Passport: expires 2028-06-05"
+      },
+      "capability": 46
+    },
+    {
+      "id": "cap46-02",
+      "category": "files_and_productivity",
+      "prompt": "when does my passport expire",
+      "expected_contains": [],
+      "expected_keywords": [
+        "passport",
+        "expires"
+      ],
+      "rubric": "The reply reports the saved passport expiry date.",
+      "expected_tool": "travel_doc_when",
+      "expected_args": {
+        "document": "passport"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 46
+    },
+    {
+      "id": "cap46-03",
+      "category": "files_and_productivity",
+      "prompt": "what travel documents do I have",
+      "expected_contains": [],
+      "expected_keywords": [
+        "travel",
+        "document"
+      ],
+      "rubric": "The reply lists the saved travel documents.",
+      "expected_tool": "travel_doc_list",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 46
+    },
+    {
+      "id": "cap46-04",
+      "category": "files_and_productivity",
+      "prompt": "forget my passport",
+      "expected_contains": [],
+      "expected_keywords": [
+        "forgot",
+        "passport"
+      ],
+      "rubric": "The reply confirms the passport was removed.",
+      "expected_tool": "travel_doc_forget",
+      "expected_args": {
+        "document": "passport"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Travel Documents.md",
+        "file_lacks": "- Passport:"
+      },
+      "capability": 46
     }
   ]
 }

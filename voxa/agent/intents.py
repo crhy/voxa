@@ -649,6 +649,28 @@ _LIST_KNOWN = r"to[- ]?do|todo|task|tasks|shopping|grocery|groceries"
 _LIST = rf"(?:my |the )?(?:(?:{_LIST_KNOWN})(?: list)?|(?!clipboard\b)[a-z]+ list)"
 _LIST_NAMED = rf"(?:my |the )?(?:{_LIST_KNOWN}|(?!clipboard\b)[a-z]+(?: plan)?) list"
 _LIST_ADD = re.compile(rf"(?:add|put) (?P<item>.+?) (?:to|on) (?P<list>{_LIST})", re.IGNORECASE)
+_TRAVEL_DOC_NOUN = (
+    r"passport|visa|licen[cs]e|id|identification|insurance|registration|"
+    r"green card|credit card|sim card|certificate|health certificate|vaccination"
+)
+_TRAVEL_DOC_ADD = re.compile(
+    rf"(?:remember|note|save|store)\s+(?:my\s+|the\s+)?(?P<doc>{_TRAVEL_DOC_NOUN})\s+"
+    rf"(?:that\s+)?(?:it\s+)?expires?\s+(?:on\s+|in\s+|by\s+)?(?P<expires>.+)",
+    re.IGNORECASE,
+)
+_TRAVEL_DOC_WHEN = re.compile(
+    rf"when does (?:my\s+|the\s+)?(?P<doc>{_TRAVEL_DOC_NOUN})\s+expire[s]?",
+    re.IGNORECASE,
+)
+_TRAVEL_DOC_LIST = re.compile(
+    r"(?:what|which) travel documents (?:do i have|i have|are there|do you have)"
+    r"|(?:list|show)(?: me)? (?:my )?travel documents",
+    re.IGNORECASE,
+)
+_TRAVEL_DOC_FORGET = re.compile(
+    rf"(?:forget|delete|remove|drop) (?:my\s+|the\s+)?(?P<doc>{_TRAVEL_DOC_NOUN})\b",
+    re.IGNORECASE,
+)
 _EVENT_NOUN = (
     r"birthday party|birthday|dinner party|dinner|barbecue|barbeque|bbq|cookout|"
     r"picnic|wedding|gathering|get[- ]?together|reunion|fundraiser|celebration|"
@@ -1123,6 +1145,10 @@ ROUTED_TOOLS = frozenset(
         "trip_plan",
         "trip_read",
         "trip_forget",
+        "travel_doc_add",
+        "travel_doc_forget",
+        "travel_doc_list",
+        "travel_doc_when",
         "backup_now",
         "backup_last",
         "sort_folder_preview",
@@ -1499,6 +1525,17 @@ def route(text: str) -> ToolCall | None:
     cal_cancel = _CAL_CANCEL.fullmatch(s)
     if cal_cancel and _CAL_NAMED.search(s):
         return call("calendar_cancel", title=cal_cancel.group("title"))
+    travel_add = _TRAVEL_DOC_ADD.fullmatch(s)
+    if travel_add:
+        return call("travel_doc_add", document=travel_add.group("doc").strip(), expires=travel_add.group("expires").strip())
+    travel_when = _TRAVEL_DOC_WHEN.fullmatch(s)
+    if travel_when:
+        return call("travel_doc_when", document=travel_when.group("doc").strip())
+    if _TRAVEL_DOC_LIST.fullmatch(s):
+        return call("travel_doc_list")
+    travel_forget = _TRAVEL_DOC_FORGET.fullmatch(s)
+    if travel_forget:
+        return call("travel_doc_forget", document=travel_forget.group("doc").strip())
     mem_remember = _MEMORY_REMEMBER.fullmatch(s)
     if mem_remember:
         return call("remember_fact", fact=mem_remember.group("fact"))
