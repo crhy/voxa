@@ -852,14 +852,14 @@ _TRANSCRIBE = re.compile(
     r"(?: in (?:the |my )?(?P<folder>.+?)(?: folder)?)?",
     re.IGNORECASE,
 )
-_FOCUS_DURATION = r"(?:\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|fifteen|twenty|thirty)\s+(?:minutes?|hours?)"
+_FOCUS_DURATION = r"(?:\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|fifteen|twenty|thirty)[\s-]+(?:minutes?|hours?)"
 _FOCUS_START = re.compile(
     rf"(?:start|begin)\s+(?:a |an |at )?(?:(?P<dur1>{_FOCUS_DURATION})\s+)?focus\s+(?:session|time|timer|block)"
     rf"(?:\s+for\s+(?P<dur2>{_FOCUS_DURATION}))?(?:\s+(?:on|for)\s+(?P<what>.+))?",
     re.IGNORECASE,
 )
 _FOCUS_NEED = re.compile(rf"i\s+need\s+to\s+focus(?:\s+for\s+(?P<dur>{_FOCUS_DURATION}))?", re.IGNORECASE)
-_FOCUS_POMODORO = re.compile(r"(?:start|begin)\s+(?:a\s+)?pomm?[ao]doro(?:\s+(?:timer|session))?", re.IGNORECASE)
+_FOCUS_POMODORO = re.compile(r"(?:start|begin)\s+(?:a\s+)?(?:pomm?[ao]doro|pal[ai]doro|pamodoro)(?:\s+(?:timer|session))?", re.IGNORECASE)
 _FOCUS_PROTECT = re.compile(rf"protect\s+(?:the\s+next\s+)?(?P<dur>{_FOCUS_DURATION})(?:\s+for\s+(?P<what>.+))?", re.IGNORECASE)
 _FOCUS_STATUS = re.compile(
     r"how\s+much\s+focus\s+time\s+(?:is|do\s+i\s+have)\s+left"
@@ -1956,11 +1956,23 @@ def route(text: str) -> ToolCall | None:
 
     set_email_match = _SET_EMAIL.fullmatch(s)
     if set_email_match:
-        spoken_email = spoken_address(set_email_match.group(2))
+        name = set_email_match.group(1)
+        raw_email = set_email_match.group(2)
+        spoken_email = spoken_address(raw_email)
+        if not spoken_email and "@" not in raw_email and " at " not in raw_email.lower():
+            low = raw_email.lower()
+            nlow = name.lower()
+            if nlow and low.startswith(nlow):
+                rest = low[len(nlow):]
+                for glue in ("at", "an"):
+                    if rest.startswith(glue):
+                        tail = rest[len(glue):]
+                        if re.search(r"\.[a-z]{2,}$", tail):
+                            spoken_email = f"{nlow}@{tail}"
+                            break
         if spoken_email:
-            raw_email = set_email_match.group(2)
             address = spoken_email if " " not in raw_email else raw_email
-            return call("set_contact_email", name=set_email_match.group(1), address=address)
+            return call("set_contact_email", name=name, address=address)
     get_email_match = _GET_EMAIL.fullmatch(s)
     if get_email_match:
         return call("get_contact_email", name=get_email_match.group(1))

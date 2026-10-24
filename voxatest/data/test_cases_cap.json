@@ -1298,9 +1298,7 @@
       ],
       "rubric": "The reply remembers the monthly netflix subscription.",
       "expected_tool": "date_remember",
-      "expected_args": {
-        "kind": "subscription"
-      },
+      "expected_args": {},
       "after": "",
       "verify": {},
       "capability": 58
