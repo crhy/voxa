@@ -2054,6 +2054,315 @@
         "file_lacks": "window seats"
       },
       "capability": 97
+    },
+    {
+      "id": "cap34-y1",
+      "category": "files_and_productivity",
+      "prompt": "research the company Nvidia",
+      "expected_contains": [],
+      "expected_keywords": [
+        "found"
+      ],
+      "rubric": "The reply confirms the company lookup.",
+      "expected_tool": "look_up",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 34
+    },
+    {
+      "id": "cap34-y2",
+      "category": "files_and_productivity",
+      "prompt": "research Ada Lovelace on wikipedia",
+      "expected_contains": [],
+      "expected_keywords": [
+        "found"
+      ],
+      "rubric": "The reply confirms the person lookup.",
+      "expected_tool": "look_up",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 34
+    },
+    {
+      "id": "cap35-y1",
+      "category": "files_and_productivity",
+      "prompt": "compare prices for a cordless drill",
+      "expected_contains": [],
+      "expected_keywords": [
+        "prices"
+      ],
+      "rubric": "The reply confirms the price comparison.",
+      "expected_tool": "compare_prices",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 35
+    },
+    {
+      "id": "cap35-y2",
+      "category": "files_and_productivity",
+      "prompt": "find me a deal on headphones",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cheapest"
+      ],
+      "rubric": "The reply confirms the deal search.",
+      "expected_tool": "find_deal",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 35
+    },
+    {
+      "id": "cap39-y1",
+      "category": "files_and_productivity",
+      "prompt": "how is the stock market doing",
+      "expected_contains": [],
+      "expected_keywords": [
+        "market"
+      ],
+      "rubric": "The reply confirms the market report.",
+      "expected_tool": "market",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 39
+    },
+    {
+      "id": "cap39-y2",
+      "category": "files_and_productivity",
+      "prompt": "what is the price of bitcoin",
+      "expected_contains": [],
+      "expected_keywords": [
+        "price"
+      ],
+      "rubric": "The reply confirms the price report.",
+      "expected_tool": "market",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 39
+    },
+    {
+      "id": "cap40-y1",
+      "category": "files_and_productivity",
+      "prompt": "is it true that goldfish have a three second memory",
+      "expected_contains": [],
+      "expected_keywords": [
+        "fact"
+      ],
+      "rubric": "The reply confirms the fact check.",
+      "expected_tool": "fact_check",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 40
+    },
+    {
+      "id": "cap45-y1",
+      "category": "files_and_productivity",
+      "prompt": "flight status for BA 117",
+      "expected_contains": [],
+      "expected_keywords": [
+        "status"
+      ],
+      "rubric": "The reply confirms the flight status.",
+      "expected_tool": "flight_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 45
+    },
+    {
+      "id": "cap45-y2",
+      "category": "files_and_productivity",
+      "prompt": "is flight BA 117 on time",
+      "expected_contains": [],
+      "expected_keywords": [
+        "status"
+      ],
+      "rubric": "The reply confirms the flight status.",
+      "expected_tool": "flight_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 45
+    },
+    {
+      "id": "cap49-y1",
+      "category": "files_and_productivity",
+      "prompt": "i spent 30 on a taxi for the Paris trip",
+      "expected_contains": [],
+      "expected_keywords": [
+        "noted"
+      ],
+      "rubric": "The reply confirms the expense was logged.",
+      "expected_tool": "expense_add",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Expenses.csv",
+        "file_contains": "taxi"
+      },
+      "capability": 49
+    },
+    {
+      "id": "cap49-y2",
+      "category": "files_and_productivity",
+      "prompt": "how much did the Paris trip cost",
+      "expected_contains": [],
+      "expected_keywords": [
+        "trip"
+      ],
+      "rubric": "The reply reports the trip cost.",
+      "expected_tool": "trip_cost",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 49
+    },
+    {
+      "id": "cap49-y3",
+      "category": "files_and_productivity",
+      "prompt": "undo my last expense",
+      "expected_contains": [],
+      "expected_keywords": [
+        "removed"
+      ],
+      "rubric": "The reply confirms the expense was removed.",
+      "expected_tool": "expense_undo",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Expenses.csv",
+        "file_lacks": "taxi"
+      },
+      "capability": 49
+    },
+    {
+      "id": "cap53-y1",
+      "category": "files_and_productivity",
+      "prompt": "compare prices for a PlayStation 5",
+      "expected_contains": [],
+      "expected_keywords": [
+        "prices"
+      ],
+      "rubric": "The reply confirms the price comparison.",
+      "expected_tool": "compare_prices",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 53
+    },
+    {
+      "id": "cap54-y1",
+      "category": "files_and_productivity",
+      "prompt": "track my package 1Z999AA10123456784",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tracking"
+      ],
+      "rubric": "The reply confirms the package tracking.",
+      "expected_tool": "track_package",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 54
+    },
+    {
+      "id": "cap59-y1",
+      "category": "files_and_productivity",
+      "prompt": "set my food budget to 300 dollars",
+      "expected_contains": [],
+      "expected_keywords": [
+        "budget"
+      ],
+      "rubric": "The reply confirms the budget was set.",
+      "expected_tool": "budget_set",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Expenses.csv",
+        "file_contains": "budget"
+      },
+      "capability": 59
+    },
+    {
+      "id": "cap59-y2",
+      "category": "files_and_productivity",
+      "prompt": "how am i doing on my food budget",
+      "expected_contains": [],
+      "expected_keywords": [
+        "budget"
+      ],
+      "rubric": "The reply reports the budget status.",
+      "expected_tool": "budget_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 59
+    },
+    {
+      "id": "cap73-y1",
+      "category": "files_and_productivity",
+      "prompt": "make a folder called Test Box in Documents",
+      "expected_contains": [],
+      "expected_keywords": [
+        "created"
+      ],
+      "rubric": "The reply confirms the folder was created.",
+      "expected_tool": "make_folder",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 73
+    },
+    {
+      "id": "cap73-y2",
+      "category": "files_and_productivity",
+      "prompt": "what is in my Documents folder",
+      "expected_contains": [],
+      "expected_keywords": [
+        "documents"
+      ],
+      "rubric": "The reply lists the folder contents.",
+      "expected_tool": "list_folder",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 73
+    },
+    {
+      "id": "cap73-y3",
+      "category": "files_and_productivity",
+      "prompt": "trash the file Test Box in Documents",
+      "expected_contains": [],
+      "expected_keywords": [
+        "trash"
+      ],
+      "rubric": "The reply confirms the folder was trashed.",
+      "expected_tool": "trash_file",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 73
+    },
+    {
+      "id": "cap76-y1",
+      "category": "files_and_productivity",
+      "prompt": "make a spreadsheet of my expenses",
+      "expected_contains": [],
+      "expected_keywords": [
+        "spreadsheet"
+      ],
+      "rubric": "The reply confirms the spreadsheet was made.",
+      "expected_tool": "expense_spreadsheet",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 76
     }
   ]
 }
