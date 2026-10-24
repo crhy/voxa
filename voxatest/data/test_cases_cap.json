@@ -5386,6 +5386,36 @@
       "capability": 54
     },
     {
+      "id": "cap54-y1-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey can you track package 1Z999AA10123456784",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tracking"
+      ],
+      "rubric": "The reply confirms the package tracking.",
+      "expected_tool": "track_package",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 54
+    },
+    {
+      "id": "cap54-y1-p2",
+      "category": "files_and_productivity",
+      "prompt": "please track the parcel 1Z999AA10123456784",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tracking"
+      ],
+      "rubric": "The reply confirms the package tracking.",
+      "expected_tool": "track_package",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 54
+    },
+    {
       "id": "cap59-y1",
       "category": "files_and_productivity",
       "prompt": "set my food budget to 300 dollars",
@@ -5404,9 +5434,72 @@
       "capability": 59
     },
     {
+      "id": "cap59-y1-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey can you set my food budget to 300 dollars",
+      "expected_contains": [],
+      "expected_keywords": [
+        "budget"
+      ],
+      "rubric": "The reply confirms the budget was set.",
+      "expected_tool": "budget_set",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Expenses.csv",
+        "file_contains": "budget"
+      },
+      "capability": 59
+    },
+    {
+      "id": "cap59-y1-p2",
+      "category": "files_and_productivity",
+      "prompt": "please set the food budget to 300 dollars",
+      "expected_contains": [],
+      "expected_keywords": [
+        "budget"
+      ],
+      "rubric": "The reply confirms the budget was set.",
+      "expected_tool": "budget_set",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 59
+    },
+    {
       "id": "cap59-y2",
       "category": "files_and_productivity",
       "prompt": "how am i doing on my food budget",
+      "expected_contains": [],
+      "expected_keywords": [
+        "budget"
+      ],
+      "rubric": "The reply reports the budget status.",
+      "expected_tool": "budget_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 59
+    },
+    {
+      "id": "cap59-y2-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey how am i doing on my budget",
+      "expected_contains": [],
+      "expected_keywords": [
+        "budget"
+      ],
+      "rubric": "The reply reports the budget status.",
+      "expected_tool": "budget_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 59
+    },
+    {
+      "id": "cap59-y2-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey how much is left in my food budget",
       "expected_contains": [],
       "expected_keywords": [
         "budget"
@@ -5434,9 +5527,69 @@
       "capability": 73
     },
     {
+      "id": "cap73-y1-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey can you create a folder called Test Box in Documents",
+      "expected_contains": [],
+      "expected_keywords": [
+        "created"
+      ],
+      "rubric": "The reply confirms the folder was created.",
+      "expected_tool": "make_folder",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 73
+    },
+    {
+      "id": "cap73-y1-p2",
+      "category": "files_and_productivity",
+      "prompt": "please make a new folder called Test Box in Documents",
+      "expected_contains": [],
+      "expected_keywords": [
+        "created"
+      ],
+      "rubric": "The reply confirms the folder was created.",
+      "expected_tool": "make_folder",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 73
+    },
+    {
       "id": "cap73-y2",
       "category": "files_and_productivity",
       "prompt": "what is in my Documents folder",
+      "expected_contains": [],
+      "expected_keywords": [
+        "documents"
+      ],
+      "rubric": "The reply lists the folder contents.",
+      "expected_tool": "list_folder",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 73
+    },
+    {
+      "id": "cap73-y2-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what is in my Documents folder",
+      "expected_contains": [],
+      "expected_keywords": [
+        "documents"
+      ],
+      "rubric": "The reply lists the folder contents.",
+      "expected_tool": "list_folder",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 73
+    },
+    {
+      "id": "cap73-y2-p2",
+      "category": "files_and_productivity",
+      "prompt": "list the files in my Documents folder",
       "expected_contains": [],
       "expected_keywords": [
         "documents"
@@ -5464,9 +5617,69 @@
       "capability": 73
     },
     {
+      "id": "cap73-y3-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey can you delete the file Test Box in Documents",
+      "expected_contains": [],
+      "expected_keywords": [
+        "trash"
+      ],
+      "rubric": "The reply confirms the folder was trashed.",
+      "expected_tool": "trash_file",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 73
+    },
+    {
+      "id": "cap73-y3-p2",
+      "category": "files_and_productivity",
+      "prompt": "please remove Test Box from Documents",
+      "expected_contains": [],
+      "expected_keywords": [
+        "trash"
+      ],
+      "rubric": "The reply confirms the folder was trashed.",
+      "expected_tool": "trash_file",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 73
+    },
+    {
       "id": "cap76-y1",
       "category": "files_and_productivity",
       "prompt": "make a spreadsheet of my expenses",
+      "expected_contains": [],
+      "expected_keywords": [
+        "spreadsheet"
+      ],
+      "rubric": "The reply confirms the spreadsheet was made.",
+      "expected_tool": "expense_spreadsheet",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 76
+    },
+    {
+      "id": "cap76-y1-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey can you create a spreadsheet of my expenses",
+      "expected_contains": [],
+      "expected_keywords": [
+        "spreadsheet"
+      ],
+      "rubric": "The reply confirms the spreadsheet was made.",
+      "expected_tool": "expense_spreadsheet",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 76
+    },
+    {
+      "id": "cap76-y1-p2",
+      "category": "files_and_productivity",
+      "prompt": "please export my expenses to a spreadsheet",
       "expected_contains": [],
       "expected_keywords": [
         "spreadsheet"
@@ -5948,9 +6161,86 @@
       "capability": 46
     },
     {
+      "id": "cap46-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey save my passport expires on June 5 2028",
+      "expected_contains": [],
+      "expected_keywords": [
+        "passport",
+        "expires"
+      ],
+      "rubric": "The reply confirms the passport expiry was saved.",
+      "expected_tool": "travel_doc_add",
+      "expected_args": {
+        "document": "passport",
+        "expires": "June 5 2028"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Travel Documents.md",
+        "file_contains": "- Passport: expires 2028-06-05"
+      },
+      "capability": 46
+    },
+    {
+      "id": "cap46-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you save my passport expires June 5 2028",
+      "expected_contains": [],
+      "expected_keywords": [
+        "passport",
+        "expires"
+      ],
+      "rubric": "The reply confirms the passport expiry was saved.",
+      "expected_tool": "travel_doc_add",
+      "expected_args": {
+        "document": "passport",
+        "expires": "June 5 2028"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 46
+    },
+    {
       "id": "cap46-02",
       "category": "files_and_productivity",
       "prompt": "when does my passport expire",
+      "expected_contains": [],
+      "expected_keywords": [
+        "passport",
+        "expires"
+      ],
+      "rubric": "The reply reports the saved passport expiry date.",
+      "expected_tool": "travel_doc_when",
+      "expected_args": {
+        "document": "passport"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 46
+    },
+    {
+      "id": "cap46-02-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey when does the passport expire",
+      "expected_contains": [],
+      "expected_keywords": [
+        "passport",
+        "expires"
+      ],
+      "rubric": "The reply reports the saved passport expiry date.",
+      "expected_tool": "travel_doc_when",
+      "expected_args": {
+        "document": "passport"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 46
+    },
+    {
+      "id": "cap46-02-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey when does my passport expires",
       "expected_contains": [],
       "expected_keywords": [
         "passport",
@@ -5982,6 +6272,38 @@
       "capability": 46
     },
     {
+      "id": "cap46-03-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what travel documents do i have",
+      "expected_contains": [],
+      "expected_keywords": [
+        "travel",
+        "document"
+      ],
+      "rubric": "The reply lists the saved travel documents.",
+      "expected_tool": "travel_doc_list",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 46
+    },
+    {
+      "id": "cap46-03-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you show me my travel documents",
+      "expected_contains": [],
+      "expected_keywords": [
+        "travel",
+        "document"
+      ],
+      "rubric": "The reply lists the saved travel documents.",
+      "expected_tool": "travel_doc_list",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 46
+    },
+    {
       "id": "cap46-04",
       "category": "files_and_productivity",
       "prompt": "forget my passport",
@@ -6000,6 +6322,45 @@
         "file": "~/Documents/Voxa Travel Documents.md",
         "file_lacks": "- Passport:"
       },
+      "capability": 46
+    },
+    {
+      "id": "cap46-04-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey can you forget my passport",
+      "expected_contains": [],
+      "expected_keywords": [
+        "forgot",
+        "passport"
+      ],
+      "rubric": "The reply confirms the passport was removed.",
+      "expected_tool": "travel_doc_forget",
+      "expected_args": {
+        "document": "passport"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Travel Documents.md",
+        "file_lacks": "- Passport:"
+      },
+      "capability": 46
+    },
+    {
+      "id": "cap46-04-p2",
+      "category": "files_and_productivity",
+      "prompt": "please remove my passport",
+      "expected_contains": [],
+      "expected_keywords": [
+        "forgot",
+        "passport"
+      ],
+      "rubric": "The reply confirms the passport was removed.",
+      "expected_tool": "travel_doc_forget",
+      "expected_args": {
+        "document": "passport"
+      },
+      "after": "",
+      "verify": {},
       "capability": 46
     },
     {
