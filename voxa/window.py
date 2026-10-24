@@ -1646,6 +1646,10 @@ class MainWindow(Adw.ApplicationWindow):
         dialog.close()
         self._toast(message)
         if success:
+            # The server start at launch failed while Ollama was not installed; nothing retries it, so start it
+            # now, or the model list and the first download wait for a server that never comes (#112, #71).
+            if self.settings.ai_backend == "ollama":
+                self._restart_ai_server_async()
             self._refresh_ollama_models()
             if self._welcome_followup:
                 self._download_welcome_model()
