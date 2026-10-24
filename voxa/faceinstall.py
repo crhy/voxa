@@ -229,3 +229,19 @@ def remove_command() -> list[str]:
             '"$HOME/.local/share/voxa/face-server.new"',
         ]
     )
+
+
+def gb(nbytes: int) -> str:
+    """Format a byte count as gigabytes with one decimal place."""
+    return f"{nbytes / (1024 ** 3):.1f}"
+
+
+def offer_text(manifest: Manifest) -> tuple[str, str]:
+    """Heading and body for the install confirmation dialog."""
+    heading = "Install the High face?"
+    body = (
+        "The High face is a full neural talking face. It is a one-time download of about "
+        f"{gb(manifest.download_bytes)} GB and uses about {gb(manifest.install_bytes)} GB of disk space. "
+        "It needs an NVIDIA graphics card, and uses about 5 GB of its memory while it runs."
+    )
+    return heading, body

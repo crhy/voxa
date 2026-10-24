@@ -16,7 +16,7 @@ gi.require_version("Adw", "1")
 gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
-from . import apps, documents, mail, speechfit, spellings, wakelabel, websearch, welcome  # noqa: E402
+from . import apps, documents, faceinstall, mail, speechfit, spellings, wakelabel, websearch, welcome  # noqa: E402
 from .agent import hearing, host, intents, issueflow, livetv, mailflow, planner, radio, repeat, saveflow, ui  # noqa: E402
 from .agent.actionlog import ActionLog, ActionRecord  # noqa: E402
 from .agent.claims import claims_action, first_sentences  # noqa: E402
@@ -816,6 +816,10 @@ class MainWindow(Adw.ApplicationWindow):
     def _on_shell_face_mode_selected(self, face_mode: str) -> None:
         if face_mode == self.settings.face_mode:
             return
+        if face_mode != "live":
+            cancel = getattr(self, "_face_install_cancel", None)
+            if cancel is not None:
+                cancel.set()
         self.settings.face_mode = face_mode
         self.config_store.save(self.settings)
         apply = getattr(self, "_apply_face_mode", None)
@@ -885,8 +889,7 @@ class MainWindow(Adw.ApplicationWindow):
             if not client.available():
                 command = face_server_command()
                 if command is None:
-                    idle(self._on_live_ready, generation, None, False,
-                         "The high-resolution face is not installed on this computer")
+                    idle(self._offer_face_install, generation)
                     return
                 if not host_spawn(command):
                     idle(
@@ -952,6 +955,102 @@ class MainWindow(Adw.ApplicationWindow):
         sync = getattr(self.shell, "sync_focus_face", None)
         if sync is not None:
             sync()
+
+    def _offer_face_install(self, generation: int) -> bool:
+        if generation != getattr(self, "_live_generation", 0):
+            return False
+        problem = faceinstall.gpu_problem()
+        if problem:
+            self._toast(f"{problem} Using Medium instead.")
+            self.settings.face_mode = "prerendered"
+            self.config_store.save(self.settings)
+            face_quality = getattr(self.shell, "face_quality", None)
+            if face_quality is not None:
+                face_quality.set_mode("prerendered")
+            self._apply_face_mode()
+            return False
+
+        def fetch_worker() -> None:
+            try:
+                manifest = faceinstall.fetch_manifest()
+            except Exception:
+                idle(self._on_face_manifest_failed, generation)
+                return
+            idle(self._on_face_manifest_ready, generation, manifest)
+
+        threading.Thread(target=fetch_worker, name="face-manifest-fetch", daemon=True).start()
+        return False
+
+    def _on_face_manifest_failed(self, generation: int) -> bool:
+        if generation != getattr(self, "_live_generation", 0):
+            return False
+        self._toast("The High face download is not available right now. Using Medium instead.")
+        self._go_back_to_medium()
+        return False
+
+    def _on_face_manifest_ready(self, generation: int, manifest: faceinstall.Manifest) -> bool:
+        if generation != getattr(self, "_live_generation", 0):
+            return False
+        heading, body = faceinstall.offer_text(manifest)
+        dialog = Adw.AlertDialog(heading=heading, body=body)
+        dialog.add_response("cancel", "Not now")
+        dialog.add_response("install", "Download and install")
+        dialog.set_response_appearance("install", Adw.ResponseAppearance.SUGGESTED)
+        dialog.set_default_response("install")
+        dialog.set_close_response("cancel")
+
+        def on_response(_dialog, response: str) -> None:
+            if response == "cancel":
+                self._go_back_to_medium()
+                return
+            if response != "install":
+                return
+            self._face_install_cancel = threading.Event()
+            cancel = self._face_install_cancel
+
+            def install_worker() -> None:
+                def on_progress(fraction: float, text: str) -> None:
+                    idle(self._on_face_install_progress, generation, fraction, text)
+
+                ok, message = faceinstall.install(manifest, on_progress, cancel)
+                idle(self._on_face_install_done, generation, ok, message)
+
+            threading.Thread(target=install_worker, name="face-install", daemon=True).start()
+
+        dialog.connect("response", on_response)
+        dialog.present(self)
+        return False
+
+    def _on_face_install_progress(self, generation: int, fraction: float, text: str) -> bool:
+        if generation != getattr(self, "_live_generation", 0):
+            return False
+        face_quality = getattr(self.shell, "face_quality", None)
+        if face_quality is not None:
+            face_quality.set_loading_progress(fraction * 100, text)
+        return False
+
+    def _on_face_install_done(self, generation: int, success: bool, message: str) -> bool:
+        if generation != getattr(self, "_live_generation", 0):
+            return False
+        face_quality = getattr(self.shell, "face_quality", None)
+        if success:
+            if face_quality is not None:
+                face_quality.set_status("")
+            self._toast("High face installed.")
+            if self.settings.face_mode == "live":
+                self._refresh_live_available()
+        else:
+            self._toast(f"{message} Using Medium instead.")
+            self._go_back_to_medium()
+        return False
+
+    def _go_back_to_medium(self) -> None:
+        self.settings.face_mode = "prerendered"
+        self.config_store.save(self.settings)
+        face_quality = getattr(self.shell, "face_quality", None)
+        if face_quality is not None:
+            face_quality.set_mode("prerendered")
+        self._apply_face_mode()
 
     def _prepare_microphone(self) -> None:
         """Before listening: choose how the computer's own sound is removed from the microphone."""
