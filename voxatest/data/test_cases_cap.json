@@ -5571,6 +5571,548 @@
       "after": "",
       "verify": {},
       "capability": 47
+    },
+    {
+      "id": "cap86-01-p1",
+      "category": "system_status",
+      "prompt": "what is my gpu temp",
+      "expected_contains": [],
+      "expected_keywords": [
+        "degrees"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "gpu_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "cap86-01-p2",
+      "category": "system_status",
+      "prompt": "gpu temperature",
+      "expected_contains": [],
+      "expected_keywords": [
+        "degrees"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "gpu_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "cap86-02-p1",
+      "category": "system_status",
+      "prompt": "how hot is my cpu",
+      "expected_contains": [],
+      "expected_keywords": [
+        "degrees"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "cpu_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "cap86-02-p2",
+      "category": "system_status",
+      "prompt": "cpu temperature",
+      "expected_contains": [],
+      "expected_keywords": [
+        "degrees"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "cpu_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "cap86-03-p1",
+      "category": "system_status",
+      "prompt": "is my computer healthy",
+      "expected_contains": [],
+      "expected_keywords": [
+        "processor",
+        "memory"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "system_health",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "cap86-03-p2",
+      "category": "system_status",
+      "prompt": "system health",
+      "expected_contains": [],
+      "expected_keywords": [
+        "processor",
+        "memory"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "system_health",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "system2-03-p1",
+      "category": "system_status",
+      "prompt": "what's my battery level",
+      "expected_contains": [],
+      "expected_keywords": [
+        "battery"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "battery_level",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "system2-03-p2",
+      "category": "system_status",
+      "prompt": "battery level",
+      "expected_contains": [],
+      "expected_keywords": [
+        "battery"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "battery_level",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "system2-04-p1",
+      "category": "system_status",
+      "prompt": "how much disk space is left",
+      "expected_contains": [],
+      "expected_keywords": [
+        "gigabytes|gigabyte"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "disk_space",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "system2-04-p2",
+      "category": "system_status",
+      "prompt": "how much storage space is free",
+      "expected_contains": [],
+      "expected_keywords": [
+        "gigabytes|gigabyte"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "disk_space",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "system-03-p1",
+      "category": "system_status",
+      "prompt": "how much disk space do i have",
+      "expected_contains": [],
+      "expected_keywords": [
+        "gigabytes|gigabyte",
+        "free"
+      ],
+      "rubric": "The reply reports available or used disk space.",
+      "expected_tool": "disk_space",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "system-03-p2",
+      "category": "system_status",
+      "prompt": "how much storage space is left",
+      "expected_contains": [],
+      "expected_keywords": [
+        "gigabytes|gigabyte",
+        "free"
+      ],
+      "rubric": "The reply reports available or used disk space.",
+      "expected_tool": "disk_space",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "system-04-p1",
+      "category": "system_status",
+      "prompt": "how much memory is left",
+      "expected_contains": [],
+      "expected_keywords": [
+        "memory",
+        "gigabytes|gigabyte"
+      ],
+      "rubric": "The reply reports current memory usage.",
+      "expected_tool": "memory_free",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "system-04-p2",
+      "category": "system_status",
+      "prompt": "how much ram do i have free",
+      "expected_contains": [],
+      "expected_keywords": [
+        "memory",
+        "gigabytes|gigabyte"
+      ],
+      "rubric": "The reply reports current memory usage.",
+      "expected_tool": "memory_free",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "web-01-p1",
+      "category": "web_and_maps",
+      "prompt": "can you open gmail for me",
+      "expected_contains": [],
+      "expected_keywords": [
+        "gmail|g mail"
+      ],
+      "rubric": "The reply confirms that Gmail is opening or open.",
+      "expected_tool": "open_site",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "web-01-p2",
+      "category": "web_and_maps",
+      "prompt": "go to gmail",
+      "expected_contains": [],
+      "expected_keywords": [
+        "gmail|g mail"
+      ],
+      "rubric": "The reply confirms that Gmail is opening or open.",
+      "expected_tool": "open_site",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "web-02-p1",
+      "category": "web_and_maps",
+      "prompt": "please open github",
+      "expected_contains": [],
+      "expected_keywords": [
+        "github|git hub|get hub"
+      ],
+      "rubric": "The reply confirms that GitHub is opening or open.",
+      "expected_tool": "open_site",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "web-02-p2",
+      "category": "web_and_maps",
+      "prompt": "open github for me",
+      "expected_contains": [],
+      "expected_keywords": [
+        "github|git hub|get hub"
+      ],
+      "rubric": "The reply confirms that GitHub is opening or open.",
+      "expected_tool": "open_site",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "web-05-p1",
+      "category": "web_and_maps",
+      "prompt": "show me pictures of the northern lights",
+      "expected_contains": [],
+      "expected_keywords": [
+        "northern lights"
+      ],
+      "rubric": "The reply confirms an image search for the northern lights.",
+      "expected_tool": "image_search",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "web-05-p2",
+      "category": "web_and_maps",
+      "prompt": "find images of the northern lights",
+      "expected_contains": [],
+      "expected_keywords": [
+        "northern lights"
+      ],
+      "rubric": "The reply confirms an image search for the northern lights.",
+      "expected_tool": "image_search",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "web2-01-p1",
+      "category": "web_and_maps",
+      "prompt": "can you open youtube",
+      "expected_contains": [],
+      "expected_keywords": [
+        "youtube|you tube"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "open_site",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "web2-01-p2",
+      "category": "web_and_maps",
+      "prompt": "go to youtube",
+      "expected_contains": [],
+      "expected_keywords": [
+        "youtube|you tube"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "open_site",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "web2-02-p1",
+      "category": "web_and_maps",
+      "prompt": "please open wikipedia",
+      "expected_contains": [],
+      "expected_keywords": [
+        "wikipedia"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "open_site",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "web2-02-p2",
+      "category": "web_and_maps",
+      "prompt": "open wikipedia for me",
+      "expected_contains": [],
+      "expected_keywords": [
+        "wikipedia"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "open_site",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "web2-05-p1",
+      "category": "web_and_maps",
+      "prompt": "search for images of golden retrievers",
+      "expected_contains": [],
+      "expected_keywords": [
+        "golden"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "image_search",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "web2-05-p2",
+      "category": "web_and_maps",
+      "prompt": "find pictures of golden retrievers",
+      "expected_contains": [],
+      "expected_keywords": [
+        "golden"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "image_search",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "new-web-01-p1",
+      "category": "web_and_maps",
+      "prompt": "open wikipedia dot org",
+      "expected_contains": [],
+      "expected_keywords": [
+        "website|wikipedia"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "open_url",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "new-web-01-p2",
+      "category": "web_and_maps",
+      "prompt": "navigate to wikipedia.org",
+      "expected_contains": [],
+      "expected_keywords": [
+        "website|wikipedia"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "open_url",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "new-system-01-p1",
+      "category": "system_status",
+      "prompt": "morning briefing",
+      "expected_contains": [],
+      "expected_keywords": [
+        "good"
+      ],
+      "rubric": "A short briefing: greeting, date, weather, reminders.",
+      "expected_tool": "daily_briefing",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 91
+    },
+    {
+      "id": "new-system-01-p2",
+      "category": "system_status",
+      "prompt": "give me my morning briefing",
+      "expected_contains": [],
+      "expected_keywords": [
+        "good"
+      ],
+      "rubric": "A short briefing: greeting, date, weather, reminders.",
+      "expected_tool": "daily_briefing",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 91
+    },
+    {
+      "id": "new-local-00-p1",
+      "category": "system_status",
+      "prompt": "what is my location",
+      "expected_contains": [],
+      "expected_keywords": [
+        "you are in"
+      ],
+      "rubric": "Issue 101: she knows where the user is.",
+      "expected_tool": "where_am_i",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 93
+    },
+    {
+      "id": "new-local-00-p2",
+      "category": "system_status",
+      "prompt": "what's my location",
+      "expected_contains": [],
+      "expected_keywords": [
+        "you are in"
+      ],
+      "rubric": "Issue 101: she knows where the user is.",
+      "expected_tool": "where_am_i",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 93
+    },
+    {
+      "id": "feat-local-01-p1",
+      "category": "web_and_maps",
+      "prompt": "what's the weather here",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "Issue 101: the weather where the user is.",
+      "expected_tool": "local_weather",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 93
+    },
+    {
+      "id": "feat-local-01-p2",
+      "category": "web_and_maps",
+      "prompt": "check the local weather",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "Issue 101: the weather where the user is.",
+      "expected_tool": "local_weather",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 93
+    },
+    {
+      "id": "feat-local-02-p1",
+      "category": "web_and_maps",
+      "prompt": "what is the weather in Tokyo",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tokyo"
+      ],
+      "rubric": "Issue 101: weather for a named place.",
+      "expected_tool": "local_weather",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 93
+    },
+    {
+      "id": "feat-local-02-p2",
+      "category": "web_and_maps",
+      "prompt": "check weather in Tokyo",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tokyo"
+      ],
+      "rubric": "Issue 101: weather for a named place.",
+      "expected_tool": "local_weather",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 93
     }
   ]
 }
