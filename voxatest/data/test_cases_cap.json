@@ -5035,9 +5035,69 @@
       "capability": 39
     },
     {
+      "id": "cap39-y1-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey how is the market doing",
+      "expected_contains": [],
+      "expected_keywords": [
+        "market"
+      ],
+      "rubric": "The reply confirms the market report.",
+      "expected_tool": "market",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 39
+    },
+    {
+      "id": "cap39-y1-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you check the stock market please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "market"
+      ],
+      "rubric": "The reply confirms the market report.",
+      "expected_tool": "market",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 39
+    },
+    {
       "id": "cap39-y2",
       "category": "files_and_productivity",
       "prompt": "what is the price of bitcoin",
+      "expected_contains": [],
+      "expected_keywords": [
+        "price"
+      ],
+      "rubric": "The reply confirms the price report.",
+      "expected_tool": "market",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 39
+    },
+    {
+      "id": "cap39-y2-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey how much is bitcoin",
+      "expected_contains": [],
+      "expected_keywords": [
+        "price"
+      ],
+      "rubric": "The reply confirms the price report.",
+      "expected_tool": "market",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 39
+    },
+    {
+      "id": "cap39-y2-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey what's bitcoin at",
       "expected_contains": [],
       "expected_keywords": [
         "price"
@@ -5065,6 +5125,36 @@
       "capability": 40
     },
     {
+      "id": "cap40-y1-p1",
+      "category": "files_and_productivity",
+      "prompt": "can you fact check the goldfish memory thing please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "fact"
+      ],
+      "rubric": "The reply confirms the fact check.",
+      "expected_tool": "fact_check",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 40
+    },
+    {
+      "id": "cap40-y1-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey fact check that goldfish have a three second memory",
+      "expected_contains": [],
+      "expected_keywords": [
+        "fact"
+      ],
+      "rubric": "The reply confirms the fact check.",
+      "expected_tool": "fact_check",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 40
+    },
+    {
       "id": "cap45-y1",
       "category": "files_and_productivity",
       "prompt": "flight status for BA 117",
@@ -5080,9 +5170,69 @@
       "capability": 45
     },
     {
+      "id": "cap45-y1-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey check flight BA 117 please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "status"
+      ],
+      "rubric": "The reply confirms the flight status.",
+      "expected_tool": "flight_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 45
+    },
+    {
+      "id": "cap45-y1-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey track flight BA 117",
+      "expected_contains": [],
+      "expected_keywords": [
+        "status"
+      ],
+      "rubric": "The reply confirms the flight status.",
+      "expected_tool": "flight_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 45
+    },
+    {
       "id": "cap45-y2",
       "category": "files_and_productivity",
       "prompt": "is flight BA 117 on time",
+      "expected_contains": [],
+      "expected_keywords": [
+        "status"
+      ],
+      "rubric": "The reply confirms the flight status.",
+      "expected_tool": "flight_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 45
+    },
+    {
+      "id": "cap45-y2-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey is flight BA 117 delayed",
+      "expected_contains": [],
+      "expected_keywords": [
+        "status"
+      ],
+      "rubric": "The reply confirms the flight status.",
+      "expected_tool": "flight_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 45
+    },
+    {
+      "id": "cap45-y2-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you check if flight BA 117 is delayed please",
       "expected_contains": [],
       "expected_keywords": [
         "status"
@@ -5128,6 +5278,36 @@
       "capability": 49
     },
     {
+      "id": "cap49-y2-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey how much did the Paris trip cost",
+      "expected_contains": [],
+      "expected_keywords": [
+        "trip"
+      ],
+      "rubric": "The reply reports the trip cost.",
+      "expected_tool": "trip_cost",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 49
+    },
+    {
+      "id": "cap49-y2-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey what did i spend on the Paris trip",
+      "expected_contains": [],
+      "expected_keywords": [
+        "trip"
+      ],
+      "rubric": "The reply reports the trip cost.",
+      "expected_tool": "trip_cost",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 49
+    },
+    {
       "id": "cap49-y3",
       "category": "files_and_productivity",
       "prompt": "undo my last expense",
@@ -5149,6 +5329,36 @@
       "id": "cap53-y1",
       "category": "files_and_productivity",
       "prompt": "compare prices for a PlayStation 5",
+      "expected_contains": [],
+      "expected_keywords": [
+        "prices"
+      ],
+      "rubric": "The reply confirms the price comparison.",
+      "expected_tool": "compare_prices",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 53
+    },
+    {
+      "id": "cap53-y1-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey compare prices for a PS5 please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "prices"
+      ],
+      "rubric": "The reply confirms the price comparison.",
+      "expected_tool": "compare_prices",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 53
+    },
+    {
+      "id": "cap53-y1-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey compare prices on a PS5",
       "expected_contains": [],
       "expected_keywords": [
         "prices"

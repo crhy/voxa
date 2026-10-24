@@ -1376,7 +1376,7 @@ def is_compound(text: str) -> bool:
 
 
 _FLIGHT_STATUS = re.compile(
-    r"(?:what(?:'s| is) the status of|track|is) flight (?P<flight>.+?)(?: on time| delayed)?"
+    r"(?:what(?:'s| is) the status of|track|is|check(?: if)?) flight (?P<flight>.+?)(?: is)?(?: on time| delayed| running late)?"
     r"|flight status (?:for |of )?(?P<flight2>.+)",
     re.IGNORECASE,
 )
@@ -1417,7 +1417,8 @@ _MARKET = re.compile(
     r"|tell me (?P<what6>.+?) (?:stock|share) price"
     r"|how is (?P<what7>.+?) (?:stock|shares?)(?: doing)?"
     r"|what(?:'s| is) (?P<what8>.+?) (?:stock |shares? )?at"
-    r"|how much is (?:a |one )?(?P<what2>bitcoin|ethereum|gold|silver)",
+    r"|how much is (?:a |one )?(?P<what2>bitcoin|ethereum|gold|silver)"
+    r"|check (?:the )?(?:stock )?market(?: doing| today| right now)?",
     re.IGNORECASE,
 )
 _FACT_CHECK = re.compile(
