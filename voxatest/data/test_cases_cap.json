@@ -3732,9 +3732,69 @@
       "capability": 98
     },
     {
+      "id": "cap98-01-p1",
+      "category": "system_status",
+      "prompt": "is there anything wrong with my computer",
+      "expected_contains": [],
+      "expected_keywords": [
+        "normal|thing|things"
+      ],
+      "rubric": "The reply reports any detected problems or says nothing looks wrong.",
+      "expected_tool": "system_problems",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 98
+    },
+    {
+      "id": "cap98-01-p2",
+      "category": "system_status",
+      "prompt": "check for problems with my computer",
+      "expected_contains": [],
+      "expected_keywords": [
+        "normal|thing|things"
+      ],
+      "rubric": "The reply reports any detected problems or says nothing looks wrong.",
+      "expected_tool": "system_problems",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 98
+    },
+    {
       "id": "cap98-02",
       "category": "system_status",
       "prompt": "Do you see anything unusual",
+      "expected_contains": [],
+      "expected_keywords": [
+        "normal|thing|things"
+      ],
+      "rubric": "The reply reports any detected problems or says nothing looks wrong.",
+      "expected_tool": "system_problems",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 98
+    },
+    {
+      "id": "cap98-02-p1",
+      "category": "system_status",
+      "prompt": "do you see anything unusual going on",
+      "expected_contains": [],
+      "expected_keywords": [
+        "normal|thing|things"
+      ],
+      "rubric": "The reply reports any detected problems or says nothing looks wrong.",
+      "expected_tool": "system_problems",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 98
+    },
+    {
+      "id": "cap98-02-p2",
+      "category": "system_status",
+      "prompt": "anything weird going on with my system",
       "expected_contains": [],
       "expected_keywords": [
         "normal|thing|things"
@@ -3877,6 +3937,32 @@
       "capability": 100
     },
     {
+      "id": "cap100-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what should i know",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply gives a proactive summary of what to know.",
+      "expected_tool": "heads_up",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 100
+    },
+    {
+      "id": "cap100-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you give me a heads up please",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply gives a proactive summary of what to know.",
+      "expected_tool": "heads_up",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 100
+    },
+    {
       "id": "cap96-01",
       "category": "files_and_productivity",
       "prompt": "Add the dentist to my calendar for Friday at 3 pm",
@@ -3899,6 +3985,36 @@
       "id": "cap96-02",
       "category": "files_and_productivity",
       "prompt": "Brief me on my dentist appointment",
+      "expected_contains": [],
+      "expected_keywords": [
+        "friday"
+      ],
+      "rubric": "The reply briefs the user on the dentist appointment.",
+      "expected_tool": "meeting_brief",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 96
+    },
+    {
+      "id": "cap96-02-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey tell me about my dentist appointment",
+      "expected_contains": [],
+      "expected_keywords": [
+        "friday"
+      ],
+      "rubric": "The reply briefs the user on the dentist appointment.",
+      "expected_tool": "meeting_brief",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 96
+    },
+    {
+      "id": "cap96-02-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you brief me on my dentist appointment please",
       "expected_contains": [],
       "expected_keywords": [
         "friday"
@@ -4664,6 +4780,36 @@
       "id": "cap97-x2",
       "category": "files_and_productivity",
       "prompt": "What do you know about window seats",
+      "expected_contains": [],
+      "expected_keywords": [
+        "window"
+      ],
+      "rubric": "The reply recalls the remembered preference about window seats.",
+      "expected_tool": "recall_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 97
+    },
+    {
+      "id": "cap97-x2-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what did i tell you about window seats",
+      "expected_contains": [],
+      "expected_keywords": [
+        "window"
+      ],
+      "rubric": "The reply recalls the remembered preference about window seats.",
+      "expected_tool": "recall_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 97
+    },
+    {
+      "id": "cap97-x2-p2",
+      "category": "files_and_productivity",
+      "prompt": "do you know anything about window seats",
       "expected_contains": [],
       "expected_keywords": [
         "window"

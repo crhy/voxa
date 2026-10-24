@@ -132,10 +132,10 @@ _WHY_MEMORY = re.compile(
     re.IGNORECASE,
 )
 _TROUBLE = re.compile(
-    r"(?:is |do you (?:see|notice|think) )?(?:anything|something) (?:wrong|unusual|odd|weird|amiss)(?: with (?:my|the|this) (?:computer|pc|system|machine))?"
-    r"|(?:is|do you (?:see|notice) )?there (?:anything|something) (?:wrong|unusual|odd|weird)"
+    r"(?:is |do you (?:see|notice|think) )?(?:anything|something) (?:wrong|unusual|odd|weird|amiss)(?: going on)?(?: with (?:my|the|this) (?:computer|pc|system|machine))?"
+    r"|(?:is |do you (?:see|notice) )?there (?:anything|something) (?:wrong|unusual|odd|weird)(?: with (?:my|the|this) (?:computer|pc|system|machine))?(?: going on)?"
     r"|any (?:problems|issues|trouble|errors|warnings)(?: with (?:my|the|this) (?:computer|pc|system|machine))?"
-    r"|(?:diagnose|troubleshoot|check for problems|check for issues) (?:the|my|this)? ?(?:pc|computer|system|machine|it)?",
+    r"|(?:diagnose|troubleshoot|check for problems|check for issues)(?: with| on)? (?:the|my|this)? ?(?:pc|computer|system|machine|it)?",
     re.IGNORECASE,
 )
 _SET_GITHUB_OWNER = re.compile(
@@ -908,8 +908,9 @@ _MEMORY_REMEMBER = re.compile(
 )
 _MEMORY_RECALL = re.compile(
     r"what do you (?:remember|know) about (?P<t1>.+)"
-    r"|do you remember (?:anything about )?(?P<t2>.+)"
-    r"|what did i (?:tell you|say) about (?P<t3>.+)",
+    r"|do you (?:remember|know) (?:anything about )?(?P<t2>.+)"
+    r"|what did i (?:tell you|say) about (?P<t3>.+)"
+    r"|tell me what you (?:remember|know) about (?P<t4>.+)",
     re.IGNORECASE,
 )
 _MEMORY_LIST = re.compile(
@@ -1593,7 +1594,7 @@ def route(text: str) -> ToolCall | None:
         return call("remember_fact", fact=mem_remember.group("fact"))
     mem_recall = _MEMORY_RECALL.fullmatch(s)
     if mem_recall:
-        return call("recall_fact", topic=mem_recall.group("t1") or mem_recall.group("t2") or mem_recall.group("t3"))
+        return call("recall_fact", topic=mem_recall.group("t1") or mem_recall.group("t2") or mem_recall.group("t3") or mem_recall.group("t4"))
     if _MEMORY_LIST.fullmatch(s):
         return call("list_facts")
     mem_forget = _MEMORY_FORGET.fullmatch(s)
