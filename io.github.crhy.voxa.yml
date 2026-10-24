@@ -101,8 +101,8 @@ modules:
     buildsystem: simple
     sources:
       - type: archive
-        url: https://github.com/crhy/voxa/releases/download/faces-1/voxa-faces-1.tar.gz
-        sha256: 4b092abee4785b92a8100c0b0cd0db6ec24fd3c21cefbf7ba371158e0e42b9ee
+        url: https://github.com/crhy/voxa/releases/download/faces-2/voxa-faces-2.tar.gz
+        sha256: 3d15bef1c3f4f43f9e95e435aeed9008b572fb860550ed536d64d0230e7c510e
         strip-components: 0
     build-commands:
       - install -d /app/share/voxa/faces
