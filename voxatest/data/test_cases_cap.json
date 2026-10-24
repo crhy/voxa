@@ -2486,6 +2486,36 @@
         "file_lacks": "## Rome"
       },
       "capability": 41
+    },
+    {
+      "id": "cap09-01",
+      "category": "files_and_productivity",
+      "prompt": "what is the capital of Italy",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Rome"
+      ],
+      "rubric": "The reply answers the knowledge question so the conversation has something to summarise.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 9
+    },
+    {
+      "id": "cap09-02",
+      "category": "files_and_productivity",
+      "prompt": "summarize our conversation",
+      "expected_contains": [],
+      "expected_keywords": [
+        "talked|decided"
+      ],
+      "rubric": "The reply reads back decisions and action items from the conversation, or says there is not much to summarise yet.",
+      "expected_tool": "conversation_summary",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 9
     }
   ]
 }

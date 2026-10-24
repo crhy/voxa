@@ -34,6 +34,7 @@ from .agent.tools import (  # noqa: E402
     anc,
     compiz,
     contacts,
+    convosummary,
     default_registry,
     github,
     media,
@@ -391,6 +392,8 @@ class MainWindow(Adw.ApplicationWindow):
         contacts.save_contacts = self._save_contacts
         textedit.read_clipboard = clipboard.read_text
         translate.ask_model = lambda messages: textedit.ask_model(messages)
+        convosummary.ask_model = lambda messages: textedit.ask_model(messages)
+        convosummary.get_history = lambda: list(self._conversation_history.messages() or [])
         projectsteps.ask_model = lambda messages: textedit.ask_model(messages)
         trips.ask_model = lambda messages: textedit.ask_model(messages)
         translate.speak_in = self._speak_next_reply_in

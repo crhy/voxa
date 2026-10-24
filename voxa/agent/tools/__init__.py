@@ -12,6 +12,7 @@ from voxa.agent.tools.camera import camera_tools
 from voxa.agent.tools.compiz import compiz_tools
 from voxa.agent.tools.contacts import contact_tools
 from voxa.agent.tools.convert import convert_tools
+from voxa.agent.tools.convosummary import convosummary_tools
 from voxa.agent.tools.databackup import databackup_tools
 from voxa.agent.tools.dates import date_tools
 from voxa.agent.tools.deals import deal_tools
@@ -72,6 +73,7 @@ def default_registry() -> ToolRegistry:
         *reminders_tools(),
         *notes_tools(),
         *list_tools(),
+        *convosummary_tools(),
         *trip_tools(),
         *project_steps_tools(),
         *databackup_tools(),

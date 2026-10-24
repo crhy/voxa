@@ -236,6 +236,7 @@ def test_registry_lists_all_tools():
             "compare_prices",
             "compiz_control",
             "compose_gmail",
+            "conversation_summary",
             "convert_file",
             "copy_file",
             "cpu_status",

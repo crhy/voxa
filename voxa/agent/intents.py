@@ -649,6 +649,12 @@ _LIST_KNOWN = r"to[- ]?do|todo|task|tasks|shopping|grocery|groceries"
 _LIST = rf"(?:my |the )?(?:(?:{_LIST_KNOWN})(?: list)?|(?!clipboard\b)[a-z]+ list)"
 _LIST_NAMED = rf"(?:my |the )?(?:{_LIST_KNOWN}|(?!clipboard\b)[a-z]+) list"
 _LIST_ADD = re.compile(rf"(?:add|put) (?P<item>.+?) (?:to|on) (?P<list>{_LIST})", re.IGNORECASE)
+_CONVO_SUMMARY = re.compile(
+    r"(?:summarize|summarise|sum up|recap)(?: (?:our|the|this|my))? conversation"
+    r"|what did we (?:decide|agree)(?: on)?"
+    r"|what are my action items(?: from (?:this|our) conversation)?",
+    re.IGNORECASE,
+)
 _TRIP_DAYS = r"one|two|three|four|five|six|seven|weekend"
 _TRIP_NOUN = r"trip|trips|itinerary|itineraries|getaway|getaways|vacation|vacations|holiday|holidays|weekend"
 _TRIP_PLAN = re.compile(
@@ -1102,6 +1108,7 @@ ROUTED_TOOLS = frozenset(
         "delete_last_note",
         "open_notes",
         "list_add",
+        "conversation_summary",
         "trip_plan",
         "trip_read",
         "trip_forget",
@@ -1613,6 +1620,8 @@ def route(text: str) -> ToolCall | None:
     trip_forget = _TRIP_FORGET.fullmatch(s)
     if trip_forget:
         return call("trip_forget", place=trip_forget.group("place").strip())
+    if _CONVO_SUMMARY.fullmatch(s):
+        return call("conversation_summary")
     list_add = _LIST_ADD.fullmatch(s)
     if list_add:
         return call("list_add", item=list_add.group("item"), list=_list_word(list_add.group("list")))
