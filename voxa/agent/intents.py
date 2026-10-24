@@ -649,6 +649,15 @@ _LIST_KNOWN = r"to[- ]?do|todo|task|tasks|shopping|grocery|groceries"
 _LIST = rf"(?:my |the )?(?:(?:{_LIST_KNOWN})(?: list)?|(?!clipboard\b)[a-z]+ list)"
 _LIST_NAMED = rf"(?:my |the )?(?:{_LIST_KNOWN}|(?!clipboard\b)[a-z]+(?: plan)?) list"
 _LIST_ADD = re.compile(rf"(?:add|put) (?P<item>.+?) (?:to|on) (?P<list>{_LIST})", re.IGNORECASE)
+_TRAVEL_OPTIONS = re.compile(
+    r"(?:"
+    r"(?:my |the )?(?P<what>flight|train|bus|connection) (?:to|for) (?P<place>.+?) "
+    r"(?:was |got |is )?(?P<problem>cancelled|canceled|delayed)"
+    r"|(?:i )?missed (?:my |the )?(?P<what2>flight|train|bus|connection) (?:to|for) (?P<place2>.+)"
+    r")"
+    r"(?:\s+(?:what are my options|what can i do|options|what now).*)?",
+    re.IGNORECASE,
+)
 _DOC_EXTRACT = re.compile(
     r"(?:"
     r"what (?:are|is) the (?:dates?|amounts?|details?|important details?)"
@@ -1159,6 +1168,7 @@ ROUTED_TOOLS = frozenset(
         "travel_doc_forget",
         "travel_doc_list",
         "travel_doc_when",
+        "travel_options",
         "backup_now",
         "backup_last",
         "sort_folder_preview",
@@ -1691,6 +1701,12 @@ def route(text: str) -> ToolCall | None:
         found = doc_extract.groupdict()
         name = next(found[key] for key in ("n1", "n2", "n3") if found[key])
         return call("doc_extract", name=name.strip())
+    travel = _TRAVEL_OPTIONS.fullmatch(s)
+    if travel:
+        found = travel.groupdict()
+        if found["what"]:
+            return call("travel_options", what=found["what"], place=found["place"].strip(), problem=found["problem"])
+        return call("travel_options", what=found["what2"], place=found["place2"].strip(), problem="missed")
     list_add = _LIST_ADD.fullmatch(s)
     if list_add:
         return call("list_add", item=list_add.group("item"), list=_list_word(list_add.group("list")))

@@ -2694,6 +2694,46 @@
           "to": "~/Documents/invoice-sample.txt"
         }
       ]
+    },
+    {
+      "id": "cap50-01",
+      "category": "travel",
+      "prompt": "my flight to Denver was cancelled",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Sorry",
+        "options"
+      ],
+      "rubric": "The reply apologises and gives 3 rebooking options for the cancelled flight.",
+      "expected_tool": "travel_options",
+      "expected_args": {
+        "what": "flight",
+        "place": "Denver",
+        "problem": "cancelled"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 50
+    },
+    {
+      "id": "cap50-02",
+      "category": "travel",
+      "prompt": "I missed my connection to Chicago",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Sorry",
+        "options"
+      ],
+      "rubric": "The reply apologises and gives 3 rebooking options for the missed connection.",
+      "expected_tool": "travel_options",
+      "expected_args": {
+        "what": "connection",
+        "place": "Chicago",
+        "problem": "missed"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 50
     }
   ]
 }

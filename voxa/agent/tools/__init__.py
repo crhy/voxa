@@ -40,6 +40,7 @@ from voxa.agent.tools.notes import notes_tools
 from voxa.agent.tools.projectsteps import project_steps_tools
 from voxa.agent.tools.radio import radio_tools
 from voxa.agent.tools.readfile import readfile_tools
+from voxa.agent.tools.rebook import rebook_tools
 from voxa.agent.tools.recite import recite_tools
 from voxa.agent.tools.reminders import reminders_tools
 from voxa.agent.tools.screenshot import screenshot_tools
@@ -81,6 +82,7 @@ def default_registry() -> ToolRegistry:
         *convosummary_tools(),
         *trip_tools(),
         *travel_doc_tools(),
+        *rebook_tools(),
         *project_steps_tools(),
         *databackup_tools(),
         *meals_tools(),

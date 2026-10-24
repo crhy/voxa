@@ -388,6 +388,7 @@ def test_registry_lists_all_tools():
             "travel_doc_forget",
             "travel_doc_list",
             "travel_doc_when",
+            "travel_options",
             "trip_cost",
             "trip_forget",
             "trip_plan",
