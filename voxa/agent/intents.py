@@ -649,6 +649,13 @@ _LIST_KNOWN = r"to[- ]?do|todo|task|tasks|shopping|grocery|groceries"
 _LIST = rf"(?:my |the )?(?:(?:{_LIST_KNOWN})(?: list)?|(?!clipboard\b)[a-z]+ list)"
 _LIST_NAMED = rf"(?:my |the )?(?:{_LIST_KNOWN}|(?!clipboard\b)[a-z]+(?: plan)?) list"
 _LIST_ADD = re.compile(rf"(?:add|put) (?P<item>.+?) (?:to|on) (?P<list>{_LIST})", re.IGNORECASE)
+_PRESENTATION = re.compile(
+    r"(?:make|create|build|give|do)\s+(?:me\s+)?(?:a\s+)?"
+    r"(?:(?P<count>\d+|one|two|three|four|five|six|seven|eight)\s+slides?"
+    r"|presentation|slide\s+deck|deck|slides?)\s+"
+    r"(?:about|on|regarding)\s+(?P<topic>.+)",
+    re.IGNORECASE,
+)
 _FINANCE_SORT = re.compile(
     r"(?:organise|organize|sort|file) (?:my |the )?(?:financial|finance) (?:documents?|docs?|papers?)",
     re.IGNORECASE,
@@ -1177,7 +1184,7 @@ ROUTED_TOOLS = frozenset(
         "delete_last_note",
         "open_notes",
         "list_add",
-        "finance_sort",
+        "presentation_make",
         "finance_undo",
         "finance_count",
         "family_add",
@@ -1759,6 +1766,13 @@ def route(text: str) -> ToolCall | None:
     if finance_count:
         kind = finance_count.group("kind1") or finance_count.group("kind2")
         return call("finance_count", kind=kind)
+    presentation = _PRESENTATION.fullmatch(s)
+    if presentation:
+        return call(
+            "presentation_make",
+            topic=presentation.group("topic").strip(),
+            count=presentation.group("count") or "",
+        )
     list_add = _LIST_ADD.fullmatch(s)
     if list_add:
         return call("list_add", item=list_add.group("item"), list=_list_word(list_add.group("list")))

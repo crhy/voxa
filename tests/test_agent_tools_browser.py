@@ -339,6 +339,7 @@ def test_registry_lists_all_tools():
             "play_tv",
             "play_video",
             "play_youtube",
+            "presentation_make",
             "press_button",
             "press_key",
             "project_status",

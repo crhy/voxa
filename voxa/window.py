@@ -42,6 +42,7 @@ from .agent.tools import (  # noqa: E402
     media,
     projectsteps,
     rebook,
+    slides,
     textedit,
     transcribe_file,
     translate,
@@ -402,6 +403,7 @@ class MainWindow(Adw.ApplicationWindow):
         trips.ask_model = lambda messages: textedit.ask_model(messages)
         extract.ask_model = lambda messages: textedit.ask_model(messages)
         rebook.ask_model = lambda messages: textedit.ask_model(messages)
+        slides.ask_model = lambda messages: textedit.ask_model(messages)
         translate.speak_in = self._speak_next_reply_in
         briefing_tool.get_location = lambda: self.settings.home_location
         anc.get_echo_mode = lambda: getattr(self.settings, "echo_mode", "voxa")

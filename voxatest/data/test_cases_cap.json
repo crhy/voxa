@@ -2899,6 +2899,46 @@
           "remove": "~/Downloads/receipt-hardware-store.txt"
         }
       ]
+    },
+    {
+      "id": "cap77-01",
+      "category": "files_and_productivity",
+      "prompt": "make me a presentation about solar power",
+      "expected_contains": [],
+      "expected_keywords": [
+        "slides"
+      ],
+      "rubric": "The reply confirms a slide deck about solar power was made and opened in LibreOffice.",
+      "expected_tool": "presentation_make",
+      "expected_args": {
+        "topic": "solar power"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Drafts/solar-power slides.odp"
+      },
+      "capability": 77,
+      "vm_only": true
+    },
+    {
+      "id": "cap77-02",
+      "category": "files_and_productivity",
+      "prompt": "create a slide deck about the water cycle",
+      "expected_contains": [],
+      "expected_keywords": [
+        "slides"
+      ],
+      "rubric": "The reply confirms a slide deck about the water cycle was made and opened in LibreOffice.",
+      "expected_tool": "presentation_make",
+      "expected_args": {
+        "topic": "the water cycle"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Drafts/the-water-cycle slides.odp"
+      },
+      "capability": 77,
+      "vm_only": true
     }
   ]
 }
