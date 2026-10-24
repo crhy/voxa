@@ -10,6 +10,10 @@ import pytest
 
 os.environ["PULSE_SERVER"] = "unix:/nonexistent-voxa-tests"
 os.environ["VOXA_NO_WELCOME"] = "1"
+# GTK's software renderer: under xvfb the GPU renderer took several GB outside the test process and grew through
+# the suite (on top of a local AI server's locked memory this locked up the PC on 2026-10-23), then crashed in
+# window creation after a reboot. With cairo the whole suite uses about 1 GB and runs in 75 s instead of 2-4 min.
+os.environ["GSK_RENDERER"] = "cairo"
 
 
 @pytest.fixture(autouse=True)
