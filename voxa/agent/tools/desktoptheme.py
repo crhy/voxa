@@ -50,7 +50,11 @@ def change_theme(args: dict[str, str]) -> ToolResult:
         if _run(command, check=False).returncode != 0:
             return ToolResult.failure(f"I couldn't switch to {theme['name']}.")
 
-    _run(["/usr/local/bin/spaced-switch-theme", theme["id"]], check=False)
+    # Panels, wallpaper and dock can take longer than _run's 5 s limit (Spaced #181), so this is
+    # started without waiting for it.
+    from voxa.agent import host
+
+    host.spawn(["/usr/local/bin/spaced-switch-theme", theme["id"]])
     return ToolResult.success(f"Switching to {theme['name']}.")
 
 

@@ -93,6 +93,8 @@ def test_change_theme_order(monkeypatch):
     }
     calls: list[list[str]] = []
     monkeypatch.setattr("voxa.agent.tools.windows._run", _fake_run(files, calls))
+    # spaced-switch-theme is started without waiting (it can outlast _run's 5 s timeout)
+    monkeypatch.setattr("voxa.agent.host.spawn", lambda command: calls.append(command) or True)
 
     result = change_theme({"name": "windows 7 dark"})
     assert result.ok and result.speech == "Switching to Spaced Win7Aero Dark."
