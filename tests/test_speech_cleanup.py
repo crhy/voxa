@@ -203,7 +203,7 @@ def test_natural_fallback_uses_google_voice_before_espeak(monkeypatch):
     monkeypatch.setattr(
         speech_mod,
         "_download_google_voice",
-        lambda _text, path: Path(path).write_bytes(b"natural audio"),
+        lambda _text, path, *_rest: Path(path).write_bytes(b"natural audio"),
     )
     monkeypatch.setattr(speech_mod, "_ui_once", lambda callback, *args: callback(*args))
     monkeypatch.setattr(service, "_play_file", lambda path, event: played.append((path, event)))
@@ -223,7 +223,7 @@ def test_strict_voice_mode_rejects_robotic_fallback(monkeypatch):
     service._on_error = errors.append
     service._finished = False
 
-    def fail_google_voice(_text, _path):
+    def fail_google_voice(_text, _path, *_rest):
         raise RuntimeError("provider unavailable")
 
     monkeypatch.setattr(speech_mod, "_download_google_voice", fail_google_voice)

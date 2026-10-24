@@ -124,6 +124,13 @@ TTS_VOICES = [
     ("Katja — Germany female", "de-DE-KatjaNeural"),
     ("Keita — Japan male", "ja-JP-KeitaNeural"),
     ("Nanami — Japan female", "ja-JP-NanamiNeural"),
+    ("Christopher — US male", "en-US-ChristopherNeural"),
+    ("Neerja — India female", "en-IN-NeerjaNeural"),
+    ("Prabhat — India male", "en-IN-PrabhatNeural"),
+    ("Ezinne — Nigeria female", "en-NG-EzinneNeural"),
+    ("Abeo — Nigeria male", "en-NG-AbeoNeural"),
+    ("Zariyah — Saudi Arabia female", "ar-SA-ZariyahNeural"),
+    ("Hamed — Saudi Arabia male", "ar-SA-HamedNeural"),
 ]
 # A few turns of history keeps the model aware of what was just said without
 # letting a long hands-free session grow the prompt unboundedly.
