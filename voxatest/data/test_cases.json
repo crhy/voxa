@@ -391,6 +391,40 @@
       "verify": {}
     },
     {
+      "id": "files-04-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey make a note to buy milk",
+      "expected_contains": [],
+      "expected_keywords": [
+        "milk"
+      ],
+      "rubric": "The reply confirms creating or opening a note containing buy milk.",
+      "expected_tool": "take_note",
+      "expected_args": {
+        "text": "buy milk"
+      },
+      "after": "",
+      "capability": 30,
+      "verify": {}
+    },
+    {
+      "id": "files-04-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you take a note to buy milk",
+      "expected_contains": [],
+      "expected_keywords": [
+        "milk"
+      ],
+      "rubric": "The reply confirms creating or opening a note containing buy milk.",
+      "expected_tool": "take_note",
+      "expected_args": {
+        "text": "buy milk"
+      },
+      "after": "",
+      "capability": 30,
+      "verify": {}
+    },
+    {
       "id": "files-05",
       "category": "files_and_productivity",
       "prompt": "Compose a new email",

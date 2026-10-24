@@ -21,9 +21,89 @@
       "capability": 21
     },
     {
+      "id": "cap21-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey add buy stamps to my to do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "stamps"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {
+        "item": "buy stamps"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Buy stamps"
+      },
+      "capability": 21
+    },
+    {
+      "id": "cap21-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you add buy stamps to my to-do list please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "stamps"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {
+        "item": "buy stamps"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Buy stamps"
+      },
+      "capability": 21
+    },
+    {
       "id": "cap21-02",
       "category": "files_and_productivity",
       "prompt": "Add pay the rent to my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "rent"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {
+        "item": "pay the rent"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Pay the rent"
+      },
+      "capability": 21
+    },
+    {
+      "id": "cap21-02-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey add pay the rent to my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "rent"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {
+        "item": "pay the rent"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Pay the rent"
+      },
+      "capability": 21
+    },
+    {
+      "id": "cap21-02-p2",
+      "category": "files_and_productivity",
+      "prompt": "please add pay the rent to my to do list",
       "expected_contains": [],
       "expected_keywords": [
         "rent"
@@ -57,6 +137,38 @@
       "capability": 21
     },
     {
+      "id": "cap21-03-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what's on my to do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "stamps",
+        "rent"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_read",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 21
+    },
+    {
+      "id": "cap21-03-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you show me my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "stamps",
+        "rent"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_read",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 21
+    },
+    {
       "id": "cap21-04",
       "category": "files_and_productivity",
       "prompt": "Mark buy stamps as done",
@@ -75,9 +187,81 @@
       "capability": 21
     },
     {
+      "id": "cap21-04-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey mark buy stamps as done",
+      "expected_contains": [],
+      "expected_keywords": [
+        "done"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_done",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[x] Buy stamps"
+      },
+      "capability": 21
+    },
+    {
+      "id": "cap21-04-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you check off buy stamps from my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "done"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_done",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[x] Buy stamps"
+      },
+      "capability": 21
+    },
+    {
       "id": "cap21-05",
       "category": "files_and_productivity",
       "prompt": "Clear my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared|clear"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_lacks": "pay the rent"
+      },
+      "capability": 21
+    },
+    {
+      "id": "cap21-05-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey clear my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared|clear"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_lacks": "pay the rent"
+      },
+      "capability": 21
+    },
+    {
+      "id": "cap21-05-p2",
+      "category": "files_and_productivity",
+      "prompt": "please empty my to-do list",
       "expected_contains": [],
       "expected_keywords": [
         "cleared|clear"
@@ -583,9 +767,79 @@
       "capability": 19
     },
     {
+      "id": "cap19-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey the report is due on friday",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_remember",
+      "expected_args": {
+        "kind": "deadline"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Dates.md",
+        "file_contains": "deadline"
+      },
+      "capability": 19
+    },
+    {
+      "id": "cap19-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "please remember the report deadline is friday",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_remember",
+      "expected_args": {
+        "kind": "deadline"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Dates.md",
+        "file_contains": "deadline"
+      },
+      "capability": 19
+    },
+    {
       "id": "cap19-02",
       "category": "files_and_productivity",
       "prompt": "When is the report due",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_when",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 19
+    },
+    {
+      "id": "cap19-02-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey when is the report due",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_when",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 19
+    },
+    {
+      "id": "cap19-02-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey when is the report due please",
       "expected_contains": [],
       "expected_keywords": [
         "report"
@@ -613,9 +867,75 @@
       "capability": 19
     },
     {
+      "id": "cap19-03-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what's coming up this week",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_upcoming",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 19
+    },
+    {
+      "id": "cap19-03-p2",
+      "category": "files_and_productivity",
+      "prompt": "what's due soon",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_upcoming",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 19
+    },
+    {
       "id": "cap19-04",
       "category": "files_and_productivity",
       "prompt": "Forget the report deadline",
+      "expected_contains": [],
+      "expected_keywords": [
+        "forgot|forget"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_forget",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Dates.md",
+        "file_lacks": "deadline"
+      },
+      "capability": 19
+    },
+    {
+      "id": "cap19-04-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey forget the report deadline",
+      "expected_contains": [],
+      "expected_keywords": [
+        "forgot|forget"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_forget",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Dates.md",
+        "file_lacks": "deadline"
+      },
+      "capability": 19
+    },
+    {
+      "id": "cap19-04-p2",
+      "category": "files_and_productivity",
+      "prompt": "please forget the report deadline",
       "expected_contains": [],
       "expected_keywords": [
         "forgot|forget"
@@ -927,9 +1247,85 @@
       "capability": 30
     },
     {
+      "id": "cap30-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey remember that the bikes are in the shed",
+      "expected_contains": [],
+      "expected_keywords": [
+        "remember"
+      ],
+      "rubric": "The reply confirms the fact was remembered.",
+      "expected_tool": "remember_fact",
+      "expected_args": {
+        "fact": "the bikes are in the shed"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Memory.md",
+        "file_contains": "bikes"
+      },
+      "capability": 30
+    },
+    {
+      "id": "cap30-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "please keep in mind that the bikes are in the shed",
+      "expected_contains": [],
+      "expected_keywords": [
+        "remember"
+      ],
+      "rubric": "The reply confirms the fact was remembered.",
+      "expected_tool": "remember_fact",
+      "expected_args": {
+        "fact": "the bikes are in the shed"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Memory.md",
+        "file_contains": "bikes"
+      },
+      "capability": 30
+    },
+    {
       "id": "cap30-02",
       "category": "files_and_productivity",
       "prompt": "Remember that the wifi password is on the fridge",
+      "expected_contains": [],
+      "expected_keywords": [
+        "remember"
+      ],
+      "rubric": "The reply confirms the fact was remembered.",
+      "expected_tool": "remember_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Memory.md",
+        "file_contains": "wifi"
+      },
+      "capability": 30
+    },
+    {
+      "id": "cap30-02-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey remember that the wifi password is on the fridge",
+      "expected_contains": [],
+      "expected_keywords": [
+        "remember"
+      ],
+      "rubric": "The reply confirms the fact was remembered.",
+      "expected_tool": "remember_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Memory.md",
+        "file_contains": "wifi"
+      },
+      "capability": 30
+    },
+    {
+      "id": "cap30-02-p2",
+      "category": "files_and_productivity",
+      "prompt": "don't forget that the wifi password is on the fridge",
       "expected_contains": [],
       "expected_keywords": [
         "remember"
@@ -960,9 +1356,69 @@
       "capability": 30
     },
     {
+      "id": "cap30-03-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what do you remember about the bikes",
+      "expected_contains": [],
+      "expected_keywords": [
+        "shed"
+      ],
+      "rubric": "The reply recalls the remembered fact about the spare key.",
+      "expected_tool": "recall_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 30
+    },
+    {
+      "id": "cap30-03-p2",
+      "category": "files_and_productivity",
+      "prompt": "do you remember anything about the bikes",
+      "expected_contains": [],
+      "expected_keywords": [
+        "shed"
+      ],
+      "rubric": "The reply recalls the remembered fact about the spare key.",
+      "expected_tool": "recall_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 30
+    },
+    {
       "id": "cap30-04",
       "category": "files_and_productivity",
       "prompt": "What do you know about the wifi password",
+      "expected_contains": [],
+      "expected_keywords": [
+        "fridge"
+      ],
+      "rubric": "The reply recalls the remembered fact about the car.",
+      "expected_tool": "recall_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 30
+    },
+    {
+      "id": "cap30-04-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what do you know about the wifi password",
+      "expected_contains": [],
+      "expected_keywords": [
+        "fridge"
+      ],
+      "rubric": "The reply recalls the remembered fact about the car.",
+      "expected_tool": "recall_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 30
+    },
+    {
+      "id": "cap30-04-p2",
+      "category": "files_and_productivity",
+      "prompt": "do you remember anything about the wifi password",
       "expected_contains": [],
       "expected_keywords": [
         "fridge"
@@ -990,9 +1446,75 @@
       "capability": 30
     },
     {
+      "id": "cap30-05-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what do you remember",
+      "expected_contains": [],
+      "expected_keywords": [
+        "things"
+      ],
+      "rubric": "The reply lists everything remembered.",
+      "expected_tool": "list_facts",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 30
+    },
+    {
+      "id": "cap30-05-p2",
+      "category": "files_and_productivity",
+      "prompt": "what have I told you",
+      "expected_contains": [],
+      "expected_keywords": [
+        "things"
+      ],
+      "rubric": "The reply lists everything remembered.",
+      "expected_tool": "list_facts",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 30
+    },
+    {
       "id": "cap30-06",
       "category": "files_and_productivity",
       "prompt": "Forget about the bikes",
+      "expected_contains": [],
+      "expected_keywords": [
+        "forgotten"
+      ],
+      "rubric": "The reply confirms the fact was forgotten.",
+      "expected_tool": "forget_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Memory.md",
+        "file_lacks": "bikes"
+      },
+      "capability": 30
+    },
+    {
+      "id": "cap30-06-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey forget about the bikes",
+      "expected_contains": [],
+      "expected_keywords": [
+        "forgotten"
+      ],
+      "rubric": "The reply confirms the fact was forgotten.",
+      "expected_tool": "forget_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Memory.md",
+        "file_lacks": "bikes"
+      },
+      "capability": 30
+    },
+    {
+      "id": "cap30-06-p2",
+      "category": "files_and_productivity",
+      "prompt": "please forget what I said about the bikes",
       "expected_contains": [],
       "expected_keywords": [
         "forgotten"
@@ -1026,9 +1548,81 @@
       "capability": 30
     },
     {
+      "id": "cap30-07-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey forget about the wifi password",
+      "expected_contains": [],
+      "expected_keywords": [
+        "forgotten"
+      ],
+      "rubric": "The reply confirms the fact was forgotten.",
+      "expected_tool": "forget_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Memory.md",
+        "file_lacks": "wifi"
+      },
+      "capability": 30
+    },
+    {
+      "id": "cap30-07-p2",
+      "category": "files_and_productivity",
+      "prompt": "please forget what I told you about the wifi password",
+      "expected_contains": [],
+      "expected_keywords": [
+        "forgotten"
+      ],
+      "rubric": "The reply confirms the fact was forgotten.",
+      "expected_tool": "forget_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Memory.md",
+        "file_lacks": "wifi"
+      },
+      "capability": 30
+    },
+    {
       "id": "cap26-01",
       "category": "files_and_productivity",
       "prompt": "Add finish the report to my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Finish the report"
+      },
+      "capability": 26
+    },
+    {
+      "id": "cap26-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey add finish the report to my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Finish the report"
+      },
+      "capability": 26
+    },
+    {
+      "id": "cap26-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you add finish the report to my to do list",
       "expected_contains": [],
       "expected_keywords": [
         "report"
@@ -1062,9 +1656,81 @@
       "capability": 26
     },
     {
+      "id": "cap26-02-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey add water the plants to my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "plants"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Water the plants"
+      },
+      "capability": 26
+    },
+    {
+      "id": "cap26-02-p2",
+      "category": "files_and_productivity",
+      "prompt": "please add water the plants to my to do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "plants"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Water the plants"
+      },
+      "capability": 26
+    },
+    {
       "id": "cap26-03",
       "category": "files_and_productivity",
       "prompt": "Mark finish the report as done",
+      "expected_contains": [],
+      "expected_keywords": [
+        "done"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_done",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[x] Finish the report"
+      },
+      "capability": 26
+    },
+    {
+      "id": "cap26-03-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey mark finish the report as done",
+      "expected_contains": [],
+      "expected_keywords": [
+        "done"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_done",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[x] Finish the report"
+      },
+      "capability": 26
+    },
+    {
+      "id": "cap26-03-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you check off finish the report from my to-do list",
       "expected_contains": [],
       "expected_keywords": [
         "done"
@@ -1096,6 +1762,38 @@
       "capability": 26
     },
     {
+      "id": "cap26-04-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey how am I doing",
+      "expected_contains": [],
+      "expected_keywords": [
+        "finished",
+        "open"
+      ],
+      "rubric": "The reply reports progress on the to-do list.",
+      "expected_tool": "list_progress",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 26
+    },
+    {
+      "id": "cap26-04-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you give me a progress report",
+      "expected_contains": [],
+      "expected_keywords": [
+        "finished",
+        "open"
+      ],
+      "rubric": "The reply reports progress on the to-do list.",
+      "expected_tool": "list_progress",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 26
+    },
+    {
       "id": "cap26-05",
       "category": "files_and_productivity",
       "prompt": "What's still open",
@@ -1111,9 +1809,69 @@
       "capability": 26
     },
     {
+      "id": "cap26-05-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what's still open",
+      "expected_contains": [],
+      "expected_keywords": [
+        "open"
+      ],
+      "rubric": "The reply counts the open items.",
+      "expected_tool": "list_pending",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 26
+    },
+    {
+      "id": "cap26-05-p2",
+      "category": "files_and_productivity",
+      "prompt": "what do I still have to do",
+      "expected_contains": [],
+      "expected_keywords": [
+        "open"
+      ],
+      "rubric": "The reply counts the open items.",
+      "expected_tool": "list_pending",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 26
+    },
+    {
       "id": "cap26-06",
       "category": "files_and_productivity",
       "prompt": "What should I do next",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report|plants"
+      ],
+      "rubric": "The reply suggests the next open task.",
+      "expected_tool": "list_next",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 26
+    },
+    {
+      "id": "cap26-06-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what should I do next",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report|plants"
+      ],
+      "rubric": "The reply suggests the next open task.",
+      "expected_tool": "list_next",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 26
+    },
+    {
+      "id": "cap26-06-p2",
+      "category": "files_and_productivity",
+      "prompt": "what do I do next",
       "expected_contains": [],
       "expected_keywords": [
         "report|plants"
