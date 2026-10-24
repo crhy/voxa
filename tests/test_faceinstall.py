@@ -181,3 +181,33 @@ def test_install_no_done():
 
 def test_script_syntax():
     subprocess.run(["bash", "-n", "-c", INSTALL_SCRIPT], check=True)
+
+
+def test_install_refuses_when_the_disk_is_too_full():
+    from voxa.faceinstall import install
+
+    m = Manifest(version="1", download_bytes=5 * 10**9, install_bytes=9 * 10**9, parts=(Part("p0", "https://x", 1, SHA_A),))
+
+    def no_popen(*_args, **_kwargs):
+        raise AssertionError("must not start the download")
+
+    ok, message = install(m, lambda *_a: None, threading.Event(), popen=no_popen, free_bytes=lambda: 3 * 10**9)
+    assert not ok
+    assert message == "The High face needs about 14 GB of free disk space, and there is 3 GB."
+
+
+def test_cancel_stops_the_background_download(tmp_path):
+    # The script's trap must take its background jobs down with it (a cancelled install must not keep downloading).
+    from voxa.faceinstall import INSTALL_SCRIPT
+
+    trap = next(line for line in INSTALL_SCRIPT.splitlines() if line.startswith("trap "))
+    marker = tmp_path / "still-running"
+    script = f"{trap}\n(sleep 2; touch {marker}) &\nwhile :; do sleep 0.2; done\n"  # polls like the real script
+    proc = subprocess.Popen(["bash", "-c", script])
+    import time
+
+    time.sleep(0.5)
+    proc.terminate()
+    proc.wait(timeout=5)
+    time.sleep(2.5)
+    assert not marker.exists()

@@ -24,6 +24,8 @@ _SHA_RE = re.compile(r"\A[0-9a-fA-F]{64}\Z")
 # usage: bash -c INSTALL_SCRIPT bash <version> <part count> <name> <url> <bytes> <sha256> ... <path> <url> <bytes> <sha256> ...
 INSTALL_SCRIPT = r'''
 set -u
+# Cancelling stops the download too, not only this script.
+trap 'kill $(jobs -p) 2>/dev/null; exit 1' TERM INT HUP
 FH=$HOME/.local/share/voxa/face-server
 DL=$FH.download
 NEW=$FH.new
@@ -168,12 +170,36 @@ def install_command(manifest: Manifest) -> list[str]:
     return host_command(["bash", "-c", INSTALL_SCRIPT, "bash", *args])
 
 
+def home_free_bytes() -> int | None:
+    """Free bytes on the host's home file system (where the face server goes); None when unknown."""
+    try:
+        result = subprocess.run(
+            host_command(["sh", "-c", 'df --output=avail -B1 "$HOME" | tail -n 1']),
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=True,
+        )
+        return int(result.stdout.strip())
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return None
+
+
 def install(
     manifest: Manifest,
     on_progress: Callable[[float, str], None],
     cancel: threading.Event,
     popen=subprocess.Popen,
+    free_bytes: Callable[[], int | None] | None = None,
 ) -> tuple[bool, str]:
+    # The parts and the unpacked server are on disk together for a moment.
+    needed = manifest.download_bytes + manifest.install_bytes
+    free = (free_bytes or home_free_bytes)()
+    if free is not None and free < needed:
+        return (
+            False,
+            f"The High face needs about {needed / 1e9:.0f} GB of free disk space, and there is {free / 1e9:.0f} GB.",
+        )
     proc = popen(
         install_command(manifest),
         stdout=subprocess.PIPE,
