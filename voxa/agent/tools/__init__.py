@@ -21,6 +21,7 @@ from voxa.agent.tools.devstatus import devstatus_tools
 from voxa.agent.tools.events import event_tools
 from voxa.agent.tools.expenses import expense_tools
 from voxa.agent.tools.extract import extract_tools
+from voxa.agent.tools.family import family_tools
 from voxa.agent.tools.filemanage import file_manage_tools
 from voxa.agent.tools.files import file_dialog_tools
 from voxa.agent.tools.github import github_tools
@@ -77,6 +78,7 @@ def default_registry() -> ToolRegistry:
         *reminders_tools(),
         *notes_tools(),
         *list_tools(),
+        *family_tools(),
         *extract_tools(),
         *event_tools(),
         *convosummary_tools(),

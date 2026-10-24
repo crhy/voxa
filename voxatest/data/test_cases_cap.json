@@ -2734,6 +2734,81 @@
       "after": "",
       "verify": {},
       "capability": 50
+    },
+    {
+      "id": "cap66-01",
+      "category": "files_and_productivity",
+      "prompt": "add soccer practice for Emma on Tuesday at 5 pm",
+      "expected_contains": [],
+      "expected_keywords": [
+        "soccer"
+      ],
+      "rubric": "The reply confirms the event was added to Emma's schedule.",
+      "expected_tool": "family_add",
+      "expected_args": {
+        "person": "Emma",
+        "event": "soccer practice",
+        "when": "Tuesday at 5 pm"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Calendar.md",
+        "file_contains": "Emma: soccer practice"
+      },
+      "capability": 66
+    },
+    {
+      "id": "cap66-02",
+      "category": "files_and_productivity",
+      "prompt": "what does Emma have this week",
+      "expected_contains": [],
+      "expected_keywords": [
+        "soccer"
+      ],
+      "rubric": "The reply reads back Emma's week.",
+      "expected_tool": "calendar_week",
+      "expected_args": {
+        "person": "Emma"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 66
+    },
+    {
+      "id": "cap66-03",
+      "category": "files_and_productivity",
+      "prompt": "what's on for the family this week",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Emma"
+      ],
+      "rubric": "The reply reads back the family week grouped by member.",
+      "expected_tool": "family_week",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 66
+    },
+    {
+      "id": "cap66-04",
+      "category": "files_and_productivity",
+      "prompt": "remove Emma's soccer practice",
+      "expected_contains": [],
+      "expected_keywords": [
+        "off"
+      ],
+      "rubric": "The reply confirms the event was removed from the schedule.",
+      "expected_tool": "family_remove",
+      "expected_args": {
+        "person": "Emma",
+        "event": "soccer practice"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Calendar.md",
+        "file_lacks": "Emma: soccer practice"
+      },
+      "capability": 66
     }
   ]
 }
