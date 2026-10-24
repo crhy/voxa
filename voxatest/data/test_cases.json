@@ -132,6 +132,38 @@
       "verify": {}
     },
     {
+      "id": "web-03-p1",
+      "category": "web_and_maps",
+      "prompt": "how do I get to the public library",
+      "expected_contains": [],
+      "expected_keywords": [
+        "directions",
+        "library"
+      ],
+      "rubric": "The reply confirms opening directions to a public library.",
+      "expected_tool": "directions",
+      "expected_args": {},
+      "after": "",
+      "capability": 48,
+      "verify": {}
+    },
+    {
+      "id": "web-03-p2",
+      "category": "web_and_maps",
+      "prompt": "please give me directions to the library",
+      "expected_contains": [],
+      "expected_keywords": [
+        "directions",
+        "library"
+      ],
+      "rubric": "The reply confirms opening directions to a public library.",
+      "expected_tool": "directions",
+      "expected_args": {},
+      "after": "",
+      "capability": 48,
+      "verify": {}
+    },
+    {
       "id": "web-04",
       "category": "web_and_maps",
       "prompt": "Find the nearest pharmacy",

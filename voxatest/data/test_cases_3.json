@@ -20,6 +20,38 @@
       "capability": 48
     },
     {
+      "id": "feat-directions-01-p1",
+      "category": "web_and_maps",
+      "prompt": "hey can you navigate me from Portland to Seattle",
+      "expected_contains": [],
+      "expected_keywords": [
+        "portland",
+        "seattle"
+      ],
+      "rubric": "Issue 96: directions with a starting point.",
+      "expected_tool": "directions",
+      "expected_args": {},
+      "after": "",
+      "capability": 48,
+      "verify": {}
+    },
+    {
+      "id": "feat-directions-01-p2",
+      "category": "web_and_maps",
+      "prompt": "please show me how to get from Portland to Seattle",
+      "expected_contains": [],
+      "expected_keywords": [
+        "portland",
+        "seattle"
+      ],
+      "rubric": "Issue 96: directions with a starting point.",
+      "expected_tool": "directions",
+      "expected_args": {},
+      "after": "",
+      "capability": 48,
+      "verify": {}
+    },
+    {
       "id": "feat-directions-02",
       "category": "web_and_maps",
       "prompt": "Show me the way to the airport",
@@ -37,6 +69,36 @@
       "capability": 48
     },
     {
+      "id": "feat-directions-02-p1",
+      "category": "web_and_maps",
+      "prompt": "hey can you give me directions to the airport",
+      "expected_contains": [],
+      "expected_keywords": [
+        "airport"
+      ],
+      "rubric": "Issue 96: forgiving wording.",
+      "expected_tool": "directions",
+      "expected_args": {},
+      "after": "",
+      "capability": 48,
+      "verify": {}
+    },
+    {
+      "id": "feat-directions-02-p2",
+      "category": "web_and_maps",
+      "prompt": "hey can you take me to the airport",
+      "expected_contains": [],
+      "expected_keywords": [
+        "airport"
+      ],
+      "rubric": "Issue 96: forgiving wording.",
+      "expected_tool": "directions",
+      "expected_args": {},
+      "after": "",
+      "capability": 48,
+      "verify": {}
+    },
+    {
       "id": "feat-directions-03",
       "category": "web_and_maps",
       "prompt": "Route to Denver",
@@ -52,6 +114,36 @@
       "after": "",
       "verify": {},
       "capability": 48
+    },
+    {
+      "id": "feat-directions-03-p1",
+      "category": "web_and_maps",
+      "prompt": "hey can you give me directions to Denver",
+      "expected_contains": [],
+      "expected_keywords": [
+        "denver"
+      ],
+      "rubric": "Issue 96: forgiving wording.",
+      "expected_tool": "directions",
+      "expected_args": {},
+      "after": "",
+      "capability": 48,
+      "verify": {}
+    },
+    {
+      "id": "feat-directions-03-p2",
+      "category": "web_and_maps",
+      "prompt": "please show me the way to Denver",
+      "expected_contains": [],
+      "expected_keywords": [
+        "denver"
+      ],
+      "rubric": "Issue 96: forgiving wording.",
+      "expected_tool": "directions",
+      "expected_args": {},
+      "after": "",
+      "capability": 48,
+      "verify": {}
     },
     {
       "id": "new-web-01",

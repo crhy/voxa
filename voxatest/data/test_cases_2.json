@@ -150,6 +150,38 @@
       "verify": {}
     },
     {
+      "id": "web2-04-p1",
+      "category": "web_and_maps",
+      "prompt": "can you show me the way to the park",
+      "expected_contains": [],
+      "expected_keywords": [
+        "walking",
+        "park"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "directions",
+      "expected_args": {},
+      "after": "",
+      "capability": 48,
+      "verify": {}
+    },
+    {
+      "id": "web2-04-p2",
+      "category": "web_and_maps",
+      "prompt": "hey can you give me walking directions to the park",
+      "expected_contains": [],
+      "expected_keywords": [
+        "walking",
+        "park"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "directions",
+      "expected_args": {},
+      "after": "",
+      "capability": 48,
+      "verify": {}
+    },
+    {
       "id": "web2-05",
       "category": "web_and_maps",
       "prompt": "Show me pictures of golden retrievers",

@@ -297,6 +297,36 @@
       "capability": 51
     },
     {
+      "id": "cap51-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey can you put milk on my shopping list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "milk"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "capability": 51,
+      "verify": {}
+    },
+    {
+      "id": "cap51-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "please add milk to the shopping list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "milk"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "capability": 51,
+      "verify": {}
+    },
+    {
       "id": "cap51-02",
       "category": "files_and_productivity",
       "prompt": "Put eggs on the shopping list",
@@ -317,6 +347,36 @@
       "capability": 51
     },
     {
+      "id": "cap51-02-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey can you add eggs to my shopping list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "eggs"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "capability": 51,
+      "verify": {}
+    },
+    {
+      "id": "cap51-02-p2",
+      "category": "files_and_productivity",
+      "prompt": "please put eggs on the shopping list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "eggs"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "capability": 51,
+      "verify": {}
+    },
+    {
       "id": "cap51-03",
       "category": "files_and_productivity",
       "prompt": "What's on my shopping list",
@@ -331,6 +391,38 @@
       "after": "",
       "verify": {},
       "capability": 51
+    },
+    {
+      "id": "cap51-03-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey can you read my shopping list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "milk",
+        "eggs"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_read",
+      "expected_args": {},
+      "after": "",
+      "capability": 51,
+      "verify": {}
+    },
+    {
+      "id": "cap51-03-p2",
+      "category": "files_and_productivity",
+      "prompt": "please show me my shopping list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "milk",
+        "eggs"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_read",
+      "expected_args": {},
+      "after": "",
+      "capability": 51,
+      "verify": {}
     },
     {
       "id": "cap51-04",
@@ -969,6 +1061,42 @@
       "capability": 57
     },
     {
+      "id": "cap57-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "I paid twelve dollars for lunch",
+      "expected_contains": [],
+      "expected_keywords": [
+        "lunch",
+        "twelve",
+        "dollars",
+        "food"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "expense_add",
+      "expected_args": {},
+      "after": "",
+      "capability": 57,
+      "verify": {}
+    },
+    {
+      "id": "cap57-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "add an expense of twelve dollars for lunch",
+      "expected_contains": [],
+      "expected_keywords": [
+        "lunch",
+        "twelve",
+        "dollars",
+        "food"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "expense_add",
+      "expected_args": {},
+      "after": "",
+      "capability": 57,
+      "verify": {}
+    },
+    {
       "id": "cap57-02",
       "category": "files_and_productivity",
       "prompt": "how much did i spend on food this month",
@@ -990,6 +1118,42 @@
       "capability": 57
     },
     {
+      "id": "cap57-02-p1",
+      "category": "files_and_productivity",
+      "prompt": "how much have I spent on food this month",
+      "expected_contains": [],
+      "expected_keywords": [
+        "food",
+        "month",
+        "dollars",
+        "spent"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "expense_total",
+      "expected_args": {},
+      "after": "",
+      "capability": 57,
+      "verify": {}
+    },
+    {
+      "id": "cap57-02-p2",
+      "category": "files_and_productivity",
+      "prompt": "what did I spend on food this month",
+      "expected_contains": [],
+      "expected_keywords": [
+        "food",
+        "month",
+        "dollars",
+        "spent"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "expense_total",
+      "expected_args": {},
+      "after": "",
+      "capability": 57,
+      "verify": {}
+    },
+    {
       "id": "cap57-03",
       "category": "files_and_productivity",
       "prompt": "show my spending breakdown this month",
@@ -1005,6 +1169,36 @@
       "after": "",
       "verify": {},
       "capability": 57
+    },
+    {
+      "id": "cap57-03-p1",
+      "category": "files_and_productivity",
+      "prompt": "show my expenses this month",
+      "expected_contains": [],
+      "expected_keywords": [
+        "food"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "expense_breakdown",
+      "expected_args": {},
+      "after": "",
+      "capability": 57,
+      "verify": {}
+    },
+    {
+      "id": "cap57-03-p2",
+      "category": "files_and_productivity",
+      "prompt": "what's my spending breakdown this month",
+      "expected_contains": [],
+      "expected_keywords": [
+        "food"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "expense_breakdown",
+      "expected_args": {},
+      "after": "",
+      "capability": 57,
+      "verify": {}
     },
     {
       "id": "cap57-04",
@@ -2283,6 +2477,38 @@
       "capability": 56
     },
     {
+      "id": "cap56-01-p1",
+      "category": "dates",
+      "prompt": "my electricity bill is due on the 15th of every month",
+      "expected_contains": [],
+      "expected_keywords": [
+        "electricity",
+        "bill"
+      ],
+      "rubric": "The reply remembers the monthly electricity bill.",
+      "expected_tool": "date_remember",
+      "expected_args": {},
+      "after": "",
+      "capability": 56,
+      "verify": {}
+    },
+    {
+      "id": "cap56-01-p2",
+      "category": "dates",
+      "prompt": "the electric bill is due on the 15th of every month",
+      "expected_contains": [],
+      "expected_keywords": [
+        "electricity",
+        "bill"
+      ],
+      "rubric": "The reply remembers the monthly electricity bill.",
+      "expected_tool": "date_remember",
+      "expected_args": {},
+      "after": "",
+      "capability": 56,
+      "verify": {}
+    },
+    {
       "id": "cap56-02",
       "category": "dates",
       "prompt": "when is the electricity bill due",
@@ -2301,6 +2527,38 @@
       "capability": 56
     },
     {
+      "id": "cap56-02-p1",
+      "category": "dates",
+      "prompt": "when is my electricity bill due",
+      "expected_contains": [],
+      "expected_keywords": [
+        "electricity",
+        "bill"
+      ],
+      "rubric": "The reply reports when the electricity bill is due.",
+      "expected_tool": "date_when",
+      "expected_args": {},
+      "after": "",
+      "capability": 56,
+      "verify": {}
+    },
+    {
+      "id": "cap56-02-p2",
+      "category": "dates",
+      "prompt": "when is the electric bill due",
+      "expected_contains": [],
+      "expected_keywords": [
+        "electricity",
+        "bill"
+      ],
+      "rubric": "The reply reports when the electricity bill is due.",
+      "expected_tool": "date_when",
+      "expected_args": {},
+      "after": "",
+      "capability": 56,
+      "verify": {}
+    },
+    {
       "id": "cap56-03",
       "category": "dates",
       "prompt": "what bills do i have coming up",
@@ -2316,6 +2574,36 @@
       "after": "",
       "verify": {},
       "capability": 56
+    },
+    {
+      "id": "cap56-03-p1",
+      "category": "dates",
+      "prompt": "what bills are coming up",
+      "expected_contains": [],
+      "expected_keywords": [
+        "bill"
+      ],
+      "rubric": "The reply lists upcoming bills.",
+      "expected_tool": "date_upcoming",
+      "expected_args": {},
+      "after": "",
+      "capability": 56,
+      "verify": {}
+    },
+    {
+      "id": "cap56-03-p2",
+      "category": "dates",
+      "prompt": "what bills do I have due this month",
+      "expected_contains": [],
+      "expected_keywords": [
+        "bill"
+      ],
+      "rubric": "The reply lists upcoming bills.",
+      "expected_tool": "date_upcoming",
+      "expected_args": {},
+      "after": "",
+      "capability": 56,
+      "verify": {}
     },
     {
       "id": "cap58-01",
@@ -2385,6 +2673,38 @@
       "after": "",
       "verify": {},
       "capability": 61
+    },
+    {
+      "id": "cap61-01-p1",
+      "category": "dates",
+      "prompt": "my car service is due on march 3rd",
+      "expected_contains": [],
+      "expected_keywords": [
+        "car",
+        "service"
+      ],
+      "rubric": "The reply remembers the car service date.",
+      "expected_tool": "date_remember",
+      "expected_args": {},
+      "after": "",
+      "capability": 61,
+      "verify": {}
+    },
+    {
+      "id": "cap61-01-p2",
+      "category": "dates",
+      "prompt": "the oil change is due on march 3rd",
+      "expected_contains": [],
+      "expected_keywords": [
+        "car",
+        "service"
+      ],
+      "rubric": "The reply remembers the car service date.",
+      "expected_tool": "date_remember",
+      "expected_args": {},
+      "after": "",
+      "capability": 61,
+      "verify": {}
     },
     {
       "id": "cap68-01",
@@ -4197,12 +4517,12 @@
       },
       "capability": 78,
       "vm_only": true,
-        "setup": [
-          {
-            "copy": "samples/hello-sample.wav",
-            "to": "~/Documents/hello-sample.wav"
-          }
-        ]
+      "setup": [
+        {
+          "copy": "samples/hello-sample.wav",
+          "to": "~/Documents/hello-sample.wav"
+        }
+      ]
     },
     {
       "id": "help2-01-p1",
