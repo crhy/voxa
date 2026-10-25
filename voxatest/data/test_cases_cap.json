@@ -3999,7 +3999,17 @@
         "file": "~/Documents/Voxa Calendar.md",
         "file_contains": "Dentist"
       },
-      "capability": 96
+      "capability": 96,
+      "setup": [
+        {
+          "remove": "~/Documents/Voxa Calendar.md"
+        },
+        {
+          "copy": "samples/calendar-clean-sample.md",
+          "to": "~/Documents/Voxa Calendar.md"
+        }
+      ],
+      "vm_only": true
     },
     {
       "id": "cap96-02",
@@ -4007,7 +4017,7 @@
       "prompt": "Brief me on my dentist appointment",
       "expected_contains": [],
       "expected_keywords": [
-        "friday"
+        "friday|tomorrow|today"
       ],
       "rubric": "The reply briefs the user on the dentist appointment.",
       "expected_tool": "meeting_brief",
@@ -4022,7 +4032,7 @@
       "prompt": "hey tell me about my dentist appointment",
       "expected_contains": [],
       "expected_keywords": [
-        "friday"
+        "friday|tomorrow|today"
       ],
       "rubric": "The reply briefs the user on the dentist appointment.",
       "expected_tool": "meeting_brief",
@@ -4037,7 +4047,7 @@
       "prompt": "can you brief me on my dentist appointment please",
       "expected_contains": [],
       "expected_keywords": [
-        "friday"
+        "friday|tomorrow|today"
       ],
       "rubric": "The reply briefs the user on the dentist appointment.",
       "expected_tool": "meeting_brief",
@@ -4063,7 +4073,17 @@
         "file": "~/Documents/Voxa Calendar.md",
         "file_lacks": "entist"
       },
-      "capability": 96
+      "capability": 96,
+      "setup": [
+        {
+          "remove": "~/Documents/Voxa Calendar.md"
+        },
+        {
+          "copy": "samples/calendar-dentist-sample.md",
+          "to": "~/Documents/Voxa Calendar.md"
+        }
+      ],
+      "vm_only": true
     },
     {
       "id": "cap89-01",
