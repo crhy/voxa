@@ -3156,7 +3156,7 @@
       "rubric": "The reply confirms the appointment was added and mentions a reminder.",
       "expected_tool": "calendar_add",
       "expected_args": {
-        "title": "dentist",
+        "title": "dentist|dentists",
         "when": "tomorrow at 3 pm"
       },
       "after": "",
