@@ -819,7 +819,8 @@ _MODEL_STATUS = re.compile(
 )
 _HEADS_UP = re.compile(
     r"what should i know(?: today| about today)?|what(?:'s| is) (?:important|going on) today"
-    r"|anything i should know|(?:give me )?a heads up",
+    r"|anything i should know|(?:give me )?a heads up"
+    r"|give me (?:a |your |some )?hands? up",
     re.IGNORECASE,
 )
 _FORGOTTEN = re.compile(
