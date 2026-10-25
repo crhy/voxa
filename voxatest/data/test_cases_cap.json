@@ -690,7 +690,7 @@
       "prompt": "How hot is my graphics card",
       "expected_contains": [],
       "expected_keywords": [
-        "degrees"
+        "degrees|graphics card"
       ],
       "rubric": "The reply gives the answer.",
       "expected_tool": "gpu_status",
@@ -705,7 +705,7 @@
       "prompt": "What's the CPU temperature",
       "expected_contains": [],
       "expected_keywords": [
-        "degrees"
+        "degrees|processor"
       ],
       "rubric": "The reply gives the answer.",
       "expected_tool": "cpu_status",

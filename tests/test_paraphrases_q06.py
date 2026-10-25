@@ -4,11 +4,13 @@ from voxa.agent.intents import route
 def test_cap86_gpu_status():
     assert route("what is my gpu temp").tool == "gpu_status"
     assert route("gpu temperature").tool == "gpu_status"
+    assert route("how hot is my graphics card").tool == "gpu_status"
 
 
 def test_cap86_cpu_status():
     assert route("how hot is my cpu").tool == "cpu_status"
     assert route("cpu temperature").tool == "cpu_status"
+    assert route("what's the cpu temperature").tool == "cpu_status"
 
 
 def test_cap86_system_health():
