@@ -289,13 +289,14 @@ def add(content: str, kind: str, name: str, when: tuple[int | None, int, int]) -
 
 
 def remove(content: str, name: str) -> tuple[str, str | None]:
-    """By name, case-insensitive; (new content, removed name or None)."""
+    """By name, case-insensitive; every entry whose name contains the spoken name is dropped."""
     target = name.strip().lower()
     kept: list[str] = []
     removed: str | None = None
     for line in content.splitlines():
         m = _LINE.fullmatch(line)
-        if m and m.group(3).lower() == target:
+        low = m.group(3).lower() if m else ""
+        if m and (low == target or (target and target in low)):
             if removed is None:
                 removed = m.group(3)
             continue

@@ -1007,6 +1007,26 @@
       "capability": 19
     },
     {
+      "id": "cap19-05",
+      "category": "files_and_productivity",
+      "prompt": "Remember the report is due Friday",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_remember",
+      "expected_args": {
+        "kind": "deadline"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Dates.md",
+        "file_contains": "deadline"
+      },
+      "capability": 19
+    },
+    {
       "id": "cap19-04-p1",
       "category": "files_and_productivity",
       "prompt": "hey forget the report deadline",
@@ -1021,6 +1041,26 @@
       "verify": {
         "file": "~/Documents/Voxa Dates.md",
         "file_lacks": "deadline"
+      },
+      "capability": 19
+    },
+    {
+      "id": "cap19-06",
+      "category": "files_and_productivity",
+      "prompt": "Please note the report deadline is Friday",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_remember",
+      "expected_args": {
+        "kind": "deadline"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Dates.md",
+        "file_contains": "deadline"
       },
       "capability": 19
     },

@@ -1002,12 +1002,12 @@ _DATE_REMEMBER = re.compile(
 _DATE_DUE = re.compile(r"(?:the )?(?P<name>.+?) is due (?:on |by )?(?P<when>.+)", re.IGNORECASE)
 _DATE_DEADLINE = re.compile(r"(?P<name>.+?) deadline is (?:on )?(?P<when>.+)", re.IGNORECASE)
 _DATE_WHEN = re.compile(
-    rf"when is (?P<name>.+?)'s (?P<kind>{_DATE_KIND})|when is (?:the )?(?P<due>.+?) due",
+    rf"when is (?P<name>.+?)'s (?P<kind>{_DATE_KIND})|when is (?:the )?(?P<due>.+?) (?:due|do|2)",
     re.IGNORECASE,
 )
 _DATE_UPCOMING = re.compile(
     r"(?:what|any|which) (?:birthdays|anniversaries|deadlines|dates)(?: (?:are|do i have))?(?: (?:coming up|this week|this month|soon))?"
-    r"|what(?:'s| is) (?:coming up|due)(?: (?:this week|this month|soon))?",
+    r"|what(?:'s| is) (?:coming up|due|do)(?: (?:this week|this month|soon))?",
     re.IGNORECASE,
 )
 _DATE_FORGET = re.compile(
@@ -1045,7 +1045,8 @@ _DATE_WHEN_RENEW = re.compile(r"when does (?:the |my )?(?P<name>.+?)(?: subscrip
 
 def _date_name(phrase: str) -> str:
     """"my mom" -> "mom": the bare name the date tools expect."""
-    return re.sub(r"^(?:my|the)\s+", "", (phrase or "").strip(), flags=re.IGNORECASE)
+    out = re.sub(r"^(?:remember|note|keep in mind|don'?t forget)(?: that)?\s+", "", (phrase or "").strip(), flags=re.IGNORECASE)
+    return re.sub(r"^(?:my|the)\s+", "", out, flags=re.IGNORECASE)
 
 
 def _list_word(phrase: str | None) -> str:
