@@ -152,6 +152,51 @@ def test_close_app_strips_a_leading_the(monkeypatch) -> None:
     assert ["wmctrl", "-i", "-c", "0x04600007"] in _argvs(calls)
 
 
+def test_close_app_strips_trailing_window(monkeypatch) -> None:
+    calls: list[list[str]] = []
+    monkeypatch.setattr(subprocess, "run", _recorder(calls, LISTING))
+    result = close_app({"name": "the Brutal Chess window"})
+    assert result.ok
+    assert result.speech == "Closing Brutal Chess."
+    assert ["wmctrl", "-i", "-c", "0x04600007"] in _argvs(calls)
+
+
+def test_minimize_app_strips_trailing_window(monkeypatch) -> None:
+    calls: list[list[str]] = []
+    monkeypatch.setattr(subprocess, "run", _recorder(calls, LISTING))
+    result = windows.minimize_app({"name": "the brutal chess window"})
+    assert result.ok
+    assert result.speech == "Minimized brutal chess."
+    assert ["xdotool", "windowminimize", "0x04600007"] in _argvs(calls)
+
+
+def test_maximize_app_strips_trailing_window(monkeypatch) -> None:
+    calls: list[list[str]] = []
+    monkeypatch.setattr(subprocess, "run", _recorder(calls, LISTING))
+    result = windows.maximize_app({"name": "the brutal chess window"})
+    assert result.ok
+    assert result.speech == "Maximized brutal chess."
+    assert ["wmctrl", "-i", "-r", "0x04600007", "-b", "add,maximized_vert,maximized_horz"] in _argvs(calls)
+
+
+def test_restore_app_strips_trailing_window(monkeypatch) -> None:
+    calls: list[list[str]] = []
+    monkeypatch.setattr(subprocess, "run", _recorder(calls, LISTING))
+    result = windows.restore_app({"name": "the brutal chess window"})
+    assert result.ok
+    assert result.speech == "Restored brutal chess."
+    assert ["wmctrl", "-i", "-r", "0x04600007", "-b", "remove,maximized_vert,maximized_horz"] in _argvs(calls)
+
+
+def test_switch_to_strips_trailing_window(monkeypatch) -> None:
+    calls: list[list[str]] = []
+    monkeypatch.setattr(subprocess, "run", _recorder(calls, LISTING))
+    result = switch_to({"name": "the brutal chess window"})
+    assert result.ok
+    assert result.speech == "Switching to brutal chess."
+    assert ["wmctrl", "-i", "-a", "0x04600007"] in _argvs(calls)
+
+
 def test_switch_to_opens_the_app_when_no_window_matches(monkeypatch) -> None:
     calls: list[list[str]] = []
     monkeypatch.setattr(subprocess, "run", _recorder(calls, ""))

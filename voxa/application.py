@@ -8,7 +8,7 @@ import gi  # noqa: E402
 
 gi.require_version("Adw", "1")
 gi.require_version("Gtk", "4.0")
-from gi.repository import Adw, Gio, Gtk  # noqa: E402
+from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402
 
 from . import APP_ID, APP_NAME, APP_VERSION  # noqa: E402
 from .window import MainWindow  # noqa: E402
@@ -22,10 +22,22 @@ class VoxaApplication(Adw.Application):
         quit_action.connect("activate", lambda *_: self.quit())
         self.add_action(quit_action)
         self.set_accels_for_action("app.quit", ["<Control>q"])
+        # Scripted lines, for example the Spaced Welcome recordings:
+        #   gapplication action io.github.crhy.voxa read-file "'/home/me/intro.txt'"
+        read_file_action = Gio.SimpleAction.new("read-file", GLib.VariantType.new("s"))
+        read_file_action.connect("activate", lambda _action, value: self._read_file(value.get_string()))
+        self.add_action(read_file_action)
 
         about_action = Gio.SimpleAction.new("about", None)
         about_action.connect("activate", self._show_about)
         self.add_action(about_action)
+
+    def _read_file(self, path: str) -> None:
+        if self.window is None:
+            self.activate()
+        window = self.window
+        if window is not None:
+            window.read_text_file_aloud(path)
 
     def do_activate(self) -> None:
         if self.window is None:

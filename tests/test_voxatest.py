@@ -138,15 +138,18 @@ def test_case_roundtrip(tmp_path):
 def test_shipped_acceptance_queue_is_balanced_and_unique():
     cases = load_cases(Path(__file__).parents[1] / "voxatest" / "data" / "test_cases.json")
 
-    assert len(cases) == 30
-    assert len({case.id for case in cases}) == 30
-    assert len({case.prompt.casefold() for case in cases}) == 30
+    assert len(cases) == 36
+    assert len({case.id for case in cases}) == 36
+    assert len({case.prompt.casefold() for case in cases}) == 36
     assert {case.category for case in cases} == set(CATEGORIES)
-    assert sum(bool(case.expected_tool) for case in cases) == 29
-    assert {
+    assert sum(bool(case.expected_tool) for case in cases) == 35
+    counts = {
         category: sum(case.category == category for case in cases)
         for category in CATEGORIES
-    } == {category: 5 for category in CATEGORIES}
+    }
+    assert counts["files_and_productivity"] == 9
+    assert counts["web_and_maps"] == 7
+    assert all(counts[c] == 5 for c in CATEGORIES if c not in ("files_and_productivity", "web_and_maps"))
 
 
 def test_load_cases_missing_file(tmp_path):

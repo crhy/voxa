@@ -18,6 +18,7 @@ from voxa.ui.avatars import describe_characters, find_character
 log = logging.getLogger("voxa.agent.tools.windows")
 
 _THE_PREFIX = re.compile(r"^the\s+", re.IGNORECASE)
+_WINDOW_SUFFIX = re.compile(r"\s+window$", re.IGNORECASE)
 
 ON_LOCK: Callable | None = None
 QUIT: Callable | None = None
@@ -291,7 +292,7 @@ def _close_windowless_app(name: str) -> ToolResult | None:
 
 
 def close_app(args: dict[str, str]) -> ToolResult:
-    name = _THE_PREFIX.sub("", args["name"].strip())
+    name = _WINDOW_SUFFIX.sub("", _THE_PREFIX.sub("", args["name"].strip()))
     own = _close_own_browser(name)
     if own is not None:
         return own
@@ -328,7 +329,7 @@ def close_window(args: dict[str, str]) -> ToolResult:
 
 
 def switch_to(args: dict[str, str]) -> ToolResult:
-    name = _THE_PREFIX.sub("", args["name"].strip())
+    name = _WINDOW_SUFFIX.sub("", _THE_PREFIX.sub("", args["name"].strip()))
     windows = match_windows(name, list_windows())
     if not windows:
         # "bring up the calculator" should open it when it is not already running.
@@ -343,7 +344,7 @@ def _active_window_id() -> str:
 
 
 def minimize_app(args: dict[str, str]) -> ToolResult:
-    name = _THE_PREFIX.sub("", args["name"].strip())
+    name = _WINDOW_SUFFIX.sub("", _THE_PREFIX.sub("", args["name"].strip()))
     if not name:
         window_id = _active_window_id()
         if not window_id:
@@ -359,7 +360,7 @@ def minimize_app(args: dict[str, str]) -> ToolResult:
 
 
 def maximize_app(args: dict[str, str]) -> ToolResult:
-    name = _THE_PREFIX.sub("", args["name"].strip())
+    name = _WINDOW_SUFFIX.sub("", _THE_PREFIX.sub("", args["name"].strip()))
     if not name:
         window_id = _active_window_id()
         if not window_id:
@@ -379,7 +380,7 @@ def maximize_app(args: dict[str, str]) -> ToolResult:
 
 
 def restore_app(args: dict[str, str]) -> ToolResult:
-    name = _THE_PREFIX.sub("", args["name"].strip())
+    name = _WINDOW_SUFFIX.sub("", _THE_PREFIX.sub("", args["name"].strip()))
     if not name:
         window_id = _active_window_id()
         if not window_id:

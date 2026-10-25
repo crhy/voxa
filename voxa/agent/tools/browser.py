@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import logging
 import re
+import subprocess
 import urllib.parse
 import urllib.request
 from collections.abc import Callable
 
-from voxa.agent import host
+import voxa.simulation
+from voxa.agent import browsercheck, host
 from voxa.agent.policy import RiskLevel
 from voxa.agent.registry import Tool
 from voxa.agent.result import ToolResult
@@ -89,7 +91,30 @@ def youtube_play_url(query: str, fetch: Callable[[str], str] | None = None) -> s
     return f"https://www.youtube.com/watch?v={video_id}"
 
 
+NO_BROWSER_MESSAGE = (
+    'There\'s no web browser on this computer yet. Say "install Firefox" and I\'ll set one up.'
+)
+
+
+def _host_run(command: list[str]) -> tuple[int, str]:
+    """Run a host query command and return (returncode, stdout)."""
+    if voxa.simulation.actions_simulated():
+        return (0, "")
+    try:
+        completed = subprocess.run(  # noqa: S603 - argv is fixed, host-wrapped queries
+            host.host_command(command),
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except OSError:
+        return (1, "")
+    return (completed.returncode, completed.stdout)
+
+
 def _open(url: str, speech: str) -> ToolResult:
+    if not voxa.simulation.actions_simulated() and not browsercheck.has_web_browser(_host_run):
+        return ToolResult.failure(NO_BROWSER_MESSAGE, detail=url)
     if host.spawn(["xdg-open", url]) is False:
         return ToolResult.failure("I couldn't open the browser.", detail=url)
     return ToolResult.success(speech, detail=url)

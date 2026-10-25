@@ -38,6 +38,11 @@ def next_step(backend: str, server_reachable: bool, model_count: int) -> str:
     return "ready"
 
 
+def brain_step(model_ready: bool) -> str:
+    """The step to show for the llama.cpp backend: the brain is there, or it is the one thing to fetch."""
+    return "ready" if model_ready else "brain"
+
+
 def step_text(step: str) -> tuple[str, str, str]:
     if step == "install":
         return (
@@ -52,6 +57,13 @@ def step_text(step: str) -> tuple[str, str, str]:
             f"I need a model to think with. The smallest one, {SMALLEST_MODEL}, "
             "runs on any computer and downloads in a minute.",
             "Download a model",
+        )
+    if step == "brain":
+        return (
+            "One thing first",
+            "I think with a small AI brain that runs right here on this computer, so nothing you say leaves it. "
+            "It is a one-time download of about 530 MB.",
+            "Download my brain",
         )
     return ("You're all set", how_to(), "Get started")
 
@@ -73,6 +85,14 @@ def download_status(status: str, completed: int, total: int) -> str:
     if status:
         return f"Downloading {SMALLEST_MODEL}… {status}"
     return f"Downloading {SMALLEST_MODEL}…"
+
+
+def brain_status(done: int, total: int) -> str:
+    """One line of progress copy for the small-brain download."""
+    if total > 0:
+        percent = max(0, min(100, int(100 * done / total)))
+        return f"Downloading my brain… {percent}%"
+    return "Downloading my brain…"
 
 
 def probe(

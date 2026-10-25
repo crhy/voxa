@@ -101,13 +101,56 @@ modules:
     buildsystem: simple
     sources:
       - type: archive
-        url: https://github.com/crhy/voxa/releases/download/faces-1/voxa-faces-1.tar.gz
-        sha256: 4b092abee4785b92a8100c0b0cd0db6ec24fd3c21cefbf7ba371158e0e42b9ee
+        url: https://github.com/crhy/voxa/releases/download/faces-2/voxa-faces-2.tar.gz
+        sha256: 3d15bef1c3f4f43f9e95e435aeed9008b572fb860550ed536d64d0230e7c510e
         strip-components: 0
     build-commands:
       - install -d /app/share/voxa/faces
       - cp -r . /app/share/voxa/faces/
       - find /app/share/voxa/faces -maxdepth 1 -type f -delete
+
+  # Voxa's own AI engine: llama.cpp's llama-server, run inside the sandbox (no host install, no password).
+  # Vulkan runs it on any NVIDIA, AMD or Intel card; the CPU builds for every x86-64 level are loaded at run
+  # time, so it also runs well with no graphics card. Measured with the small brain (Qwen3.5-0.8B Q4_K_M)
+  # in the GNOME 50 runtime: 468 tok/s on an RTX 4070 Ti SUPER, 89 tok/s on the CPU alone.
+  - name: spirv-headers
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DSPIRV_HEADERS_ENABLE_TESTS=OFF
+    sources:
+      - type: archive
+        url: https://github.com/KhronosGroup/SPIRV-Headers/archive/refs/tags/vulkan-sdk-1.4.321.0.tar.gz
+        sha256: 5bbea925663d4cd2bab23efad53874f2718248a73dcaf9dd21dff8cb48e602fc
+    cleanup:
+      - '*'
+
+  - name: llama-cpp
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      # This release does not put SPIRV-Headers on the Vulkan backend's include path itself.
+      - -DCMAKE_CXX_FLAGS=-I/app/include
+      - -DGGML_VULKAN=ON
+      - -DGGML_NATIVE=OFF
+      - -DGGML_BACKEND_DL=ON
+      - -DGGML_CPU_ALL_VARIANTS=ON
+      - -DBUILD_SHARED_LIBS=ON
+      - -DLLAMA_CURL=OFF
+      - -DLLAMA_BUILD_TESTS=OFF
+      - -DLLAMA_BUILD_EXAMPLES=OFF
+      - -DLLAMA_BUILD_SERVER=ON
+    sources:
+      - type: archive
+        url: https://github.com/ggml-org/llama.cpp/archive/refs/tags/v0.7.0.tar.gz
+        sha256: 55d67acf3ad2ad747a9bbeb75f9f0e173dbcc0d1753a471038a90c819421c5e1
+    post-install:
+      # Keep the server only; the other tools are not used by Voxa.
+      - find /app/bin -name 'llama-*' ! -name llama-server -delete
+      - rm -f /app/bin/llama
+    cleanup:
+      - /include
+      - /lib/cmake
+      - /lib/pkgconfig
 
   - name: voxa
     buildsystem: simple

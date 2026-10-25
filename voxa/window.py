@@ -16,7 +16,19 @@ gi.require_version("Adw", "1")
 gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
-from . import apps, documents, mail, speechfit, wakelabel, websearch, welcome  # noqa: E402
+from . import (  # noqa: E402
+    apps,
+    documents,
+    engine,
+    faceinstall,
+    mail,
+    smallbrain,
+    speechfit,
+    spellings,
+    wakelabel,
+    websearch,
+    welcome,
+)
 from .agent import hearing, host, intents, issueflow, livetv, mailflow, planner, radio, repeat, saveflow, ui  # noqa: E402
 from .agent.actionlog import ActionLog, ActionRecord  # noqa: E402
 from .agent.claims import claims_action, first_sentences  # noqa: E402
@@ -27,19 +39,35 @@ from .agent.progress import working_caption  # noqa: E402
 from .agent.registry import ToolError  # noqa: E402
 from .agent.reminders import ReminderStore, focus_phrase, reminder_phrase, timer_phrase  # noqa: E402
 from .agent.result import ToolResult  # noqa: E402
-from .agent.routines import Routine, RoutineStore, parse_create, parse_delete, parse_list  # noqa: E402
+from .agent.routines import (  # noqa: E402
+    Routine,
+    RoutineStore,
+    create_reply,
+    delete_reply,
+    list_reply,
+    parse_create,
+    parse_delete,
+    parse_list,
+)
 from .agent.spoken_text import format_dictation, parse_dictation_control  # noqa: E402
 from .agent.suggest import Suggestion, SuggestionState, suggest  # noqa: E402
 from .agent.tools import (  # noqa: E402
     anc,
     compiz,
     contacts,
+    convosummary,
     default_registry,
+    events,
+    extract,
     github,
     media,
+    projectsteps,
+    rebook,
+    slides,
     textedit,
     transcribe_file,
     translate,
+    trips,
     typing,
     windows,
 )
@@ -66,6 +94,7 @@ from .hardware import (  # noqa: E402
     MODEL_CATALOG,
     GpuUsage,
     detect_available_model_memory_gb,
+    no_gpu_suggestions,
     reserved_gpu_gb,
     sample_gpu_usage,
     suggest_models,
@@ -87,7 +116,7 @@ from .ui.avatars import character_choices, describe_characters, find_character, 
 from .ui.focus_window import overlay_supported  # noqa: E402
 from .ui.legacy_view import LegacyCallbacks, LegacyView  # noqa: E402
 from .ui.live_face import LiveFaceClient, decode_audio_to_pcm16k  # noqa: E402
-from .ui.model_selector import ai_status_for  # noqa: E402
+from .ui.model_selector import ai_status_for_backend  # noqa: E402
 from .ui.radio_picker import RadioPicker  # noqa: E402
 from .ui.shell import AssistantShell, build_header  # noqa: E402
 from .ui.state import AssistantModel, AssistantState  # noqa: E402
@@ -124,6 +153,13 @@ TTS_VOICES = [
     ("Katja — Germany female", "de-DE-KatjaNeural"),
     ("Keita — Japan male", "ja-JP-KeitaNeural"),
     ("Nanami — Japan female", "ja-JP-NanamiNeural"),
+    ("Christopher — US male", "en-US-ChristopherNeural"),
+    ("Neerja — India female", "en-IN-NeerjaNeural"),
+    ("Prabhat — India male", "en-IN-PrabhatNeural"),
+    ("Ezinne — Nigeria female", "en-NG-EzinneNeural"),
+    ("Abeo — Nigeria male", "en-NG-AbeoNeural"),
+    ("Zariyah — Saudi Arabia female", "ar-SA-ZariyahNeural"),
+    ("Hamed — Saudi Arabia male", "ar-SA-HamedNeural"),
 ]
 # A few turns of history keeps the model aware of what was just said without
 # letting a long hands-free session grow the prompt unboundedly.
@@ -161,7 +197,6 @@ def face_server_command() -> list[str] | None:
     home = os.path.expanduser("~")
     candidates = [override] if override else [
         f"{home}/.local/share/voxa/face-server/run-face-server.sh",
-        f"{home}/voxa-neural/run-face-server.sh",
     ]
     for path in candidates:
         try:
@@ -373,7 +408,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.tools = default_registry()
         windows.ON_LOCK = self._pause_now
         windows.QUIT = lambda: self.get_application().quit()
-        textedit.ask_model = lambda messages: self._ai_client().generate_stream(model=self.settings.ollama_model, prompt=messages[-1]["content"], cancel_event=threading.Event(), on_chunk=lambda chunk: None, messages=messages)
+        textedit.ask_model = lambda messages: self._ai_client().generate_stream(model=self._chat_model(), prompt=messages[-1]["content"], cancel_event=threading.Event(), on_chunk=lambda chunk: None, messages=messages)
         media.get_my_channel = lambda: self.settings.youtube_channel
         media.set_my_channel = self._save_youtube_channel
         github.set_owner = self._save_github_owner
@@ -382,6 +417,14 @@ class MainWindow(Adw.ApplicationWindow):
         contacts.save_contacts = self._save_contacts
         textedit.read_clipboard = clipboard.read_text
         translate.ask_model = lambda messages: textedit.ask_model(messages)
+        events.ask_model = lambda messages: textedit.ask_model(messages)
+        convosummary.ask_model = lambda messages: textedit.ask_model(messages)
+        convosummary.get_history = lambda: list(self._conversation_history.messages() or [])
+        projectsteps.ask_model = lambda messages: textedit.ask_model(messages)
+        trips.ask_model = lambda messages: textedit.ask_model(messages)
+        extract.ask_model = lambda messages: textedit.ask_model(messages)
+        rebook.ask_model = lambda messages: textedit.ask_model(messages)
+        slides.ask_model = lambda messages: textedit.ask_model(messages)
         translate.speak_in = self._speak_next_reply_in
         briefing_tool.get_location = lambda: self.settings.home_location
         anc.get_echo_mode = lambda: getattr(self.settings, "echo_mode", "voxa")
@@ -777,6 +820,14 @@ class MainWindow(Adw.ApplicationWindow):
             pass
 
     def _on_shell_model_selected(self, name: str) -> None:
+        if self.settings.ai_backend == "llamacpp":
+            path = smallbrain.path_for_label(name)
+            if path and path != self.settings.llamacpp_model:
+                self.settings.llamacpp_model = path
+                self.config_store.save(self.settings)
+                self._apply_model_combo(self.ollama_models)
+                self._restart_ai_server_async()
+            return
         if name and name != self.settings.ollama_model:
             self.settings.ollama_model = name
             self.config_store.save(self.settings)
@@ -810,6 +861,10 @@ class MainWindow(Adw.ApplicationWindow):
     def _on_shell_face_mode_selected(self, face_mode: str) -> None:
         if face_mode == self.settings.face_mode:
             return
+        if face_mode != "live":
+            cancel = getattr(self, "_face_install_cancel", None)
+            if cancel is not None:
+                cancel.set()
         self.settings.face_mode = face_mode
         self.config_store.save(self.settings)
         apply = getattr(self, "_apply_face_mode", None)
@@ -879,8 +934,7 @@ class MainWindow(Adw.ApplicationWindow):
             if not client.available():
                 command = face_server_command()
                 if command is None:
-                    idle(self._on_live_ready, generation, None, False,
-                         "The high-resolution face is not installed on this computer")
+                    idle(self._offer_face_install, generation)
                     return
                 if not host_spawn(command):
                     idle(
@@ -946,6 +1000,102 @@ class MainWindow(Adw.ApplicationWindow):
         sync = getattr(self.shell, "sync_focus_face", None)
         if sync is not None:
             sync()
+
+    def _offer_face_install(self, generation: int) -> bool:
+        if generation != getattr(self, "_live_generation", 0):
+            return False
+        problem = faceinstall.gpu_problem()
+        if problem:
+            self._toast(f"{problem} Using Medium instead.")
+            self.settings.face_mode = "prerendered"
+            self.config_store.save(self.settings)
+            face_quality = getattr(self.shell, "face_quality", None)
+            if face_quality is not None:
+                face_quality.set_mode("prerendered")
+            self._apply_face_mode()
+            return False
+
+        def fetch_worker() -> None:
+            try:
+                manifest = faceinstall.fetch_manifest()
+            except Exception:
+                idle(self._on_face_manifest_failed, generation)
+                return
+            idle(self._on_face_manifest_ready, generation, manifest)
+
+        threading.Thread(target=fetch_worker, name="face-manifest-fetch", daemon=True).start()
+        return False
+
+    def _on_face_manifest_failed(self, generation: int) -> bool:
+        if generation != getattr(self, "_live_generation", 0):
+            return False
+        self._toast("The High face download is not available right now. Using Medium instead.")
+        self._go_back_to_medium()
+        return False
+
+    def _on_face_manifest_ready(self, generation: int, manifest: faceinstall.Manifest) -> bool:
+        if generation != getattr(self, "_live_generation", 0):
+            return False
+        heading, body = faceinstall.offer_text(manifest)
+        dialog = Adw.AlertDialog(heading=heading, body=body)
+        dialog.add_response("cancel", "Not now")
+        dialog.add_response("install", "Download and install")
+        dialog.set_response_appearance("install", Adw.ResponseAppearance.SUGGESTED)
+        dialog.set_default_response("install")
+        dialog.set_close_response("cancel")
+
+        def on_response(_dialog, response: str) -> None:
+            if response == "cancel":
+                self._go_back_to_medium()
+                return
+            if response != "install":
+                return
+            self._face_install_cancel = threading.Event()
+            cancel = self._face_install_cancel
+
+            def install_worker() -> None:
+                def on_progress(fraction: float, text: str) -> None:
+                    idle(self._on_face_install_progress, generation, fraction, text)
+
+                ok, message = faceinstall.install(manifest, on_progress, cancel)
+                idle(self._on_face_install_done, generation, ok, message)
+
+            threading.Thread(target=install_worker, name="face-install", daemon=True).start()
+
+        dialog.connect("response", on_response)
+        dialog.present(self)
+        return False
+
+    def _on_face_install_progress(self, generation: int, fraction: float, text: str) -> bool:
+        if generation != getattr(self, "_live_generation", 0):
+            return False
+        face_quality = getattr(self.shell, "face_quality", None)
+        if face_quality is not None:
+            face_quality.set_loading_progress(fraction * 100, text)
+        return False
+
+    def _on_face_install_done(self, generation: int, success: bool, message: str) -> bool:
+        if generation != getattr(self, "_live_generation", 0):
+            return False
+        face_quality = getattr(self.shell, "face_quality", None)
+        if success:
+            if face_quality is not None:
+                face_quality.set_status("")
+            self._toast("High face installed.")
+            if self.settings.face_mode == "live":
+                self._refresh_live_available()
+        else:
+            self._toast(f"{message} Using Medium instead.")
+            self._go_back_to_medium()
+        return False
+
+    def _go_back_to_medium(self) -> None:
+        self.settings.face_mode = "prerendered"
+        self.config_store.save(self.settings)
+        face_quality = getattr(self.shell, "face_quality", None)
+        if face_quality is not None:
+            face_quality.set_mode("prerendered")
+        self._apply_face_mode()
 
     def _prepare_microphone(self) -> None:
         """Before listening: choose how the computer's own sound is removed from the microphone."""
@@ -1222,6 +1372,16 @@ class MainWindow(Adw.ApplicationWindow):
             return StrataClient(self.settings.strata_url)
         return LlamaCppClient(self.settings.llamacpp_url)
 
+    def _chat_model(self) -> str:
+        """The model name to send with a request for the chosen backend."""
+        if self.settings.ai_backend == "llamacpp":
+            if self.settings.ollama_model:
+                return self.settings.ollama_model
+            if self.settings.llamacpp_model:
+                return Path(self.settings.llamacpp_model).stem
+            return "local"
+        return self.settings.ollama_model
+
     def _backend_label(self) -> str:
         if self.settings.ai_backend == "ollama":
             return "Ollama"
@@ -1258,11 +1418,14 @@ class MainWindow(Adw.ApplicationWindow):
             client = self._ai_client()
             try:
                 if self.settings.ai_backend == "llamacpp":
-                    models_dir = str(Path(self.settings.llamacpp_model).parent) if self.settings.llamacpp_model else None
-                    try:
-                        return client.list_models(models_dir)
-                    except TypeError:
-                        return client.list_models()
+                    # Always pass a directory so the GGUF files on disk are listed
+                    # even when llama-server is not up yet (the picker must not read
+                    # "No models available" while a brain is downloaded).
+                    if self.settings.llamacpp_model:
+                        models_dir = str(Path(self.settings.llamacpp_model).parent)
+                    else:
+                        models_dir = str(engine.models_dir())
+                    return client.list_models(models_dir)
                 return client.list_models()
             except OllamaError:
                 raise
@@ -1329,15 +1492,21 @@ class MainWindow(Adw.ApplicationWindow):
 
         def worker() -> None:
             available_gb, source = detect_available_model_memory_gb()
-            reserved = reserved_gpu_gb(self.settings.face_mode, True) if source == "GPU VRAM" else 0.0
+            has_gpu = source == "GPU VRAM"
+            reserved = reserved_gpu_gb(self.settings.face_mode, True) if has_gpu else 0.0
             # Show something immediately from the built-in or cached catalog,
             # so the suggestion never waits on the network.
             catalog = load_catalog()
+            suggestions = (
+                suggest_models(available_gb, catalog=catalog, reserved_gb=reserved)
+                if has_gpu
+                else no_gpu_suggestions(catalog)
+            )
             idle(
                 self._apply_hardware_summary,
                 available_gb,
                 source,
-                suggest_models(available_gb, catalog=catalog, reserved_gb=reserved),
+                suggestions,
                 reserved,
                 gpu_fit_warning(available_gb, reserved) if reserved else False,
             )
@@ -1352,7 +1521,11 @@ class MainWindow(Adw.ApplicationWindow):
                     self._apply_hardware_summary,
                     available_gb,
                     source,
-                    suggest_models(available_gb, catalog=refreshed, reserved_gb=reserved),
+                    (
+                        suggest_models(available_gb, catalog=refreshed, reserved_gb=reserved)
+                        if has_gpu
+                        else no_gpu_suggestions(refreshed)
+                    ),
                     reserved,
                     False,  # One toast per detection run.
                 )
@@ -1416,25 +1589,44 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def _apply_ollama_models(self, models: list[str]) -> bool:
-        self.shell.model_selector.set_status(ai_status_for(models))
+        backend = self.settings.ai_backend
         if self._welcome_followup and welcome.real_models(models):
             self._welcome_followup = False
             self._say_welcome_how_to()
+        if backend == "llamacpp":
+            # The picker shows brain labels, not GGUF paths, and the dot follows
+            # the engine's health (paths never contain spaces, so ai_status_for
+            # would read "online" even with the server down).
+            models = smallbrain.available_labels(self.settings.llamacpp_model)
+        self.shell.model_selector.set_status(ai_status_for_backend(backend, models, self.ai_server.health().status))
         self.ollama_models = models
-        if models and self.settings.ollama_model not in models:
+        if backend == "llamacpp":
+            current = self.settings.llamacpp_model
+            if models and (not current or not Path(current).is_file()):
+                self.settings.llamacpp_model = str(smallbrain.path_for(smallbrain.BRAINS[0]))
+                self.config_store.save(self.settings)
+        elif models and self.settings.ollama_model not in models:
             self.settings.ollama_model = models[0]
             self.config_store.save(self.settings)
         self._apply_model_combo(models)
         return False
 
+    def _selected_model_label(self) -> str:
+        """The label the picker should show as selected for the current backend."""
+        if self.settings.ai_backend != "llamacpp":
+            return self.settings.ollama_model
+        label = smallbrain.label_for_path(self.settings.llamacpp_model)
+        return label or self.settings.llamacpp_model
+
     def _apply_model_combo(self, models: list[str]) -> None:
-        self.shell.set_models(models, self.settings.ollama_model, self.settings.ai_backend)
+        selected_label = self._selected_model_label()
+        self.shell.set_models(models, selected_label, self.settings.ai_backend)
         if not models:
             self.model_combo.set_visible(False)
             return
         selected = (
-            models.index(self.settings.ollama_model)
-            if self.settings.ollama_model in models
+            models.index(selected_label)
+            if selected_label in models
             else 0
         )
         self._model_combo_updating = True
@@ -1450,6 +1642,14 @@ class MainWindow(Adw.ApplicationWindow):
             return
         selected = min(self.model_combo.get_selected(), len(self.ollama_models) - 1)
         model = self.ollama_models[selected]
+        if self.settings.ai_backend == "llamacpp":
+            path = smallbrain.path_for_label(model)
+            if path and path != self.settings.llamacpp_model:
+                self.settings.llamacpp_model = path
+                self.config_store.save(self.settings)
+                self._set_status(f"Asking with {model} from now on.")
+                self._restart_ai_server_async()
+            return
         if model != self.settings.ollama_model:
             self.settings.ollama_model = model
             self.config_store.save(self.settings)
@@ -1541,12 +1741,19 @@ class MainWindow(Adw.ApplicationWindow):
         dialog.close()
         self._toast(message)
         if success:
+            # The server start at launch failed while Ollama was not installed; nothing retries it, so start it
+            # now, or the model list and the first download wait for a server that never comes (#112, #71).
+            if self.settings.ai_backend == "ollama":
+                self._restart_ai_server_async()
             self._refresh_ollama_models()
             if self._welcome_followup:
                 self._download_welcome_model()
         return False
 
     def _show_model_manager(self) -> None:
+        if self.settings.ai_backend == "llamacpp":
+            self._show_brain_manager()
+            return
         dialog = Adw.Dialog(title="Manage Ollama Models", content_width=560, content_height=520)
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         dialog.set_child(root)
@@ -1752,6 +1959,95 @@ class MainWindow(Adw.ApplicationWindow):
         pull_button.connect("clicked", start_pull)
         dialog.present(self)
 
+    def _show_brain_manager(self) -> None:
+        dialog = Adw.Dialog(title="Voxa's brains", content_width=480, content_height=320)
+        root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        dialog.set_child(root)
+        root.append(Adw.HeaderBar())
+
+        page = Adw.PreferencesPage()
+        scroller = Gtk.ScrolledWindow(vexpand=True)
+        scroller.set_child(page)
+        root.append(scroller)
+
+        group = Adw.PreferencesGroup(
+            title="Brains",
+            description="Download a brain, pick which one Voxa thinks with, or remove one.",
+        )
+        page.add(group)
+
+        cancel_event = threading.Event()
+        dialog.connect("closed", lambda *_: cancel_event.set())
+        in_use = self.settings.llamacpp_model
+
+        def select_brain(model: smallbrain.ModelFile) -> None:
+            self.settings.llamacpp_model = str(smallbrain.path_for(model))
+            self.config_store.save(self.settings)
+            self._restart_ai_server_async()
+            self._toast(f"Now thinking with {model.label}.")
+
+        for model in smallbrain.BRAINS:
+            row = Adw.ActionRow(title=model.label)
+            state = smallbrain.row_state(model, in_use)
+            if state == "in use":
+                row.set_subtitle("In use")
+            elif state == "downloaded":
+                row.set_subtitle("Downloaded")
+            else:
+                row.set_subtitle(f"About {model.bytes / 1e6:.0f} MB")
+
+            if state == "missing":
+                def start_download(btn, model=model, row=row) -> None:
+                    btn.set_sensitive(False)  # one download at a time into the same .part file
+                    def on_progress(done: int, total: int) -> None:
+                        if total > 0:
+                            idle(row.set_subtitle, f"Downloading… {done / total * 100:.0f}%")
+
+                    def finish(path: Path) -> None:
+                        select_brain(model)
+                        row.set_subtitle("In use")
+
+                    def worker() -> None:
+                        try:
+                            path = smallbrain.download(model, on_progress=on_progress, cancel=cancel_event)
+                        except smallbrain.DownloadCancelled:
+                            idle(row.set_subtitle, f"About {model.bytes / 1e6:.0f} MB")
+                            idle(btn.set_sensitive, True)
+                            return
+                        except smallbrain.DownloadError as exc:
+                            idle(self._toast, str(exc))
+                            idle(btn.set_sensitive, True)
+                            return
+                        idle(finish, path)
+
+                    threading.Thread(target=worker, name="brain-download", daemon=True).start()
+
+                download_button = Gtk.Button(label="Download", valign=Gtk.Align.CENTER)
+                download_button.connect("clicked", start_download)
+                row.add_suffix(download_button)
+            elif state == "downloaded":
+                def use_brain(_btn, model=model, dialog=dialog) -> None:
+                    select_brain(model)
+                    dialog.close()
+                    self._show_brain_manager()
+
+                def remove_brain(_btn, model=model, dialog=dialog) -> None:
+                    smallbrain.path_for(model).unlink(missing_ok=True)
+                    self._toast(f"Removed {model.label}.")
+                    dialog.close()
+                    self._show_brain_manager()
+
+                use_button = Gtk.Button(label="Use", valign=Gtk.Align.CENTER)
+                use_button.connect("clicked", use_brain)
+                row.add_suffix(use_button)
+                remove_button = Gtk.Button(label="Remove", valign=Gtk.Align.CENTER)
+                remove_button.connect("clicked", remove_brain)
+                row.add_suffix(remove_button)
+
+            group.add(row)
+
+        dialog.present(self)
+
     def _confirm_delete_model(self, parent_dialog: Adw.Dialog, model: str) -> None:
         confirm = Adw.AlertDialog(
             heading=f"Remove {model}?",
@@ -1826,11 +2122,21 @@ class MainWindow(Adw.ApplicationWindow):
         self.config_store.save(self.settings)
 
         def worker() -> None:
-            step = welcome.probe(
-                self.settings.ai_backend,
-                ollama_installed,
-                OllamaClient(self.settings.ollama_url).list_models,
-            )
+            if self.settings.ai_backend == "llamacpp":
+                path = self.settings.llamacpp_model
+                ready = bool(path) and Path(path).is_file()
+                if not ready and smallbrain.is_installed(smallbrain.SMALL_BRAIN):
+                    self.settings.llamacpp_model = str(smallbrain.path_for(smallbrain.SMALL_BRAIN))
+                    self.config_store.save(self.settings)
+                    ready = True
+                    idle(self._restart_ai_server_async)
+                step = welcome.brain_step(ready)
+            else:
+                step = welcome.probe(
+                    self.settings.ai_backend,
+                    ollama_installed,
+                    OllamaClient(self.settings.ollama_url).list_models,
+                )
             idle(self._show_welcome, step)
 
         threading.Thread(target=worker, name="welcome-probe", daemon=True).start()
@@ -1971,12 +2277,53 @@ class MainWindow(Adw.ApplicationWindow):
             self._show_model_manager()      # let the user retry or pick another model by hand
         return False
 
+    def _download_small_brain(self) -> None:
+        """Fetch Voxa's small brain with no further click; then start the engine and say she is ready."""
+        if getattr(self, "_welcome_downloading", False):
+            return
+        self._welcome_downloading = True
+        cancel_event = threading.Event()
+        self._welcome_cancel = cancel_event
+        self._set_status(welcome.brain_status(0, 0), busy=True)
+
+        def finish(path: Path) -> None:
+            self._welcome_downloading = False
+            self.settings.llamacpp_model = str(path)
+            self.config_store.save(self.settings)
+            self._restart_ai_server_async()
+            self._set_status("")
+            self._toast("My brain is ready. Press Active and talk to me.")
+
+        def worker() -> None:
+            try:
+                path = smallbrain.download(
+                    smallbrain.SMALL_BRAIN,
+                    on_progress=lambda done, total: idle(
+                        self._set_status, welcome.brain_status(done, total), True
+                    ),
+                    cancel=cancel_event,
+                )
+            except smallbrain.DownloadCancelled:
+                self._welcome_downloading = False
+                idle(self._set_status, "")
+                return
+            except smallbrain.DownloadError as exc:
+                self._welcome_downloading = False
+                idle(self._toast, str(exc))
+                idle(self._set_status, "")
+                return
+            idle(finish, path)
+
+        threading.Thread(target=worker, name="welcome-brain", daemon=True).start()
+
     def _on_welcome_primary(self, step: str) -> None:
         self.speech.stop()
         if step == "install":
             self._start_ollama_install()
         elif step == "model":
             self._download_welcome_model()
+        elif step == "brain":
+            self._download_small_brain()
 
     def _on_welcome_tutorial(self) -> None:
         host.spawn(["xdg-open", welcome.TUTORIAL_URL])
@@ -2518,7 +2865,7 @@ class MainWindow(Adw.ApplicationWindow):
         """Run the next queued step, or say Done when the queue is empty."""
         if not self._routine_queue:
             self._routine_active = False
-            self._toast("Done.")
+            self._say_notice("Done.")
             return
         step = self._routine_queue.pop(0)
         call = intents.route(step)
@@ -2642,6 +2989,16 @@ class MainWindow(Adw.ApplicationWindow):
             gender = avatar.gender if avatar is not None else "Other"
             return female if gender == "Female" else male
         return self.settings.tts_voice
+
+    def read_text_file_aloud(self, path: str) -> None:
+        """Speak a text file through the normal reply path, so the face moves with the words."""
+        from voxa.agent.tools import readfile
+
+        def work() -> None:
+            result = readfile.read_text_file({"name": path})
+            idle(self._conversation_speak, result.speech)
+
+        threading.Thread(target=work, daemon=True).start()
 
     def _conversation_speak(self, text: str) -> None:
         typing.LAST_REPLY = text
@@ -3208,6 +3565,21 @@ class MainWindow(Adw.ApplicationWindow):
         if not prompt:
             self._toast("Speak or type something first.")
             return
+        # "Rhy is spelled R-H-Y" corrects the previous request and runs it again; "... spelled
+        # R-H-Y" inside a request corrects that request. Learned names are fixed in every request.
+        heard = prompt
+        lesson = spellings.teach(prompt, getattr(self, "_last_request", None))
+        if lesson is not None:
+            kind, prompt = lesson
+            if kind == "previous":
+                self._toast(f"Got it. Running it again: {prompt}")
+        prompt = spellings.apply(prompt)
+        if prompt != heard:
+            # Show what will actually run, in place of what was heard.
+            shown = self._get_text(self.transcript_view)
+            head, sep, last = shown.rpartition("\n")
+            self._set_text(self.transcript_view, f"{head}{sep}{prompt}" if last == heard else prompt)
+        self._last_request = prompt
         original = prompt
         prompt = hearing.normalize(prompt) or prompt
         if self._radio_reply(prompt):
@@ -3254,19 +3626,18 @@ class MainWindow(Adw.ApplicationWindow):
             name, steps = created
             self.routine_store.add(Routine(name=name, phrases=(name,), steps=tuple(steps)))
             self._log_action(prompt, "routine", detail=f"created {name}")
-            joined = ", then ".join(steps)
-            self._toast(f"Okay. When you say “{name}” I'll {joined}.")
+            self._say_notice(create_reply(name, steps))
             return
         if parse_list(prompt):
             self._log_action(prompt, "routine", detail="list")
             names = [r.name for r in self.routine_store.all()]
-            self._toast("No routines yet." if not names else "Routines: " + ", ".join(names))
+            self._say_notice(list_reply(names))
             return
         deleted = parse_delete(prompt)
         if deleted is not None:
             ok = self.routine_store.remove(deleted)
             self._log_action(prompt, "routine", ok=ok, detail=f"delete {deleted}")
-            self._toast(f"Deleted the {deleted} routine." if ok else f"There is no {deleted} routine.")
+            self._say_notice(delete_reply(deleted, ok))
             return
         matched = self.routine_store.match(prompt)
         if matched is not None:
@@ -3450,7 +3821,7 @@ class MainWindow(Adw.ApplicationWindow):
                 if hasattr(client, "is_model_loaded") and client.is_model_loaded(self.settings.ollama_model) is False:
                     idle(self._on_model_loading, self.settings.ollama_model, generation, cancel_event)
                 answer = client.generate_stream(
-                    model=self.settings.ollama_model,
+                    model=self._chat_model(),
                     prompt=user_prompt,
                     cancel_event=cancel_event,
                     on_chunk=lambda chunk: None,
@@ -3607,7 +3978,7 @@ class MainWindow(Adw.ApplicationWindow):
             try:
                 def ask_model(messages: list[dict]) -> str:
                     return self._ai_client().generate_stream(
-                        model=self.settings.ollama_model,
+                        model=self._chat_model(),
                         prompt=messages[-1]["content"],
                         messages=messages,
                         cancel_event=cancel_event,
@@ -3651,6 +4022,8 @@ class MainWindow(Adw.ApplicationWindow):
         if previous is not None and time.time() - self._last_search_at > 180:
             previous = None
         query = websearch.search_query_for(prompt, self.settings.web_search, previous)
+        if query:
+            query = spellings.quote(query)
         if not query:
             return ""
         self._last_search_query = query
@@ -3694,7 +4067,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._open_stored_website(kind, original)
 
     def _search_for_website(self, kind: str, words: str, original: str) -> None:
-        query = websearch.search_query_for(words, self.settings.web_search, None) or words
+        query = spellings.quote(websearch.search_query_for(words, self.settings.web_search, None) or words)
         try:
             results = websearch.search(query)
         except Exception:  # noqa: BLE001 - offline or blocked: fall back to what is stored

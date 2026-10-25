@@ -115,6 +115,7 @@ def test_heads_up_phrases_route() -> None:
     assert route("what's important today") == ToolCall("heads_up", {})
     assert route("anything I should know") == ToolCall("heads_up", {})
     assert route("give me a heads up") == ToolCall("heads_up", {})
+    assert route("give me your hands up") == ToolCall("heads_up", {})
 
 
 def test_forgotten_phrases_route() -> None:

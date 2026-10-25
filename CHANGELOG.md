@@ -1,5 +1,52 @@
 # Voxa changelog
 
+## 0.1.7 — 2026-10-25
+
+Plain-language notes for what people can now do.
+
+### New
+
+- **Voxa brings its own small brain.** You no longer have to install Ollama first: Voxa downloads a small AI brain (about 530 MB) and runs it on the CPU, so it works on a machine with no graphics card.
+- **Install the High face from inside Voxa.** Pick High facial quality and Voxa downloads the face for you, instead of you having to set up a developer service by hand.
+- **Play a song on the app you name.** "Play UFO on my Audacious player", "Play Boz Skaggs in Audacious" — the player you say is the one used.
+- **Change the desktop theme by voice.** "Change to Windows 7 dark theme" switches the Spaced theme.
+- **Summarize the conversation.** "Summarize our conversation" gives a short recap of what has been said.
+- **Break a job into steps.** "Break down painting the hallway into steps", "Make a plan for painting" — Voxa lists the steps and keeps them.
+- **Plan a trip and read it back.** "Plan a three day trip to Rome", then "Read my trip to Rome"; "Forget my trip to Rome" clears it.
+- **Remember your travel documents.** "Remember my passport expires on June 5 2028", then "When does my passport expire", "What travel documents do I have".
+- **Handle a changed itinerary.** "My flight to Denver was cancelled", "I missed my connection to Chicago" — Voxa reworks the plan.
+- **Organize financial documents.** "Organize my financial documents" files invoices and receipts; "How many invoices do I have"; "Undo the filing" puts them back.
+- **Keep a family schedule.** "Add soccer practice for Emma on Tuesday at 5 pm", "What does Emma have this week", "What's on for the family this week".
+- **Plan an event.** "Plan a wedding for Saturday", "Plan a barbecue" — Voxa builds a plan you can edit.
+- **Make a presentation.** "Make me a presentation about solar power", "Create a slide deck about the water cycle".
+- **Read the figures out of a document.** "What are the dates and amounts in invoice-sample.txt" — Voxa reads the numbers and dates from a file.
+- **Read a text file aloud.** "Read the file called meeting notes" finds it in your usual folders and speaks it.
+- **Recite whole poems.** "Recite a poem by Edgar Allan Poe" reads the full poem from an online library, and "Voxa, stop" ends it like any other reply.
+- **Fix a misheard name and try again.** "Rhy is spelled R-H-Y" corrects the name in the request you just made and runs it again; the spelling is remembered for later.
+
+- **Computers without a graphics card get the right brain.** Only the small 0.5B and 0.8B brains are offered there, never models
+  too big to answer quickly; "Voxa's brains" lets you download, switch or remove them.
+
+### Fixed
+
+- **The Medium face moves again.** The face packs now carry each portrait's checksum, so they load and the lips move for everyone.
+- **Models load on a new install.** After Voxa installs Ollama it now starts the server itself, so the first model download and the model list work instead of waiting for a server that never came.
+- **The character's voice is kept in the backup voice.** When the online voice service is unavailable, the spoken voice still matches the character's accent and gender instead of a generic one.
+- **Installing the High face checks disk space first** and stops the download cleanly if you cancel.
+- **Changing the theme no longer times out.** It starts without waiting, since it can take longer than the command limit allows.
+
+- **Spoken sums go to the calculator.** "Divide 100 by 4", "Add 15 and 20", "Subtract 10 from 50" are worked out exactly instead
+  of by the AI brain.
+- **She repeats back what she remembers.** "Remember that my cat is named Mittens" -> "I'll remember that your cat is named Mittens."
+- **No web browser? She says so.** On a computer without a browser she tells you instead of opening pages in a text editor.
+- **Commands are not cut off.** "Play UFO… on my Audacious player" waits for the end of the sentence.
+- **Many requests understood in more ways,** and dozens of fixes found by testing every capability on a fresh Spaced Linux install.
+
+### Under the hood
+
+- **The small brain is checked before use.** Voxa verifies the downloaded brain against a known size and checksum, so a partial or wrong download is caught and can be resumed.
+- **The window tests now draw with the software renderer**, so they use far less memory and no longer risk locking up the machine.
+
 ## 0.1.6 — 2026-10-14
 
 Everything below is on `main` after the 0.1.5 release. Items marked 🧪 pass their automated tests and still need

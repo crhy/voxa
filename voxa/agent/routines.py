@@ -23,7 +23,7 @@ from voxa.agent.planner import COMMAND_VERBS
 
 log = logging.getLogger(__name__)
 
-__all__ = ["Routine", "RoutineStore", "parse_create", "parse_list", "parse_delete", "default_path"]
+__all__ = ["Routine", "RoutineStore", "parse_create", "parse_list", "parse_delete", "default_path", "create_reply", "list_reply", "delete_reply"]
 
 
 def default_path() -> Path:
@@ -99,6 +99,22 @@ def parse_delete(text: str) -> str | None:
     """The routine name in "delete the <name> routine", or None when it is not one."""
     match = _DELETE.match(normalize(text).strip())
     return match.group(1).strip() if match else None
+
+
+def create_reply(name: str, steps: list[str]) -> str:
+    """The spoken confirmation after creating a routine."""
+    joined = ", then ".join(steps)
+    return f"Okay. When you say \u201c{name}\u201c I'll {joined}."
+
+
+def list_reply(names: list[str]) -> str:
+    """The spoken reply to "list my routines"."""
+    return "No routines yet." if not names else "Routines: " + ", ".join(names)
+
+
+def delete_reply(name: str, ok: bool) -> str:
+    """The spoken reply to "delete the <name> routine"."""
+    return f"Deleted the {name} routine." if ok else f"There is no {name} routine."
 
 
 class RoutineStore:

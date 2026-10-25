@@ -94,6 +94,8 @@ PHRASE_FIXES: tuple[tuple[str, str | Callable[..., str]], ...] = (
     (r"\b(open|close|quit|launch|start)\s+cloud\b", r"\1 Claude"),
     (r"\bnorthern lengths?\b", "northern lights"),
     (r"\bcounty later\b", "calculator"),
+    # Whisper drops the "u" in "buy": "add by stamps to my to-do list".
+    (r"\bby (stamps?)\b", r"buy \1"),
 )
 
 VERB_FIXES: dict[str, str] = {

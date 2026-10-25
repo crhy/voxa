@@ -63,6 +63,19 @@ def test_weekly_phrases_route() -> None:
     assert route("check my calendar for clashes") == ToolCall("calendar_conflicts", {})
 
 
+def test_weekly_times_survive_a_glued_am_pm() -> None:
+    """The ear writes '9am' as one word; the argument must still read '9 am'."""
+    assert route("add team call every monday at 9am") == ToolCall(
+        "calendar_add_weekly", {"title": "team call", "weekday": "monday", "time": "9 am"}
+    )
+    assert route("i have dentist every friday at 3pm") == ToolCall(
+        "calendar_add_weekly", {"title": "dentist", "weekday": "friday", "time": "3 pm"}
+    )
+    assert route("gym is every tuesday at 6:30pm") == ToolCall(
+        "calendar_add_weekly", {"title": "gym", "weekday": "tuesday", "time": "6:30 pm"}
+    )
+
+
 def test_weekly_and_conflict_guards_stay_put() -> None:
     assert route("what's on my to-do list") == ToolCall("list_read", {"list": "to-do"})
     assert route("what time is it") == ToolCall("tell_time", {})

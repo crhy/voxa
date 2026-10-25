@@ -132,6 +132,38 @@
       "verify": {}
     },
     {
+      "id": "web-03-p1",
+      "category": "web_and_maps",
+      "prompt": "how do I get to the public library",
+      "expected_contains": [],
+      "expected_keywords": [
+        "directions",
+        "library"
+      ],
+      "rubric": "The reply confirms opening directions to a public library.",
+      "expected_tool": "directions",
+      "expected_args": {},
+      "after": "",
+      "capability": 48,
+      "verify": {}
+    },
+    {
+      "id": "web-03-p2",
+      "category": "web_and_maps",
+      "prompt": "please give me directions to the library",
+      "expected_contains": [],
+      "expected_keywords": [
+        "directions",
+        "library"
+      ],
+      "rubric": "The reply confirms opening directions to a public library.",
+      "expected_tool": "directions",
+      "expected_args": {},
+      "after": "",
+      "capability": 48,
+      "verify": {}
+    },
+    {
       "id": "web-04",
       "category": "web_and_maps",
       "prompt": "Find the nearest pharmacy",
@@ -391,9 +423,75 @@
       "verify": {}
     },
     {
+      "id": "files-04-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey make a note to buy milk",
+      "expected_contains": [],
+      "expected_keywords": [
+        "milk"
+      ],
+      "rubric": "The reply confirms creating or opening a note containing buy milk.",
+      "expected_tool": "take_note",
+      "expected_args": {
+        "text": "buy milk"
+      },
+      "after": "",
+      "capability": 30,
+      "verify": {}
+    },
+    {
+      "id": "files-04-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you take a note to buy milk",
+      "expected_contains": [],
+      "expected_keywords": [
+        "milk"
+      ],
+      "rubric": "The reply confirms creating or opening a note containing buy milk.",
+      "expected_tool": "take_note",
+      "expected_args": {
+        "text": "buy milk"
+      },
+      "after": "",
+      "capability": 30,
+      "verify": {}
+    },
+    {
       "id": "files-05",
       "category": "files_and_productivity",
       "prompt": "Compose a new email",
+      "expected_contains": [],
+      "expected_keywords": [
+        "gmail|g mail",
+        "message"
+      ],
+      "rubric": "The reply confirms opening a new email composition flow.",
+      "expected_tool": "compose_gmail",
+      "expected_args": {},
+      "after": "",
+      "capability": 2,
+      "verify": {}
+    },
+    {
+      "id": "files-05-p1",
+      "category": "files_and_productivity",
+      "prompt": "write a new email",
+      "expected_contains": [],
+      "expected_keywords": [
+        "gmail|g mail",
+        "message"
+      ],
+      "rubric": "The reply confirms opening a new email composition flow.",
+      "expected_tool": "compose_gmail",
+      "expected_args": {},
+      "after": "",
+      "capability": 2,
+      "verify": {}
+    },
+    {
+      "id": "files-05-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey can you write a new email please",
       "expected_contains": [],
       "expected_keywords": [
         "gmail|g mail",

@@ -105,7 +105,7 @@ def test_memory_handlers_end_to_end(monkeypatch) -> None:
     )
 
     added = _remember_fact_handler({"fact": "the spare key is under the blue pot"})
-    assert added.ok and added.speech == "I'll remember that."
+    assert added.ok and added.speech == "I'll remember that the spare key is under the blue pot."
     assert "spare key" in store["content"]
     _remember_fact_handler({"fact": "my car registration expires in May"})
     recalled = _recall_fact_handler({"topic": "the spare key"})

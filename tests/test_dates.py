@@ -97,6 +97,49 @@ def test_date_phrases_route() -> None:
     assert route("forget mom's birthday") == ToolCall("date_forget", {"name": "mom"})
 
 
+def test_misheard_due_still_routes_to_the_date_tools() -> None:
+    """Voxa's own voice says "due"; the ear sometimes hears "do" or "2"."""
+    assert route("when is the report 2") == ToolCall("date_when", {"name": "report"})
+    assert route("Hey when is the report do please") == ToolCall("date_when", {"name": "report"})
+    assert route("what's do soon") == ToolCall("date_upcoming", {})
+
+
+def test_a_verb_in_front_of_the_name_is_not_part_of_the_name() -> None:
+    assert route("please remember the report deadline is friday") == ToolCall(
+        "date_remember", {"kind": "deadline", "name": "report", "when": "friday"}
+    )
+    assert route("Remember the report is due Friday") == ToolCall(
+        "date_remember", {"kind": "deadline", "name": "report", "when": "Friday"}
+    )
+    assert route("Please note the report deadline is Friday") == ToolCall(
+        "date_remember", {"kind": "deadline", "name": "report", "when": "Friday"}
+    )
+
+
+def test_forget_removes_every_entry_about_the_thing() -> None:
+    content = "- 2026-10-16 | deadline | Report\n- 2026-10-16 | deadline | Remember the report\n"
+    new_content, removed = remove(content, "report")
+    assert removed == "Report"
+    assert new_content == ""
+
+
+def test_deadline_chain_end_to_end(monkeypatch) -> None:
+    """Remember, ask, list, forget: the file must really lose the deadline."""
+    store = {"content": ""}
+    monkeypatch.setattr("voxa.agent.tools.dates._read", lambda: store["content"])
+    monkeypatch.setattr("voxa.agent.tools.dates._write", lambda content: store.__setitem__("content", content))
+    for prompt in ("the report is due friday", "please remember the report deadline is friday"):
+        result = _date_remember_handler(route(prompt).args)
+        assert result.ok and "report" in result.speech.lower()
+    assert "deadline" in store["content"]
+    assert _date_when_handler(route("when is the report due").args).ok
+    soon = _date_upcoming_handler({})
+    assert soon.ok and "report" in soon.speech.lower()
+    forgot = _date_forget_handler(route("forget the report deadline").args)
+    assert forgot.ok and "forgot" in forgot.speech.lower()
+    assert "deadline" not in store["content"]
+
+
 def test_date_rules_do_not_steal_lists_or_questions() -> None:
     assert route("what's on my to-do list") == ToolCall("list_read", {"list": "to-do"})
     assert route("what is the capital of France") is None

@@ -1,0 +1,5 @@
+Bluebird Supplies
+Invoice Date: 01/15/2024
+Payment Due: 2024-02-01
+Subtotal: $1,234.56
+Delivery fee: $45.00

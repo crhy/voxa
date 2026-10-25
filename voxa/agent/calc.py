@@ -185,6 +185,36 @@ def _strip_lead_in(s: str) -> str:
     return s.strip(".!?,;").strip()
 
 
+_INSTR_WORDS = sorted(_NUMBER_WORDS - {"a", "an", "point"}, key=len, reverse=True)
+_INSTR_W = r'(?:' + '|'.join(re.escape(w) for w in _INSTR_WORDS) + r')'
+_INSTR_NUM = r'(?:\d+(?:\.\d+)?|' + _INSTR_W + r'(?:\s+' + _INSTR_W + r')*)'
+
+_POLITE_LEAD_RE = re.compile(r'^(?:please[,!?]?\s+|can you\s+|could you\s+)')
+_POLITE_TRAIL_RE = re.compile(r'[,!?]?\s*(?:please|for me)\s*\.?$')
+
+
+def _rewrite_instructions(s: str) -> str:
+    """Rewrite spoken instruction forms into operator form the tokeniser handles."""
+    s = _POLITE_LEAD_RE.sub('', s)
+    s = _POLITE_TRAIL_RE.sub('', s)
+    s = s.strip().rstrip('.!?')
+    # "divide A by B" -> "A divided by B"
+    s = re.sub(rf'\bdivide\s+({_INSTR_NUM})\s+by\s+({_INSTR_NUM})\b', r'\1 divided by \2', s)
+    # "multiply A by B" / "multiply A and B" -> "A times B"
+    s = re.sub(rf'\bmultiply\s+({_INSTR_NUM})\s+(?:by|and)\s+({_INSTR_NUM})\b', r'\1 times \2', s)
+    # "add A and B" / "add A to B" -> "A plus B"
+    s = re.sub(rf'\badd\s+({_INSTR_NUM})\s+(?:and|to)\s+({_INSTR_NUM})\b', r'\1 plus \2', s)
+    # "subtract A from B" -> "B minus A"
+    s = re.sub(rf'\bsubtract\s+({_INSTR_NUM})\s+from\s+({_INSTR_NUM})\b', r'\2 minus \1', s)
+    # "(the) sum of A and B" -> "A plus B"
+    s = re.sub(rf'\b(?:the\s+)?sum\s+of\s+({_INSTR_NUM})\s+(?:and|,)\s+({_INSTR_NUM})\b', r'\1 plus \2', s)
+    # "(the) product of A and B" -> "A times B"
+    s = re.sub(rf'\b(?:the\s+)?product\s+of\s+({_INSTR_NUM})\s+(?:and|,)\s+({_INSTR_NUM})\b', r'\1 times \2', s)
+    # "(the) difference between A and B" -> "A minus B"
+    s = re.sub(rf'\b(?:the\s+)?difference\s+between\s+({_INSTR_NUM})\s+(?:and|,)\s+({_INSTR_NUM})\b', r'\1 minus \2', s)
+    return s
+
+
 def _tokenise(s: str) -> list[tuple[str, float | None]] | None:
     """Tokens (kind, value) with kind "num"/"op"; None when a word is not a number or operator."""
     words = re.findall(r"[a-z0-9.,%]+|[+\-*/^]", s)
@@ -319,6 +349,7 @@ def evaluate(text: str) -> float | None:
     """The value of a spoken sum, or None when the text is not purely arithmetic."""
     text = _written_times(text)
     s = _strip_lead_in(text)
+    s = _rewrite_instructions(s)
     if not s:
         return None
     tokens = _tokenise(s)

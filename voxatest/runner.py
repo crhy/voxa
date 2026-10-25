@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import queue
 import threading
 import time
@@ -14,6 +15,7 @@ from voxa.dictation import segment_stream
 from .cases import TestCase
 from .config import HarnessSettings
 from .grader import REPLY_MATCH, GradeResult, grade_reply, keyword_grade, reply_match, spoken_words
+from .setup import run_setup
 
 PLAYBACK_LISTEN_SECONDS = 10.0
 STOP_SETTLE_SECONDS = 5.0
@@ -90,8 +92,14 @@ def run_case(
     log: Callable[[str], None] = print,
 ) -> RunResult:
     started = time.monotonic()
+    if case.vm_only and os.environ.get("VOXATEST_ROOM") == "1":
+        return RunResult(case.id, case.category, case.prompt, "", GradeResult(0, False, "Skipped (vm_only).", "skipped"), "", time.monotonic() - started)
     action_log = ActionLog(settings.action_log_path)
     action_offset = len(action_log.read())
+    if case.setup:
+        setup_error = run_setup(case.setup, data_dir=Path(__file__).resolve().parent / "data")
+        if setup_error:
+            return RunResult(case.id, case.category, case.prompt, "", GradeResult(0, False, setup_error, "setup"), setup_error, time.monotonic() - started)
     prompt = _with_wake_word(case.prompt, settings.wake_word)
     log(f"Speaking: {prompt}")
 

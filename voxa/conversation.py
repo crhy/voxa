@@ -10,6 +10,7 @@ from collections import deque
 from collections.abc import Callable
 from difflib import SequenceMatcher
 
+from . import spellings
 from .agent.intents import is_start_dictation
 from .dictation import DICTATION_CHUNK_SECONDS, segment_stream
 from .endpoint import is_complete, is_followup
@@ -323,7 +324,7 @@ class ConversationController:
 
     def _build_prompt_hint(self) -> None:
         try:
-            self._prompt_hint = build_hint(refresh_app_names(), self.wake_word)
+            self._prompt_hint = build_hint(refresh_app_names(), self.wake_word, people=spellings.names())
         except Exception as exc:  # noqa: BLE001 - hint boundary, never fatal
             logging.debug("prompt hint build failed: %s", exc)
 

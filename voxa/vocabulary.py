@@ -35,6 +35,7 @@ def build_hint(
     wake_word: str,
     extra: list[str] = (),
     max_chars: int = 600,
+    people: list[str] = (),
 ) -> str:
     """A natural sentence nudging Whisper towards this machine's vocabulary.
 
@@ -45,6 +46,10 @@ def build_hint(
     """
     wake = wake_word.strip().capitalize()
     base = f"{wake}. Commands: {', '.join(_COMMAND_VERBS)}."
+    # Names the user taught Voxa to spell come first: Whisper otherwise writes "Rye" for "Rhy".
+    taught = [name for name in people if name.strip()][:10]
+    if taught:
+        base = f"{wake}. Names: {', '.join(taught)}. Commands: {', '.join(_COMMAND_VERBS)}."
     products = " Products: Spaced Linux, Spaced Update, Spaced Bazaar."
     if len(base) + len(products) <= max_chars:
         base += products

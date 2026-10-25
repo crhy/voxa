@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from voxa.agent import calc, dates, livetv, lookups, radio, worldtime
-from voxa.agent.calendar_local import parse_time, split_when
+from voxa.agent.calendar_local import parse_time, split_when, spoken_time
 from voxa.agent.convert import target_extension
 from voxa.agent.deals import parse_request
 from voxa.agent.filematch import folder_key
@@ -39,6 +39,12 @@ _LEADING = re.compile(
     re.IGNORECASE,
 )
 _TRAILING = re.compile(r"\s+(?:please|for me|thanks|thank you)$", re.IGNORECASE)
+# A greeting or wake word Whisper wrote glued onto the first word of the command
+# ("Heymark buy stamps as done" for "mark buy stamps as done").
+_GLUED_LEADING = re.compile(
+    r"^(?:hey|hi|hello|ok|okay|voxa|vox|voxer|boxa|boxer|vaxa|foxa)(?=[a-z])",
+    re.IGNORECASE,
+)
 _QUESTION = re.compile(r"(?:how|what|why|when|where|who)\b", re.IGNORECASE)
 
 _OPEN_MAIL = re.compile(
@@ -132,10 +138,10 @@ _WHY_MEMORY = re.compile(
     re.IGNORECASE,
 )
 _TROUBLE = re.compile(
-    r"(?:is |do you (?:see|notice|think) )?(?:anything|something) (?:wrong|unusual|odd|weird|amiss)(?: with (?:my|the|this) (?:computer|pc|system|machine))?"
-    r"|(?:is|do you (?:see|notice) )?there (?:anything|something) (?:wrong|unusual|odd|weird)"
+    r"(?:is |do you (?:see|notice|think) )?(?:anything|something) (?:wrong|unusual|odd|weird|amiss)(?: going on)?(?: with (?:my|the|this) (?:computer|pc|system|machine))?"
+    r"|(?:is |do you (?:see|notice) )?there (?:anything|something) (?:wrong|unusual|odd|weird)(?: with (?:my|the|this) (?:computer|pc|system|machine))?(?: going on)?"
     r"|any (?:problems|issues|trouble|errors|warnings)(?: with (?:my|the|this) (?:computer|pc|system|machine))?"
-    r"|(?:diagnose|troubleshoot|check for problems|check for issues) (?:the|my|this)? ?(?:pc|computer|system|machine|it)?",
+    r"|(?:diagnose|troubleshoot|check for problems|check for issues)(?: with| on)? (?:the|my|this)? ?(?:pc|computer|system|machine|it)?",
     re.IGNORECASE,
 )
 _SET_GITHUB_OWNER = re.compile(
@@ -160,6 +166,15 @@ _SET_EMAIL = re.compile(r"(?:my )?(.+?)(?:'s|s')? e-?mail(?: address)? is (.+)",
 _GET_EMAIL = re.compile(r"what(?:'s| is) (?:my )?(.+?)(?:'s|s')? e-?mail(?: address)?", re.IGNORECASE)
 _FORGET_EMAIL = re.compile(r"forget (?:my )?(.+?)(?:'s|s')? e-?mail(?: address)?", re.IGNORECASE)
 _PLAY_YT_ON = re.compile(r"(?:play|watch|put on)\s+(.+?)\s+on\s+youtube", re.IGNORECASE)
+# "play boz skaggs on my audacious", "play UFO in my Audacious player" -> the Music folder, in that app (#109).
+_PLAY_ON_APP = re.compile(
+    r"(?:play|put on|listen to)\s+(.+?)\s+(?:on|in|with|using)\s+(?:my\s+|the\s+)?(.+?)"
+    r"(?:\s+(?:music\s+)?(?:player|app|application))?",
+    re.IGNORECASE,
+)
+_NOT_AN_APP = frozenset({"youtube", "you tube", "yt", "youtube music", "spotify", "radio", "tv", "television", "repeat", "loop",
+                        "shuffle", "speaker", "speakers", "headphones", "full screen", "fullscreen", "background",
+                        "volume", "low", "high"})
 _BRIEFING = re.compile(
     r"good\s+(?:morning|afternoon|evening)|brief\s+me|(?:give\s+me\s+)?(?:my\s+|the\s+)?(?:daily\s+|morning\s+)?briefing"
     r"|what\s+does\s+my\s+day\s+look\s+like|what(?:'s|\s+is)\s+on\s+(?:for\s+)?today",
@@ -172,6 +187,12 @@ _SAY_IN = re.compile(
 _RADIO_PLAY = re.compile(
     r"(?:play|put\s+on|turn\s+on|listen\s+to|tune\s+(?:in\s+)?to)\s+(?:the\s+|some\s+|me\s+some\s+)?"
     r"(?:(.+?)\s+)?(?:internet\s+)?radio(?:\s+station)?",
+    re.IGNORECASE,
+)
+# "change to Windows 7 dark theme", "switch the desktop theme to mac", "use the ubuntu theme" (#115)
+_CHANGE_THEME = re.compile(
+    r"(?:change|switch|set)\s+(?:the\s+|my\s+)?(?:desktop\s+)?theme\s+to\s+(?:the\s+)?(.+?)(?:\s+theme)?"
+    r"|(?:change|switch)\s+to\s+(?:the\s+)?(.+?)\s+theme|(?:use|apply)\s+(?:the\s+)?(.+?)\s+theme",
     re.IGNORECASE,
 )
 _PLAY_ANY = re.compile(r"(?:play|put\s+on|listen\s+to)\s+(.+)", re.IGNORECASE)
@@ -205,7 +226,10 @@ _SEARCH_WEB = re.compile(
     r"search\s+(?:the\s+)?(?:web|google|online|internet)\s+for\s+(.+)", re.IGNORECASE
 )
 _GOOGLE = re.compile(r"google\s+(.+)", re.IGNORECASE)
-_LOOK_UP = re.compile(r"look\s+up\s+(.+)", re.IGNORECASE)
+_LOOK_UP = re.compile(
+    r"look\s*up\s+(?!the\s+company\b)(?!.*\bon\s+wikipedia$)(.+)",
+    re.IGNORECASE,
+)
 _IMAGE_SEARCH_FOR = re.compile(
     r"(?:image|picture|photo)\s+search\s+(?:for\s+)?(.+)", re.IGNORECASE
 )
@@ -343,6 +367,17 @@ _READ_SELECTION = re.compile(
     r"read (?:that|this|it|the selection|the selected text|what i selected)(?: to me| out loud| aloud)?",
     re.IGNORECASE,
 )
+_READ_THIS_FILE = re.compile(
+    r"read (?:this|that|the selected|the) (?:text )?file(?: to me| out loud| aloud)?", re.IGNORECASE
+)
+_READ_FILE = re.compile(
+    r"read (?:me )?(?:the |my )?(?:text )?file (?:called |named )?(.+?)(?: to me| out loud| aloud)?",
+    re.IGNORECASE,
+)
+_RECITE_BY = re.compile(
+    r"(?:recite|read|say)\s+(?:me\s+)?(?:a|an|some|one|another)\s+poem\s+(?:by|from)\s+(.+)", re.IGNORECASE
+)
+_RECITE_TITLE = re.compile(r"recite\s+(?:me\s+)?(?!(?:a|an|some|one|another)\s+poem\b)(.+?)(?:\s+by\s+(.+))?", re.IGNORECASE)
 _READ_CLIPBOARD = re.compile(
     r"(?:what(?:'s| is) (?:on|in) (?:my |the )?clipboard|read (?:my |the )?clipboard(?: to me)?)",
     re.IGNORECASE,
@@ -364,7 +399,7 @@ _LARGE_FILES = re.compile(
     re.IGNORECASE,
 )
 _FIND_FILE = re.compile(
-    r"(?:find|locate|where is|where's) (?:the |my |a )?file (?:called |named )?(.+)", re.IGNORECASE
+    r"(?:find|locate|where is|where's) (?:the |my |a )?file (?:called |named? )?(.+)", re.IGNORECASE
 )
 _OPEN_FOLDER = re.compile(
     r"(?:open|show)(?: me)? (?:my |the )?(.+?) (?:folder|directory)", re.IGNORECASE
@@ -563,9 +598,9 @@ _WHATS_OPEN = re.compile(
     re.IGNORECASE,
 )
 _WHICH_WINDOW = re.compile(
-    r"(?:what window is this"
-    r"|which window is (?:this|in front|active)"
-    r"|what(?:'s| is) (?:this|the active|the current) window"
+    r"(?:what window (?:is|was) this"
+    r"|which window (?:is|was) (?:this|in front|active)"
+    r"|what(?:'s| is| was) (?:this|the active|the current) window"
     r"|what am i looking at)",
     re.IGNORECASE,
 )
@@ -621,8 +656,120 @@ _OPEN_NOTES = re.compile(r"open (?:my )?notes", re.IGNORECASE)
 # by "list" ("packing list"). A bare unknown word is not a list: "what's on TV", "what's on my calendar".
 _LIST_KNOWN = r"to[- ]?do|todo|task|tasks|shopping|grocery|groceries"
 _LIST = rf"(?:my |the )?(?:(?:{_LIST_KNOWN})(?: list)?|(?!clipboard\b)[a-z]+ list)"
-_LIST_NAMED = rf"(?:my |the )?(?:{_LIST_KNOWN}|(?!clipboard\b)[a-z]+) list"
-_LIST_ADD = re.compile(rf"(?:add|put) (?P<item>.+?) (?:to|on) (?P<list>{_LIST})", re.IGNORECASE)
+_LIST_NAMED = rf"(?:my |the )?(?:{_LIST_KNOWN}|(?!clipboard\b)[a-z]+(?: plan)?) list"
+# Whisper often drops the last letter of "add" ("can you at finish the report to my to-do list").
+_LIST_ADD = re.compile(rf"(?:add|ad|at|put) (?P<item>.+?) (?:to|on) (?P<list>{_LIST})", re.IGNORECASE)
+# "I've finished the report to my to-do list" (mangled "add finish the report to my to-do list"):
+# the words name a list, so the item is being added, not marked done.
+_LIST_ADDED = re.compile(
+    rf"(?:i(?:'?ve| have)? (?:just )?)finished (?P<item>.+?) (?:to|on|in) (?P<list>{_LIST})",
+    re.IGNORECASE,
+)
+_PRESENTATION = re.compile(
+    r"(?:make|create|build|give|do)\s+(?:me\s+)?(?:a\s+)?"
+    r"(?:(?P<count>\d+|one|two|three|four|five|six|seven|eight)\s+slides?"
+    r"|presentation|slide\s+deck|deck|slides?)\s+"
+    r"(?:about|on|regarding)\s+(?P<topic>.+)",
+    re.IGNORECASE,
+)
+_FINANCE_SORT = re.compile(
+    r"(?:organise|organize|sort|file) (?:my |the )?(?:financial|finance) (?:documents?|docs?|papers?)",
+    re.IGNORECASE,
+)
+_FINANCE_UNDO = re.compile(r"undo (?:the |my )?(?:filing|sorting|sort)", re.IGNORECASE)
+_FINANCE_KIND = r"(?:invoices?|receipts?|warrant(?:y|ies)|tax|(?:(?:bank )?statements?))"
+_FINANCE_COUNT = re.compile(
+    rf"(?:"
+    rf"how many (?P<kind1>{_FINANCE_KIND})(?: (?:do i have|are there))?"
+    rf"|where (?:are|is) (?:my |the )?(?P<kind2>{_FINANCE_KIND})"
+    rf")",
+    re.IGNORECASE,
+)
+_FAMILY_ADD = re.compile(
+    r"(?:add|put) (?P<event>.+?) for (?P<person>[a-z]+) (?:on |for )?(?P<when>.+)",
+    re.IGNORECASE,
+)
+_FAMILY_WEEK = re.compile(r"what(?:'s| is) on for (?:the |our )?family(?: this week)?", re.IGNORECASE)
+_FAMILY_REMOVE = re.compile(r"(?:remove|delete) (?P<person>[a-z]+)'s (?P<event>.+)", re.IGNORECASE)
+_TRAVEL_OPTIONS = re.compile(
+    r"(?:"
+    r"(?:my |the )?(?P<what>flight|train|bus|connection) (?:to|for) (?P<place>.+?) "
+    r"(?:was |got |is )?(?P<problem>cancelled|canceled|delayed)"
+    r"|(?:i )?missed (?:my |the )?(?P<what2>flight|train|bus|connection) (?:to|for) (?P<place2>.+)"
+    r")"
+    r"(?:\s+(?:what are my options|what can i do|options|what now).*)?",
+    re.IGNORECASE,
+)
+_DOC_EXTRACT = re.compile(
+    r"(?:"
+    r"what (?:are|is) the (?:dates?|amounts?|details?|important details?)"
+    r"(?: and (?:amounts?|dates?|details?))? in (?P<n1>.+)"
+    r"|read the (?:important )?details? (?:from|in|of) (?P<n2>.+)"
+    r"|what does (?P<n3>.+?) say about .+"
+    r")",
+    re.IGNORECASE,
+)
+_TRAVEL_DOC_NOUN = (
+    r"passport|visa|licen[cs]e|id|identification|insurance|registration|"
+    r"green card|credit card|sim card|certificate|health certificate|vaccination"
+)
+_TRAVEL_DOC_ADD = re.compile(
+    rf"(?:remember|note|save|store)\s+(?:my\s+|the\s+)?(?P<doc>{_TRAVEL_DOC_NOUN})\s+"
+    rf"(?:that\s+)?(?:it\s+)?expires?\s+(?:on\s+|in\s+|by\s+)?(?P<expires>.+)",
+    re.IGNORECASE,
+)
+_TRAVEL_DOC_WHEN = re.compile(
+    rf"when does (?:my\s+|the\s+)?(?P<doc>{_TRAVEL_DOC_NOUN})\s+expire[s]?",
+    re.IGNORECASE,
+)
+_TRAVEL_DOC_LIST = re.compile(
+    r"(?:what|which) travel documents (?:do i have|i have|are there|do you have)"
+    r"|(?:list|show)(?: me)? (?:my )?travel documents",
+    re.IGNORECASE,
+)
+_TRAVEL_DOC_FORGET = re.compile(
+    rf"(?:forget|delete|remove|drop) (?:my\s+|the\s+)?(?P<doc>{_TRAVEL_DOC_NOUN})\b",
+    re.IGNORECASE,
+)
+_EVENT_NOUN = (
+    r"birthday party|birthday|dinner party|dinner|barbecue|barbeque|bbq|cookout|"
+    r"picnic|wedding|gathering|get[- ]?together|reunion|fundraiser|celebration|"
+    r"feast|banquet|party"
+)
+_EVENT_PLAN = re.compile(
+    rf"(?:help me )?(?:plan|organise|organize|arrange)\s+(?:an?\s+|the\s+|my\s+)?"
+    rf"(?P<event>{_EVENT_NOUN})\s*(?P<tail>.*)",
+    re.IGNORECASE,
+)
+_CONVO_SUMMARY = re.compile(
+    r"(?:summarize|summarise|sum up|recap)(?: (?:our|the|this|my))? conversation"
+    r"|what did we (?:decide|agree)(?: on)?"
+    r"|what are my action items(?: from (?:this|our) conversation)?",
+    re.IGNORECASE,
+)
+_TRIP_DAYS = r"one|two|three|four|five|six|seven|weekend"
+_TRIP_NOUN = r"trip|trips|itinerary|itineraries|getaway|getaways|vacation|vacations|holiday|holidays|weekend"
+_TRIP_PLAN = re.compile(
+    rf"(?:plan|make) (?:an? |my )?(?:(?P<days>{_TRIP_DAYS})|(?P<noun>{_TRIP_NOUN}))(?P<tail>.+)",
+    re.IGNORECASE,
+)
+_TRIP_DAY_WORD = re.compile(r"\b(one|two|three|four|five|six|seven|weekend)\b", re.IGNORECASE)
+_TRIP_CONNECTOR = re.compile(r"\b(?:to|in|for)\b", re.IGNORECASE)
+_TRIP_READ = re.compile(
+    r"(?:read|show) (?:me )?(?:my |the )?(?:trip|itinerary|getaway|vacation|holiday)(?: (?:to|for))? (?P<place>.+)",
+    re.IGNORECASE,
+)
+_TRIP_FORGET = re.compile(
+    r"(?:forget|delete|remove) (?:my |the )?(?:trip|itinerary|getaway|vacation|holiday)(?: (?:to|for))? (?P<place>.+)",
+    re.IGNORECASE,
+)
+_PROJECT_STEPS = re.compile(
+    r"break down (?P<g1>.+?)(?: into steps)?"
+    r"|help me plan (?P<g2>.+)"
+    r"|what are the steps to (?P<g3>.+)"
+    r"|make a plan for (?P<g4>.+)",
+    re.IGNORECASE,
+)
 _BACKUP_NOW = re.compile(
     r"back up (?:my |voxa(?:'s)? )?(?:data|notes|lists|files|everything)"
     r"|(?:make|create) a backup",
@@ -655,8 +802,12 @@ _MEAL_SHOP = re.compile(
     re.IGNORECASE,
 )
 _PROJECT_STATUS = re.compile(
-    r"what(?:'s| is) the git status of (?:the |my )?(?P<n1>.+?)"
-    r"|what(?:'s| is) the status of (?:the |my )?(?P<n2>.+?)(?: project| repo(?:sitory)?)"
+    # "get status" is how the speech engine hears "git status"; "of the project" with
+    # no name means the one project Voxa can find in the home folder.
+    r"what(?:'s| is) the (?:git|get) status(?: of (?:the |my )?(?:project|repo(?:sitory)?))?"
+    r"|what(?:'s| is) the (?:git|get) status of (?:the |my )?(?P<n1>.+?)"
+    r"|what(?:'s| is) the status(?: of (?:the |my )?(?P<n4>project|repo(?:sitory)?)"
+    r"| of (?:the |my )?(?P<n2>.+?)(?: project| repo(?:sitory)?)|)?"
     r"|how is (?:the |my )?(?P<n3>.+?) (?:project| repo(?:sitory)?)(?: doing)?",
     re.IGNORECASE,
 )
@@ -668,7 +819,8 @@ _MODEL_STATUS = re.compile(
 )
 _HEADS_UP = re.compile(
     r"what should i know(?: today| about today)?|what(?:'s| is) (?:important|going on) today"
-    r"|anything i should know|(?:give me )?a heads up",
+    r"|anything i should know|(?:give me )?a heads up"
+    r"|give me (?:a |your |some )?hands? up",
     re.IGNORECASE,
 )
 _FORGOTTEN = re.compile(
@@ -709,6 +861,14 @@ _WEEKDAY_WORD = r"monday|tuesday|wednesday|thursday|friday|saturday|sunday"
 _CAL_WEEKLY1 = re.compile(rf"(?:add|put|schedule) (?P<title>.+?) every (?P<day>{_WEEKDAY_WORD}) at (?P<time>.+?)(?: (?:on|to|in) my calendar)?", re.IGNORECASE)
 _CAL_WEEKLY2 = re.compile(rf"i have (?P<title>.+?) every (?P<day>{_WEEKDAY_WORD}) at (?P<time>.+)", re.IGNORECASE)
 _CAL_WEEKLY3 = re.compile(rf"(?P<title>.+?) is every (?P<day>{_WEEKDAY_WORD}) at (?P<time>.+)", re.IGNORECASE)
+
+
+def _canonical_time(spoken: str) -> str:
+    """Canonical spoken time for a tool argument: '9am' -> '9 am', 'noon' -> 'noon'."""
+    parsed = parse_time(spoken)
+    if parsed is None:
+        return " ".join(spoken.split()).strip()
+    return spoken_time(parsed).lower()
 _CONVERT_TO = re.compile(
     r"convert (?:the |my )?(?:file |document )?(?P<name>.+?) (?:into|in|to) (?:a |an )?(?P<fmt>.+?)"
     r"(?: file| document)?(?: in (?:the |my )?(?P<folder>.+?)(?: folder)?)?",
@@ -721,14 +881,14 @@ _TRANSCRIBE = re.compile(
     r"(?: in (?:the |my )?(?P<folder>.+?)(?: folder)?)?",
     re.IGNORECASE,
 )
-_FOCUS_DURATION = r"(?:\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|fifteen|twenty|thirty)\s+(?:minutes?|hours?)"
+_FOCUS_DURATION = r"(?:\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|fifteen|twenty|thirty)[\s-]+(?:minutes?|hours?)"
 _FOCUS_START = re.compile(
     rf"(?:start|begin)\s+(?:a |an |at )?(?:(?P<dur1>{_FOCUS_DURATION})\s+)?focus\s+(?:session|time|timer|block)"
     rf"(?:\s+for\s+(?P<dur2>{_FOCUS_DURATION}))?(?:\s+(?:on|for)\s+(?P<what>.+))?",
     re.IGNORECASE,
 )
 _FOCUS_NEED = re.compile(rf"i\s+need\s+to\s+focus(?:\s+for\s+(?P<dur>{_FOCUS_DURATION}))?", re.IGNORECASE)
-_FOCUS_POMODORO = re.compile(r"(?:start|begin)\s+(?:a\s+)?pomm?[ao]doro(?:\s+(?:timer|session))?", re.IGNORECASE)
+_FOCUS_POMODORO = re.compile(r"(?:start|begin)\s+(?:a\s+)?(?:pomm?[ao]doro|pal[ai]doro|pamodoro)(?:\s+(?:timer|session))?", re.IGNORECASE)
 _FOCUS_PROTECT = re.compile(rf"protect\s+(?:the\s+next\s+)?(?P<dur>{_FOCUS_DURATION})(?:\s+for\s+(?P<what>.+))?", re.IGNORECASE)
 _FOCUS_STATUS = re.compile(
     r"how\s+much\s+focus\s+time\s+(?:is|do\s+i\s+have)\s+left"
@@ -777,8 +937,9 @@ _MEMORY_REMEMBER = re.compile(
 )
 _MEMORY_RECALL = re.compile(
     r"what do you (?:remember|know) about (?P<t1>.+)"
-    r"|do you remember (?:anything about )?(?P<t2>.+)"
-    r"|what did i (?:tell you|say) about (?P<t3>.+)",
+    r"|do you (?:remember|know) (?:anything about )?(?P<t2>.+)"
+    r"|what did i (?:tell you|say) about (?P<t3>.+)"
+    r"|tell me what you (?:remember|know) about (?P<t4>.+)",
     re.IGNORECASE,
 )
 _MEMORY_LIST = re.compile(
@@ -859,12 +1020,12 @@ _DATE_REMEMBER = re.compile(
 _DATE_DUE = re.compile(r"(?:the )?(?P<name>.+?) is due (?:on |by )?(?P<when>.+)", re.IGNORECASE)
 _DATE_DEADLINE = re.compile(r"(?P<name>.+?) deadline is (?:on )?(?P<when>.+)", re.IGNORECASE)
 _DATE_WHEN = re.compile(
-    rf"when is (?P<name>.+?)'s (?P<kind>{_DATE_KIND})|when is (?:the )?(?P<due>.+?) due",
+    rf"when is (?P<name>.+?)'s (?P<kind>{_DATE_KIND})|when is (?:the )?(?P<due>.+?) (?:due|do|2)",
     re.IGNORECASE,
 )
 _DATE_UPCOMING = re.compile(
     r"(?:what|any|which) (?:birthdays|anniversaries|deadlines|dates)(?: (?:are|do i have))?(?: (?:coming up|this week|this month|soon))?"
-    r"|what(?:'s| is) (?:coming up|due)(?: (?:this week|this month|soon))?",
+    r"|what(?:'s| is) (?:coming up|due|do)(?: (?:this week|this month|soon))?",
     re.IGNORECASE,
 )
 _DATE_FORGET = re.compile(
@@ -884,8 +1045,10 @@ _DATE_SUBSCRIPTION = re.compile(
     r"|(?P<renew>.+?) renews (?:on |by )?(?P<renewwhen>.+)",
     re.IGNORECASE,
 )
+# the small brain hears "is due on" as "do 1"/"do 2" and drops the plural s: "the oil changes do 1 March 3rd"
 _DATE_SERVICE = re.compile(
-    r"(?:the |my )?(?P<name>.+?\b(?:service|inspection|registration|oil change|check-?up|maintenance)) is due (?:on |in )?(?P<when>.+)",
+    r"(?:the |my )?(?P<name>.+?\b(?:service|inspection|registration|oil change|check-?up|maintenance))"
+    r"(?:s|es)? (?:is due|does|do|due|2)(?:s)? (?:on |in |1 |one )?(?P<when>.+)",
     re.IGNORECASE,
 )
 _DATE_BILLS_QUESTION = re.compile(
@@ -897,12 +1060,17 @@ _DATE_SUBSCRIPTIONS_QUESTION = re.compile(
     re.IGNORECASE,
 )
 _DATE_WHEN_BILL = re.compile(r"when is (?:the |my )?(?P<name>.+?) bill due", re.IGNORECASE)
-_DATE_WHEN_RENEW = re.compile(r"when does (?:the |my )?(?P<name>.+?)(?: subscription)? renew", re.IGNORECASE)
+# the small brain hears "when does" as "windows"/"when's": "windows netflix renew" is a date_when question
+_DATE_WHEN_RENEW = re.compile(
+    r"(?:when does|when'?s|windows) (?:the |my )?(?P<name>.+?)(?: subscription)? renews?",
+    re.IGNORECASE,
+)
 
 
 def _date_name(phrase: str) -> str:
     """"my mom" -> "mom": the bare name the date tools expect."""
-    return re.sub(r"^(?:my|the)\s+", "", (phrase or "").strip(), flags=re.IGNORECASE)
+    out = re.sub(r"^(?:remember|note|keep in mind|don'?t forget)(?: that)?\s+", "", (phrase or "").strip(), flags=re.IGNORECASE)
+    return re.sub(r"^(?:my|the)\s+", "", out, flags=re.IGNORECASE)
 
 
 def _list_word(phrase: str | None) -> str:
@@ -1053,6 +1221,23 @@ ROUTED_TOOLS = frozenset(
         "delete_last_note",
         "open_notes",
         "list_add",
+        "presentation_make",
+        "finance_undo",
+        "finance_count",
+        "family_add",
+        "family_week",
+        "family_remove",
+        "doc_extract",
+        "event_plan",
+        "conversation_summary",
+        "trip_plan",
+        "trip_read",
+        "trip_forget",
+        "travel_doc_add",
+        "travel_doc_forget",
+        "travel_doc_list",
+        "travel_doc_when",
+        "travel_options",
         "backup_now",
         "backup_last",
         "sort_folder_preview",
@@ -1060,6 +1245,7 @@ ROUTED_TOOLS = frozenset(
         "meal_plan",
         "meal_shop",
         "project_status",
+        "project_steps",
         "model_status",
         "flight_status",
         "track_package",
@@ -1223,7 +1409,7 @@ def is_compound(text: str) -> bool:
 
 
 _FLIGHT_STATUS = re.compile(
-    r"(?:what(?:'s| is) the status of|track|is) flight (?P<flight>.+?)(?: on time| delayed)?"
+    r"(?:what(?:'s| is) the status of|track|is|check(?: if)?) flight (?P<flight>.+?)(?: is)?(?: on time| delayed| running late)?"
     r"|flight status (?:for |of )?(?P<flight2>.+)",
     re.IGNORECASE,
 )
@@ -1239,11 +1425,11 @@ _COMPARE_PRICES = re.compile(
     re.IGNORECASE,
 )
 _LOOK_UP_COMPANY = re.compile(
-    r"(?:look up|research|tell me about|who is|what is) (?:the )?company (?P<name>.+)",
+    r"(?:look ?up|research|tell me about|who is|what is) (?:the )?company (?P<name>.+)",
     re.IGNORECASE,
 )
 _LOOK_UP_WIKI = re.compile(
-    r"(?:look up|research) (?:the person )?(?P<name>.+?) on wikipedia",
+    r"(?:look ?up|research) (?:the person )?(?P<name>.+?) on wikipedia",
     re.IGNORECASE,
 )
 _LOOK_UP_PERSON = re.compile(r"who is (?P<name>.+)", re.IGNORECASE)
@@ -1264,7 +1450,8 @@ _MARKET = re.compile(
     r"|tell me (?P<what6>.+?) (?:stock|share) price"
     r"|how is (?P<what7>.+?) (?:stock|shares?)(?: doing)?"
     r"|what(?:'s| is) (?P<what8>.+?) (?:stock |shares? )?at"
-    r"|how much is (?:a |one )?(?P<what2>bitcoin|ethereum|gold|silver)",
+    r"|how much is (?:a |one )?(?P<what2>bitcoin|ethereum|gold|silver)"
+    r"|check (?:the )?(?:stock )?market(?: doing| today| right now)?",
     re.IGNORECASE,
 )
 _FACT_CHECK = re.compile(
@@ -1277,6 +1464,19 @@ _FACT_CHECK = re.compile(
 
 def route(text: str) -> ToolCall | None:
     """Map a spoken command to a tool call, or None when no rule matches."""
+    call = _route_command(text)
+    if call is not None:
+        return call
+    # Tried only when the whole text matched nothing, so a command that already
+    # routed can never change meaning by having a greeting cut off its first word.
+    s = _prepare(normalize(text))
+    glued = _GLUED_LEADING.sub("", s, count=1).strip(" .,!?").strip()
+    if glued and glued != s:
+        return _route_command(glued)
+    return None
+
+
+def _route_command(text: str) -> ToolCall | None:
     global _LAST_SCROLL_DIRECTION
 
     s = _prepare(normalize(text))
@@ -1410,6 +1610,12 @@ def route(text: str) -> ToolCall | None:
         return call("expense_undo")
     if _EXPENSE_SHEET.fullmatch(s):
         return call("expense_spreadsheet")
+    event_plan = _EVENT_PLAN.fullmatch(s)
+    if event_plan:
+        event = event_plan.group("event").strip()
+        tail = event_plan.group("tail").strip()
+        when = re.sub(r"^(?:for|on)\s+", "", tail, flags=re.IGNORECASE).strip()
+        return call("event_plan", event=event, when=when)
     for _cal_add in (_CAL_ADD1, _CAL_ADD2, _CAL_ADD3, _CAL_ADD4):
         _cal_m = _cal_add.fullmatch(s)
         if _cal_m and _cal_m.group("when") and split_when(_cal_m.group("when"), date.today()) is not None:
@@ -1422,12 +1628,23 @@ def route(text: str) -> ToolCall | None:
     cal_cancel = _CAL_CANCEL.fullmatch(s)
     if cal_cancel and _CAL_NAMED.search(s):
         return call("calendar_cancel", title=cal_cancel.group("title"))
+    travel_add = _TRAVEL_DOC_ADD.fullmatch(s)
+    if travel_add:
+        return call("travel_doc_add", document=travel_add.group("doc").strip(), expires=travel_add.group("expires").strip())
+    travel_when = _TRAVEL_DOC_WHEN.fullmatch(s)
+    if travel_when:
+        return call("travel_doc_when", document=travel_when.group("doc").strip())
+    if _TRAVEL_DOC_LIST.fullmatch(s):
+        return call("travel_doc_list")
+    travel_forget = _TRAVEL_DOC_FORGET.fullmatch(s)
+    if travel_forget:
+        return call("travel_doc_forget", document=travel_forget.group("doc").strip())
     mem_remember = _MEMORY_REMEMBER.fullmatch(s)
     if mem_remember:
         return call("remember_fact", fact=mem_remember.group("fact"))
     mem_recall = _MEMORY_RECALL.fullmatch(s)
     if mem_recall:
-        return call("recall_fact", topic=mem_recall.group("t1") or mem_recall.group("t2") or mem_recall.group("t3"))
+        return call("recall_fact", topic=mem_recall.group("t1") or mem_recall.group("t2") or mem_recall.group("t3") or mem_recall.group("t4"))
     if _MEMORY_LIST.fullmatch(s):
         return call("list_facts")
     mem_forget = _MEMORY_FORGET.fullmatch(s)
@@ -1480,7 +1697,7 @@ def route(text: str) -> ToolCall | None:
                 "calendar_add_weekly",
                 title=_cal_w.group("title").strip(),
                 weekday=_cal_w.group("day").lower(),
-                time=_cal_w.group("time").strip(),
+                time=_canonical_time(_cal_w.group("time")),
             )
     if _CAL_WEEK_Q.fullmatch(s):
         return call("calendar_week", person="")
@@ -1512,7 +1729,13 @@ def route(text: str) -> ToolCall | None:
         )
     project_status = _PROJECT_STATUS.fullmatch(s)
     if project_status:
-        name = project_status.group("n1") or project_status.group("n2") or project_status.group("n3")
+        name = (
+            project_status.group("n1")
+            or project_status.group("n2")
+            or project_status.group("n3")
+            or project_status.group("n4")
+            or ""
+        )
         return call("project_status", name=name)
     if _MODEL_STATUS.fullmatch(s):
         return call("model_status")
@@ -1536,9 +1759,83 @@ def route(text: str) -> ToolCall | None:
         spoken = sort_preview.group(1) or sort_preview.group(2) or ""
         if folder_key(spoken) is not None:
             return call("sort_folder_preview", folder=spoken)
+    project_steps = _PROJECT_STEPS.fullmatch(s)
+    if project_steps:
+        goal = project_steps.group("g1") or project_steps.group("g2") or project_steps.group("g3") or project_steps.group("g4")
+        return call("project_steps", goal=goal)
+    trip_plan = _TRIP_PLAN.fullmatch(s)
+    if trip_plan:
+        days = (trip_plan.group("days") or "").lower()
+        tail = trip_plan.group("tail")
+        if not days:
+            day_match = _TRIP_DAY_WORD.search(tail)
+            if day_match:
+                days = day_match.group(1).lower()
+                tail = tail[: day_match.start()] + tail[day_match.end():]
+        tail = re.sub(rf"\b(?:{_TRIP_NOUN})\b", "", tail, flags=re.IGNORECASE)
+        tail = re.sub(r"^\s*days?\b", "", tail, flags=re.IGNORECASE)
+        place = _TRIP_CONNECTOR.split(tail)[-1]
+        place = re.sub(r"\s+", " ", place).strip()
+        return call("trip_plan", place=place, days=days)
+    trip_read = _TRIP_READ.fullmatch(s)
+    if trip_read:
+        return call("trip_read", place=trip_read.group("place").strip())
+    trip_forget = _TRIP_FORGET.fullmatch(s)
+    if trip_forget:
+        return call("trip_forget", place=trip_forget.group("place").strip())
+    if _CONVO_SUMMARY.fullmatch(s):
+        return call("conversation_summary")
+    doc_extract = _DOC_EXTRACT.fullmatch(s)
+    if doc_extract:
+        found = doc_extract.groupdict()
+        name = next(found[key] for key in ("n1", "n2", "n3") if found[key])
+        return call("doc_extract", name=name.strip())
+    travel = _TRAVEL_OPTIONS.fullmatch(s)
+    if travel:
+        found = travel.groupdict()
+        if found["what"]:
+            return call("travel_options", what=found["what"], place=found["place"].strip(), problem=found["problem"])
+        return call("travel_options", what=found["what2"], place=found["place2"].strip(), problem="missed")
+    family_add = _FAMILY_ADD.fullmatch(s)
+    if family_add and split_when(family_add.group("when"), date.today()) is not None:
+        return call(
+            "family_add",
+            person=family_add.group("person").strip(),
+            event=family_add.group("event").strip(),
+            when=family_add.group("when").strip(),
+        )
+    if _FAMILY_WEEK.fullmatch(s):
+        return call("family_week", person="")
+    family_remove = _FAMILY_REMOVE.fullmatch(s)
+    if family_remove:
+        return call(
+            "family_remove",
+            person=family_remove.group("person").strip(),
+            event=family_remove.group("event").strip(),
+        )
+    finance_sort = _FINANCE_SORT.fullmatch(s)
+    if finance_sort:
+        return call("finance_sort")
+    finance_undo = _FINANCE_UNDO.fullmatch(s)
+    if finance_undo:
+        return call("finance_undo")
+    finance_count = _FINANCE_COUNT.fullmatch(s)
+    if finance_count:
+        kind = finance_count.group("kind1") or finance_count.group("kind2")
+        return call("finance_count", kind=kind)
+    presentation = _PRESENTATION.fullmatch(s)
+    if presentation:
+        return call(
+            "presentation_make",
+            topic=presentation.group("topic").strip(),
+            count=presentation.group("count") or "",
+        )
     list_add = _LIST_ADD.fullmatch(s)
     if list_add:
         return call("list_add", item=list_add.group("item"), list=_list_word(list_add.group("list")))
+    list_added = _LIST_ADDED.fullmatch(s)
+    if list_added:
+        return call("list_add", item=list_added.group("item"), list=_list_word(list_added.group("list")))
     list_read = _LIST_READ.fullmatch(s)
     if list_read:
         return call("list_read", list=_list_word(list_read.group("a") or list_read.group("b") or list_read.group("c")))
@@ -1581,6 +1878,22 @@ def route(text: str) -> ToolCall | None:
     browse_match = _BROWSE.fullmatch(s)
     if browse_match and "." in browse_match.group(1):
         return call("browse", url=browse_match.group(1))
+    recite_by = _RECITE_BY.fullmatch(s)
+    if recite_by:
+        return call("recite_poem", author=recite_by.group(1))
+    if re.fullmatch(r"(?:recite|read|say)\s+(?:me\s+)?(?:a|some|another)\s+poem", s, re.IGNORECASE):
+        return call("recite_poem")
+    recite_title = _RECITE_TITLE.fullmatch(s)
+    if recite_title:
+        if recite_title.group(2):
+            return call("recite_poem", title=recite_title.group(1), author=recite_title.group(2))
+        return call("recite_poem", title=recite_title.group(1))
+    # Before read_page: "read this text file" must not read the web page.
+    if _READ_THIS_FILE.fullmatch(s):
+        return call("read_text_file")
+    read_file_match = _READ_FILE.fullmatch(s)
+    if read_file_match:
+        return call("read_text_file", name=read_file_match.group(1))
     if _READ_PAGE.fullmatch(s):
         return call("read_page")
     if _READ_CLIPBOARD.fullmatch(s):
@@ -1703,11 +2016,23 @@ def route(text: str) -> ToolCall | None:
 
     set_email_match = _SET_EMAIL.fullmatch(s)
     if set_email_match:
-        spoken_email = spoken_address(set_email_match.group(2))
+        name = set_email_match.group(1)
+        raw_email = set_email_match.group(2)
+        spoken_email = spoken_address(raw_email)
+        if not spoken_email and "@" not in raw_email and " at " not in raw_email.lower():
+            low = raw_email.lower()
+            nlow = name.lower()
+            if nlow and low.startswith(nlow):
+                rest = low[len(nlow):]
+                for glue in ("at", "an"):
+                    if rest.startswith(glue):
+                        tail = rest[len(glue):]
+                        if re.search(r"\.[a-z]{2,}$", tail):
+                            spoken_email = f"{nlow}@{tail}"
+                            break
         if spoken_email:
-            raw_email = set_email_match.group(2)
             address = spoken_email if " " not in raw_email else raw_email
-            return call("set_contact_email", name=set_email_match.group(1), address=address)
+            return call("set_contact_email", name=name, address=address)
     get_email_match = _GET_EMAIL.fullmatch(s)
     if get_email_match:
         return call("get_contact_email", name=get_email_match.group(1))
@@ -1804,6 +2129,14 @@ def route(text: str) -> ToolCall | None:
         return call("set_noise_cancellation", state="off")
     if _NOISE_GET.fullmatch(s):
         return call("get_noise_cancellation")
+
+    on_app = _PLAY_ON_APP.fullmatch(s)
+    if on_app and on_app.group(2).casefold() not in _NOT_AN_APP and len(on_app.group(2).split()) <= 3:
+        return call("play_on_app", query=on_app.group(1).strip(), app=on_app.group(2).strip())
+
+    theme_match = _CHANGE_THEME.fullmatch(s)
+    if theme_match:
+        return call("change_theme", name=next(g for g in theme_match.groups() if g).strip())
 
     radio_match = _RADIO_PLAY.fullmatch(s)
     if radio_match:

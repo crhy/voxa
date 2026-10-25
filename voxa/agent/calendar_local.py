@@ -320,8 +320,12 @@ def spoken_day(items: list[tuple[date, tuple[int, int] | None, str]], day: date,
 
 
 def person_of(title: str) -> str | None:
-    """The possessive first word of a title: "Emma's soccer practice" -> "Emma"."""
-    m = re.match(r"([A-Za-z]+)'s\b", title.strip())
+    """The person a title belongs to: "Emma's soccer practice" or "Emma: soccer practice" -> "Emma"."""
+    stripped = title.strip()
+    m = re.match(r"([A-Za-z]+)'s\b", stripped)
+    if m:
+        return m.group(1)
+    m = re.match(r"([A-Za-z]+):", stripped)
     return m.group(1) if m else None
 
 

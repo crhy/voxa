@@ -1,5 +1,5 @@
 #!/bin/bash
-# Puts this folder's face server where Voxa looks for it (~/voxa-neural) and
+# Puts this folder's face server where Voxa looks for it (~/.local/share/voxa/face-server, or $VOXA_FACE_HOME) and
 # applies Voxa's change to Ditto.  The scripts are symlinked, not copied, so
 # the running server is always this repository's code and edits land in Git.
 #
@@ -9,7 +9,7 @@
 set -euo pipefail
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 REPO=$(dirname "$HERE")
-N=/home/rhy/voxa-neural   # every script in this folder uses this path
+N=${VOXA_FACE_HOME:-$HOME/.local/share/voxa/face-server}   # the scripts find their own folder; this is where they are installed
 FILES=(face_server.py face_relay.py render_locked.py live_probe.py sync_probe.py sync_measure.py
        run-face-server.sh run-sandboxed-py.sh run-sandboxed.sh stop-face-server.sh setup.sh after-render.sh probe.sh)
 

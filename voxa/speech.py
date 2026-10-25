@@ -27,6 +27,31 @@ NATURAL_VOICE_ATTEMPTS = 2
 NATURAL_VOICE_RETRY_SECONDS = 0.35
 LOGGER = logging.getLogger(__name__)
 
+FEMALE_VOICES = frozenset({
+    "ar-SA-ZariyahNeural", "de-DE-KatjaNeural", "en-GB-SoniaNeural", "en-IE-EmilyNeural", "en-IN-NeerjaNeural",
+    "en-NG-EzinneNeural", "en-US-AriaNeural", "en-US-JennyNeural", "es-MX-DaliaNeural", "fr-FR-DeniseNeural",
+    "ja-JP-NanamiNeural",
+})
+_GOOGLE_TLD = {"en-US": "com", "en-GB": "co.uk", "en-IE": "ie", "en-IN": "co.in", "en-NG": "com.ng", "es-MX": "com.mx"}
+_ESPEAK_LANGUAGE = {"en-US": "en-us", "en-GB": "en-gb", "en-IE": "en-gb", "en-IN": "en-gb", "en-NG": "en-gb",
+                    "es-MX": "es-419", "fr-FR": "fr-fr", "de-DE": "de", "ja-JP": "ja", "ar-SA": "ar"}
+
+
+def google_voice_params(voice: str) -> tuple[str, str]:
+    """(language, Google domain) for an Edge voice id like "en-IE-EmilyNeural"; ("en", "com") when unknown."""
+    locale = "-".join(voice.split("-")[:2])
+    language = locale.split("-")[0] if locale else ""
+    return (language or "en", _GOOGLE_TLD.get(locale, "com"))
+
+
+def espeak_voice(voice: str) -> str:
+    """eSpeak voice for an Edge voice id: its language, "+f3" for a female voice; "en-us" when unknown."""
+    locale = "-".join(voice.split("-")[:2])
+    language = _ESPEAK_LANGUAGE.get(locale, "en-us")
+    if voice in FEMALE_VOICES:
+        language += "+f3"
+    return language
+
 # Speech engines may pronounce Markdown emphasis and list markers as
 # "asterisk".  Leave the displayed reply untouched, but remove those marks
 # at the common speech boundary so streamed, prepared, and fallback voices
@@ -39,7 +64,7 @@ def _speakable_text(text: str) -> str:
     return _ASTERISK_MARKS.sub("", text)
 
 
-def _download_google_voice(text: str, path: str) -> None:
+def _download_google_voice(text: str, path: str, lang: str = "en", tld: str = "com") -> None:
     """Download natural MP3 speech without pulling in gTTS's conflicting CLI dependencies."""
     chunks = textwrap.wrap(text, width=180, break_long_words=True, replace_whitespace=True)
     if not chunks:
@@ -47,8 +72,8 @@ def _download_google_voice(text: str, path: str) -> None:
     headers = {"User-Agent": "Mozilla/5.0"}
     with open(path, "wb") as audio:
         for chunk in chunks:
-            query = urlencode({"ie": "UTF-8", "client": "tw-ob", "tl": "en", "q": chunk})
-            request = Request(f"https://translate.google.com/translate_tts?{query}", headers=headers)
+            query = urlencode({"ie": "UTF-8", "client": "tw-ob", "tl": lang, "q": chunk})
+            request = Request(f"https://translate.google.{tld}/translate_tts?{query}", headers=headers)
             with urlopen(request, timeout=10) as response:  # noqa: S310 - fixed HTTPS host
                 audio.write(response.read())
 
@@ -160,6 +185,7 @@ class SpeechService:
         self._started_emitted = False
         self._finished = False
         self._before_play = None
+        self._voice = ""
 
     def speak(
         self,
@@ -182,6 +208,7 @@ class SpeechService:
         self._on_error = on_error
         self._on_words = on_words
         self._before_play = before_play
+        self._voice = voice
         self._started_at = None
         self._started_emitted = False
         self._finished = False
@@ -243,6 +270,7 @@ class SpeechService:
 
     def speak_prepared(self, item: Prepared, *, on_started, on_done, on_error, on_words=None, before_play=None) -> None:
         """Play audio fetched by :meth:`prepare` (waiting for it if it is not ready yet)."""
+        self._voice = item.voice
         self.stop()
         cancel_event = threading.Event()
         self.cancel_event = cancel_event
@@ -579,7 +607,7 @@ class SpeechService:
                     prefix="voxa-google-", suffix=".mp3", delete=False
                 ) as handle:
                     path = handle.name
-                _download_google_voice(text, path)
+                _download_google_voice(text, path, *google_voice_params(self._voice))
                 if cancel_event.is_set() or cancel_event is not self.cancel_event:
                     with contextlib.suppress(OSError):
                         os.unlink(path)
@@ -617,7 +645,7 @@ class SpeechService:
         _ensure_gstreamer()
         try:
             result = subprocess.run(
-                ["espeak-ng", "--stdout", "-s", str(rate), text],
+                ["espeak-ng", "--stdout", "-v", espeak_voice(self._voice), "-s", str(rate), text],
                 check=True,
                 capture_output=True,
                 stdin=subprocess.DEVNULL,

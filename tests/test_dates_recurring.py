@@ -71,7 +71,22 @@ def test_new_phrases_route() -> None:
     assert route("what subscriptions do i have") == ToolCall("date_upcoming", {"kind": "subscription", "days": "365"})
     assert route("when is the electricity bill due") == ToolCall("date_when", {"name": "electricity"})
     assert route("when does netflix renew") == ToolCall("date_when", {"name": "netflix"})
+    assert route("windows netflix renew") == ToolCall("date_when", {"name": "netflix"})
+    assert route("when's the netflix subscription renew") == ToolCall("date_when", {"name": "netflix"})
     assert route("forget the electricity bill") == ToolCall("date_forget", {"name": "electricity"})
+
+
+def test_cap61_misheard_service_due_phrases_route() -> None:
+    # the small brain hears "the oil change is due on" as "the oil changes do 1"
+    assert route("the oil changes do 1 March 3rd") == ToolCall(
+        "date_remember", {"kind": "service", "name": "oil change", "when": "March 3rd"}
+    )
+    assert route("the oil change does 1 March 3rd") == ToolCall(
+        "date_remember", {"kind": "service", "name": "oil change", "when": "March 3rd"}
+    )
+    assert route("the car service 2 March 3rd") == ToolCall(
+        "date_remember", {"kind": "service", "name": "car service", "when": "March 3rd"}
+    )
 
 
 def test_new_rules_do_not_steal_other_phrases() -> None:
@@ -80,6 +95,7 @@ def test_new_rules_do_not_steal_other_phrases() -> None:
     assert route("what is the capital of France") is None
     assert route("open the calculator") == ToolCall("open_app", {"name": "calculator"})
     assert route("the report is due Friday") == ToolCall("date_remember", {"kind": "deadline", "name": "report", "when": "Friday"})
+    assert route("windows") is None or route("windows").tool != "date_when"
 
 
 def test_handlers_end_to_end(monkeypatch) -> None:

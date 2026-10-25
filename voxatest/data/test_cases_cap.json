@@ -21,9 +21,89 @@
       "capability": 21
     },
     {
+      "id": "cap21-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey add buy stamps to my to do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "stamps"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {
+        "item": "buy stamps"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Buy stamps"
+      },
+      "capability": 21
+    },
+    {
+      "id": "cap21-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you add buy stamps to my to-do list please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "stamps"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {
+        "item": "buy stamps"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Buy stamps"
+      },
+      "capability": 21
+    },
+    {
       "id": "cap21-02",
       "category": "files_and_productivity",
       "prompt": "Add pay the rent to my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "rent"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {
+        "item": "pay the rent"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Pay the rent"
+      },
+      "capability": 21
+    },
+    {
+      "id": "cap21-02-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey add pay the rent to my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "rent"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {
+        "item": "pay the rent"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Pay the rent"
+      },
+      "capability": 21
+    },
+    {
+      "id": "cap21-02-p2",
+      "category": "files_and_productivity",
+      "prompt": "please add pay the rent to my to do list",
       "expected_contains": [],
       "expected_keywords": [
         "rent"
@@ -57,9 +137,77 @@
       "capability": 21
     },
     {
+      "id": "cap21-03-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what's on my to do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "stamps",
+        "rent"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_read",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 21
+    },
+    {
+      "id": "cap21-03-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you show me my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "stamps",
+        "rent"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_read",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 21
+    },
+    {
       "id": "cap21-04",
       "category": "files_and_productivity",
       "prompt": "Mark buy stamps as done",
+      "expected_contains": [],
+      "expected_keywords": [
+        "done"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_done",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[x] Buy stamps"
+      },
+      "capability": 21
+    },
+    {
+      "id": "cap21-04-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey mark buy stamps as done",
+      "expected_contains": [],
+      "expected_keywords": [
+        "done"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_done",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[x] Buy stamps"
+      },
+      "capability": 21
+    },
+    {
+      "id": "cap21-04-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you check off buy stamps from my to-do list",
       "expected_contains": [],
       "expected_keywords": [
         "done"
@@ -93,6 +241,56 @@
       "capability": 21
     },
     {
+      "id": "cap21-05-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey clear my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared|clear"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_lacks": "pay the rent"
+      },
+      "capability": 21,
+      "setup": [
+        {
+          "copy": "samples/lists-sample.md",
+          "to": "~/Documents/Voxa Lists.md"
+        }
+      ],
+      "vm_only": true
+    },
+    {
+      "id": "cap21-05-p2",
+      "category": "files_and_productivity",
+      "prompt": "please empty my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared|clear"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_lacks": "pay the rent"
+      },
+      "capability": 21,
+      "setup": [
+        {
+          "copy": "samples/lists-sample.md",
+          "to": "~/Documents/Voxa Lists.md"
+        }
+      ],
+      "vm_only": true
+    },
+    {
       "id": "cap51-01",
       "category": "files_and_productivity",
       "prompt": "Add milk to my shopping list",
@@ -111,6 +309,36 @@
         "file_contains": "[ ] Milk"
       },
       "capability": 51
+    },
+    {
+      "id": "cap51-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey can you put milk on my shopping list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "milk"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "capability": 51,
+      "verify": {}
+    },
+    {
+      "id": "cap51-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "please add milk to the shopping list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "milk"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "capability": 51,
+      "verify": {}
     },
     {
       "id": "cap51-02",
@@ -133,6 +361,36 @@
       "capability": 51
     },
     {
+      "id": "cap51-02-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey can you add eggs to my shopping list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "eggs"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "capability": 51,
+      "verify": {}
+    },
+    {
+      "id": "cap51-02-p2",
+      "category": "files_and_productivity",
+      "prompt": "please put eggs on the shopping list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "eggs"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "capability": 51,
+      "verify": {}
+    },
+    {
       "id": "cap51-03",
       "category": "files_and_productivity",
       "prompt": "What's on my shopping list",
@@ -147,6 +405,38 @@
       "after": "",
       "verify": {},
       "capability": 51
+    },
+    {
+      "id": "cap51-03-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey can you read my shopping list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "milk",
+        "eggs"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_read",
+      "expected_args": {},
+      "after": "",
+      "capability": 51,
+      "verify": {}
+    },
+    {
+      "id": "cap51-03-p2",
+      "category": "files_and_productivity",
+      "prompt": "please show me my shopping list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "milk",
+        "eggs"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_read",
+      "expected_args": {},
+      "after": "",
+      "capability": 51,
+      "verify": {}
     },
     {
       "id": "cap51-04",
@@ -202,6 +492,40 @@
       "capability": 18
     },
     {
+      "id": "cap18-01-p1",
+      "category": "system_status",
+      "prompt": "what's the time in Tokyo",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tokyo"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "world_time",
+      "expected_args": {
+        "place": "Tokyo"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 18
+    },
+    {
+      "id": "cap18-01-p2",
+      "category": "system_status",
+      "prompt": "hey can you tell me the time in Tokyo please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tokyo"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "world_time",
+      "expected_args": {
+        "place": "Tokyo"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 18
+    },
+    {
       "id": "cap18-02",
       "category": "system_status",
       "prompt": "What's the time in London",
@@ -219,9 +543,79 @@
       "capability": 18
     },
     {
+      "id": "cap18-02-p1",
+      "category": "system_status",
+      "prompt": "what time is it in London",
+      "expected_contains": [],
+      "expected_keywords": [
+        "london"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "world_time",
+      "expected_args": {
+        "place": "London"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 18
+    },
+    {
+      "id": "cap18-02-p2",
+      "category": "system_status",
+      "prompt": "hey can you tell me the time in London please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "london"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "world_time",
+      "expected_args": {
+        "place": "London"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 18
+    },
+    {
       "id": "cap18-03",
       "category": "system_status",
       "prompt": "What's the time difference between here and London",
+      "expected_contains": [],
+      "expected_keywords": [
+        "london",
+        "hours|hour"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "time_difference",
+      "expected_args": {
+        "place": "London"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 18
+    },
+    {
+      "id": "cap18-03-p1",
+      "category": "system_status",
+      "prompt": "what is the time difference between here and London",
+      "expected_contains": [],
+      "expected_keywords": [
+        "london",
+        "hours|hour"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "time_difference",
+      "expected_args": {
+        "place": "London"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 18
+    },
+    {
+      "id": "cap18-03-p2",
+      "category": "system_status",
+      "prompt": "hey what's the time difference with London please",
       "expected_contains": [],
       "expected_keywords": [
         "london",
@@ -255,12 +649,48 @@
       "capability": 18
     },
     {
+      "id": "cap18-04-p1",
+      "category": "system_status",
+      "prompt": "how far ahead is Tokyo",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tokyo",
+        "hours|hour"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "time_difference",
+      "expected_args": {
+        "place": "Tokyo"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 18
+    },
+    {
+      "id": "cap18-04-p2",
+      "category": "system_status",
+      "prompt": "hey how many hours ahead is Tokyo please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tokyo",
+        "hours|hour"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "time_difference",
+      "expected_args": {
+        "place": "Tokyo"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 18
+    },
+    {
       "id": "cap86-01",
       "category": "system_status",
       "prompt": "How hot is my graphics card",
       "expected_contains": [],
       "expected_keywords": [
-        "degrees"
+        "degrees|graphics card"
       ],
       "rubric": "The reply gives the answer.",
       "expected_tool": "gpu_status",
@@ -275,7 +705,7 @@
       "prompt": "What's the CPU temperature",
       "expected_contains": [],
       "expected_keywords": [
-        "degrees"
+        "degrees|processor"
       ],
       "rubric": "The reply gives the answer.",
       "expected_tool": "cpu_status",
@@ -336,9 +766,65 @@
       "capability": 17
     },
     {
+      "id": "cap17-02-p1",
+      "category": "files_and_productivity",
+      "prompt": "when is my mom's birthday",
+      "expected_contains": [],
+      "expected_keywords": [
+        "may"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_when",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 17
+    },
+    {
+      "id": "cap17-02-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey when is mom's birthday please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "may"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_when",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 17
+    },
+    {
       "id": "cap17-03",
       "category": "files_and_productivity",
       "prompt": "Any birthdays coming up",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_upcoming",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 17
+    },
+    {
+      "id": "cap17-03-p1",
+      "category": "files_and_productivity",
+      "prompt": "any birthdays this week",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_upcoming",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 17
+    },
+    {
+      "id": "cap17-03-p2",
+      "category": "files_and_productivity",
+      "prompt": "what birthdays are coming up",
       "expected_contains": [],
       "expected_keywords": [],
       "rubric": "The reply confirms or answers.",
@@ -387,9 +873,79 @@
       "capability": 19
     },
     {
+      "id": "cap19-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey the report is due on friday",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_remember",
+      "expected_args": {
+        "kind": "deadline"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Dates.md",
+        "file_contains": "deadline"
+      },
+      "capability": 19
+    },
+    {
+      "id": "cap19-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "please remember the report deadline is friday",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_remember",
+      "expected_args": {
+        "kind": "deadline"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Dates.md",
+        "file_contains": "deadline"
+      },
+      "capability": 19
+    },
+    {
       "id": "cap19-02",
       "category": "files_and_productivity",
       "prompt": "When is the report due",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_when",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 19
+    },
+    {
+      "id": "cap19-02-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey when is the report due",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_when",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 19
+    },
+    {
+      "id": "cap19-02-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey when is the report due please",
       "expected_contains": [],
       "expected_keywords": [
         "report"
@@ -417,9 +973,115 @@
       "capability": 19
     },
     {
+      "id": "cap19-03-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what's coming up this week",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_upcoming",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 19
+    },
+    {
+      "id": "cap19-03-p2",
+      "category": "files_and_productivity",
+      "prompt": "what's due soon",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_upcoming",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 19
+    },
+    {
       "id": "cap19-04",
       "category": "files_and_productivity",
       "prompt": "Forget the report deadline",
+      "expected_contains": [],
+      "expected_keywords": [
+        "forgot|forget"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_forget",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Dates.md",
+        "file_lacks": "deadline"
+      },
+      "capability": 19
+    },
+    {
+      "id": "cap19-05",
+      "category": "files_and_productivity",
+      "prompt": "Remember the report is due Friday",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_remember",
+      "expected_args": {
+        "kind": "deadline"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Dates.md",
+        "file_contains": "deadline"
+      },
+      "capability": 19
+    },
+    {
+      "id": "cap19-04-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey forget the report deadline",
+      "expected_contains": [],
+      "expected_keywords": [
+        "forgot|forget"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_forget",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Dates.md",
+        "file_lacks": "deadline"
+      },
+      "capability": 19
+    },
+    {
+      "id": "cap19-06",
+      "category": "files_and_productivity",
+      "prompt": "Please note the report deadline is Friday",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "date_remember",
+      "expected_args": {
+        "kind": "deadline"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Dates.md",
+        "file_contains": "deadline"
+      },
+      "capability": 19
+    },
+    {
+      "id": "cap19-04-p2",
+      "category": "files_and_productivity",
+      "prompt": "please forget the report deadline",
       "expected_contains": [],
       "expected_keywords": [
         "forgot|forget"
@@ -453,6 +1115,42 @@
       "capability": 57
     },
     {
+      "id": "cap57-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "I paid twelve dollars for lunch",
+      "expected_contains": [],
+      "expected_keywords": [
+        "lunch",
+        "twelve",
+        "dollars",
+        "food"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "expense_add",
+      "expected_args": {},
+      "after": "",
+      "capability": 57,
+      "verify": {}
+    },
+    {
+      "id": "cap57-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "add an expense of twelve dollars for lunch",
+      "expected_contains": [],
+      "expected_keywords": [
+        "lunch",
+        "twelve",
+        "dollars",
+        "food"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "expense_add",
+      "expected_args": {},
+      "after": "",
+      "capability": 57,
+      "verify": {}
+    },
+    {
       "id": "cap57-02",
       "category": "files_and_productivity",
       "prompt": "how much did i spend on food this month",
@@ -474,6 +1172,42 @@
       "capability": 57
     },
     {
+      "id": "cap57-02-p1",
+      "category": "files_and_productivity",
+      "prompt": "how much have I spent on food this month",
+      "expected_contains": [],
+      "expected_keywords": [
+        "food",
+        "month",
+        "dollars",
+        "spent"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "expense_total",
+      "expected_args": {},
+      "after": "",
+      "capability": 57,
+      "verify": {}
+    },
+    {
+      "id": "cap57-02-p2",
+      "category": "files_and_productivity",
+      "prompt": "what did I spend on food this month",
+      "expected_contains": [],
+      "expected_keywords": [
+        "food",
+        "month",
+        "dollars",
+        "spent"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "expense_total",
+      "expected_args": {},
+      "after": "",
+      "capability": 57,
+      "verify": {}
+    },
+    {
       "id": "cap57-03",
       "category": "files_and_productivity",
       "prompt": "show my spending breakdown this month",
@@ -489,6 +1223,36 @@
       "after": "",
       "verify": {},
       "capability": 57
+    },
+    {
+      "id": "cap57-03-p1",
+      "category": "files_and_productivity",
+      "prompt": "show my expenses this month",
+      "expected_contains": [],
+      "expected_keywords": [
+        "food"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "expense_breakdown",
+      "expected_args": {},
+      "after": "",
+      "capability": 57,
+      "verify": {}
+    },
+    {
+      "id": "cap57-03-p2",
+      "category": "files_and_productivity",
+      "prompt": "what's my spending breakdown this month",
+      "expected_contains": [],
+      "expected_keywords": [
+        "food"
+      ],
+      "rubric": "The reply confirms or answers.",
+      "expected_tool": "expense_breakdown",
+      "expected_args": {},
+      "after": "",
+      "capability": 57,
+      "verify": {}
     },
     {
       "id": "cap57-04",
@@ -578,9 +1342,85 @@
       "capability": 15
     },
     {
+      "id": "cap15-01-p1",
+      "category": "calendar_and_scheduling",
+      "prompt": "what do i have tomorrow",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tomorrow",
+        "lunch",
+        "sam",
+        "noon"
+      ],
+      "rubric": "The reply reports what is on the calendar for that day.",
+      "expected_tool": "calendar_day",
+      "expected_args": {
+        "day": "tomorrow"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 15
+    },
+    {
+      "id": "cap15-01-p2",
+      "category": "calendar_and_scheduling",
+      "prompt": "hey what's on my calendar tomorrow please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tomorrow",
+        "lunch",
+        "sam",
+        "noon"
+      ],
+      "rubric": "The reply reports what is on the calendar for that day.",
+      "expected_tool": "calendar_day",
+      "expected_args": {
+        "day": "tomorrow"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 15
+    },
+    {
       "id": "cap15-02",
       "category": "calendar_and_scheduling",
       "prompt": "What's my next appointment",
+      "expected_contains": [],
+      "expected_keywords": [
+        "next",
+        "appointment",
+        "lunch",
+        "sam"
+      ],
+      "rubric": "The reply reports the next upcoming appointment.",
+      "expected_tool": "calendar_next",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 15
+    },
+    {
+      "id": "cap15-02-p1",
+      "category": "calendar_and_scheduling",
+      "prompt": "what is my next appointment",
+      "expected_contains": [],
+      "expected_keywords": [
+        "next",
+        "appointment",
+        "lunch",
+        "sam"
+      ],
+      "rubric": "The reply reports the next upcoming appointment.",
+      "expected_tool": "calendar_next",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 15
+    },
+    {
+      "id": "cap15-02-p2",
+      "category": "calendar_and_scheduling",
+      "prompt": "hey what's next on my calendar please",
       "expected_contains": [],
       "expected_keywords": [
         "next",
@@ -668,7 +1508,25 @@
       "after": "",
       "verify": {
         "file": "~/Documents/Voxa Memory.md",
-        "file_contains": "wifi"
+        "file_contains": "fridge"
+      },
+      "capability": 30
+    },
+    {
+      "id": "cap30-02-p2",
+      "category": "files_and_productivity",
+      "prompt": "don't forget that the wifi password is on the fridge",
+      "expected_contains": [],
+      "expected_keywords": [
+        "remember"
+      ],
+      "rubric": "The reply confirms the fact was remembered.",
+      "expected_tool": "remember_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Memory.md",
+        "file_contains": "fridge"
       },
       "capability": 30
     },
@@ -680,7 +1538,22 @@
       "expected_keywords": [
         "shed"
       ],
-      "rubric": "The reply recalls the remembered fact about the spare key.",
+      "rubric": "The reply recalls the remembered fact.",
+      "expected_tool": "recall_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 30
+    },
+    {
+      "id": "cap30-03-p2",
+      "category": "files_and_productivity",
+      "prompt": "do you remember anything about the bikes",
+      "expected_contains": [],
+      "expected_keywords": [
+        "shed"
+      ],
+      "rubric": "The reply recalls the remembered fact.",
       "expected_tool": "recall_fact",
       "expected_args": {},
       "after": "",
@@ -695,7 +1568,22 @@
       "expected_keywords": [
         "fridge"
       ],
-      "rubric": "The reply recalls the remembered fact about the car.",
+      "rubric": "The reply recalls the remembered fact.",
+      "expected_tool": "recall_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 30
+    },
+    {
+      "id": "cap30-04-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what do you know about the wifi password",
+      "expected_contains": [],
+      "expected_keywords": [
+        "fridge"
+      ],
+      "rubric": "The reply recalls the remembered fact.",
       "expected_tool": "recall_fact",
       "expected_args": {},
       "after": "",
@@ -706,6 +1594,21 @@
       "id": "cap30-05",
       "category": "files_and_productivity",
       "prompt": "What do you remember",
+      "expected_contains": [],
+      "expected_keywords": [
+        "things"
+      ],
+      "rubric": "The reply lists everything remembered.",
+      "expected_tool": "list_facts",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 30
+    },
+    {
+      "id": "cap30-05-p2",
+      "category": "files_and_productivity",
+      "prompt": "what have I told you",
       "expected_contains": [],
       "expected_keywords": [
         "things"
@@ -749,7 +1652,79 @@
       "after": "",
       "verify": {
         "file": "~/Documents/Voxa Memory.md",
-        "file_lacks": "wifi"
+        "file_lacks": "fridge"
+      },
+      "capability": 30
+    },
+    {
+      "id": "cap30-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "please keep in mind that the bikes are in the shed",
+      "expected_contains": [],
+      "expected_keywords": [
+        "remember"
+      ],
+      "rubric": "The reply confirms the fact was remembered.",
+      "expected_tool": "remember_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Memory.md",
+        "file_contains": "bikes"
+      },
+      "capability": 30
+    },
+    {
+      "id": "cap30-06-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey forget about the bikes",
+      "expected_contains": [],
+      "expected_keywords": [
+        "forgotten"
+      ],
+      "rubric": "The reply confirms the fact was forgotten.",
+      "expected_tool": "forget_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Memory.md",
+        "file_lacks": "bikes"
+      },
+      "capability": 30
+    },
+    {
+      "id": "cap30-02-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey remember that the wifi password is on the fridge",
+      "expected_contains": [],
+      "expected_keywords": [
+        "remember"
+      ],
+      "rubric": "The reply confirms the fact was remembered.",
+      "expected_tool": "remember_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Memory.md",
+        "file_contains": "fridge"
+      },
+      "capability": 30
+    },
+    {
+      "id": "cap30-07-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey forget about the wifi password",
+      "expected_contains": [],
+      "expected_keywords": [
+        "forgotten"
+      ],
+      "rubric": "The reply confirms the fact was forgotten.",
+      "expected_tool": "forget_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Memory.md",
+        "file_lacks": "fridge"
       },
       "capability": 30
     },
@@ -757,6 +1732,42 @@
       "id": "cap26-01",
       "category": "files_and_productivity",
       "prompt": "Add finish the report to my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Finish the report"
+      },
+      "capability": 26
+    },
+    {
+      "id": "cap26-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey add finish the report to my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Finish the report"
+      },
+      "capability": 26
+    },
+    {
+      "id": "cap26-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you add finish the report to my to do list",
       "expected_contains": [],
       "expected_keywords": [
         "report"
@@ -790,9 +1801,81 @@
       "capability": 26
     },
     {
+      "id": "cap26-02-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey add water the plants to my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "plants"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Water the plants"
+      },
+      "capability": 26
+    },
+    {
+      "id": "cap26-02-p2",
+      "category": "files_and_productivity",
+      "prompt": "please add water the plants to my to do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "plants"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Water the plants"
+      },
+      "capability": 26
+    },
+    {
       "id": "cap26-03",
       "category": "files_and_productivity",
       "prompt": "Mark finish the report as done",
+      "expected_contains": [],
+      "expected_keywords": [
+        "done"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_done",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[x] Finish the report"
+      },
+      "capability": 26
+    },
+    {
+      "id": "cap26-03-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey mark finish the report as done",
+      "expected_contains": [],
+      "expected_keywords": [
+        "done"
+      ],
+      "rubric": "The reply confirms the request.",
+      "expected_tool": "list_done",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[x] Finish the report"
+      },
+      "capability": 26
+    },
+    {
+      "id": "cap26-03-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you check off finish the report from my to-do list",
       "expected_contains": [],
       "expected_keywords": [
         "done"
@@ -824,6 +1907,38 @@
       "capability": 26
     },
     {
+      "id": "cap26-04-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey how am I doing",
+      "expected_contains": [],
+      "expected_keywords": [
+        "finished",
+        "open"
+      ],
+      "rubric": "The reply reports progress on the to-do list.",
+      "expected_tool": "list_progress",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 26
+    },
+    {
+      "id": "cap26-04-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you give me a progress report",
+      "expected_contains": [],
+      "expected_keywords": [
+        "finished",
+        "open"
+      ],
+      "rubric": "The reply reports progress on the to-do list.",
+      "expected_tool": "list_progress",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 26
+    },
+    {
       "id": "cap26-05",
       "category": "files_and_productivity",
       "prompt": "What's still open",
@@ -839,9 +1954,69 @@
       "capability": 26
     },
     {
+      "id": "cap26-05-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what's still open",
+      "expected_contains": [],
+      "expected_keywords": [
+        "open"
+      ],
+      "rubric": "The reply counts the open items.",
+      "expected_tool": "list_pending",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 26
+    },
+    {
+      "id": "cap26-05-p2",
+      "category": "files_and_productivity",
+      "prompt": "what do I still have to do",
+      "expected_contains": [],
+      "expected_keywords": [
+        "open"
+      ],
+      "rubric": "The reply counts the open items.",
+      "expected_tool": "list_pending",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 26
+    },
+    {
       "id": "cap26-06",
       "category": "files_and_productivity",
       "prompt": "What should I do next",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report|plants"
+      ],
+      "rubric": "The reply suggests the next open task.",
+      "expected_tool": "list_next",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 26
+    },
+    {
+      "id": "cap26-06-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what should I do next",
+      "expected_contains": [],
+      "expected_keywords": [
+        "report|plants"
+      ],
+      "rubric": "The reply suggests the next open task.",
+      "expected_tool": "list_next",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 26
+    },
+    {
+      "id": "cap26-06-p2",
+      "category": "files_and_productivity",
+      "prompt": "what do I do next",
       "expected_contains": [],
       "expected_keywords": [
         "report|plants"
@@ -1040,6 +2215,21 @@
       "capability": 81
     },
     {
+      "id": "cap81-e2-p1",
+      "category": "files_and_productivity",
+      "prompt": "Can you switch to the calculator please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "switching"
+      ],
+      "rubric": "The reply switches to the calculator",
+      "expected_tool": "switch_to",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 81
+    },
+    {
       "id": "cap81-e3",
       "category": "files_and_productivity",
       "prompt": "Minimize the calculator",
@@ -1070,6 +2260,66 @@
       "capability": 81
     },
     {
+      "id": "cap81-e3-p1",
+      "category": "files_and_productivity",
+      "prompt": "Can you minimize the calculator",
+      "expected_contains": [],
+      "expected_keywords": [
+        "minimized"
+      ],
+      "rubric": "The reply confirms the window was minimized",
+      "expected_tool": "minimize_app",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 81
+    },
+    {
+      "id": "cap81-e4-p1",
+      "category": "files_and_productivity",
+      "prompt": "Can you restore the calculator please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "restored"
+      ],
+      "rubric": "The reply confirms the window was restored",
+      "expected_tool": "restore_app",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 81
+    },
+    {
+      "id": "cap81-e3-p2",
+      "category": "files_and_productivity",
+      "prompt": "Hey please minimize the calculator window",
+      "expected_contains": [],
+      "expected_keywords": [
+        "minimized"
+      ],
+      "rubric": "The reply confirms the window was minimized",
+      "expected_tool": "minimize_app",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 81
+    },
+    {
+      "id": "cap81-e4-p2",
+      "category": "files_and_productivity",
+      "prompt": "Hey can you restore the calculator",
+      "expected_contains": [],
+      "expected_keywords": [
+        "restored"
+      ],
+      "rubric": "The reply confirms the window was restored",
+      "expected_tool": "restore_app",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 81
+    },
+    {
       "id": "cap81-e5",
       "category": "files_and_productivity",
       "prompt": "Maximize the calculator",
@@ -1078,6 +2328,36 @@
         "maximized"
       ],
       "rubric": "The reply confirms the window was maximized.",
+      "expected_tool": "maximize_app",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 81
+    },
+    {
+      "id": "cap81-e5-p1",
+      "category": "files_and_productivity",
+      "prompt": "Can you maximize the calculator",
+      "expected_contains": [],
+      "expected_keywords": [
+        "maximized"
+      ],
+      "rubric": "The reply confirms the window was maximized",
+      "expected_tool": "maximize_app",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 81
+    },
+    {
+      "id": "cap81-e5-p2",
+      "category": "files_and_productivity",
+      "prompt": "Hey please maximize the calculator window",
+      "expected_contains": [],
+      "expected_keywords": [
+        "maximized"
+      ],
+      "rubric": "The reply confirms the window was maximized",
       "expected_tool": "maximize_app",
       "expected_args": {},
       "after": "",
@@ -1100,6 +2380,36 @@
       "capability": 81
     },
     {
+      "id": "cap81-e1-p1",
+      "category": "files_and_productivity",
+      "prompt": "Can you open the calculator for me",
+      "expected_contains": [],
+      "expected_keywords": [
+        "opening"
+      ],
+      "rubric": "The reply opens the calculator",
+      "expected_tool": "open_app",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 81
+    },
+    {
+      "id": "cap81-e6-p1",
+      "category": "files_and_productivity",
+      "prompt": "Can you close the calculator",
+      "expected_contains": [],
+      "expected_keywords": [
+        "closing|closed"
+      ],
+      "rubric": "The reply closes the calculator",
+      "expected_tool": "close_app",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 81
+    },
+    {
       "id": "cap83-e1",
       "category": "files_and_productivity",
       "prompt": "Find the file called notes",
@@ -1112,7 +2422,58 @@
       "expected_args": {},
       "after": "",
       "verify": {},
-      "capability": 83
+      "capability": 83,
+      "setup": [
+        {
+          "copy": "samples/notes-sample.txt",
+          "to": "~/Documents/notes.txt"
+        }
+      ],
+      "vm_only": true
+    },
+    {
+      "id": "cap83-e1-p1",
+      "category": "files_and_productivity",
+      "prompt": "Hey find the file called notes please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "found"
+      ],
+      "rubric": "The reply reports matching files",
+      "expected_tool": "find_file",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 83,
+      "setup": [
+        {
+          "copy": "samples/notes-sample.txt",
+          "to": "~/Documents/notes.txt"
+        }
+      ],
+      "vm_only": true
+    },
+    {
+      "id": "cap83-e1-p2",
+      "category": "files_and_productivity",
+      "prompt": "Can you find the file named notes",
+      "expected_contains": [],
+      "expected_keywords": [
+        "found"
+      ],
+      "rubric": "The reply reports matching files",
+      "expected_tool": "find_file",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 83,
+      "setup": [
+        {
+          "copy": "samples/notes-sample.txt",
+          "to": "~/Documents/notes.txt"
+        }
+      ],
+      "vm_only": true
     },
     {
       "id": "cap83-e2",
@@ -1127,7 +2488,58 @@
       "expected_args": {},
       "after": "",
       "verify": {},
-      "capability": 83
+      "capability": 83,
+      "setup": [
+        {
+          "makefile": "~/Documents/big.bin",
+          "size": 11534336
+        }
+      ],
+      "vm_only": true
+    },
+    {
+      "id": "cap83-e2-p1",
+      "category": "files_and_productivity",
+      "prompt": "Find all files bigger than 10 megabytes",
+      "expected_contains": [],
+      "expected_keywords": [
+        "bigger"
+      ],
+      "rubric": "The reply reports large files",
+      "expected_tool": "find_large_files",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 83,
+      "setup": [
+        {
+          "makefile": "~/Documents/big.bin",
+          "size": 11534336
+        }
+      ],
+      "vm_only": true
+    },
+    {
+      "id": "cap83-e2-p2",
+      "category": "files_and_productivity",
+      "prompt": "Locate files larger than 10 megabytes",
+      "expected_contains": [],
+      "expected_keywords": [
+        "bigger"
+      ],
+      "rubric": "The reply reports large files",
+      "expected_tool": "find_large_files",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 83,
+      "setup": [
+        {
+          "makefile": "~/Documents/big.bin",
+          "size": 11534336
+        }
+      ],
+      "vm_only": true
     },
     {
       "id": "cap83-e3",
@@ -1145,6 +2557,51 @@
       "capability": 83
     },
     {
+      "id": "cap83-e3-p1",
+      "category": "files_and_productivity",
+      "prompt": "Can you create a folder called Voxa test folder in Documents",
+      "expected_contains": [],
+      "expected_keywords": [
+        "created"
+      ],
+      "rubric": "The reply confirms the folder was created",
+      "expected_tool": "make_folder",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 83
+    },
+    {
+      "id": "cap83-e3-p2",
+      "category": "files_and_productivity",
+      "prompt": "Hey please make a folder called Voxa test folder in Documents",
+      "expected_contains": [],
+      "expected_keywords": [
+        "created"
+      ],
+      "rubric": "The reply confirms the folder was created",
+      "expected_tool": "make_folder",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 83,
+      "setup": [
+        {
+          "remove": "~/Documents/Test Folder"
+        },
+        {
+          "remove": "~/Documents/Voxa Test Folder"
+        },
+        {
+          "remove": "~/Documents/notes.txt"
+        },
+        {
+          "remove": "~/Documents/big.bin"
+        }
+      ],
+      "vm_only": true
+    },
+    {
       "id": "cap82-e1",
       "category": "system_status",
       "prompt": "Say hello world",
@@ -1153,6 +2610,36 @@
         "hello"
       ],
       "rubric": "The reply says the requested text.",
+      "expected_tool": "say_text",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 82
+    },
+    {
+      "id": "cap82-e1-p1",
+      "category": "system_status",
+      "prompt": "Say hello world please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "hello"
+      ],
+      "rubric": "The reply says the requested text",
+      "expected_tool": "say_text",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 82
+    },
+    {
+      "id": "cap82-e1-p2",
+      "category": "system_status",
+      "prompt": "Say the words hello world",
+      "expected_contains": [],
+      "expected_keywords": [
+        "hello"
+      ],
+      "rubric": "The reply says the requested text",
       "expected_tool": "say_text",
       "expected_args": {},
       "after": "",
@@ -1175,6 +2662,36 @@
       "capability": 82
     },
     {
+      "id": "cap82-e2-p1",
+      "category": "system_status",
+      "prompt": "Hey can you repeat that please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "hello"
+      ],
+      "rubric": "The reply repeats the last thing said",
+      "expected_tool": "repeat_last",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 82
+    },
+    {
+      "id": "cap82-e2-p2",
+      "category": "system_status",
+      "prompt": "Please repeat that",
+      "expected_contains": [],
+      "expected_keywords": [
+        "hello"
+      ],
+      "rubric": "The reply repeats the last thing said",
+      "expected_tool": "repeat_last",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 82
+    },
+    {
       "id": "cap82-e3",
       "category": "system_status",
       "prompt": "Which window is active",
@@ -1190,19 +2707,100 @@
       "capability": 82
     },
     {
+      "id": "cap82-e3-p1",
+      "category": "system_status",
+      "prompt": "What window is this",
+      "expected_contains": [],
+      "expected_keywords": [
+        "this"
+      ],
+      "rubric": "The reply names the active window",
+      "expected_tool": "active_window_name",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 82
+    },
+    {
+      "id": "cap82-e3-p2",
+      "category": "system_status",
+      "prompt": "Which window is in front",
+      "expected_contains": [],
+      "expected_keywords": [
+        "this"
+      ],
+      "rubric": "The reply names the active window",
+      "expected_tool": "active_window_name",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 82
+    },
+    {
       "id": "cap82-e4",
       "category": "system_status",
       "prompt": "What's on my clipboard",
       "expected_contains": [],
       "expected_keywords": [
-        "clipboard"
+        "clipboard",
+        "marker"
       ],
       "rubric": "The reply reads the clipboard aloud.",
       "expected_tool": "read_clipboard_aloud",
       "expected_args": {},
       "after": "",
       "verify": {},
-      "capability": 82
+      "capability": 82,
+      "setup": [
+        {
+          "clipboard": "purple marker"
+        }
+      ],
+      "vm_only": true
+    },
+    {
+      "id": "cap82-e4-p1",
+      "category": "system_status",
+      "prompt": "Can you read my clipboard",
+      "expected_contains": [],
+      "expected_keywords": [
+        "clipboard",
+        "marker"
+      ],
+      "rubric": "The reply reads the clipboard aloud",
+      "expected_tool": "read_clipboard_aloud",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 82,
+      "setup": [
+        {
+          "clipboard": "purple marker"
+        }
+      ],
+      "vm_only": true
+    },
+    {
+      "id": "cap82-e4-p2",
+      "category": "system_status",
+      "prompt": "Hey what is on my clipboard",
+      "expected_contains": [],
+      "expected_keywords": [
+        "clipboard",
+        "marker"
+      ],
+      "rubric": "The reply reads the clipboard aloud",
+      "expected_tool": "read_clipboard_aloud",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 82,
+      "setup": [
+        {
+          "clipboard": "purple marker"
+        }
+      ],
+      "vm_only": true
     },
     {
       "id": "cap10-e1",
@@ -1253,6 +2851,38 @@
       "capability": 56
     },
     {
+      "id": "cap56-01-p1",
+      "category": "dates",
+      "prompt": "my electricity bill is due on the 15th of every month",
+      "expected_contains": [],
+      "expected_keywords": [
+        "electricity",
+        "bill"
+      ],
+      "rubric": "The reply remembers the monthly electricity bill.",
+      "expected_tool": "date_remember",
+      "expected_args": {},
+      "after": "",
+      "capability": 56,
+      "verify": {}
+    },
+    {
+      "id": "cap56-01-p2",
+      "category": "dates",
+      "prompt": "the electric bill is due on the 15th of every month",
+      "expected_contains": [],
+      "expected_keywords": [
+        "electricity",
+        "bill"
+      ],
+      "rubric": "The reply remembers the monthly electricity bill.",
+      "expected_tool": "date_remember",
+      "expected_args": {},
+      "after": "",
+      "capability": 56,
+      "verify": {}
+    },
+    {
       "id": "cap56-02",
       "category": "dates",
       "prompt": "when is the electricity bill due",
@@ -1269,6 +2899,38 @@
       "after": "",
       "verify": {},
       "capability": 56
+    },
+    {
+      "id": "cap56-02-p1",
+      "category": "dates",
+      "prompt": "when is my electricity bill due",
+      "expected_contains": [],
+      "expected_keywords": [
+        "electricity",
+        "bill"
+      ],
+      "rubric": "The reply reports when the electricity bill is due.",
+      "expected_tool": "date_when",
+      "expected_args": {},
+      "after": "",
+      "capability": 56,
+      "verify": {}
+    },
+    {
+      "id": "cap56-02-p2",
+      "category": "dates",
+      "prompt": "when is the water bill due",
+      "expected_contains": [],
+      "expected_keywords": [
+        "electricity",
+        "bill"
+      ],
+      "rubric": "The reply reports when the electricity bill is due.",
+      "expected_tool": "date_when",
+      "expected_args": {},
+      "after": "",
+      "capability": 56,
+      "verify": {}
     },
     {
       "id": "cap56-03",
@@ -1288,6 +2950,36 @@
       "capability": 56
     },
     {
+      "id": "cap56-03-p1",
+      "category": "dates",
+      "prompt": "what bills are coming up",
+      "expected_contains": [],
+      "expected_keywords": [
+        "bill"
+      ],
+      "rubric": "The reply lists upcoming bills.",
+      "expected_tool": "date_upcoming",
+      "expected_args": {},
+      "after": "",
+      "capability": 56,
+      "verify": {}
+    },
+    {
+      "id": "cap56-03-p2",
+      "category": "dates",
+      "prompt": "what bills are due this month",
+      "expected_contains": [],
+      "expected_keywords": [
+        "bill"
+      ],
+      "rubric": "The reply lists upcoming bills.",
+      "expected_tool": "date_upcoming",
+      "expected_args": {},
+      "after": "",
+      "capability": 56,
+      "verify": {}
+    },
+    {
       "id": "cap58-01",
       "category": "dates",
       "prompt": "netflix subscription renews on the 3rd of every month",
@@ -1298,9 +2990,7 @@
       ],
       "rubric": "The reply remembers the monthly netflix subscription.",
       "expected_tool": "date_remember",
-      "expected_args": {
-        "kind": "subscription"
-      },
+      "expected_args": {},
       "after": "",
       "verify": {},
       "capability": 58
@@ -1359,6 +3049,38 @@
       "capability": 61
     },
     {
+      "id": "cap61-01-p1",
+      "category": "dates",
+      "prompt": "my car service is due on march 3rd",
+      "expected_contains": [],
+      "expected_keywords": [
+        "car",
+        "service"
+      ],
+      "rubric": "The reply remembers the car service date.",
+      "expected_tool": "date_remember",
+      "expected_args": {},
+      "after": "",
+      "capability": 61,
+      "verify": {}
+    },
+    {
+      "id": "cap61-01-p2",
+      "category": "dates",
+      "prompt": "the oil change is due on march 3rd",
+      "expected_contains": [],
+      "expected_keywords": [
+        "oil|car",
+        "change|service"
+      ],
+      "rubric": "The reply remembers the oil change (car service) date.",
+      "expected_tool": "date_remember",
+      "expected_args": {},
+      "after": "",
+      "capability": 61,
+      "verify": {}
+    },
+    {
       "id": "cap68-01",
       "category": "dates",
       "prompt": "forget the electricity bill",
@@ -1376,6 +3098,72 @@
       "capability": 68
     },
     {
+      "id": "cap68-02",
+      "category": "dates",
+      "prompt": "the electricity bill is due on the 15th of every month",
+      "expected_contains": [],
+      "expected_keywords": [
+        "electricity",
+        "bill"
+      ],
+      "rubric": "The reply remembers the monthly electricity bill (recreates the date before the next forget).",
+      "expected_tool": "date_remember",
+      "expected_args": {
+        "kind": "bill"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 68
+    },
+    {
+      "id": "cap68-02-p1",
+      "category": "dates",
+      "prompt": "Can you forget the electricity bill",
+      "expected_contains": [],
+      "expected_keywords": [
+        "electricity"
+      ],
+      "rubric": "The reply forgets the electricity bill",
+      "expected_tool": "date_forget",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 68
+    },
+    {
+      "id": "cap68-03",
+      "category": "dates",
+      "prompt": "the electricity bill is due on the 15th of every month",
+      "expected_contains": [],
+      "expected_keywords": [
+        "electricity",
+        "bill"
+      ],
+      "rubric": "The reply remembers the monthly electricity bill (recreates the date before the next forget).",
+      "expected_tool": "date_remember",
+      "expected_args": {
+        "kind": "bill"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 68
+    },
+    {
+      "id": "cap68-03-p1",
+      "category": "dates",
+      "prompt": "Hey please forget the electricity bill",
+      "expected_contains": [],
+      "expected_keywords": [
+        "electricity"
+      ],
+      "rubric": "The reply forgets the electricity bill",
+      "expected_tool": "date_forget",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 68
+    },
+    {
       "id": "cap13-01",
       "category": "calendar_and_scheduling",
       "prompt": "Add dentist to my calendar for tomorrow at 3 pm",
@@ -1388,7 +3176,7 @@
       "rubric": "The reply confirms the appointment was added and mentions a reminder.",
       "expected_tool": "calendar_add",
       "expected_args": {
-        "title": "dentist",
+        "title": "dentist|dentists",
         "when": "tomorrow at 3 pm"
       },
       "after": "",
@@ -1411,9 +3199,69 @@
       "capability": 14
     },
     {
+      "id": "cap14-01-p1",
+      "category": "calendar_and_scheduling",
+      "prompt": "are there any conflicts this week",
+      "expected_contains": [],
+      "expected_keywords": [
+        "clashes|close"
+      ],
+      "rubric": "The reply reports whether there are clashes in the next 7 days.",
+      "expected_tool": "calendar_conflicts",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 14
+    },
+    {
+      "id": "cap14-01-p2",
+      "category": "calendar_and_scheduling",
+      "prompt": "do i have any clashes this week",
+      "expected_contains": [],
+      "expected_keywords": [
+        "clashes|close"
+      ],
+      "rubric": "The reply reports whether there are clashes in the next 7 days.",
+      "expected_tool": "calendar_conflicts",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 14
+    },
+    {
       "id": "cap14-02",
       "category": "calendar_and_scheduling",
       "prompt": "Check my calendar for clashes",
+      "expected_contains": [],
+      "expected_keywords": [
+        "clashes|close"
+      ],
+      "rubric": "The reply reports whether there are clashes in the next 7 days.",
+      "expected_tool": "calendar_conflicts",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 14
+    },
+    {
+      "id": "cap14-02-p1",
+      "category": "calendar_and_scheduling",
+      "prompt": "hey can you check my calendar for clashes",
+      "expected_contains": [],
+      "expected_keywords": [
+        "clashes|close"
+      ],
+      "rubric": "The reply reports whether there are clashes in the next 7 days.",
+      "expected_tool": "calendar_conflicts",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 14
+    },
+    {
+      "id": "cap14-02-p2",
+      "category": "calendar_and_scheduling",
+      "prompt": "check my calendar for conflicts",
       "expected_contains": [],
       "expected_keywords": [
         "clashes|close"
@@ -1477,10 +3325,10 @@
     {
       "id": "cap22-01",
       "category": "files_and_productivity",
-      "prompt": "Add buy paint to my kitchen list",
+      "prompt": "Add coffee to my kitchen list",
       "expected_contains": [],
       "expected_keywords": [
-        "paint"
+        "coffee"
       ],
       "rubric": "The reply confirms the item was added to the kitchen list.",
       "expected_tool": "list_add",
@@ -1488,7 +3336,43 @@
       "after": "",
       "verify": {
         "file": "~/Documents/Voxa Lists.md",
-        "file_contains": "Buy paint"
+        "file_contains": "Coffee"
+      },
+      "capability": 22
+    },
+    {
+      "id": "cap22-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "can you add coffee to my kitchen list please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "coffee"
+      ],
+      "rubric": "The reply confirms the item was added to the kitchen list.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "Coffee"
+      },
+      "capability": 22
+    },
+    {
+      "id": "cap22-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey can you add coffee to my kitchen list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "coffee"
+      ],
+      "rubric": "The reply confirms the item was added to the kitchen list.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "Coffee"
       },
       "capability": 22
     },
@@ -1498,7 +3382,37 @@
       "prompt": "What's on my kitchen list",
       "expected_contains": [],
       "expected_keywords": [
-        "paint"
+        "coffee"
+      ],
+      "rubric": "The reply reads back the kitchen list.",
+      "expected_tool": "list_read",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 22
+    },
+    {
+      "id": "cap22-02-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what is on my kitchen list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "coffee"
+      ],
+      "rubric": "The reply reads back the kitchen list.",
+      "expected_tool": "list_read",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 22
+    },
+    {
+      "id": "cap22-02-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you read my kitchen list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "coffee"
       ],
       "rubric": "The reply reads back the kitchen list.",
       "expected_tool": "list_read",
@@ -1513,7 +3427,7 @@
       "prompt": "Clear my kitchen list",
       "expected_contains": [],
       "expected_keywords": [
-        "cleared|clear"
+        "cleared|clear|empty"
       ],
       "rubric": "The reply confirms the kitchen list was cleared.",
       "expected_tool": "list_clear",
@@ -1521,7 +3435,43 @@
       "after": "",
       "verify": {
         "file": "~/Documents/Voxa Lists.md",
-        "file_lacks": "paint"
+        "file_lacks": "coffee"
+      },
+      "capability": 22
+    },
+    {
+      "id": "cap22-03-p1",
+      "category": "files_and_productivity",
+      "prompt": "please clear my kitchen list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared|clear|empty"
+      ],
+      "rubric": "The reply confirms the kitchen list was cleared.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_lacks": "coffee"
+      },
+      "capability": 22
+    },
+    {
+      "id": "cap22-03-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey can you clear my kitchen list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared|clear|empty"
+      ],
+      "rubric": "The reply confirms the kitchen list was cleared.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_lacks": "coffee"
       },
       "capability": 22
     },
@@ -1532,13 +3482,45 @@
       "expected_contains": [],
       "expected_keywords": [
         "week",
-        "today"
+        "today|tomorrow|monday|tuesday|wednesday|thursday|friday|sunday|nothing"
       ],
       "rubric": "The reply reports the appointments in the week ahead.",
       "expected_tool": "calendar_week",
       "expected_args": {
         "person": ""
       },
+      "after": "",
+      "verify": {},
+      "capability": 65
+    },
+    {
+      "id": "cap65-01-p1",
+      "category": "calendar_and_scheduling",
+      "prompt": "hey what's happening this week",
+      "expected_contains": [],
+      "expected_keywords": [
+        "week",
+        "today|tomorrow|monday|tuesday|wednesday|thursday|friday|sunday|nothing"
+      ],
+      "rubric": "The reply reports the appointments in the week ahead.",
+      "expected_tool": "calendar_week",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 65
+    },
+    {
+      "id": "cap65-01-p2",
+      "category": "calendar_and_scheduling",
+      "prompt": "hey what does my week look like please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "week",
+        "today|tomorrow|monday|tuesday|wednesday|thursday|friday|sunday|nothing"
+      ],
+      "rubric": "The reply reports the appointments in the week ahead.",
+      "expected_tool": "calendar_week",
+      "expected_args": {},
       "after": "",
       "verify": {},
       "capability": 65
@@ -1562,9 +3544,73 @@
       "capability": 65
     },
     {
+      "id": "cap65-02-p1",
+      "category": "calendar_and_scheduling",
+      "prompt": "hey what's Emma doing this week",
+      "expected_contains": [],
+      "expected_keywords": [
+        "emma",
+        "week"
+      ],
+      "rubric": "The reply reports only Emma appointments this week.",
+      "expected_tool": "calendar_week",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 65
+    },
+    {
+      "id": "cap65-02-p2",
+      "category": "calendar_and_scheduling",
+      "prompt": "hey what's on Emma's calendar this week please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "emma",
+        "week"
+      ],
+      "rubric": "The reply reports only Emma appointments this week.",
+      "expected_tool": "calendar_week",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 65
+    },
+    {
       "id": "cap65-03",
       "category": "calendar_and_scheduling",
       "prompt": "How busy am I",
+      "expected_contains": [],
+      "expected_keywords": [
+        "appointments|nothing",
+        "busiest|day"
+      ],
+      "rubric": "The reply counts appointments this week and names the busiest day.",
+      "expected_tool": "calendar_busy",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 65
+    },
+    {
+      "id": "cap65-03-p1",
+      "category": "calendar_and_scheduling",
+      "prompt": "hey how busy is my week",
+      "expected_contains": [],
+      "expected_keywords": [
+        "appointments|nothing",
+        "busiest|day"
+      ],
+      "rubric": "The reply counts appointments this week and names the busiest day.",
+      "expected_tool": "calendar_busy",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 65
+    },
+    {
+      "id": "cap65-03-p2",
+      "category": "calendar_and_scheduling",
+      "prompt": "hey how many appointments do I have this week please",
       "expected_contains": [],
       "expected_keywords": [
         "appointments|nothing",
@@ -1591,7 +3637,7 @@
       "expected_tool": "calendar_add",
       "expected_args": {
         "title": "dentist",
-        "when": "friday at 3 pm"
+        "when": "friday at 3 pm|friday at 3pm"
       },
       "after": "",
       "verify": {
@@ -1604,6 +3650,36 @@
       "id": "cap85-01",
       "category": "system_status",
       "prompt": "Why is my computer slow",
+      "expected_contains": [],
+      "expected_keywords": [
+        "percent"
+      ],
+      "rubric": "The reply names the top CPU-using processes with their percentages.",
+      "expected_tool": "top_cpu",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 85
+    },
+    {
+      "id": "cap85-01-p1",
+      "category": "system_status",
+      "prompt": "hey why is my computer so slow",
+      "expected_contains": [],
+      "expected_keywords": [
+        "percent"
+      ],
+      "rubric": "The reply names the top CPU-using processes with their percentages.",
+      "expected_tool": "top_cpu",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 85
+    },
+    {
+      "id": "cap85-01-p2",
+      "category": "system_status",
+      "prompt": "hey what's slowing down my computer",
       "expected_contains": [],
       "expected_keywords": [
         "percent"
@@ -1631,9 +3707,69 @@
       "capability": 85
     },
     {
+      "id": "cap85-02-p1",
+      "category": "system_status",
+      "prompt": "hey what's using up my memory",
+      "expected_contains": [],
+      "expected_keywords": [
+        "memory"
+      ],
+      "rubric": "The reply names the top memory-using processes.",
+      "expected_tool": "top_memory",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 85
+    },
+    {
+      "id": "cap85-02-p2",
+      "category": "system_status",
+      "prompt": "hey what's eating my memory",
+      "expected_contains": [],
+      "expected_keywords": [
+        "memory"
+      ],
+      "rubric": "The reply names the top memory-using processes.",
+      "expected_tool": "top_memory",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 85
+    },
+    {
       "id": "cap98-01",
       "category": "system_status",
       "prompt": "Is anything wrong with my computer",
+      "expected_contains": [],
+      "expected_keywords": [
+        "normal|thing|things"
+      ],
+      "rubric": "The reply reports any detected problems or says nothing looks wrong.",
+      "expected_tool": "system_problems",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 98
+    },
+    {
+      "id": "cap98-01-p1",
+      "category": "system_status",
+      "prompt": "is there anything wrong with my computer",
+      "expected_contains": [],
+      "expected_keywords": [
+        "normal|thing|things"
+      ],
+      "rubric": "The reply reports any detected problems or says nothing looks wrong.",
+      "expected_tool": "system_problems",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 98
+    },
+    {
+      "id": "cap98-01-p2",
+      "category": "system_status",
+      "prompt": "check for problems with my computer",
       "expected_contains": [],
       "expected_keywords": [
         "normal|thing|things"
@@ -1661,9 +3797,65 @@
       "capability": 98
     },
     {
+      "id": "cap98-02-p1",
+      "category": "system_status",
+      "prompt": "do you see anything unusual going on",
+      "expected_contains": [],
+      "expected_keywords": [
+        "normal|thing|things"
+      ],
+      "rubric": "The reply reports any detected problems or says nothing looks wrong.",
+      "expected_tool": "system_problems",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 98
+    },
+    {
+      "id": "cap98-02-p2",
+      "category": "system_status",
+      "prompt": "anything weird going on with my system",
+      "expected_contains": [],
+      "expected_keywords": [
+        "normal|thing|things"
+      ],
+      "rubric": "The reply reports any detected problems or says nothing looks wrong.",
+      "expected_tool": "system_problems",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 98
+    },
+    {
       "id": "cap92-01",
       "category": "files_and_productivity",
       "prompt": "What should I know today",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply summarizes what needs attention today.",
+      "expected_tool": "heads_up",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 92
+    },
+    {
+      "id": "cap92-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "Anything I should know",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply summarizes what needs attention today.",
+      "expected_tool": "heads_up",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 92
+    },
+    {
+      "id": "cap92-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "What is going on today",
       "expected_contains": [],
       "expected_keywords": [],
       "rubric": "The reply summarizes what needs attention today.",
@@ -1687,6 +3879,32 @@
       "capability": 94
     },
     {
+      "id": "cap94-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "Did I forget anything",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply reports overdue or forgotten commitments.",
+      "expected_tool": "what_did_i_forget",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 94
+    },
+    {
+      "id": "cap94-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "What have I missed",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply reports overdue or forgotten commitments.",
+      "expected_tool": "what_did_i_forget",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 94
+    },
+    {
       "id": "cap95-01",
       "category": "files_and_productivity",
       "prompt": "What do you recommend",
@@ -1700,9 +3918,61 @@
       "capability": 95
     },
     {
+      "id": "cap95-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "What would you do next",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply recommends the next action to take.",
+      "expected_tool": "suggest_next_action",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 95
+    },
+    {
+      "id": "cap95-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "What do you suggest I do next",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply recommends the next action to take.",
+      "expected_tool": "suggest_next_action",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 95
+    },
+    {
       "id": "cap100-01",
       "category": "files_and_productivity",
       "prompt": "Give me a heads up",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply gives a proactive summary of what to know.",
+      "expected_tool": "heads_up",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 100
+    },
+    {
+      "id": "cap100-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what should i know",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply gives a proactive summary of what to know.",
+      "expected_tool": "heads_up",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 100
+    },
+    {
+      "id": "cap100-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you give me a heads up please",
       "expected_contains": [],
       "expected_keywords": [],
       "rubric": "The reply gives a proactive summary of what to know.",
@@ -1729,7 +3999,17 @@
         "file": "~/Documents/Voxa Calendar.md",
         "file_contains": "Dentist"
       },
-      "capability": 96
+      "capability": 96,
+      "setup": [
+        {
+          "remove": "~/Documents/Voxa Calendar.md"
+        },
+        {
+          "copy": "samples/calendar-clean-sample.md",
+          "to": "~/Documents/Voxa Calendar.md"
+        }
+      ],
+      "vm_only": true
     },
     {
       "id": "cap96-02",
@@ -1737,7 +4017,37 @@
       "prompt": "Brief me on my dentist appointment",
       "expected_contains": [],
       "expected_keywords": [
-        "friday"
+        "friday|tomorrow|today"
+      ],
+      "rubric": "The reply briefs the user on the dentist appointment.",
+      "expected_tool": "meeting_brief",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 96
+    },
+    {
+      "id": "cap96-02-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey tell me about my dentist appointment",
+      "expected_contains": [],
+      "expected_keywords": [
+        "friday|tomorrow|today"
+      ],
+      "rubric": "The reply briefs the user on the dentist appointment.",
+      "expected_tool": "meeting_brief",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 96
+    },
+    {
+      "id": "cap96-02-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you brief me on my dentist appointment please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "friday|tomorrow|today"
       ],
       "rubric": "The reply briefs the user on the dentist appointment.",
       "expected_tool": "meeting_brief",
@@ -1763,7 +4073,17 @@
         "file": "~/Documents/Voxa Calendar.md",
         "file_lacks": "entist"
       },
-      "capability": 96
+      "capability": 96,
+      "setup": [
+        {
+          "remove": "~/Documents/Voxa Calendar.md"
+        },
+        {
+          "copy": "samples/calendar-dentist-sample.md",
+          "to": "~/Documents/Voxa Calendar.md"
+        }
+      ],
+      "vm_only": true
     },
     {
       "id": "cap89-01",
@@ -1778,12 +4098,102 @@
       "expected_args": {},
       "after": "",
       "verify": {},
-      "capability": 89
+      "capability": 89,
+      "setup": [
+        {
+          "remove": "~/voxa",
+          "recursive": true
+        },
+        {
+          "gitrepo": "~/voxa"
+        }
+      ],
+      "vm_only": true
+    },
+    {
+      "id": "cap89-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "What is the status of the Voxa repo",
+      "expected_contains": [],
+      "expected_keywords": [
+        "voxa"
+      ],
+      "rubric": "The reply reports the git branch and changes for the Voxa project.",
+      "expected_tool": "project_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 89,
+      "setup": [
+        {
+          "remove": "~/voxa",
+          "recursive": true
+        },
+        {
+          "gitrepo": "~/voxa"
+        }
+      ],
+      "vm_only": true
+    },
+    {
+      "id": "cap89-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "How is the Voxa project doing",
+      "expected_contains": [],
+      "expected_keywords": [
+        "voxa"
+      ],
+      "rubric": "The reply reports the git branch and changes for the Voxa project.",
+      "expected_tool": "project_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 89,
+      "setup": [
+        {
+          "remove": "~/voxa",
+          "recursive": true
+        },
+        {
+          "gitrepo": "~/voxa"
+        }
+      ],
+      "vm_only": true
     },
     {
       "id": "cap90-01",
       "category": "files_and_productivity",
       "prompt": "Is the local model running",
+      "expected_contains": [],
+      "expected_keywords": [
+        "model"
+      ],
+      "rubric": "The reply says whether the local model is running and its last task.",
+      "expected_tool": "model_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 90
+    },
+    {
+      "id": "cap90-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "Is Strata running",
+      "expected_contains": [],
+      "expected_keywords": [
+        "model"
+      ],
+      "rubric": "The reply says whether the local model is running and its last task.",
+      "expected_tool": "model_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 90
+    },
+    {
+      "id": "cap90-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "Is the coding model up",
       "expected_contains": [],
       "expected_keywords": [
         "model"
@@ -1811,9 +4221,69 @@
       "capability": 64
     },
     {
+      "id": "cap64-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what should I make for dinner tonight",
+      "expected_contains": [],
+      "expected_keywords": [
+        "need"
+      ],
+      "rubric": "The reply suggests a dinner and lists the ingredients you need.",
+      "expected_tool": "meal_idea",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 64
+    },
+    {
+      "id": "cap64-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey suggest a dinner idea",
+      "expected_contains": [],
+      "expected_keywords": [
+        "need"
+      ],
+      "rubric": "The reply suggests a dinner and lists the ingredients you need.",
+      "expected_tool": "meal_idea",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 64
+    },
+    {
       "id": "cap64-02",
       "category": "files_and_productivity",
       "prompt": "Add the ingredients to my shopping list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "shopping"
+      ],
+      "rubric": "The reply confirms the ingredients were added to your shopping list.",
+      "expected_tool": "meal_shop",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 64
+    },
+    {
+      "id": "cap64-02-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey add the ingredients to my shopping list please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "shopping"
+      ],
+      "rubric": "The reply confirms the ingredients were added to your shopping list.",
+      "expected_tool": "meal_shop",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 64
+    },
+    {
+      "id": "cap64-02-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey add those ingredients to my shopping list",
       "expected_contains": [],
       "expected_keywords": [
         "shopping"
@@ -1841,6 +4311,36 @@
       "capability": 64
     },
     {
+      "id": "cap64-03-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey empty the shopping list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared"
+      ],
+      "rubric": "The reply confirms your shopping list was cleared.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 64
+    },
+    {
+      "id": "cap64-03-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you empty my shopping list please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared"
+      ],
+      "rubric": "The reply confirms your shopping list was cleared.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 64
+    },
+    {
       "id": "cap87-01",
       "category": "files_and_productivity",
       "prompt": "Back up my data",
@@ -1856,9 +4356,69 @@
       "capability": 87
     },
     {
+      "id": "cap87-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey back up my data please",
+      "expected_contains": [
+        "backed up"
+      ],
+      "expected_keywords": [],
+      "rubric": "The reply confirms your Voxa data files were backed up into a dated backup folder.",
+      "expected_tool": "backup_now",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 87
+    },
+    {
+      "id": "cap87-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you make a backup please",
+      "expected_contains": [
+        "backed up"
+      ],
+      "expected_keywords": [],
+      "rubric": "The reply confirms your Voxa data files were backed up into a dated backup folder.",
+      "expected_tool": "backup_now",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 87
+    },
+    {
       "id": "cap87-02",
       "category": "files_and_productivity",
       "prompt": "When was my last backup",
+      "expected_contains": [
+        "last backup"
+      ],
+      "expected_keywords": [],
+      "rubric": "The reply reports when your last data backup ran.",
+      "expected_tool": "backup_last",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 87
+    },
+    {
+      "id": "cap87-02-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey when was my last backup",
+      "expected_contains": [
+        "last backup"
+      ],
+      "expected_keywords": [],
+      "rubric": "The reply reports when your last data backup ran.",
+      "expected_tool": "backup_last",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 87
+    },
+    {
+      "id": "cap87-02-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey when did my last backup run",
       "expected_contains": [
         "last backup"
       ],
@@ -1888,9 +4448,75 @@
       "capability": 87
     },
     {
+      "id": "cap87-03-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey how does my downloads folder sort",
+      "expected_contains": [
+        "files|empty"
+      ],
+      "expected_keywords": [],
+      "rubric": "The reply describes how the downloads folder's files sort by kind, without moving anything.",
+      "expected_tool": "sort_folder_preview",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 87
+    },
+    {
+      "id": "cap87-03-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey what would my downloads folder sort",
+      "expected_contains": [
+        "files|empty"
+      ],
+      "expected_keywords": [],
+      "rubric": "The reply describes how the downloads folder's files sort by kind, without moving anything.",
+      "expected_tool": "sort_folder_preview",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 87
+    },
+    {
       "id": "cap29-x1",
       "category": "files_and_productivity",
       "prompt": "Add paint the fence to my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "fence"
+      ],
+      "rubric": "The reply confirms the item was added to the to-do list.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Paint the fence"
+      },
+      "capability": 29
+    },
+    {
+      "id": "cap29-x1-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey add paint the fence to my to do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "fence"
+      ],
+      "rubric": "The reply confirms the item was added to the to-do list.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Paint the fence"
+      },
+      "capability": 29
+    },
+    {
+      "id": "cap29-x1-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you add paint the fence to my to-do list please",
       "expected_contains": [],
       "expected_keywords": [
         "fence"
@@ -1924,6 +4550,42 @@
       "capability": 29
     },
     {
+      "id": "cap29-x2-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey add coffee filters to my kitchen list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "filters"
+      ],
+      "rubric": "The reply confirms the item was added to the kitchen list.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Coffee filters"
+      },
+      "capability": 29
+    },
+    {
+      "id": "cap29-x2-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you add coffee filters to the kitchen list please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "filters"
+      ],
+      "rubric": "The reply confirms the item was added to the kitchen list.",
+      "expected_tool": "list_add",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "[ ] Coffee filters"
+      },
+      "capability": 29
+    },
+    {
       "id": "cap29-x3",
       "category": "files_and_productivity",
       "prompt": "What is still open",
@@ -1939,9 +4601,75 @@
       "capability": 29
     },
     {
+      "id": "cap29-x3-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what is still open",
+      "expected_contains": [],
+      "expected_keywords": [
+        "open"
+      ],
+      "rubric": "The reply counts the open items across every list.",
+      "expected_tool": "list_pending",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 29
+    },
+    {
+      "id": "cap29-x3-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey what's still pending please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "open"
+      ],
+      "rubric": "The reply counts the open items across every list.",
+      "expected_tool": "list_pending",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 29
+    },
+    {
       "id": "cap29-x4",
       "category": "files_and_productivity",
       "prompt": "Clear my to-do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared"
+      ],
+      "rubric": "The reply confirms the to-do list was cleared.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_lacks": "Paint the fence"
+      },
+      "capability": 29
+    },
+    {
+      "id": "cap29-x4-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey empty my to do list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared"
+      ],
+      "rubric": "The reply confirms the to-do list was cleared.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_lacks": "Paint the fence"
+      },
+      "capability": 29
+    },
+    {
+      "id": "cap29-x4-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you clear my to-do list please",
       "expected_contains": [],
       "expected_keywords": [
         "cleared"
@@ -1975,6 +4703,42 @@
       "capability": 29
     },
     {
+      "id": "cap29-x5-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey empty my kitchen list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared"
+      ],
+      "rubric": "The reply confirms the kitchen list was cleared.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_lacks": "Coffee filters"
+      },
+      "capability": 29
+    },
+    {
+      "id": "cap29-x5-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you clear my kitchen list please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared"
+      ],
+      "rubric": "The reply confirms the kitchen list was cleared.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_lacks": "Coffee filters"
+      },
+      "capability": 29
+    },
+    {
       "id": "cap25-x1",
       "category": "files_and_productivity",
       "prompt": "What is still pending",
@@ -1990,9 +4754,69 @@
       "capability": 25
     },
     {
+      "id": "cap25-x1-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what is still pending",
+      "expected_contains": [],
+      "expected_keywords": [
+        "open"
+      ],
+      "rubric": "The reply counts the open items over every list.",
+      "expected_tool": "list_pending",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 25
+    },
+    {
+      "id": "cap25-x1-p2",
+      "category": "files_and_productivity",
+      "prompt": "what do i still have to do",
+      "expected_contains": [],
+      "expected_keywords": [
+        "open"
+      ],
+      "rubric": "The reply counts the open items over every list.",
+      "expected_tool": "list_pending",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 25
+    },
+    {
       "id": "cap27-x1",
       "category": "files_and_productivity",
       "prompt": "What is my top priority",
+      "expected_contains": [],
+      "expected_keywords": [
+        "next|waiting|clear"
+      ],
+      "rubric": "The reply names the most important open task.",
+      "expected_tool": "list_next",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 27
+    },
+    {
+      "id": "cap27-x1-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what is my top priority",
+      "expected_contains": [],
+      "expected_keywords": [
+        "next|waiting|clear"
+      ],
+      "rubric": "The reply names the most important open task.",
+      "expected_tool": "list_next",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 27
+    },
+    {
+      "id": "cap27-x1-p2",
+      "category": "files_and_productivity",
+      "prompt": "what should i work on next",
       "expected_contains": [],
       "expected_keywords": [
         "next|waiting|clear"
@@ -2038,6 +4862,36 @@
       "capability": 97
     },
     {
+      "id": "cap97-x2-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what did i tell you about window seats",
+      "expected_contains": [],
+      "expected_keywords": [
+        "window"
+      ],
+      "rubric": "The reply recalls the remembered preference about window seats.",
+      "expected_tool": "recall_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 97
+    },
+    {
+      "id": "cap97-x2-p2",
+      "category": "files_and_productivity",
+      "prompt": "do you know anything about window seats",
+      "expected_contains": [],
+      "expected_keywords": [
+        "window"
+      ],
+      "rubric": "The reply recalls the remembered preference about window seats.",
+      "expected_tool": "recall_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 97
+    },
+    {
       "id": "cap97-x3",
       "category": "files_and_productivity",
       "prompt": "Forget about window seats",
@@ -2054,6 +4908,3208 @@
         "file_lacks": "window seats"
       },
       "capability": 97
+    },
+    {
+      "id": "cap34-y1",
+      "category": "files_and_productivity",
+      "prompt": "research the company Nvidia",
+      "expected_contains": [],
+      "expected_keywords": [
+        "found"
+      ],
+      "rubric": "The reply confirms the company lookup.",
+      "expected_tool": "look_up",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 34
+    },
+    {
+      "id": "cap34-y1-p1",
+      "prompt": "can you research the company Nvidia",
+      "expected_tool": "look_up",
+      "expected_args": {},
+      "expected_keywords": [
+        "found"
+      ],
+      "rubric": "The reply confirms the company lookup.",
+      "verify": {},
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 34
+    },
+    {
+      "id": "cap34-y1-p2",
+      "prompt": "hey please look up the company Nvidia",
+      "expected_tool": "look_up",
+      "expected_args": {},
+      "expected_keywords": [
+        "found"
+      ],
+      "rubric": "The reply confirms the company lookup.",
+      "verify": {},
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 34
+    },
+    {
+      "id": "cap34-y2",
+      "category": "files_and_productivity",
+      "prompt": "research Ada Lovelace on wikipedia",
+      "expected_contains": [],
+      "expected_keywords": [
+        "found"
+      ],
+      "rubric": "The reply confirms the person lookup.",
+      "expected_tool": "look_up",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 34
+    },
+    {
+      "id": "cap34-y2-p1",
+      "prompt": "can you research Ada Lovelace on wikipedia",
+      "expected_tool": "look_up",
+      "expected_args": {},
+      "expected_keywords": [
+        "found"
+      ],
+      "rubric": "The reply confirms the person lookup.",
+      "verify": {},
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 34
+    },
+    {
+      "id": "cap34-y2-p2",
+      "prompt": "hey please look up Ada Lovelace on wikipedia",
+      "expected_tool": "look_up",
+      "expected_args": {},
+      "expected_keywords": [
+        "found"
+      ],
+      "rubric": "The reply confirms the person lookup.",
+      "verify": {},
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 34
+    },
+    {
+      "id": "cap35-y1",
+      "category": "files_and_productivity",
+      "prompt": "compare prices for a cordless drill",
+      "expected_contains": [],
+      "expected_keywords": [
+        "prices"
+      ],
+      "rubric": "The reply confirms the price comparison.",
+      "expected_tool": "compare_prices",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 35
+    },
+    {
+      "id": "cap35-y1-p1",
+      "prompt": "can you compare prices for a cordless drill",
+      "expected_tool": "compare_prices",
+      "expected_args": {},
+      "expected_keywords": [
+        "prices"
+      ],
+      "rubric": "The reply confirms the price comparison.",
+      "verify": {},
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 35
+    },
+    {
+      "id": "cap35-y1-p2",
+      "prompt": "hey please compare prices on a cordless drill",
+      "expected_tool": "compare_prices",
+      "expected_args": {},
+      "expected_keywords": [
+        "prices"
+      ],
+      "rubric": "The reply confirms the price comparison.",
+      "verify": {},
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 35
+    },
+    {
+      "id": "cap35-y2",
+      "category": "files_and_productivity",
+      "prompt": "find me a deal on headphones",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cheapest"
+      ],
+      "rubric": "The reply confirms the deal search.",
+      "expected_tool": "find_deal",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 35
+    },
+    {
+      "id": "cap35-y2-p1",
+      "prompt": "can you find me a deal on headphones",
+      "expected_tool": "find_deal",
+      "expected_args": {},
+      "expected_keywords": [
+        "cheapest"
+      ],
+      "rubric": "The reply confirms the deal search.",
+      "verify": {},
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 35
+    },
+    {
+      "id": "cap35-y2-p2",
+      "prompt": "hey please find a deal on headphones",
+      "expected_tool": "find_deal",
+      "expected_args": {},
+      "expected_keywords": [
+        "cheapest"
+      ],
+      "rubric": "The reply confirms the deal search.",
+      "verify": {},
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 35
+    },
+    {
+      "id": "cap39-y1",
+      "category": "files_and_productivity",
+      "prompt": "how is the stock market doing",
+      "expected_contains": [],
+      "expected_keywords": [
+        "market"
+      ],
+      "rubric": "The reply confirms the market report.",
+      "expected_tool": "market",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 39
+    },
+    {
+      "id": "cap39-y1-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey how is the market doing",
+      "expected_contains": [],
+      "expected_keywords": [
+        "market"
+      ],
+      "rubric": "The reply confirms the market report.",
+      "expected_tool": "market",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 39
+    },
+    {
+      "id": "cap39-y1-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you check the stock market please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "market"
+      ],
+      "rubric": "The reply confirms the market report.",
+      "expected_tool": "market",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 39
+    },
+    {
+      "id": "cap39-y2",
+      "category": "files_and_productivity",
+      "prompt": "what is the price of bitcoin",
+      "expected_contains": [],
+      "expected_keywords": [
+        "price"
+      ],
+      "rubric": "The reply confirms the price report.",
+      "expected_tool": "market",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 39
+    },
+    {
+      "id": "cap39-y2-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey how much is bitcoin",
+      "expected_contains": [],
+      "expected_keywords": [
+        "price"
+      ],
+      "rubric": "The reply confirms the price report.",
+      "expected_tool": "market",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 39
+    },
+    {
+      "id": "cap39-y2-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey what's bitcoin at",
+      "expected_contains": [],
+      "expected_keywords": [
+        "price"
+      ],
+      "rubric": "The reply confirms the price report.",
+      "expected_tool": "market",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 39
+    },
+    {
+      "id": "cap40-y1",
+      "category": "files_and_productivity",
+      "prompt": "is it true that goldfish have a three second memory",
+      "expected_contains": [],
+      "expected_keywords": [
+        "fact"
+      ],
+      "rubric": "The reply confirms the fact check.",
+      "expected_tool": "fact_check",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 40
+    },
+    {
+      "id": "cap40-y1-p1",
+      "category": "files_and_productivity",
+      "prompt": "can you fact check the goldfish memory thing please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "fact"
+      ],
+      "rubric": "The reply confirms the fact check.",
+      "expected_tool": "fact_check",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 40
+    },
+    {
+      "id": "cap40-y1-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey fact check that goldfish have a three second memory",
+      "expected_contains": [],
+      "expected_keywords": [
+        "fact"
+      ],
+      "rubric": "The reply confirms the fact check.",
+      "expected_tool": "fact_check",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 40
+    },
+    {
+      "id": "cap45-y1",
+      "category": "files_and_productivity",
+      "prompt": "flight status for BA 117",
+      "expected_contains": [],
+      "expected_keywords": [
+        "status"
+      ],
+      "rubric": "The reply confirms the flight status.",
+      "expected_tool": "flight_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 45
+    },
+    {
+      "id": "cap45-y1-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey check flight BA 117 please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "status"
+      ],
+      "rubric": "The reply confirms the flight status.",
+      "expected_tool": "flight_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 45
+    },
+    {
+      "id": "cap45-y1-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey track flight BA 117",
+      "expected_contains": [],
+      "expected_keywords": [
+        "status"
+      ],
+      "rubric": "The reply confirms the flight status.",
+      "expected_tool": "flight_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 45
+    },
+    {
+      "id": "cap45-y2",
+      "category": "files_and_productivity",
+      "prompt": "is flight BA 117 on time",
+      "expected_contains": [],
+      "expected_keywords": [
+        "status"
+      ],
+      "rubric": "The reply confirms the flight status.",
+      "expected_tool": "flight_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 45
+    },
+    {
+      "id": "cap45-y2-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey is flight BA 117 delayed",
+      "expected_contains": [],
+      "expected_keywords": [
+        "status"
+      ],
+      "rubric": "The reply confirms the flight status.",
+      "expected_tool": "flight_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 45
+    },
+    {
+      "id": "cap45-y2-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you check if flight BA 117 is delayed please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "status"
+      ],
+      "rubric": "The reply confirms the flight status.",
+      "expected_tool": "flight_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 45
+    },
+    {
+      "id": "cap49-y1",
+      "category": "files_and_productivity",
+      "prompt": "i spent 30 on a taxi for the Paris trip",
+      "expected_contains": [],
+      "expected_keywords": [
+        "noted"
+      ],
+      "rubric": "The reply confirms the expense was logged.",
+      "expected_tool": "expense_add",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Expenses.csv",
+        "file_contains": "taxi"
+      },
+      "capability": 49
+    },
+    {
+      "id": "cap49-y2",
+      "category": "files_and_productivity",
+      "prompt": "how much did the Paris trip cost",
+      "expected_contains": [],
+      "expected_keywords": [
+        "trip"
+      ],
+      "rubric": "The reply reports the trip cost.",
+      "expected_tool": "trip_cost",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 49
+    },
+    {
+      "id": "cap49-y2-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey how much did the Paris trip cost",
+      "expected_contains": [],
+      "expected_keywords": [
+        "trip"
+      ],
+      "rubric": "The reply reports the trip cost.",
+      "expected_tool": "trip_cost",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 49
+    },
+    {
+      "id": "cap49-y2-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey what did i spend on the Paris trip",
+      "expected_contains": [],
+      "expected_keywords": [
+        "trip"
+      ],
+      "rubric": "The reply reports the trip cost.",
+      "expected_tool": "trip_cost",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 49
+    },
+    {
+      "id": "cap49-y3",
+      "category": "files_and_productivity",
+      "prompt": "undo my last expense",
+      "expected_contains": [],
+      "expected_keywords": [
+        "removed"
+      ],
+      "rubric": "The reply confirms the expense was removed.",
+      "expected_tool": "expense_undo",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Expenses.csv",
+        "file_lacks": "taxi"
+      },
+      "capability": 49
+    },
+    {
+      "id": "cap53-y1",
+      "category": "files_and_productivity",
+      "prompt": "compare prices for a PlayStation 5",
+      "expected_contains": [],
+      "expected_keywords": [
+        "prices"
+      ],
+      "rubric": "The reply confirms the price comparison.",
+      "expected_tool": "compare_prices",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 53
+    },
+    {
+      "id": "cap53-y1-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey compare prices for a PS5 please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "prices"
+      ],
+      "rubric": "The reply confirms the price comparison.",
+      "expected_tool": "compare_prices",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 53
+    },
+    {
+      "id": "cap53-y1-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey compare prices on a PS5",
+      "expected_contains": [],
+      "expected_keywords": [
+        "prices"
+      ],
+      "rubric": "The reply confirms the price comparison.",
+      "expected_tool": "compare_prices",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 53
+    },
+    {
+      "id": "cap54-y1",
+      "category": "files_and_productivity",
+      "prompt": "track my package 1Z999AA10123456784",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tracking"
+      ],
+      "rubric": "The reply confirms the package tracking.",
+      "expected_tool": "track_package",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 54
+    },
+    {
+      "id": "cap54-y1-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey can you track package 1Z999AA10123456784",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tracking"
+      ],
+      "rubric": "The reply confirms the package tracking.",
+      "expected_tool": "track_package",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 54
+    },
+    {
+      "id": "cap54-y1-p2",
+      "category": "files_and_productivity",
+      "prompt": "please track the parcel 1Z999AA10123456784",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tracking"
+      ],
+      "rubric": "The reply confirms the package tracking.",
+      "expected_tool": "track_package",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 54
+    },
+    {
+      "id": "cap59-y1",
+      "category": "files_and_productivity",
+      "prompt": "set my food budget to 300 dollars",
+      "expected_contains": [],
+      "expected_keywords": [
+        "budget"
+      ],
+      "rubric": "The reply confirms the budget was set.",
+      "expected_tool": "budget_set",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Expenses.csv",
+        "file_contains": "budget"
+      },
+      "capability": 59
+    },
+    {
+      "id": "cap59-y1-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey can you set my food budget to 300 dollars",
+      "expected_contains": [],
+      "expected_keywords": [
+        "budget"
+      ],
+      "rubric": "The reply confirms the budget was set.",
+      "expected_tool": "budget_set",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Expenses.csv",
+        "file_contains": "budget"
+      },
+      "capability": 59
+    },
+    {
+      "id": "cap59-y1-p2",
+      "category": "files_and_productivity",
+      "prompt": "please set the food budget to 300 dollars",
+      "expected_contains": [],
+      "expected_keywords": [
+        "budget"
+      ],
+      "rubric": "The reply confirms the budget was set.",
+      "expected_tool": "budget_set",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 59
+    },
+    {
+      "id": "cap59-y2",
+      "category": "files_and_productivity",
+      "prompt": "how am i doing on my food budget",
+      "expected_contains": [],
+      "expected_keywords": [
+        "budget"
+      ],
+      "rubric": "The reply reports the budget status.",
+      "expected_tool": "budget_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 59
+    },
+    {
+      "id": "cap59-y2-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey how am i doing on my budget",
+      "expected_contains": [],
+      "expected_keywords": [
+        "budget"
+      ],
+      "rubric": "The reply reports the budget status.",
+      "expected_tool": "budget_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 59
+    },
+    {
+      "id": "cap59-y2-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey how much is left in my food budget",
+      "expected_contains": [],
+      "expected_keywords": [
+        "budget"
+      ],
+      "rubric": "The reply reports the budget status.",
+      "expected_tool": "budget_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 59
+    },
+    {
+      "id": "cap73-y1",
+      "category": "files_and_productivity",
+      "prompt": "make a folder called Test Box in Documents",
+      "expected_contains": [],
+      "expected_keywords": [
+        "created"
+      ],
+      "rubric": "The reply confirms the folder was created.",
+      "expected_tool": "make_folder",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 73
+    },
+    {
+      "id": "cap73-y1-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey can you create a folder called Test Box in Documents",
+      "expected_contains": [],
+      "expected_keywords": [
+        "created"
+      ],
+      "rubric": "The reply confirms the folder was created.",
+      "expected_tool": "make_folder",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 73
+    },
+    {
+      "id": "cap73-y1-p2",
+      "category": "files_and_productivity",
+      "prompt": "please make a new folder called Test Box in Documents",
+      "expected_contains": [],
+      "expected_keywords": [
+        "created"
+      ],
+      "rubric": "The reply confirms the folder was created.",
+      "expected_tool": "make_folder",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 73
+    },
+    {
+      "id": "cap73-y2",
+      "category": "files_and_productivity",
+      "prompt": "what is in my Documents folder",
+      "expected_contains": [],
+      "expected_keywords": [
+        "documents"
+      ],
+      "rubric": "The reply lists the folder contents.",
+      "expected_tool": "list_folder",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 73
+    },
+    {
+      "id": "cap73-y2-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what is in my Documents folder",
+      "expected_contains": [],
+      "expected_keywords": [
+        "documents"
+      ],
+      "rubric": "The reply lists the folder contents.",
+      "expected_tool": "list_folder",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 73
+    },
+    {
+      "id": "cap73-y2-p2",
+      "category": "files_and_productivity",
+      "prompt": "list the files in my Documents folder",
+      "expected_contains": [],
+      "expected_keywords": [
+        "documents"
+      ],
+      "rubric": "The reply lists the folder contents.",
+      "expected_tool": "list_folder",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 73
+    },
+    {
+      "id": "cap73-y3",
+      "category": "files_and_productivity",
+      "prompt": "trash the file Test Box in Documents",
+      "expected_contains": [],
+      "expected_keywords": [
+        "trash"
+      ],
+      "rubric": "The reply confirms the folder was trashed.",
+      "expected_tool": "trash_file",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 73
+    },
+    {
+      "id": "cap73-y3-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey can you delete the file Test Box in Documents",
+      "expected_contains": [],
+      "expected_keywords": [
+        "trash"
+      ],
+      "rubric": "The reply confirms the folder was trashed.",
+      "expected_tool": "trash_file",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 73
+    },
+    {
+      "id": "cap73-y3-p2",
+      "category": "files_and_productivity",
+      "prompt": "please remove Test Box from Documents",
+      "expected_contains": [],
+      "expected_keywords": [
+        "trash"
+      ],
+      "rubric": "The reply confirms the folder was trashed.",
+      "expected_tool": "trash_file",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 73
+    },
+    {
+      "id": "cap76-y1",
+      "category": "files_and_productivity",
+      "prompt": "make a spreadsheet of my expenses",
+      "expected_contains": [],
+      "expected_keywords": [
+        "spreadsheet"
+      ],
+      "rubric": "The reply confirms the spreadsheet was made.",
+      "expected_tool": "expense_spreadsheet",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 76
+    },
+    {
+      "id": "cap76-y1-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey can you create a spreadsheet of my expenses",
+      "expected_contains": [],
+      "expected_keywords": [
+        "spreadsheet"
+      ],
+      "rubric": "The reply confirms the spreadsheet was made.",
+      "expected_tool": "expense_spreadsheet",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 76
+    },
+    {
+      "id": "cap76-y1-p2",
+      "category": "files_and_productivity",
+      "prompt": "please export my expenses to a spreadsheet",
+      "expected_contains": [],
+      "expected_keywords": [
+        "spreadsheet"
+      ],
+      "rubric": "The reply confirms the spreadsheet was made.",
+      "expected_tool": "expense_spreadsheet",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 76
+    },
+    {
+      "id": "cap23-01",
+      "category": "files_and_productivity",
+      "prompt": "break down paint into steps",
+      "expected_contains": [],
+      "expected_keywords": [
+        "steps",
+        "list"
+      ],
+      "rubric": "The reply breaks the goal into steps and saves them as a list.",
+      "expected_tool": "project_steps",
+      "expected_args": {
+        "goal": "paint"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "## Paint"
+      },
+      "capability": 23
+    },
+    {
+      "id": "cap23-02",
+      "category": "files_and_productivity",
+      "prompt": "make a plan for paint",
+      "expected_contains": [],
+      "expected_keywords": [
+        "steps",
+        "list"
+      ],
+      "rubric": "The reply breaks the goal into steps and saves them as a list.",
+      "expected_tool": "project_steps",
+      "expected_args": {
+        "goal": "paint"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "## Paint"
+      },
+      "capability": 23
+    },
+    {
+      "id": "cap23-03",
+      "category": "files_and_productivity",
+      "prompt": "clear my paint list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared|clear"
+      ],
+      "rubric": "The reply confirms the list was cleared.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_lacks": "## Paint"
+      },
+      "capability": 23
+    },
+    {
+      "id": "cap41-01",
+      "category": "files_and_productivity",
+      "prompt": "plan a three day trip to Rome",
+      "expected_contains": [],
+      "expected_keywords": [
+        "planned",
+        "Rome"
+      ],
+      "rubric": "The reply plans three days in Rome and saves them in the Voxa Trips file.",
+      "expected_tool": "trip_plan",
+      "expected_args": {
+        "place": "Rome"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Trips.md",
+        "file_contains": "## Rome (3 days)"
+      },
+      "capability": 41
+    },
+    {
+      "id": "cap41-01-p1",
+      "prompt": "can you plan a three day vacation to Rome",
+      "expected_tool": "trip_plan",
+      "expected_args": {
+        "place": "Rome"
+      },
+      "expected_keywords": [
+        "planned",
+        "Rome"
+      ],
+      "rubric": "The reply plans three days in Rome and saves them in the Voxa Trips file.",
+      "verify": {
+        "file": "~/Documents/Voxa Trips.md",
+        "file_contains": "## Rome (3 days)"
+      },
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 41
+    },
+    {
+      "id": "cap41-01-p2",
+      "prompt": "hey please make a three day trip to Rome",
+      "expected_tool": "trip_plan",
+      "expected_args": {
+        "place": "Rome"
+      },
+      "expected_keywords": [
+        "planned",
+        "Rome"
+      ],
+      "rubric": "The reply plans three days in Rome and saves them in the Voxa Trips file.",
+      "verify": {
+        "file": "~/Documents/Voxa Trips.md",
+        "file_contains": "## Rome (3 days)"
+      },
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 41
+    },
+    {
+      "id": "cap41-02",
+      "category": "files_and_productivity",
+      "prompt": "read my trip to Rome",
+      "expected_contains": [],
+      "expected_keywords": [
+        "trip",
+        "Rome"
+      ],
+      "rubric": "The reply reads back the saved trip to Rome.",
+      "expected_tool": "trip_read",
+      "expected_args": {
+        "place": "Rome"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Trips.md",
+        "file_contains": "## Rome (3 days)"
+      },
+      "capability": 41
+    },
+    {
+      "id": "cap41-02-p1",
+      "prompt": "show me my trip to Rome",
+      "expected_tool": "trip_read",
+      "expected_args": {
+        "place": "Rome"
+      },
+      "expected_keywords": [
+        "trip",
+        "Rome"
+      ],
+      "rubric": "The reply reads back the saved trip to Rome.",
+      "verify": {
+        "file": "~/Documents/Voxa Trips.md",
+        "file_contains": "## Rome (3 days)"
+      },
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 41
+    },
+    {
+      "id": "cap41-02-p2",
+      "prompt": "can you read my vacation to Rome",
+      "expected_tool": "trip_read",
+      "expected_args": {
+        "place": "Rome"
+      },
+      "expected_keywords": [
+        "trip",
+        "Rome"
+      ],
+      "rubric": "The reply reads back the saved trip to Rome.",
+      "verify": {
+        "file": "~/Documents/Voxa Trips.md",
+        "file_contains": "## Rome (3 days)"
+      },
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 41
+    },
+    {
+      "id": "cap41-03",
+      "category": "files_and_productivity",
+      "prompt": "forget my trip to Rome",
+      "expected_contains": [],
+      "expected_keywords": [
+        "forgot",
+        "Rome"
+      ],
+      "rubric": "The reply removes the saved trip to Rome.",
+      "expected_tool": "trip_forget",
+      "expected_args": {
+        "place": "Rome"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Trips.md",
+        "file_lacks": "## Rome"
+      },
+      "capability": 41
+    },
+    {
+      "id": "cap09-01",
+      "category": "files_and_productivity",
+      "prompt": "what is the capital of Italy",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Rome"
+      ],
+      "rubric": "The reply answers the knowledge question so the conversation has something to summarise.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 9
+    },
+    {
+      "id": "cap09-01-p1",
+      "prompt": "what's the capital of Italy",
+      "expected_tool": "",
+      "expected_args": {},
+      "expected_keywords": [
+        "Rome"
+      ],
+      "rubric": "The reply answers the knowledge question so the conversation has something to summarise.",
+      "verify": {},
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 9
+    },
+    {
+      "id": "cap09-01-p2",
+      "prompt": "can you tell me the capital of Italy",
+      "expected_tool": "",
+      "expected_args": {},
+      "expected_keywords": [
+        "Rome"
+      ],
+      "rubric": "The reply answers the knowledge question so the conversation has something to summarise.",
+      "verify": {},
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 9
+    },
+    {
+      "id": "cap09-02",
+      "category": "files_and_productivity",
+      "prompt": "summarize our conversation",
+      "expected_contains": [],
+      "expected_keywords": [
+        "talked|decided"
+      ],
+      "rubric": "The reply reads back decisions and action items from the conversation, or says there is not much to summarise yet.",
+      "expected_tool": "conversation_summary",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 9
+    },
+    {
+      "id": "cap09-02-p1",
+      "prompt": "can you summarize our conversation",
+      "expected_tool": "conversation_summary",
+      "expected_args": {},
+      "expected_keywords": [
+        "talked|decided"
+      ],
+      "rubric": "The reply reads back decisions and action items from the conversation, or says there is not much to summarise yet.",
+      "verify": {},
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 9
+    },
+    {
+      "id": "cap09-02-p2",
+      "prompt": "hey please recap our conversation",
+      "expected_tool": "conversation_summary",
+      "expected_args": {},
+      "expected_keywords": [
+        "talked|decided"
+      ],
+      "rubric": "The reply reads back decisions and action items from the conversation, or says there is not much to summarise yet.",
+      "verify": {},
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 9
+    },
+    {
+      "id": "cap70-01",
+      "category": "files_and_productivity",
+      "prompt": "plan a wedding for Saturday",
+      "expected_contains": [],
+      "expected_keywords": [
+        "plan",
+        "list"
+      ],
+      "rubric": "The reply says it made a wedding plan and saved it as a list.",
+      "expected_tool": "event_plan",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "## Wedding Plan"
+      },
+      "capability": 70
+    },
+    {
+      "id": "cap70-01-p1",
+      "prompt": "can you plan a wedding for Saturday",
+      "expected_tool": "event_plan",
+      "expected_args": {},
+      "expected_keywords": [
+        "plan",
+        "list"
+      ],
+      "rubric": "The reply says it made a wedding plan and saved it as a list.",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "## Wedding Plan"
+      },
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 70
+    },
+    {
+      "id": "cap70-01-p2",
+      "prompt": "hey please organize a wedding for Saturday",
+      "expected_tool": "event_plan",
+      "expected_args": {},
+      "expected_keywords": [
+        "plan",
+        "list"
+      ],
+      "rubric": "The reply says it made a wedding plan and saved it as a list.",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "## Wedding Plan"
+      },
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 70
+    },
+    {
+      "id": "cap70-02",
+      "category": "files_and_productivity",
+      "prompt": "plan a barbecue",
+      "expected_contains": [],
+      "expected_keywords": [
+        "plan",
+        "list"
+      ],
+      "rubric": "The reply says it made a barbecue plan and saved it as a list.",
+      "expected_tool": "event_plan",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "## Barbecue Plan"
+      },
+      "capability": 70
+    },
+    {
+      "id": "cap70-02-p1",
+      "prompt": "can you plan a barbecue",
+      "expected_tool": "event_plan",
+      "expected_args": {},
+      "expected_keywords": [
+        "plan",
+        "list"
+      ],
+      "rubric": "The reply says it made a barbecue plan and saved it as a list.",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "## Barbecue Plan"
+      },
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 70
+    },
+    {
+      "id": "cap70-02-p2",
+      "prompt": "hey please organize a bbq",
+      "expected_tool": "event_plan",
+      "expected_args": {},
+      "expected_keywords": [
+        "plan",
+        "list"
+      ],
+      "rubric": "The reply says it made a barbecue plan and saved it as a list.",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_contains": "## Barbecue Plan"
+      },
+      "category": "files_and_productivity",
+      "expected_contains": [],
+      "after": "",
+      "capability": 70
+    },
+    {
+      "id": "cap70-03",
+      "category": "files_and_productivity",
+      "prompt": "clear my wedding plan list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared|clear"
+      ],
+      "rubric": "The reply confirms the wedding plan list was cleared.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_lacks": "## Wedding Plan"
+      },
+      "capability": 70
+    },
+    {
+      "id": "cap70-04",
+      "category": "files_and_productivity",
+      "prompt": "clear my barbecue plan list",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cleared|clear"
+      ],
+      "rubric": "The reply confirms the barbecue plan list was cleared.",
+      "expected_tool": "list_clear",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Lists.md",
+        "file_lacks": "## Barbecue Plan"
+      },
+      "capability": 70
+    },
+    {
+      "id": "cap46-01",
+      "category": "files_and_productivity",
+      "prompt": "remember my passport expires on June 5 2028",
+      "expected_contains": [],
+      "expected_keywords": [
+        "passport",
+        "expires"
+      ],
+      "rubric": "The reply confirms the passport expiry was saved.",
+      "expected_tool": "travel_doc_add",
+      "expected_args": {
+        "document": "passport",
+        "expires": "June 5 2028"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Travel Documents.md",
+        "file_contains": "- Passport: expires 2028-06-05"
+      },
+      "capability": 46
+    },
+    {
+      "id": "cap46-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey save my passport expires on June 5 2028",
+      "expected_contains": [],
+      "expected_keywords": [
+        "passport",
+        "expires"
+      ],
+      "rubric": "The reply confirms the passport expiry was saved.",
+      "expected_tool": "travel_doc_add",
+      "expected_args": {
+        "document": "passport",
+        "expires": "June 5 2028"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Travel Documents.md",
+        "file_contains": "- Passport: expires 2028-06-05"
+      },
+      "capability": 46
+    },
+    {
+      "id": "cap46-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you save my passport expires June 5 2028",
+      "expected_contains": [],
+      "expected_keywords": [
+        "passport",
+        "expires"
+      ],
+      "rubric": "The reply confirms the passport expiry was saved.",
+      "expected_tool": "travel_doc_add",
+      "expected_args": {
+        "document": "passport",
+        "expires": "June 5 2028"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 46
+    },
+    {
+      "id": "cap46-02",
+      "category": "files_and_productivity",
+      "prompt": "when does my passport expire",
+      "expected_contains": [],
+      "expected_keywords": [
+        "passport",
+        "expires"
+      ],
+      "rubric": "The reply reports the saved passport expiry date.",
+      "expected_tool": "travel_doc_when",
+      "expected_args": {
+        "document": "passport"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 46
+    },
+    {
+      "id": "cap46-02-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey when does the passport expire",
+      "expected_contains": [],
+      "expected_keywords": [
+        "passport",
+        "expires"
+      ],
+      "rubric": "The reply reports the saved passport expiry date.",
+      "expected_tool": "travel_doc_when",
+      "expected_args": {
+        "document": "passport"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 46
+    },
+    {
+      "id": "cap46-02-p2",
+      "category": "files_and_productivity",
+      "prompt": "hey when does my passport expires",
+      "expected_contains": [],
+      "expected_keywords": [
+        "passport",
+        "expires"
+      ],
+      "rubric": "The reply reports the saved passport expiry date.",
+      "expected_tool": "travel_doc_when",
+      "expected_args": {
+        "document": "passport"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 46
+    },
+    {
+      "id": "cap46-03",
+      "category": "files_and_productivity",
+      "prompt": "what travel documents do I have",
+      "expected_contains": [],
+      "expected_keywords": [
+        "travel",
+        "document"
+      ],
+      "rubric": "The reply lists the saved travel documents.",
+      "expected_tool": "travel_doc_list",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 46
+    },
+    {
+      "id": "cap46-03-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what travel documents do i have",
+      "expected_contains": [],
+      "expected_keywords": [
+        "travel",
+        "document"
+      ],
+      "rubric": "The reply lists the saved travel documents.",
+      "expected_tool": "travel_doc_list",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 46
+    },
+    {
+      "id": "cap46-03-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you show me my travel documents",
+      "expected_contains": [],
+      "expected_keywords": [
+        "travel",
+        "document"
+      ],
+      "rubric": "The reply lists the saved travel documents.",
+      "expected_tool": "travel_doc_list",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 46
+    },
+    {
+      "id": "cap46-04",
+      "category": "files_and_productivity",
+      "prompt": "forget my passport",
+      "expected_contains": [],
+      "expected_keywords": [
+        "forgot",
+        "passport"
+      ],
+      "rubric": "The reply confirms the passport was removed.",
+      "expected_tool": "travel_doc_forget",
+      "expected_args": {
+        "document": "passport"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Travel Documents.md",
+        "file_lacks": "- Passport:"
+      },
+      "capability": 46
+    },
+    {
+      "id": "cap46-04-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey can you forget my passport",
+      "expected_contains": [],
+      "expected_keywords": [
+        "forgot",
+        "passport"
+      ],
+      "rubric": "The reply confirms the passport was removed.",
+      "expected_tool": "travel_doc_forget",
+      "expected_args": {
+        "document": "passport"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Travel Documents.md",
+        "file_lacks": "- Passport:"
+      },
+      "capability": 46
+    },
+    {
+      "id": "cap46-04-p2",
+      "category": "files_and_productivity",
+      "prompt": "please remove my passport",
+      "expected_contains": [],
+      "expected_keywords": [
+        "forgot",
+        "passport"
+      ],
+      "rubric": "The reply confirms the passport was removed.",
+      "expected_tool": "travel_doc_forget",
+      "expected_args": {
+        "document": "passport"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 46
+    },
+    {
+      "id": "cap79-01",
+      "category": "files_and_productivity",
+      "prompt": "what are the dates and amounts in invoice-sample.txt",
+      "expected_contains": [],
+      "expected_keywords": [
+        "01/15/2024",
+        "2024-02-01",
+        "1,234.56",
+        "45.00",
+        "invoice-sample"
+      ],
+      "rubric": "The reply reports the dates and amounts found in the invoice file.",
+      "expected_tool": "doc_extract",
+      "expected_args": {
+        "name": "invoice-sample.txt"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 79,
+      "setup": [
+        {
+          "copy": "samples/invoice-sample.txt",
+          "to": "~/Documents/invoice-sample.txt"
+        }
+      ]
+    },
+    {
+      "id": "cap50-01",
+      "category": "travel",
+      "prompt": "my flight to Denver was cancelled",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Sorry",
+        "options"
+      ],
+      "rubric": "The reply apologises and gives 3 rebooking options for the cancelled flight.",
+      "expected_tool": "travel_options",
+      "expected_args": {
+        "what": "flight",
+        "place": "Denver",
+        "problem": "cancelled"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 50
+    },
+    {
+      "id": "cap50-02",
+      "category": "travel",
+      "prompt": "I missed my connection to Chicago",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Sorry",
+        "options"
+      ],
+      "rubric": "The reply apologises and gives 3 rebooking options for the missed connection.",
+      "expected_tool": "travel_options",
+      "expected_args": {
+        "what": "connection",
+        "place": "Chicago",
+        "problem": "missed"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 50
+    },
+    {
+      "id": "cap66-01",
+      "category": "files_and_productivity",
+      "prompt": "add soccer practice for Emma on Tuesday at 5 pm",
+      "expected_contains": [],
+      "expected_keywords": [
+        "soccer"
+      ],
+      "rubric": "The reply confirms the event was added to Emma's schedule.",
+      "expected_tool": "family_add",
+      "expected_args": {
+        "person": "Emma",
+        "event": "soccer practice",
+        "when": "Tuesday at 5 pm"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Calendar.md",
+        "file_contains": "Emma: soccer practice"
+      },
+      "capability": 66
+    },
+    {
+      "id": "cap66-02",
+      "category": "files_and_productivity",
+      "prompt": "what does Emma have this week",
+      "expected_contains": [],
+      "expected_keywords": [
+        "soccer"
+      ],
+      "rubric": "The reply reads back Emma's week.",
+      "expected_tool": "calendar_week",
+      "expected_args": {
+        "person": "Emma"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 66
+    },
+    {
+      "id": "cap66-03",
+      "category": "files_and_productivity",
+      "prompt": "what's on for the family this week",
+      "expected_contains": [],
+      "expected_keywords": [
+        "Emma"
+      ],
+      "rubric": "The reply reads back the family week grouped by member.",
+      "expected_tool": "family_week",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 66
+    },
+    {
+      "id": "cap66-04",
+      "category": "files_and_productivity",
+      "prompt": "remove Emma's soccer practice",
+      "expected_contains": [],
+      "expected_keywords": [
+        "off"
+      ],
+      "rubric": "The reply confirms the event was removed from the schedule.",
+      "expected_tool": "family_remove",
+      "expected_args": {
+        "person": "Emma",
+        "event": "soccer practice"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Calendar.md",
+        "file_lacks": "Emma: soccer practice"
+      },
+      "capability": 66
+    },
+    {
+      "id": "cap60-01",
+      "category": "files_and_productivity",
+      "prompt": "organize my financial documents",
+      "expected_contains": [],
+      "expected_keywords": [
+        "filed"
+      ],
+      "rubric": "The reply confirms financial documents were filed into folders.",
+      "expected_tool": "finance_sort",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 60,
+      "vm_only": true,
+      "setup": [
+        {
+          "copy": "samples/invoice-acme-2026.txt",
+          "to": "~/Downloads/invoice-acme-2026.txt"
+        },
+        {
+          "copy": "samples/receipt-hardware-store.txt",
+          "to": "~/Downloads/receipt-hardware-store.txt"
+        }
+      ]
+    },
+    {
+      "id": "cap60-02",
+      "category": "files_and_productivity",
+      "prompt": "how many invoices do I have",
+      "expected_contains": [],
+      "expected_keywords": [
+        "invoice"
+      ],
+      "rubric": "The reply reports the number of invoices in the Finance folder.",
+      "expected_tool": "finance_count",
+      "expected_args": {
+        "kind": "invoices"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 60,
+      "vm_only": true,
+      "setup": [
+        {
+          "copy": "samples/invoice-acme-2026.txt",
+          "to": "~/Documents/Finance/Invoices/invoice-acme-2026.txt"
+        }
+      ]
+    },
+    {
+      "id": "cap60-03",
+      "category": "files_and_productivity",
+      "prompt": "undo the filing",
+      "expected_contains": [],
+      "expected_keywords": [
+        "moved|undo"
+      ],
+      "rubric": "The reply confirms the filing was undone or there was nothing to undo.",
+      "expected_tool": "finance_undo",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 60,
+      "vm_only": true
+    },
+    {
+      "id": "cap60-04",
+      "category": "files_and_productivity",
+      "prompt": "organize my financial documents",
+      "expected_contains": [],
+      "expected_keywords": [
+        "nothing"
+      ],
+      "rubric": "The reply reports there is nothing left to file after cleanup.",
+      "expected_tool": "finance_sort",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 60,
+      "vm_only": true,
+      "setup": [
+        {
+          "remove": "~/Downloads/invoice-acme-2026.txt"
+        },
+        {
+          "remove": "~/Downloads/receipt-hardware-store.txt"
+        }
+      ]
+    },
+    {
+      "id": "cap77-01",
+      "category": "files_and_productivity",
+      "prompt": "make me a presentation about solar power",
+      "expected_contains": [],
+      "expected_keywords": [
+        "slides"
+      ],
+      "rubric": "The reply confirms a slide deck about solar power was made and opened in LibreOffice.",
+      "expected_tool": "presentation_make",
+      "expected_args": {
+        "topic": "solar power"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Drafts/solar-power slides.odp"
+      },
+      "capability": 77,
+      "vm_only": true
+    },
+    {
+      "id": "cap77-02",
+      "category": "files_and_productivity",
+      "prompt": "create a slide deck about the water cycle",
+      "expected_contains": [],
+      "expected_keywords": [
+        "slides"
+      ],
+      "rubric": "The reply confirms a slide deck about the water cycle was made and opened in LibreOffice.",
+      "expected_tool": "presentation_make",
+      "expected_args": {
+        "topic": "the water cycle"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Drafts/the-water-cycle slides.odp"
+      },
+      "capability": 77,
+      "vm_only": true
+    },
+    {
+      "id": "cap28-r1",
+      "category": "files_and_productivity",
+      "prompt": "when I say good morning, play the news and then make coffee",
+      "expected_contains": [],
+      "expected_keywords": [
+        "okay",
+        "morning"
+      ],
+      "rubric": "The reply confirms the routine was created and echoes its steps.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 28
+    },
+    {
+      "id": "cap28-r2",
+      "category": "files_and_productivity",
+      "prompt": "list my routines",
+      "expected_contains": [],
+      "expected_keywords": [
+        "routines"
+      ],
+      "rubric": "The reply lists the routine names.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 28
+    },
+    {
+      "id": "cap28-r3",
+      "category": "files_and_productivity",
+      "prompt": "run good morning",
+      "expected_contains": [],
+      "expected_keywords": [
+        "done"
+      ],
+      "rubric": "The reply says Done after running the routine steps.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 28
+    },
+    {
+      "id": "cap28-r4",
+      "category": "files_and_productivity",
+      "prompt": "delete the good morning routine",
+      "expected_contains": [],
+      "expected_keywords": [
+        "deleted"
+      ],
+      "rubric": "The reply confirms the routine was deleted.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 28
+    },
+    {
+      "id": "cap99-r1",
+      "category": "files_and_productivity",
+      "prompt": "when I say wind down, dim the lights and then play jazz",
+      "expected_contains": [],
+      "expected_keywords": [
+        "okay",
+        "wind"
+      ],
+      "rubric": "The reply confirms a second routine was created and echoes its steps.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 99
+    },
+    {
+      "id": "cap99-r2",
+      "category": "files_and_productivity",
+      "prompt": "run wind down",
+      "expected_contains": [],
+      "expected_keywords": [
+        "done"
+      ],
+      "rubric": "The reply says Done after running the routine steps.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 99
+    },
+    {
+      "id": "cap99-r3",
+      "category": "files_and_productivity",
+      "prompt": "delete the wind down routine",
+      "expected_contains": [],
+      "expected_keywords": [
+        "deleted"
+      ],
+      "rubric": "The reply confirms the routine was deleted.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 99
+    },
+    {
+      "id": "cap38-s1",
+      "category": "files_and_productivity",
+      "prompt": "summarize this",
+      "expected_contains": [],
+      "expected_keywords": [
+        "bees"
+      ],
+      "rubric": "The reply summarizes the open article and mentions bees.",
+      "expected_tool": "summarize_selection",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 38,
+      "vm_only": true,
+      "setup": [
+        {
+          "copy": "samples/article-sample.txt",
+          "to": "~/Documents/article-sample.txt"
+        },
+        {
+          "open": "~/Documents/article-sample.txt",
+          "with": "gedit"
+        },
+        {
+          "keys": "ctrl+a"
+        },
+        {
+          "wait": 1.0
+        }
+      ]
+    },
+    {
+      "id": "cap72-s1",
+      "category": "files_and_productivity",
+      "prompt": "fix the spelling",
+      "expected_contains": [],
+      "expected_keywords": [
+        "clarity"
+      ],
+      "rubric": "The reply confirms the text was edited for clarity.",
+      "expected_tool": "cleanup_text",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 72,
+      "vm_only": true,
+      "setup": [
+        {
+          "copy": "samples/typos-sample.txt",
+          "to": "~/Documents/typos-sample.txt"
+        },
+        {
+          "open": "~/Documents/typos-sample.txt",
+          "with": "gedit"
+        },
+        {
+          "wait": 1.0
+        }
+      ]
+    },
+    {
+      "id": "cap71-s1",
+      "category": "files_and_productivity",
+      "prompt": "write a letter about the garden party",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply drafts a short letter about a garden party.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 71,
+      "vm_only": true
+    },
+    {
+      "id": "cap75-s1",
+      "category": "files_and_productivity",
+      "prompt": "convert notes sample to pdf",
+      "expected_contains": [],
+      "expected_keywords": [
+        "converted"
+      ],
+      "rubric": "The reply confirms the notes file was converted to a PDF.",
+      "expected_tool": "convert_file",
+      "expected_args": {
+        "name": "notes sample",
+        "format": "pdf"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/notes-sample.pdf"
+      },
+      "capability": 75,
+      "vm_only": true,
+      "setup": [
+        {
+          "copy": "samples/notes-sample.txt",
+          "to": "~/Documents/notes-sample.txt"
+        }
+      ]
+    },
+    {
+      "id": "cap78-s1",
+      "category": "files_and_productivity",
+      "prompt": "transcribe hello sample",
+      "expected_contains": [],
+      "expected_keywords": [
+        "transcribed",
+        "words"
+      ],
+      "rubric": "The reply confirms the recording was transcribed into a text file.",
+      "expected_tool": "transcribe_file",
+      "expected_args": {
+        "name": "hello sample"
+      },
+      "after": "",
+      "verify": {
+        "file": "~/Documents/hello-sample.txt"
+      },
+      "capability": 78,
+      "vm_only": true,
+      "setup": [
+        {
+          "copy": "samples/hello-sample.wav",
+          "to": "~/Documents/hello-sample.wav"
+        }
+      ]
+    },
+    {
+      "id": "help2-01-p1",
+      "category": "software_help_and_knowledge",
+      "prompt": "15 percent of 80",
+      "expected_contains": [],
+      "expected_keywords": [
+        "12|twelve"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help2-01-p2",
+      "category": "software_help_and_knowledge",
+      "prompt": "what is 15 percent of 80 please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "12|twelve"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help2-02-p1",
+      "category": "software_help_and_knowledge",
+      "prompt": "144 divided by 12 please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "12|twelve"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help2-02-p2",
+      "category": "software_help_and_knowledge",
+      "prompt": "144 divided by 12",
+      "expected_contains": [],
+      "expected_keywords": [
+        "12|twelve"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help2-03-p1",
+      "category": "software_help_and_knowledge",
+      "prompt": "convert 100 kilometers into miles",
+      "expected_contains": [],
+      "expected_keywords": [
+        "miles"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help2-03-p2",
+      "category": "software_help_and_knowledge",
+      "prompt": "how many miles is 100 kilometers",
+      "expected_contains": [],
+      "expected_keywords": [
+        "miles"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help2-04-p1",
+      "category": "software_help_and_knowledge",
+      "prompt": "square root of 81 please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "9|nine"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help2-04-p2",
+      "category": "software_help_and_knowledge",
+      "prompt": "what is the square root of 81 please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "9|nine"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-help-01-p1",
+      "category": "software_help_and_knowledge",
+      "prompt": "250 plus 175",
+      "expected_contains": [],
+      "expected_keywords": [
+        "425"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-help-01-p2",
+      "category": "software_help_and_knowledge",
+      "prompt": "what is 250 plus 175 please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "425"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-help-02-p1",
+      "category": "software_help_and_knowledge",
+      "prompt": "20 percent of 150",
+      "expected_contains": [],
+      "expected_keywords": [
+        "30|thirty"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-help-02-p2",
+      "category": "software_help_and_knowledge",
+      "prompt": "what is 20 percent of 150 please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "30|thirty"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-help-03-p1",
+      "category": "software_help_and_knowledge",
+      "prompt": "convert 5 miles into kilometers",
+      "expected_contains": [],
+      "expected_keywords": [
+        "kilometers|kilometres"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-help-03-p2",
+      "category": "software_help_and_knowledge",
+      "prompt": "how many kilometers is 5 miles",
+      "expected_contains": [],
+      "expected_keywords": [
+        "kilometers|kilometres"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-help-04-p1",
+      "category": "software_help_and_knowledge",
+      "prompt": "12 squared",
+      "expected_contains": [],
+      "expected_keywords": [
+        "144"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-help-04-p2",
+      "category": "software_help_and_knowledge",
+      "prompt": "what is 12 squared please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "144"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help-04-p1",
+      "category": "software_help_and_knowledge",
+      "prompt": "seven times eight",
+      "expected_contains": [],
+      "expected_keywords": [
+        "56|fifty six"
+      ],
+      "rubric": "The reply gives the correct answer, fifty-six or 56.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help-04-p2",
+      "category": "software_help_and_knowledge",
+      "prompt": "what is seven times eight please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "56|fifty six"
+      ],
+      "rubric": "The reply gives the correct answer, fifty-six or 56.",
+      "expected_tool": "calculate",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-web-02-p1",
+      "category": "web_and_maps",
+      "prompt": "look up recipes for banana bread",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "web_search",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-web-02-p2",
+      "category": "web_and_maps",
+      "prompt": "search the web for banana bread recipes",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "web_search",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help2-06-p1",
+      "category": "software_help_and_knowledge",
+      "prompt": "what is the biggest planet",
+      "expected_contains": [],
+      "expected_keywords": [
+        "jupiter"
+      ],
+      "rubric": "The reply names Jupiter.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help2-06-p2",
+      "category": "software_help_and_knowledge",
+      "prompt": "which planet is the largest",
+      "expected_contains": [],
+      "expected_keywords": [
+        "jupiter"
+      ],
+      "rubric": "The reply names Jupiter.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help-05-p1",
+      "category": "software_help_and_knowledge",
+      "prompt": "whats the capital of France",
+      "expected_contains": [],
+      "expected_keywords": [
+        "paris"
+      ],
+      "rubric": "The reply correctly identifies Paris as the capital of France.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "help-05-p2",
+      "category": "software_help_and_knowledge",
+      "prompt": "name the capital of France",
+      "expected_contains": [],
+      "expected_keywords": [
+        "paris"
+      ],
+      "rubric": "The reply correctly identifies Paris as the capital of France.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-help-06-p1",
+      "category": "software_help_and_knowledge",
+      "prompt": "what is the tallest mountain",
+      "expected_contains": [],
+      "expected_keywords": [
+        "everest"
+      ],
+      "rubric": "The reply names Mount Everest.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "new-help-06-p2",
+      "category": "software_help_and_knowledge",
+      "prompt": "which mountain is the highest",
+      "expected_contains": [],
+      "expected_keywords": [
+        "everest"
+      ],
+      "rubric": "The reply names Mount Everest.",
+      "expected_tool": "",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 32
+    },
+    {
+      "id": "feat-local-03-p1",
+      "category": "web_and_maps",
+      "prompt": "play the local news please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "local news"
+      ],
+      "rubric": "Issue 101: local news.",
+      "expected_tool": "local_news",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 33
+    },
+    {
+      "id": "feat-local-03-p2",
+      "category": "web_and_maps",
+      "prompt": "can you play the local news",
+      "expected_contains": [],
+      "expected_keywords": [
+        "local news"
+      ],
+      "rubric": "Issue 101: local news.",
+      "expected_tool": "local_news",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 33
+    },
+    {
+      "id": "cap36-e1-p1",
+      "category": "files_and_productivity",
+      "prompt": "cheapest flight to Hawaii",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cheapest"
+      ],
+      "rubric": "The reply offers the cheapest flights.",
+      "expected_tool": "find_deal",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 36
+    },
+    {
+      "id": "cap36-e1-p2",
+      "category": "files_and_productivity",
+      "prompt": "whats the cheapest ticket to Hawaii",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cheapest"
+      ],
+      "rubric": "The reply offers the cheapest flights.",
+      "expected_tool": "find_deal",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 36
+    },
+    {
+      "id": "cap36-e2-p1",
+      "category": "files_and_productivity",
+      "prompt": "cheapest 4070 Ti Super",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cheapest"
+      ],
+      "rubric": "The reply offers the cheapest product results.",
+      "expected_tool": "find_deal",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 36
+    },
+    {
+      "id": "cap36-e2-p2",
+      "category": "files_and_productivity",
+      "prompt": "best price on the 4070 Ti Super",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cheapest"
+      ],
+      "rubric": "The reply offers the cheapest product results.",
+      "expected_tool": "find_deal",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 36
+    },
+    {
+      "id": "cap37-e1-p1",
+      "category": "files_and_productivity",
+      "prompt": "look up how to fix a null pointer exception please",
+      "expected_contains": [],
+      "expected_keywords": [
+        "searching"
+      ],
+      "rubric": "The reply searches the web for the fix.",
+      "expected_tool": "web_search",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 37
+    },
+    {
+      "id": "cap37-e1-p2",
+      "category": "files_and_productivity",
+      "prompt": "search the web for how to fix a null pointer exception",
+      "expected_contains": [],
+      "expected_keywords": [
+        "searching"
+      ],
+      "rubric": "The reply searches the web for the fix.",
+      "expected_tool": "web_search",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 37
+    },
+    {
+      "id": "web2-03-p1",
+      "category": "web_and_maps",
+      "prompt": "where is the nearest coffee shop",
+      "expected_contains": [],
+      "expected_keywords": [
+        "coffee"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "find_nearby",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 47
+    },
+    {
+      "id": "web2-03-p2",
+      "category": "web_and_maps",
+      "prompt": "find the closest coffee shop",
+      "expected_contains": [],
+      "expected_keywords": [
+        "coffee"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "find_nearby",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 47
+    },
+    {
+      "id": "web-04-p1",
+      "category": "web_and_maps",
+      "prompt": "where is the nearest pharmacy",
+      "expected_contains": [],
+      "expected_keywords": [
+        "pharmacy"
+      ],
+      "rubric": "The reply confirms a nearby search for a pharmacy.",
+      "expected_tool": "find_nearby",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 47
+    },
+    {
+      "id": "web-04-p2",
+      "category": "web_and_maps",
+      "prompt": "find the closest pharmacy",
+      "expected_contains": [],
+      "expected_keywords": [
+        "pharmacy"
+      ],
+      "rubric": "The reply confirms a nearby search for a pharmacy.",
+      "expected_tool": "find_nearby",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 47
+    },
+    {
+      "id": "web2-04-p1",
+      "category": "web_and_maps",
+      "prompt": "walking directions to the park",
+      "expected_contains": [],
+      "expected_keywords": [
+        "walking",
+        "park"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "directions",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 47
+    },
+    {
+      "id": "web2-04-p2",
+      "category": "web_and_maps",
+      "prompt": "how do I get to the park",
+      "expected_contains": [],
+      "expected_keywords": [
+        "walking",
+        "park"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "directions",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 47
+    },
+    {
+      "id": "feat-local-04-p1",
+      "category": "web_and_maps",
+      "prompt": "live music tonight near me",
+      "expected_contains": [],
+      "expected_keywords": [
+        "live music"
+      ],
+      "rubric": "Issue 101: what is on nearby.",
+      "expected_tool": "local_events",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 47
+    },
+    {
+      "id": "feat-local-04-p2",
+      "category": "web_and_maps",
+      "prompt": "any live music tonight in my area",
+      "expected_contains": [],
+      "expected_keywords": [
+        "live music"
+      ],
+      "rubric": "Issue 101: what is on nearby.",
+      "expected_tool": "local_events",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 47
+    },
+    {
+      "id": "cap86-01-p1",
+      "category": "system_status",
+      "prompt": "what is my gpu temp",
+      "expected_contains": [],
+      "expected_keywords": [
+        "degrees"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "gpu_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "cap86-01-p2",
+      "category": "system_status",
+      "prompt": "gpu temperature",
+      "expected_contains": [],
+      "expected_keywords": [
+        "degrees"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "gpu_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "cap86-02-p1",
+      "category": "system_status",
+      "prompt": "how hot is my cpu",
+      "expected_contains": [],
+      "expected_keywords": [
+        "degrees"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "cpu_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "cap86-02-p2",
+      "category": "system_status",
+      "prompt": "cpu temperature",
+      "expected_contains": [],
+      "expected_keywords": [
+        "degrees"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "cpu_status",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "cap86-03-p1",
+      "category": "system_status",
+      "prompt": "is my computer healthy",
+      "expected_contains": [],
+      "expected_keywords": [
+        "processor",
+        "memory"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "system_health",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "cap86-03-p2",
+      "category": "system_status",
+      "prompt": "system health",
+      "expected_contains": [],
+      "expected_keywords": [
+        "processor",
+        "memory"
+      ],
+      "rubric": "The reply gives the answer.",
+      "expected_tool": "system_health",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "system2-03-p1",
+      "category": "system_status",
+      "prompt": "what's my battery level",
+      "expected_contains": [],
+      "expected_keywords": [
+        "battery"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "battery_level",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "system2-03-p2",
+      "category": "system_status",
+      "prompt": "battery level",
+      "expected_contains": [],
+      "expected_keywords": [
+        "battery"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "battery_level",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "system2-04-p1",
+      "category": "system_status",
+      "prompt": "how much disk space is left",
+      "expected_contains": [],
+      "expected_keywords": [
+        "gigabytes|gigabyte"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "disk_space",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "system2-04-p2",
+      "category": "system_status",
+      "prompt": "how much storage space is free",
+      "expected_contains": [],
+      "expected_keywords": [
+        "gigabytes|gigabyte"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "disk_space",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "system-03-p1",
+      "category": "system_status",
+      "prompt": "how much disk space do i have",
+      "expected_contains": [],
+      "expected_keywords": [
+        "gigabytes|gigabyte",
+        "free"
+      ],
+      "rubric": "The reply reports available or used disk space.",
+      "expected_tool": "disk_space",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "system-03-p2",
+      "category": "system_status",
+      "prompt": "how much storage space is left",
+      "expected_contains": [],
+      "expected_keywords": [
+        "gigabytes|gigabyte",
+        "free"
+      ],
+      "rubric": "The reply reports available or used disk space.",
+      "expected_tool": "disk_space",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "system-04-p1",
+      "category": "system_status",
+      "prompt": "how much memory is left",
+      "expected_contains": [],
+      "expected_keywords": [
+        "memory",
+        "gigabytes|gigabyte"
+      ],
+      "rubric": "The reply reports current memory usage.",
+      "expected_tool": "memory_free",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "system-04-p2",
+      "category": "system_status",
+      "prompt": "how much ram do i have free",
+      "expected_contains": [],
+      "expected_keywords": [
+        "memory",
+        "gigabytes|gigabyte"
+      ],
+      "rubric": "The reply reports current memory usage.",
+      "expected_tool": "memory_free",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 86
+    },
+    {
+      "id": "web-01-p1",
+      "category": "web_and_maps",
+      "prompt": "can you open gmail for me",
+      "expected_contains": [],
+      "expected_keywords": [
+        "gmail|g mail"
+      ],
+      "rubric": "The reply confirms that Gmail is opening or open.",
+      "expected_tool": "open_site",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "web-01-p2",
+      "category": "web_and_maps",
+      "prompt": "go to gmail",
+      "expected_contains": [],
+      "expected_keywords": [
+        "gmail|g mail"
+      ],
+      "rubric": "The reply confirms that Gmail is opening or open.",
+      "expected_tool": "open_site",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "web-02-p1",
+      "category": "web_and_maps",
+      "prompt": "please open github",
+      "expected_contains": [],
+      "expected_keywords": [
+        "github|git hub|get hub"
+      ],
+      "rubric": "The reply confirms that GitHub is opening or open.",
+      "expected_tool": "open_site",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "web-02-p2",
+      "category": "web_and_maps",
+      "prompt": "open github for me",
+      "expected_contains": [],
+      "expected_keywords": [
+        "github|git hub|get hub"
+      ],
+      "rubric": "The reply confirms that GitHub is opening or open.",
+      "expected_tool": "open_site",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "web-05-p1",
+      "category": "web_and_maps",
+      "prompt": "show me pictures of the northern lights",
+      "expected_contains": [],
+      "expected_keywords": [
+        "northern lights"
+      ],
+      "rubric": "The reply confirms an image search for the northern lights.",
+      "expected_tool": "image_search",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "web-05-p2",
+      "category": "web_and_maps",
+      "prompt": "find images of the northern lights",
+      "expected_contains": [],
+      "expected_keywords": [
+        "northern lights"
+      ],
+      "rubric": "The reply confirms an image search for the northern lights.",
+      "expected_tool": "image_search",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "web2-01-p1",
+      "category": "web_and_maps",
+      "prompt": "can you open youtube",
+      "expected_contains": [],
+      "expected_keywords": [
+        "youtube|you tube"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "open_site",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "web2-01-p2",
+      "category": "web_and_maps",
+      "prompt": "go to youtube",
+      "expected_contains": [],
+      "expected_keywords": [
+        "youtube|you tube"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "open_site",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "web2-02-p1",
+      "category": "web_and_maps",
+      "prompt": "please open wikipedia",
+      "expected_contains": [],
+      "expected_keywords": [
+        "wikipedia"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "open_site",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "web2-02-p2",
+      "category": "web_and_maps",
+      "prompt": "open wikipedia for me",
+      "expected_contains": [],
+      "expected_keywords": [
+        "wikipedia"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "open_site",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "web2-05-p1",
+      "category": "web_and_maps",
+      "prompt": "search for images of golden retrievers",
+      "expected_contains": [],
+      "expected_keywords": [
+        "golden"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "image_search",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "web2-05-p2",
+      "category": "web_and_maps",
+      "prompt": "find pictures of golden retrievers",
+      "expected_contains": [],
+      "expected_keywords": [
+        "golden"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "image_search",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "new-web-01-p1",
+      "category": "web_and_maps",
+      "prompt": "open wikipedia dot org",
+      "expected_contains": [],
+      "expected_keywords": [
+        "website|wikipedia"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "open_url",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "new-web-01-p2",
+      "category": "web_and_maps",
+      "prompt": "navigate to wikipedia.org",
+      "expected_contains": [],
+      "expected_keywords": [
+        "website|wikipedia"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "open_url",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 88
+    },
+    {
+      "id": "new-system-01-p1",
+      "category": "system_status",
+      "prompt": "morning briefing",
+      "expected_contains": [],
+      "expected_keywords": [
+        "good"
+      ],
+      "rubric": "A short briefing: greeting, date, weather, reminders.",
+      "expected_tool": "daily_briefing",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 91
+    },
+    {
+      "id": "new-system-01-p2",
+      "category": "system_status",
+      "prompt": "give me my morning briefing",
+      "expected_contains": [],
+      "expected_keywords": [
+        "good"
+      ],
+      "rubric": "A short briefing: greeting, date, weather, reminders.",
+      "expected_tool": "daily_briefing",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 91
+    },
+    {
+      "id": "new-local-00-p1",
+      "category": "system_status",
+      "prompt": "what is my location",
+      "expected_contains": [],
+      "expected_keywords": [
+        "you are in"
+      ],
+      "rubric": "Issue 101: she knows where the user is.",
+      "expected_tool": "where_am_i",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 93
+    },
+    {
+      "id": "new-local-00-p2",
+      "category": "system_status",
+      "prompt": "what's my location",
+      "expected_contains": [],
+      "expected_keywords": [
+        "you are in"
+      ],
+      "rubric": "Issue 101: she knows where the user is.",
+      "expected_tool": "where_am_i",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 93
+    },
+    {
+      "id": "feat-local-01-p1",
+      "category": "web_and_maps",
+      "prompt": "what's the weather here",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "Issue 101: the weather where the user is.",
+      "expected_tool": "local_weather",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 93
+    },
+    {
+      "id": "feat-local-01-p2",
+      "category": "web_and_maps",
+      "prompt": "check the local weather",
+      "expected_contains": [],
+      "expected_keywords": [],
+      "rubric": "Issue 101: the weather where the user is.",
+      "expected_tool": "local_weather",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 93
+    },
+    {
+      "id": "feat-local-02-p1",
+      "category": "web_and_maps",
+      "prompt": "what is the weather in Tokyo",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tokyo"
+      ],
+      "rubric": "Issue 101: weather for a named place.",
+      "expected_tool": "local_weather",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 93
+    },
+    {
+      "id": "feat-local-02-p2",
+      "category": "web_and_maps",
+      "prompt": "check weather in Tokyo",
+      "expected_contains": [],
+      "expected_keywords": [
+        "tokyo"
+      ],
+      "rubric": "Issue 101: weather for a named place.",
+      "expected_tool": "local_weather",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 93
     }
   ]
 }

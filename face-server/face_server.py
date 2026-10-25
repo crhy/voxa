@@ -24,7 +24,7 @@ import zlib
 import cv2
 import numpy as np
 
-N = "/home/rhy/voxa-neural"
+N = os.environ.get("VOXA_FACE_HOME") or os.path.dirname(os.path.abspath(__file__))
 PORTRAITS = f"{N}/portraits"          # 768x768 JPEGs, the same crop as Voxa's still portraits and face packs
 FPS = 25
 CHUNK = (3, 5, 2)                      # Ditto's streaming window: history, new, look-ahead (in 40 ms frames)

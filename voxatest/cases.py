@@ -30,6 +30,10 @@ class TestCase:
     verify: dict[str, Any] = field(default_factory=dict)
     # Which of the 100 assistant capabilities (GitHub issue 102) this case is evidence for; 0 for none.
     capability: int = 0
+    # Steps run on the host before speaking: copy a sample file, open it, press keys, remove it, wait.
+    setup: list[dict[str, Any]] = field(default_factory=list)
+    # True when the case can only run in the test VM (needs a real desktop, xdotool, a GUI editor).
+    vm_only: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -44,6 +48,8 @@ class TestCase:
             "after": self.after,
             "verify": dict(self.verify),
             "capability": self.capability,
+            "setup": [dict(step) for step in self.setup],
+            "vm_only": self.vm_only,
         }
 
     @classmethod
@@ -65,6 +71,9 @@ class TestCase:
         raw_expected_args = raw.get("expected_args", {})
         expected_args = dict(raw_expected_args) if isinstance(raw_expected_args, dict) else {}
 
+        raw_setup = raw.get("setup") or []
+        setup = [dict(step) for step in raw_setup if isinstance(step, dict)] if isinstance(raw_setup, list) else []
+
         return cls(
             id=case_id,
             category=category,
@@ -77,6 +86,8 @@ class TestCase:
             after=str(raw.get("after", "")).strip(),
             verify=dict(raw["verify"]) if isinstance(raw.get("verify"), dict) else {},
             capability=int(raw.get("capability") or 0) if str(raw.get("capability") or "0").isdigit() else 0,
+            setup=setup,
+            vm_only=bool(raw.get("vm_only", False)),
         )
 
 

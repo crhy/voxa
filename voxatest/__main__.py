@@ -277,6 +277,9 @@ def _run(
             emit_event("case_start", index=first_index + index - 1, total=first_index + total - 1,
                        id=case.id, category=case.category, prompt=case.prompt)
             result = _run_case_safely(case, settings, client, whisper, capture, speech, log)
+            if result.grade.method == "skipped":
+                log(f"Skipped {result.case_id} (vm_only, not in test VM).")
+                continue
             attempts = 0
             while not result.transcript and result.grade.method == "empty" and attempts < settings.retries:
                 attempts += 1

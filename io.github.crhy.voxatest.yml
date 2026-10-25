@@ -21,6 +21,8 @@ finish-args:
   - --filesystem=~/.local/state/voxa:ro
   # Stop a radio or TV stream that a spoken case started (see TestCase.after).
   - --talk-name=org.mpris.MediaPlayer2.*
+  # setup steps of test cases (copy a sample file, open it, press keys) run on the test machine
+  - --talk-name=org.freedesktop.Flatpak
   - --filesystem=~/.var/app/io.github.crhy.voxa/.local/state/voxa:ro
 
 modules:

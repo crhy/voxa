@@ -150,6 +150,38 @@
       "verify": {}
     },
     {
+      "id": "web2-04-p1",
+      "category": "web_and_maps",
+      "prompt": "can you show me the way to the park",
+      "expected_contains": [],
+      "expected_keywords": [
+        "walking",
+        "park"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "directions",
+      "expected_args": {},
+      "after": "",
+      "capability": 48,
+      "verify": {}
+    },
+    {
+      "id": "web2-04-p2",
+      "category": "web_and_maps",
+      "prompt": "hey can you give me walking directions to the park",
+      "expected_contains": [],
+      "expected_keywords": [
+        "walking",
+        "park"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "directions",
+      "expected_args": {},
+      "after": "",
+      "capability": 48,
+      "verify": {}
+    },
+    {
       "id": "web2-05",
       "category": "web_and_maps",
       "prompt": "Show me pictures of golden retrievers",
@@ -258,6 +290,42 @@
       "verify": {}
     },
     {
+      "id": "files2-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey remind me to stretch in two hours",
+      "expected_contains": [],
+      "expected_keywords": [
+        "stretch"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "set_reminder",
+      "expected_args": {
+        "when": "two hours|2 hours",
+        "text": "stretch"
+      },
+      "after": "",
+      "capability": 24,
+      "verify": {}
+    },
+    {
+      "id": "files2-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you remind me to stretch in two hours",
+      "expected_contains": [],
+      "expected_keywords": [
+        "stretch"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "set_reminder",
+      "expected_args": {
+        "when": "two hours|2 hours",
+        "text": "stretch"
+      },
+      "after": "",
+      "capability": 24,
+      "verify": {}
+    },
+    {
       "id": "files2-02",
       "category": "files_and_productivity",
       "prompt": "What are my reminders",
@@ -273,9 +341,69 @@
       "verify": {}
     },
     {
+      "id": "files2-02-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what are my reminders",
+      "expected_contains": [],
+      "expected_keywords": [
+        "stretch"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "list_reminders",
+      "expected_args": {},
+      "after": "",
+      "capability": 24,
+      "verify": {}
+    },
+    {
+      "id": "files2-02-p2",
+      "category": "files_and_productivity",
+      "prompt": "show me my reminders",
+      "expected_contains": [],
+      "expected_keywords": [
+        "stretch"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "list_reminders",
+      "expected_args": {},
+      "after": "",
+      "capability": 24,
+      "verify": {}
+    },
+    {
       "id": "files2-03",
       "category": "files_and_productivity",
       "prompt": "Cancel my reminders",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cancelled|canceled|cancel"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "cancel_reminders",
+      "expected_args": {},
+      "after": "",
+      "capability": 24,
+      "verify": {}
+    },
+    {
+      "id": "files2-03-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey cancel my reminders",
+      "expected_contains": [],
+      "expected_keywords": [
+        "cancelled|canceled|cancel"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "cancel_reminders",
+      "expected_args": {},
+      "after": "",
+      "capability": 24,
+      "verify": {}
+    },
+    {
+      "id": "files2-03-p2",
+      "category": "files_and_productivity",
+      "prompt": "cancel all reminders",
       "expected_contains": [],
       "expected_keywords": [
         "cancelled|canceled|cancel"
@@ -305,6 +433,40 @@
       "verify": {}
     },
     {
+      "id": "files2-04-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey take a note to call the vet",
+      "expected_contains": [],
+      "expected_keywords": [
+        "vet"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "take_note",
+      "expected_args": {
+        "text": "call the vet"
+      },
+      "after": "",
+      "capability": 30,
+      "verify": {}
+    },
+    {
+      "id": "files2-04-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you make a note to call the vet",
+      "expected_contains": [],
+      "expected_keywords": [
+        "vet"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "take_note",
+      "expected_args": {
+        "text": "call the vet"
+      },
+      "after": "",
+      "capability": 30,
+      "verify": {}
+    },
+    {
       "id": "files2-05",
       "category": "files_and_productivity",
       "prompt": "Read my notes",
@@ -320,9 +482,69 @@
       "verify": {}
     },
     {
+      "id": "files2-05-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey read my notes",
+      "expected_contains": [],
+      "expected_keywords": [
+        "vet"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "read_notes",
+      "expected_args": {},
+      "after": "",
+      "capability": 30,
+      "verify": {}
+    },
+    {
+      "id": "files2-05-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you show me my notes",
+      "expected_contains": [],
+      "expected_keywords": [
+        "vet"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "read_notes",
+      "expected_args": {},
+      "after": "",
+      "capability": 30,
+      "verify": {}
+    },
+    {
       "id": "files2-06",
       "category": "files_and_productivity",
       "prompt": "Delete my last note",
+      "expected_contains": [],
+      "expected_keywords": [
+        "deleted|delete"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "delete_last_note",
+      "expected_args": {},
+      "after": "",
+      "capability": 30,
+      "verify": {}
+    },
+    {
+      "id": "files2-06-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey delete my last note",
+      "expected_contains": [],
+      "expected_keywords": [
+        "deleted|delete"
+      ],
+      "rubric": "The reply confirms the request or gives the answer.",
+      "expected_tool": "delete_last_note",
+      "expected_args": {},
+      "after": "",
+      "capability": 30,
+      "verify": {}
+    },
+    {
+      "id": "files2-06-p2",
+      "category": "files_and_productivity",
+      "prompt": "please remove my last note",
       "expected_contains": [],
       "expected_keywords": [
         "deleted|delete"

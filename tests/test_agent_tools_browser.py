@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from voxa.agent import host
+from voxa.agent import browsercheck, host
 from voxa.agent.tools import default_registry
 from voxa.agent.tools.browser import (
     first_video_id,
@@ -23,6 +23,7 @@ def opened(monkeypatch):
         commands.append(list(command))
 
     monkeypatch.setattr(host, "spawn", fake_spawn)
+    monkeypatch.setattr(browsercheck, "has_web_browser", lambda run: True)
     return commands
 
 
@@ -226,6 +227,7 @@ def test_registry_lists_all_tools():
             "calendar_week",
             "cancel_reminders",
             "change_character",
+            "change_theme",
             "check_system_version",
             "cleanup_text",
             "click_on",
@@ -235,6 +237,7 @@ def test_registry_lists_all_tools():
             "compare_prices",
             "compiz_control",
             "compose_gmail",
+            "conversation_summary",
             "convert_file",
             "copy_file",
             "cpu_status",
@@ -246,7 +249,9 @@ def test_registry_lists_all_tools():
             "delete_last_note",
             "directions",
             "disk_space",
+            "doc_extract",
             "empty_trash",
+            "event_plan",
             "exchange_rate",
             "expense_add",
             "expense_breakdown",
@@ -254,9 +259,15 @@ def test_registry_lists_all_tools():
             "expense_total",
             "expense_undo",
             "fact_check",
+            "family_add",
+            "family_remove",
+            "family_week",
             "file_dialog",
             "fill_and_submit",
             "fill_field",
+            "finance_count",
+            "finance_sort",
+            "finance_undo",
             "find_deal",
             "find_file",
             "find_large_files",
@@ -324,20 +335,25 @@ def test_registry_lists_all_tools():
             "page_outline",
             "play_latest",
             "play_music",
+            "play_on_app",
             "play_radio",
             "play_tv",
             "play_video",
             "play_youtube",
+            "presentation_make",
             "press_button",
             "press_key",
             "project_status",
+            "project_steps",
             "radio_genre",
             "read_clipboard_aloud",
             "read_notes",
             "read_page",
             "read_selection",
+            "read_text_file",
             "read_window",
             "recall_fact",
+            "recite_poem",
             "remember_fact",
             "rename_file",
             "repeat_last",
@@ -376,7 +392,15 @@ def test_registry_lists_all_tools():
             "track_package",
             "transcribe_file",
             "trash_file",
+            "travel_doc_add",
+            "travel_doc_forget",
+            "travel_doc_list",
+            "travel_doc_when",
+            "travel_options",
             "trip_cost",
+            "trip_forget",
+            "trip_plan",
+            "trip_read",
             "type_text",
             "undo_file_action",
             "uninstall_app",

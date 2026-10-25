@@ -133,9 +133,9 @@ class FaceQualitySwitch(Gtk.Box):
         self._progress.set_visible(False)
         self._loading.set_visible(bool(text))
 
-    def set_loading_progress(self, percentage: int | float) -> None:
+    def set_loading_progress(self, percentage: int | float, text: str = "Loading high-resolution face…") -> None:
         """Show High's circular startup gauge and update its centred percentage."""
-        self._status.set_text("Loading high-resolution face…")
+        self._status.set_text(text)
         self._progress.set_percentage(percentage)
         self._progress.set_visible(True)
         self._loading.set_visible(True)

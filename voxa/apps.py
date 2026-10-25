@@ -6,6 +6,7 @@ import logging
 import os
 import re
 import subprocess
+from collections.abc import Sequence
 from dataclasses import dataclass
 from difflib import SequenceMatcher
 
@@ -221,13 +222,13 @@ def list_apps() -> list[DesktopApp]:
     return parse_desktop_dump(result.stdout)
 
 
-def launch(app: DesktopApp) -> bool:
+def launch(app: DesktopApp, files: Sequence[str] = ()) -> bool:
     if actions_simulated():
         log.info("simulated action: would launch %s", app.name)
         return True
     try:
         result = subprocess.run(  # noqa: S603 - fixed argv, path comes from the host's own menu
-            _host(["gio", "launch", app.path]),
+            _host(["gio", "launch", app.path, *files]),
             stdin=subprocess.DEVNULL,
             # Never a pipe: the launched program inherits these, so reading them
             # would block until that program itself closes.
