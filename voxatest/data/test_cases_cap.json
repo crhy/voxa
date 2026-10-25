@@ -2422,7 +2422,14 @@
       "expected_args": {},
       "after": "",
       "verify": {},
-      "capability": 83
+      "capability": 83,
+      "setup": [
+        {
+          "copy": "samples/notes-sample.txt",
+          "to": "~/Documents/notes.txt"
+        }
+      ],
+      "vm_only": true
     },
     {
       "id": "cap83-e1-p1",
@@ -2437,7 +2444,14 @@
       "expected_args": {},
       "after": "",
       "verify": {},
-      "capability": 83
+      "capability": 83,
+      "setup": [
+        {
+          "copy": "samples/notes-sample.txt",
+          "to": "~/Documents/notes.txt"
+        }
+      ],
+      "vm_only": true
     },
     {
       "id": "cap83-e1-p2",
@@ -2452,7 +2466,14 @@
       "expected_args": {},
       "after": "",
       "verify": {},
-      "capability": 83
+      "capability": 83,
+      "setup": [
+        {
+          "copy": "samples/notes-sample.txt",
+          "to": "~/Documents/notes.txt"
+        }
+      ],
+      "vm_only": true
     },
     {
       "id": "cap83-e2",
@@ -2467,7 +2488,14 @@
       "expected_args": {},
       "after": "",
       "verify": {},
-      "capability": 83
+      "capability": 83,
+      "setup": [
+        {
+          "makefile": "~/Documents/big.bin",
+          "size": 11534336
+        }
+      ],
+      "vm_only": true
     },
     {
       "id": "cap83-e2-p1",
@@ -2482,7 +2510,14 @@
       "expected_args": {},
       "after": "",
       "verify": {},
-      "capability": 83
+      "capability": 83,
+      "setup": [
+        {
+          "makefile": "~/Documents/big.bin",
+          "size": 11534336
+        }
+      ],
+      "vm_only": true
     },
     {
       "id": "cap83-e2-p2",
@@ -2497,7 +2532,14 @@
       "expected_args": {},
       "after": "",
       "verify": {},
-      "capability": 83
+      "capability": 83,
+      "setup": [
+        {
+          "makefile": "~/Documents/big.bin",
+          "size": 11534336
+        }
+      ],
+      "vm_only": true
     },
     {
       "id": "cap83-e3",
@@ -2542,7 +2584,22 @@
       "expected_args": {},
       "after": "",
       "verify": {},
-      "capability": 83
+      "capability": 83,
+      "setup": [
+        {
+          "remove": "~/Documents/Test Folder"
+        },
+        {
+          "remove": "~/Documents/Voxa Test Folder"
+        },
+        {
+          "remove": "~/Documents/notes.txt"
+        },
+        {
+          "remove": "~/Documents/big.bin"
+        }
+      ],
+      "vm_only": true
     },
     {
       "id": "cap82-e1",

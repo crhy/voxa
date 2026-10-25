@@ -399,7 +399,7 @@ _LARGE_FILES = re.compile(
     re.IGNORECASE,
 )
 _FIND_FILE = re.compile(
-    r"(?:find|locate|where is|where's) (?:the |my |a )?file (?:called |named )?(.+)", re.IGNORECASE
+    r"(?:find|locate|where is|where's) (?:the |my |a )?file (?:called |named? )?(.+)", re.IGNORECASE
 )
 _OPEN_FOLDER = re.compile(
     r"(?:open|show)(?: me)? (?:my |the )?(.+?) (?:folder|directory)", re.IGNORECASE

@@ -75,6 +75,13 @@ def run_setup(
             write = clipboard_write or _default_clipboard
             if not write(str(step["clipboard"])):
                 return "Could not put text on the clipboard."
+        elif "makefile" in step:
+            path = _host_path(str(step["makefile"]))
+            size = int(step.get("size", 0))
+            cmd = ["sh", "-c", f'mkdir -p "$(dirname "{path}")"; truncate -s {size} "{path}"']
+            result = host(cmd)
+            if result.returncode != 0:
+                return f"Create {step['makefile']} failed (exit {result.returncode})."
         elif "remove" in step:
             path = _host_path(str(step["remove"]))
             cmd = ["sh", "-c", f"rm -f \"{path}\""]
