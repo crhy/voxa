@@ -227,7 +227,7 @@ _SEARCH_WEB = re.compile(
 )
 _GOOGLE = re.compile(r"google\s+(.+)", re.IGNORECASE)
 _LOOK_UP = re.compile(
-    r"look\s+up\s+(?!the\s+company\b)(?!.*\bon\s+wikipedia$)(.+)",
+    r"look\s*up\s+(?!the\s+company\b)(?!.*\bon\s+wikipedia$)(.+)",
     re.IGNORECASE,
 )
 _IMAGE_SEARCH_FOR = re.compile(
@@ -1414,11 +1414,11 @@ _COMPARE_PRICES = re.compile(
     re.IGNORECASE,
 )
 _LOOK_UP_COMPANY = re.compile(
-    r"(?:look up|research|tell me about|who is|what is) (?:the )?company (?P<name>.+)",
+    r"(?:look ?up|research|tell me about|who is|what is) (?:the )?company (?P<name>.+)",
     re.IGNORECASE,
 )
 _LOOK_UP_WIKI = re.compile(
-    r"(?:look up|research) (?:the person )?(?P<name>.+?) on wikipedia",
+    r"(?:look ?up|research) (?:the person )?(?P<name>.+?) on wikipedia",
     re.IGNORECASE,
 )
 _LOOK_UP_PERSON = re.compile(r"who is (?P<name>.+)", re.IGNORECASE)
