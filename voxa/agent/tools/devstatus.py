@@ -59,15 +59,30 @@ def _run(command: list[str], stdin: str | None = None, check: bool = True) -> su
     )
 
 
+def _display_name(path: str) -> str:
+    base = path.rstrip("/").split("/")[-1].replace("-", " ").strip()
+    if not base:
+        return "the project"
+    return base[:1].upper() + base[1:]
+
+
 def _project_status_handler(args: dict[str, str]) -> ToolResult:
-    name = args["name"]
+    name = (args.get("name") or "").strip()
     try:
         listing = _run(["sh", "-c", 'ls -d /*/.git "$HOME"/*/.git 2>/dev/null'], check=False).stdout
         home = _run(["sh", "-c", "echo $HOME"], check=False).stdout.strip()
         candidates = [line[: -len("/.git")] if line.endswith("/.git") else line for line in listing.splitlines() if line]
-        folder = project_dir(name, home, candidates)
+        if name:
+            folder = project_dir(name, home, candidates)
+        else:
+            inside = [c for c in candidates if home and (c == home or c.startswith(home + "/"))]
+            folder = (inside or candidates)[0] if candidates else None
         if folder is None:
-            return ToolResult.failure(f"I can't find a project called {name}.")
+            if name:
+                return ToolResult.failure(f"I can't find a project called {name}.")
+            return ToolResult.failure("I can't find a project on this computer.")
+        if not name:
+            name = _display_name(folder)
         status = _run(["git", "-C", folder, "status", "--porcelain=v1", "--branch"], check=False).stdout
         last = _run(["git", "-C", folder, "log", "-1", "--format=%s"], check=False).stdout.strip()
         branch, changed, ahead, behind = parse_git_status(status)
@@ -89,11 +104,11 @@ def devstatus_tools() -> list[Tool]:
     return [
         Tool(
             name="project_status",
-            description="Say the git branch, changed files and last commit of a code project by name.",
-            parameters={"name": "the project to check"},
+            description="Say the git branch, changed files and last commit of a code project; with no name, the project in the home folder.",
+            parameters={"name": "the project to check (empty for the one in the home folder)"},
             risk=RiskLevel.READ_ONLY,
             handler=_project_status_handler,
-            required=("name",),
+            required=(),
         ),
         Tool(
             name="model_status",

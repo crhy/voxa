@@ -802,8 +802,12 @@ _MEAL_SHOP = re.compile(
     re.IGNORECASE,
 )
 _PROJECT_STATUS = re.compile(
-    r"what(?:'s| is) the git status of (?:the |my )?(?P<n1>.+?)"
-    r"|what(?:'s| is) the status of (?:the |my )?(?P<n2>.+?)(?: project| repo(?:sitory)?)"
+    # "get status" is how the speech engine hears "git status"; "of the project" with
+    # no name means the one project Voxa can find in the home folder.
+    r"what(?:'s| is) the (?:git|get) status(?: of (?:the |my )?(?:project|repo(?:sitory)?))?"
+    r"|what(?:'s| is) the (?:git|get) status of (?:the |my )?(?P<n1>.+?)"
+    r"|what(?:'s| is) the status(?: of (?:the |my )?(?P<n4>project|repo(?:sitory)?)"
+    r"| of (?:the |my )?(?P<n2>.+?)(?: project| repo(?:sitory)?)|)?"
     r"|how is (?:the |my )?(?P<n3>.+?) (?:project| repo(?:sitory)?)(?: doing)?",
     re.IGNORECASE,
 )
@@ -1724,7 +1728,13 @@ def _route_command(text: str) -> ToolCall | None:
         )
     project_status = _PROJECT_STATUS.fullmatch(s)
     if project_status:
-        name = project_status.group("n1") or project_status.group("n2") or project_status.group("n3")
+        name = (
+            project_status.group("n1")
+            or project_status.group("n2")
+            or project_status.group("n3")
+            or project_status.group("n4")
+            or ""
+        )
         return call("project_status", name=name)
     if _MODEL_STATUS.fullmatch(s):
         return call("model_status")

@@ -4078,7 +4078,17 @@
       "expected_args": {},
       "after": "",
       "verify": {},
-      "capability": 89
+      "capability": 89,
+      "setup": [
+        {
+          "remove": "~/voxa",
+          "recursive": true
+        },
+        {
+          "gitrepo": "~/voxa"
+        }
+      ],
+      "vm_only": true
     },
     {
       "id": "cap89-01-p1",
@@ -4093,7 +4103,17 @@
       "expected_args": {},
       "after": "",
       "verify": {},
-      "capability": 89
+      "capability": 89,
+      "setup": [
+        {
+          "remove": "~/voxa",
+          "recursive": true
+        },
+        {
+          "gitrepo": "~/voxa"
+        }
+      ],
+      "vm_only": true
     },
     {
       "id": "cap89-01-p2",
@@ -4108,7 +4128,17 @@
       "expected_args": {},
       "after": "",
       "verify": {},
-      "capability": 89
+      "capability": 89,
+      "setup": [
+        {
+          "remove": "~/voxa",
+          "recursive": true
+        },
+        {
+          "gitrepo": "~/voxa"
+        }
+      ],
+      "vm_only": true
     },
     {
       "id": "cap90-01",

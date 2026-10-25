@@ -84,10 +84,24 @@ def run_setup(
                 return f"Create {step['makefile']} failed (exit {result.returncode})."
         elif "remove" in step:
             path = _host_path(str(step["remove"]))
-            cmd = ["sh", "-c", f"rm -f \"{path}\""]
+            flag = "-f -r" if step.get("recursive") else "-f"
+            cmd = ["sh", "-c", f"rm {flag} \"{path}\""]
             result = host(cmd)
             if result.returncode != 0:
                 return f"Remove {step['remove']} failed (exit {result.returncode})."
+        elif "gitrepo" in step:
+            path = _host_path(str(step["gitrepo"]))
+            script = (
+                f"mkdir -p \"{path}\" && cd \"{path}\" && "
+                "printf 'first\\n' > notes.txt && "
+                "git init -q -b main 2>/dev/null || git init -q && "
+                "git -c user.name=voxa -c user.email=voxa@local add -A && "
+                'git -c user.name=voxa -c user.email=voxa@local commit -qm "First commit" && '
+                "printf 'second\\n' >> notes.txt"
+            )
+            result = host(["sh", "-c", script])
+            if result.returncode != 0:
+                return f"Create git repo {step['gitrepo']} failed (exit {result.returncode})."
         elif "wait" in step:
             sleep(float(step["wait"]))
         else:
