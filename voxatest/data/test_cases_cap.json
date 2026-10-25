@@ -2685,14 +2685,21 @@
       "prompt": "What's on my clipboard",
       "expected_contains": [],
       "expected_keywords": [
-        "clipboard"
+        "clipboard",
+        "marker"
       ],
       "rubric": "The reply reads the clipboard aloud.",
       "expected_tool": "read_clipboard_aloud",
       "expected_args": {},
       "after": "",
       "verify": {},
-      "capability": 82
+      "capability": 82,
+      "setup": [
+        {
+          "clipboard": "purple marker"
+        }
+      ],
+      "vm_only": true
     },
     {
       "id": "cap82-e4-p1",
@@ -2700,14 +2707,21 @@
       "prompt": "Can you read my clipboard",
       "expected_contains": [],
       "expected_keywords": [
-        "clipboard"
+        "clipboard",
+        "marker"
       ],
       "rubric": "The reply reads the clipboard aloud",
       "expected_tool": "read_clipboard_aloud",
       "expected_args": {},
       "after": "",
       "verify": {},
-      "capability": 82
+      "capability": 82,
+      "setup": [
+        {
+          "clipboard": "purple marker"
+        }
+      ],
+      "vm_only": true
     },
     {
       "id": "cap82-e4-p2",
@@ -2715,14 +2729,21 @@
       "prompt": "Hey what is on my clipboard",
       "expected_contains": [],
       "expected_keywords": [
-        "clipboard"
+        "clipboard",
+        "marker"
       ],
       "rubric": "The reply reads the clipboard aloud",
       "expected_tool": "read_clipboard_aloud",
       "expected_args": {},
       "after": "",
       "verify": {},
-      "capability": 82
+      "capability": 82,
+      "setup": [
+        {
+          "clipboard": "purple marker"
+        }
+      ],
+      "vm_only": true
     },
     {
       "id": "cap10-e1",

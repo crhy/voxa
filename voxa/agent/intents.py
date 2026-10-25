@@ -598,9 +598,9 @@ _WHATS_OPEN = re.compile(
     re.IGNORECASE,
 )
 _WHICH_WINDOW = re.compile(
-    r"(?:what window is this"
-    r"|which window is (?:this|in front|active)"
-    r"|what(?:'s| is) (?:this|the active|the current) window"
+    r"(?:what window (?:is|was) this"
+    r"|which window (?:is|was) (?:this|in front|active)"
+    r"|what(?:'s| is| was) (?:this|the active|the current) window"
     r"|what am i looking at)",
     re.IGNORECASE,
 )

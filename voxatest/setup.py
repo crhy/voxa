@@ -18,12 +18,32 @@ def _host_path(path: str) -> str:
     return path
 
 
+def _default_clipboard(text: str) -> bool:
+    """Put text on the desktop clipboard with GTK (xclip is not installed on these machines)."""
+    try:
+        import gi
+
+        gi.require_version("Gdk", "4.0")
+        from gi.repository import Gdk
+    except Exception:
+        return False
+    try:
+        display = Gdk.Display.get_default()
+        if display is None:
+            return False
+        display.get_clipboard().set_content(Gdk.ContentProvider.new_for_value(text))
+        return True
+    except Exception:
+        return False
+
+
 def run_setup(
     steps: list[dict[str, object]],
     *,
     data_dir: Path,
     host: Callable[..., subprocess.CompletedProcess] | None = None,
     sleep: Callable[[float], None] = time.sleep,
+    clipboard_write: Callable[[str], bool] | None = None,
 ) -> str:
     if host is None:
         host = _default_host
@@ -51,6 +71,10 @@ def run_setup(
             result = host(cmd)
             if result.returncode != 0:
                 return f"Keys {step['keys']} failed (exit {result.returncode})."
+        elif "clipboard" in step:
+            write = clipboard_write or _default_clipboard
+            if not write(str(step["clipboard"])):
+                return "Could not put text on the clipboard."
         elif "remove" in step:
             path = _host_path(str(step["remove"]))
             cmd = ["sh", "-c", f"rm -f \"{path}\""]
