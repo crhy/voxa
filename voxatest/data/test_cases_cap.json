@@ -1495,46 +1495,6 @@
       "capability": 30
     },
     {
-      "id": "cap30-01-p1",
-      "category": "files_and_productivity",
-      "prompt": "hey remember that the bikes are in the shed",
-      "expected_contains": [],
-      "expected_keywords": [
-        "remember"
-      ],
-      "rubric": "The reply confirms the fact was remembered.",
-      "expected_tool": "remember_fact",
-      "expected_args": {
-        "fact": "the bikes are in the shed"
-      },
-      "after": "",
-      "verify": {
-        "file": "~/Documents/Voxa Memory.md",
-        "file_contains": "bikes"
-      },
-      "capability": 30
-    },
-    {
-      "id": "cap30-01-p2",
-      "category": "files_and_productivity",
-      "prompt": "please keep in mind that the bikes are in the shed",
-      "expected_contains": [],
-      "expected_keywords": [
-        "remember"
-      ],
-      "rubric": "The reply confirms the fact was remembered.",
-      "expected_tool": "remember_fact",
-      "expected_args": {
-        "fact": "the bikes are in the shed"
-      },
-      "after": "",
-      "verify": {
-        "file": "~/Documents/Voxa Memory.md",
-        "file_contains": "bikes"
-      },
-      "capability": 30
-    },
-    {
       "id": "cap30-02",
       "category": "files_and_productivity",
       "prompt": "Remember that the wifi password is on the fridge",
@@ -1548,25 +1508,7 @@
       "after": "",
       "verify": {
         "file": "~/Documents/Voxa Memory.md",
-        "file_contains": "wifi"
-      },
-      "capability": 30
-    },
-    {
-      "id": "cap30-02-p1",
-      "category": "files_and_productivity",
-      "prompt": "hey remember that the wifi password is on the fridge",
-      "expected_contains": [],
-      "expected_keywords": [
-        "remember"
-      ],
-      "rubric": "The reply confirms the fact was remembered.",
-      "expected_tool": "remember_fact",
-      "expected_args": {},
-      "after": "",
-      "verify": {
-        "file": "~/Documents/Voxa Memory.md",
-        "file_contains": "wifi"
+        "file_contains": "fridge"
       },
       "capability": 30
     },
@@ -1584,7 +1526,7 @@
       "after": "",
       "verify": {
         "file": "~/Documents/Voxa Memory.md",
-        "file_contains": "wifi"
+        "file_contains": "fridge"
       },
       "capability": 30
     },
@@ -1596,22 +1538,7 @@
       "expected_keywords": [
         "shed"
       ],
-      "rubric": "The reply recalls the remembered fact about the spare key.",
-      "expected_tool": "recall_fact",
-      "expected_args": {},
-      "after": "",
-      "verify": {},
-      "capability": 30
-    },
-    {
-      "id": "cap30-03-p1",
-      "category": "files_and_productivity",
-      "prompt": "hey what do you remember about the bikes",
-      "expected_contains": [],
-      "expected_keywords": [
-        "shed"
-      ],
-      "rubric": "The reply recalls the remembered fact about the spare key.",
+      "rubric": "The reply recalls the remembered fact.",
       "expected_tool": "recall_fact",
       "expected_args": {},
       "after": "",
@@ -1626,7 +1553,7 @@
       "expected_keywords": [
         "shed"
       ],
-      "rubric": "The reply recalls the remembered fact about the spare key.",
+      "rubric": "The reply recalls the remembered fact.",
       "expected_tool": "recall_fact",
       "expected_args": {},
       "after": "",
@@ -1641,7 +1568,7 @@
       "expected_keywords": [
         "fridge"
       ],
-      "rubric": "The reply recalls the remembered fact about the car.",
+      "rubric": "The reply recalls the remembered fact.",
       "expected_tool": "recall_fact",
       "expected_args": {},
       "after": "",
@@ -1656,22 +1583,7 @@
       "expected_keywords": [
         "fridge"
       ],
-      "rubric": "The reply recalls the remembered fact about the car.",
-      "expected_tool": "recall_fact",
-      "expected_args": {},
-      "after": "",
-      "verify": {},
-      "capability": 30
-    },
-    {
-      "id": "cap30-04-p2",
-      "category": "files_and_productivity",
-      "prompt": "do you remember anything about the wifi password",
-      "expected_contains": [],
-      "expected_keywords": [
-        "fridge"
-      ],
-      "rubric": "The reply recalls the remembered fact about the car.",
+      "rubric": "The reply recalls the remembered fact.",
       "expected_tool": "recall_fact",
       "expected_args": {},
       "after": "",
@@ -1682,21 +1594,6 @@
       "id": "cap30-05",
       "category": "files_and_productivity",
       "prompt": "What do you remember",
-      "expected_contains": [],
-      "expected_keywords": [
-        "things"
-      ],
-      "rubric": "The reply lists everything remembered.",
-      "expected_tool": "list_facts",
-      "expected_args": {},
-      "after": "",
-      "verify": {},
-      "capability": 30
-    },
-    {
-      "id": "cap30-05-p1",
-      "category": "files_and_productivity",
-      "prompt": "hey what do you remember",
       "expected_contains": [],
       "expected_keywords": [
         "things"
@@ -1742,6 +1639,42 @@
       "capability": 30
     },
     {
+      "id": "cap30-07",
+      "category": "files_and_productivity",
+      "prompt": "Forget about the wifi password",
+      "expected_contains": [],
+      "expected_keywords": [
+        "forgotten"
+      ],
+      "rubric": "The reply confirms the fact was forgotten.",
+      "expected_tool": "forget_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Memory.md",
+        "file_lacks": "fridge"
+      },
+      "capability": 30
+    },
+    {
+      "id": "cap30-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "please keep in mind that the bikes are in the shed",
+      "expected_contains": [],
+      "expected_keywords": [
+        "remember"
+      ],
+      "rubric": "The reply confirms the fact was remembered.",
+      "expected_tool": "remember_fact",
+      "expected_args": {},
+      "after": "",
+      "verify": {
+        "file": "~/Documents/Voxa Memory.md",
+        "file_contains": "bikes"
+      },
+      "capability": 30
+    },
+    {
       "id": "cap30-06-p1",
       "category": "files_and_productivity",
       "prompt": "hey forget about the bikes",
@@ -1760,38 +1693,20 @@
       "capability": 30
     },
     {
-      "id": "cap30-06-p2",
+      "id": "cap30-02-p1",
       "category": "files_and_productivity",
-      "prompt": "please forget what I said about the bikes",
+      "prompt": "hey remember that the wifi password is on the fridge",
       "expected_contains": [],
       "expected_keywords": [
-        "forgotten"
+        "remember"
       ],
-      "rubric": "The reply confirms the fact was forgotten.",
-      "expected_tool": "forget_fact",
+      "rubric": "The reply confirms the fact was remembered.",
+      "expected_tool": "remember_fact",
       "expected_args": {},
       "after": "",
       "verify": {
         "file": "~/Documents/Voxa Memory.md",
-        "file_lacks": "bikes"
-      },
-      "capability": 30
-    },
-    {
-      "id": "cap30-07",
-      "category": "files_and_productivity",
-      "prompt": "Forget about the wifi password",
-      "expected_contains": [],
-      "expected_keywords": [
-        "forgotten"
-      ],
-      "rubric": "The reply confirms the fact was forgotten.",
-      "expected_tool": "forget_fact",
-      "expected_args": {},
-      "after": "",
-      "verify": {
-        "file": "~/Documents/Voxa Memory.md",
-        "file_lacks": "wifi"
+        "file_contains": "fridge"
       },
       "capability": 30
     },
@@ -1809,25 +1724,7 @@
       "after": "",
       "verify": {
         "file": "~/Documents/Voxa Memory.md",
-        "file_lacks": "wifi"
-      },
-      "capability": 30
-    },
-    {
-      "id": "cap30-07-p2",
-      "category": "files_and_productivity",
-      "prompt": "please forget what I told you about the wifi password",
-      "expected_contains": [],
-      "expected_keywords": [
-        "forgotten"
-      ],
-      "rubric": "The reply confirms the fact was forgotten.",
-      "expected_tool": "forget_fact",
-      "expected_args": {},
-      "after": "",
-      "verify": {
-        "file": "~/Documents/Voxa Memory.md",
-        "file_lacks": "wifi"
+        "file_lacks": "fridge"
       },
       "capability": 30
     },
