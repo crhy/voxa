@@ -2886,7 +2886,7 @@
     {
       "id": "cap56-02-p2",
       "category": "dates",
-      "prompt": "when is the electric bill due",
+      "prompt": "when is the water bill due",
       "expected_contains": [],
       "expected_keywords": [
         "electricity",
@@ -2934,7 +2934,7 @@
     {
       "id": "cap56-03-p2",
       "category": "dates",
-      "prompt": "what bills do I have due this month",
+      "prompt": "what bills are due this month",
       "expected_contains": [],
       "expected_keywords": [
         "bill"
