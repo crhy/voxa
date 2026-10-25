@@ -443,9 +443,7 @@ def _opencode_config_files(paths: BackupPaths) -> list[Path]:
         name = path.name
         if path.suffix.lower() in OPENCODE_SKIP_SUFFIXES:
             continue
-        if name.startswith("opencode") and name.lower().endswith((".json", ".jsonc")):
-            found.append(path)
-        elif name == "auth.json":
+        if (name.startswith("opencode") and name.lower().endswith((".json", ".jsonc"))) or name == "auth.json":
             found.append(path)
     return found
 

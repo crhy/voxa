@@ -24,7 +24,7 @@ from voxa.agent.tools.browser import SITES
 
 log = logging.getLogger(__name__)
 
-__all__ = ["Suggestion", "SuggestionState", "suggest", "SHORT_FORMS", "LONG_WAYS"]
+__all__ = ["LONG_WAYS", "SHORT_FORMS", "Suggestion", "SuggestionState", "suggest"]
 
 # Tools the router can call instantly, and the short form the user can say.
 SHORT_FORMS: dict[str, str] = {
@@ -262,7 +262,7 @@ def _direct(records: list[dict[str, Any]]) -> Suggestion | None:
 def _routine(records: list[dict[str, Any]]) -> Suggestion | None:
     for length in (3, 2):
         occurrences: dict[tuple[Any, ...], list[float]] = {}
-        for start in range(0, len(records) - length + 1):
+        for start in range(len(records) - length + 1):
             window = records[start : start + length]
             if any(str(rec.get("route", "")) != "tool" or rec.get("ok") is not True for rec in window):
                 continue

@@ -18,13 +18,13 @@ from voxa.apps import clean_spoken_app_name
 from voxa.ui.avatars import find_character
 
 __all__ = [
+    "ROUTED_TOOLS",
     "ToolCall",
-    "route",
-    "route_spoken",
+    "dictation_target",
     "is_compound",
     "is_start_dictation",
-    "dictation_target",
-    "ROUTED_TOOLS",
+    "route",
+    "route_spoken",
 ]
 
 
@@ -1945,9 +1945,9 @@ def _route_command(text: str) -> ToolCall | None:
     if _TV_PLAY.fullmatch(s):
         return call("play_tv", name="")
     tv_match = _TV_CHANNEL.fullmatch(s)
-    if tv_match and livetv.is_channel(tv_match.group(1)) and re.search(
+    if (tv_match and livetv.is_channel(tv_match.group(1)) and re.search(
         r"\b(?:tv|television|channel|live)\b", s, re.IGNORECASE
-    ) or (tv_match and livetv.clean_request(tv_match.group(1)) in _TV_NAMES):
+    )) or (tv_match and livetv.clean_request(tv_match.group(1)) in _TV_NAMES):
         return call("play_tv", name=livetv.find(tv_match.group(1)).name)
     if _WHERE_AM_I.fullmatch(s):
         return call("where_am_i")

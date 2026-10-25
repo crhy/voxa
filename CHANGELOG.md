@@ -34,6 +34,7 @@ Plain-language notes for what people can now do.
 - **The character's voice is kept in the backup voice.** When the online voice service is unavailable, the spoken voice still matches the character's accent and gender instead of a generic one.
 - **Installing the High face checks disk space first** and stops the download cleanly if you cancel.
 - **Changing the theme no longer times out.** It starts without waiting, since it can take longer than the command limit allows.
+- **Interrupted brain downloads recover cleanly.** A fully downloaded file is verified and installed on retry; damaged complete files restart, cancelled downloads do not connect, and stalled connections time out.
 
 - **Spoken sums go to the calculator.** "Divide 100 by 4", "Add 15 and 20", "Subtract 10 from 50" are worked out exactly instead
   of by the AI brain.
@@ -46,6 +47,7 @@ Plain-language notes for what people can now do.
 
 - **The small brain is checked before use.** Voxa verifies the downloaded brain against a known size and checksum, so a partial or wrong download is caught and can be resumed.
 - **The window tests now draw with the software renderer**, so they use far less memory and no longer risk locking up the machine.
+- Simplified duplicate branches and shared word lists. Release publication now waits for the GTK tests and the update repository deployment.
 
 ## 0.1.6 — 2026-10-14
 

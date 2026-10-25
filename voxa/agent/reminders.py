@@ -19,7 +19,7 @@ from voxa.agent.actionlog import default_path as action_default_path
 
 log = logging.getLogger(__name__)
 
-__all__ = ["Reminder", "ReminderStore", "parse_when", "default_path", "reminder_phrase", "timer_phrase", "focus_phrase"]
+__all__ = ["Reminder", "ReminderStore", "default_path", "focus_phrase", "parse_when", "reminder_phrase", "timer_phrase"]
 
 
 def default_path() -> Path:

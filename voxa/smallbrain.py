@@ -14,6 +14,7 @@ from pathlib import Path
 from . import engine
 
 BLOCK = 1024 * 1024
+DOWNLOAD_TIMEOUT = 30
 
 
 class DownloadError(Exception):
@@ -126,19 +127,31 @@ def download(
     directory: Path | None = None,
     opener=urllib.request.urlopen,
 ) -> Path:
+    if cancel.is_set():
+        raise DownloadCancelled()
     directory = directory or engine.models_dir()
+    directory.mkdir(parents=True, exist_ok=True)
     final = path_for(model, directory)
     part = final.with_name(final.name + ".part")
     total = model.bytes
 
     resume_from = part.stat().st_size if part.is_file() else 0
+    if resume_from >= total:
+        if resume_from == total and _sha256(part) == model.sha256:
+            if cancel.is_set():
+                raise DownloadCancelled()
+            part.replace(final)
+            on_progress(total, total)
+            return final
+        part.unlink()
+        resume_from = 0
     headers = {}
     if resume_from:
         headers["Range"] = f"bytes={resume_from}-"
     request = urllib.request.Request(model.url, headers=headers)
 
     try:
-        response = opener(request)
+        response = opener(request, timeout=DOWNLOAD_TIMEOUT)
     except (urllib.error.URLError, OSError) as exc:
         raise DownloadError("The download failed; please try again.") from exc
 

@@ -388,7 +388,7 @@ def spoken_next(content: str, now: datetime) -> str:
     """One spoken sentence for the next appointment (dated or recurring), or the empty announcement."""
     today = now.date()
     items: list[tuple[date, tuple[int, int] | None, str]] = []
-    for day in range(0, 8):
+    for day in range(8):
         probe = today + timedelta(days=day)
         items.extend(entries_on(content, probe))
     upcoming = sorted(

@@ -238,27 +238,8 @@ _GROUNDED_OVERLAP = 0.3
 _GROUNDED_MAX_WORDS = 40
 _GROUNDED_KEEP_SENTENCES = 2
 _GROUNDED_KEEP_WORDS = 45
-_STOPWORDS = frozenset(
-    """
-    a about above across after again against all almost alone already also always
-    and any anything around as at away back be because been before begin behind being
-    below best better big bigger both bottom buy can cannot cant could day days deal
-    did do does doing done down each early enough every everyone first five four free
-    full get getting got great half hand happen happy has have head hear hearing heard
-    hello help here high him his hold home house how however i if in inside into is
-    it its itself just keep kept kind know known knows large last late least left less
-    let like likely line little long look looking made make making man many may mean
-    means might more most move moved much must name near next no not nothing now off
-    old on once one only other our out over own part people person place possible put
-    quite rather real right run same say saying says second see seen she should side
-    simple since small so some something soon still such sure system take taken tell
-    tells than that the their them there these they thing things think this those three
-    through time to told too top toward two under until up upon us use used very voice
-    wait want wanted was watch water way ways well went were what when where whether
-    which while who whom whose why will with within without work working world year
-    yes you your
-    """.split()
-)
+# Grounding uses the same common words, but keeps the meaningful phrase "bubble sort".
+_STOPWORDS = COMMON_WORDS - {"bubble", "sort"}
 
 
 def _content_words(text: str) -> set[str]:

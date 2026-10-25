@@ -236,11 +236,13 @@ def _tokenise(s: str) -> list[tuple[str, float | None]] | None:
         j = i + 1
         while j < len(words):
             tok = words[j]
-            if tok in _NUMBER_WORDS or re.fullmatch(r"[0-9][0-9.]*", tok):
-                run.append(tok)
-                j += 1
-            elif tok == "and" and "hundred" in run and j + 1 < len(words) and (
-                words[j + 1] in _NUMBER_WORDS or re.fullmatch(r"[0-9][0-9.]*", words[j + 1])
+            if (
+                tok in _NUMBER_WORDS
+                or re.fullmatch(r"[0-9][0-9.]*", tok)
+                or (
+                    tok == "and" and "hundred" in run and j + 1 < len(words)
+                    and (words[j + 1] in _NUMBER_WORDS or re.fullmatch(r"[0-9][0-9.]*", words[j + 1]))
+                )
             ):
                 run.append(tok)
                 j += 1

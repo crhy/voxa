@@ -9,7 +9,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-__all__ = ["DealRequest", "parse_request", "build_url", "describe", "detect_location"]
+__all__ = ["DealRequest", "build_url", "describe", "detect_location", "parse_request"]
 
 
 @dataclass(frozen=True, slots=True)

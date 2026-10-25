@@ -18,8 +18,8 @@ run by the test suite and by CI. It fails the build if anything disagrees:
 
 ```text
 python tools/release_check.py                 # validate
-python tools/release_check.py --tag v0.1.4    # also validate a tag
-python tools/release_check.py --print artifact  # Voxa-0.1.4-x86_64.flatpak
+python tools/release_check.py --tag v0.1.7    # also validate a tag
+python tools/release_check.py --print artifact  # Voxa-0.1.7-x86_64.flatpak
 ```
 
 ## Cutting a release
@@ -30,7 +30,9 @@ python tools/release_check.py --print artifact  # Voxa-0.1.4-x86_64.flatpak
 3. Run the tests and `python tools/release_check.py`.
 4. Merge, then tag the commit `v<version>` and push the tag. CI validates the tag against
    the version, builds the Flatpak, and attaches `Voxa-<version>-x86_64.flatpak` to the
-   GitHub release.
+   GitHub release. Publication waits for both test jobs and a successful update
+   repository deployment. Monitor the tagged workflow through completion, then
+   verify the release attachment and the live update repository.
 
 ## Where updates come from
 
@@ -38,7 +40,8 @@ The bundle records `https://crhy.github.io/voxa/flatpak-repo/` as its update rep
 Voxa's own GitHub Pages site, not another project's. That address is what a user who
 installs the `.flatpak` file will follow for updates.
 
-**Status: enable Pages once, then the next release tag publishes it.**
+Pages is configured to deploy through GitHub Actions. Each release tag publishes
+the update repository before the GitHub release becomes available.
 
 1. In the repository settings, open **Pages** and set **Source** to **GitHub Actions**
    (one-time; there is no branch to configure).

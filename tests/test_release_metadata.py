@@ -182,3 +182,12 @@ def test_ci_publishes_the_update_repository_to_pages_on_release_tags() -> None:
     text = (ROOT / ".github" / "workflows" / "build.yml").read_text(encoding="utf-8")
     assert "actions/deploy-pages" in text and "site/flatpak-repo" in text and "voxa.flatpakrepo" in text
     assert "https://crhy.github.io/voxa/flatpak-repo/" in text
+
+
+def test_publication_waits_for_gtk_tests_and_update_repository():
+    import yaml
+
+    workflow = yaml.safe_load((ROOT / ".github/workflows/build.yml").read_text(encoding="utf-8"))
+    jobs = workflow["jobs"]
+    assert {"test", "gtk-tests", "flatpak"} <= set(jobs["pages"]["needs"])
+    assert {"test", "gtk-tests", "flatpak", "pages"} <= set(jobs["release"]["needs"])
