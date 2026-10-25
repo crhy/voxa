@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from voxa.agent import host
+from voxa.agent import browsercheck, host
 from voxa.agent.tools import default_registry
 from voxa.agent.tools.browser import (
     first_video_id,
@@ -23,6 +23,7 @@ def opened(monkeypatch):
         commands.append(list(command))
 
     monkeypatch.setattr(host, "spawn", fake_spawn)
+    monkeypatch.setattr(browsercheck, "has_web_browser", lambda run: True)
     return commands
 
 
