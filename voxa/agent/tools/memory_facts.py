@@ -7,7 +7,7 @@ from datetime import date
 
 from voxa import simulation
 from voxa.agent.host import host_command
-from voxa.agent.memory_facts import FILE_NAME, add, facts, forget, search, spoken_all, spoken_recall
+from voxa.agent.memory_facts import FILE_NAME, add, echo_fact, facts, forget, search, spoken_all, spoken_recall
 from voxa.agent.policy import RiskLevel
 from voxa.agent.registry import Tool
 from voxa.agent.result import ToolResult
@@ -65,7 +65,7 @@ def _remember_fact_handler(args: dict[str, str]) -> ToolResult:
         _write(add(content, date.today(), fact))
     except (OSError, subprocess.SubprocessError):
         return ToolResult.failure(REACH_ERROR)
-    return ToolResult.success("I'll remember that.")
+    return ToolResult.success(f"I'll remember that {echo_fact(fact)}.")
 
 
 def _recall_fact_handler(args: dict[str, str]) -> ToolResult:

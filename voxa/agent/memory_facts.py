@@ -1,4 +1,35 @@
+import re
+
 FILE_NAME = "Voxa Memory.md"
+
+_ECHO_MAX_WORDS = 25
+
+_ECHO_RULES = [
+    (r"\bI am\b", "you're", False),
+    (r"\bI'm\b", "you're", False),
+    (r"\bI\b(?=\s|$)", "you", False),
+    (r"\bmine\b", "yours", True),
+    (r"\bme\b", "you", True),
+    (r"\bmy\b", "your", True),
+]
+
+
+def echo_fact(fact: str) -> str:
+    """Turn a remembered fact into the second person for a spoken echo."""
+    t = fact.strip()
+    for pattern, replacement, preserve_case in _ECHO_RULES:
+        flags = re.IGNORECASE if preserve_case else 0
+
+        def _sub(match: re.Match, rep: str = replacement, cap: bool = preserve_case) -> str:
+            if cap and match.group(0)[0].isupper():
+                return rep[0].upper() + rep[1:]
+            return rep
+
+        t = re.sub(pattern, _sub, t, flags=flags)
+    words = t.split()
+    if len(words) > _ECHO_MAX_WORDS:
+        t = " ".join(words[:_ECHO_MAX_WORDS]) + "\u2026"
+    return t
 
 STOPWORDS = {
     "the",
