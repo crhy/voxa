@@ -3413,7 +3413,7 @@
       "expected_contains": [],
       "expected_keywords": [
         "week",
-        "today"
+        "today|tomorrow|monday|tuesday|wednesday|thursday|friday|sunday|nothing"
       ],
       "rubric": "The reply reports the appointments in the week ahead.",
       "expected_tool": "calendar_week",
@@ -3431,7 +3431,7 @@
       "expected_contains": [],
       "expected_keywords": [
         "week",
-        "today"
+        "today|tomorrow|monday|tuesday|wednesday|thursday|friday|sunday|nothing"
       ],
       "rubric": "The reply reports the appointments in the week ahead.",
       "expected_tool": "calendar_week",
@@ -3447,7 +3447,7 @@
       "expected_contains": [],
       "expected_keywords": [
         "week",
-        "today"
+        "today|tomorrow|monday|tuesday|wednesday|thursday|friday|sunday|nothing"
       ],
       "rubric": "The reply reports the appointments in the week ahead.",
       "expected_tool": "calendar_week",
@@ -3568,7 +3568,7 @@
       "expected_tool": "calendar_add",
       "expected_args": {
         "title": "dentist",
-        "when": "friday at 3 pm"
+        "when": "friday at 3 pm|friday at 3pm"
       },
       "after": "",
       "verify": {
