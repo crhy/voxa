@@ -1053,7 +1053,11 @@ _DATE_SUBSCRIPTIONS_QUESTION = re.compile(
     re.IGNORECASE,
 )
 _DATE_WHEN_BILL = re.compile(r"when is (?:the |my )?(?P<name>.+?) bill due", re.IGNORECASE)
-_DATE_WHEN_RENEW = re.compile(r"when does (?:the |my )?(?P<name>.+?)(?: subscription)? renew", re.IGNORECASE)
+# the small brain hears "when does" as "windows"/"when's": "windows netflix renew" is a date_when question
+_DATE_WHEN_RENEW = re.compile(
+    r"(?:when does|when'?s|windows) (?:the |my )?(?P<name>.+?)(?: subscription)? renews?",
+    re.IGNORECASE,
+)
 
 
 def _date_name(phrase: str) -> str:
