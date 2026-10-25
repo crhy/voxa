@@ -256,7 +256,14 @@
         "file": "~/Documents/Voxa Lists.md",
         "file_lacks": "pay the rent"
       },
-      "capability": 21
+      "capability": 21,
+      "setup": [
+        {
+          "copy": "samples/lists-sample.md",
+          "to": "~/Documents/Voxa Lists.md"
+        }
+      ],
+      "vm_only": true
     },
     {
       "id": "cap21-05-p2",
@@ -274,7 +281,14 @@
         "file": "~/Documents/Voxa Lists.md",
         "file_lacks": "pay the rent"
       },
-      "capability": 21
+      "capability": 21,
+      "setup": [
+        {
+          "copy": "samples/lists-sample.md",
+          "to": "~/Documents/Voxa Lists.md"
+        }
+      ],
+      "vm_only": true
     },
     {
       "id": "cap51-01",

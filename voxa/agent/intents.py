@@ -39,6 +39,12 @@ _LEADING = re.compile(
     re.IGNORECASE,
 )
 _TRAILING = re.compile(r"\s+(?:please|for me|thanks|thank you)$", re.IGNORECASE)
+# A greeting or wake word Whisper wrote glued onto the first word of the command
+# ("Heymark buy stamps as done" for "mark buy stamps as done").
+_GLUED_LEADING = re.compile(
+    r"^(?:hey|hi|hello|ok|okay|voxa|vox|voxer|boxa|boxer|vaxa|foxa)(?=[a-z])",
+    re.IGNORECASE,
+)
 _QUESTION = re.compile(r"(?:how|what|why|when|where|who)\b", re.IGNORECASE)
 
 _OPEN_MAIL = re.compile(
@@ -1440,6 +1446,19 @@ _FACT_CHECK = re.compile(
 
 def route(text: str) -> ToolCall | None:
     """Map a spoken command to a tool call, or None when no rule matches."""
+    call = _route_command(text)
+    if call is not None:
+        return call
+    # Tried only when the whole text matched nothing, so a command that already
+    # routed can never change meaning by having a greeting cut off its first word.
+    s = _prepare(normalize(text))
+    glued = _GLUED_LEADING.sub("", s, count=1).strip(" .,!?").strip()
+    if glued and glued != s:
+        return _route_command(glued)
+    return None
+
+
+def _route_command(text: str) -> ToolCall | None:
     global _LAST_SCROLL_DIRECTION
 
     s = _prepare(normalize(text))
