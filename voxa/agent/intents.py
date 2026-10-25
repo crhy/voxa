@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from voxa.agent import calc, dates, livetv, lookups, radio, worldtime
-from voxa.agent.calendar_local import parse_time, split_when
+from voxa.agent.calendar_local import parse_time, split_when, spoken_time
 from voxa.agent.convert import target_extension
 from voxa.agent.deals import parse_request
 from voxa.agent.filematch import folder_key
@@ -843,6 +843,14 @@ _WEEKDAY_WORD = r"monday|tuesday|wednesday|thursday|friday|saturday|sunday"
 _CAL_WEEKLY1 = re.compile(rf"(?:add|put|schedule) (?P<title>.+?) every (?P<day>{_WEEKDAY_WORD}) at (?P<time>.+?)(?: (?:on|to|in) my calendar)?", re.IGNORECASE)
 _CAL_WEEKLY2 = re.compile(rf"i have (?P<title>.+?) every (?P<day>{_WEEKDAY_WORD}) at (?P<time>.+)", re.IGNORECASE)
 _CAL_WEEKLY3 = re.compile(rf"(?P<title>.+?) is every (?P<day>{_WEEKDAY_WORD}) at (?P<time>.+)", re.IGNORECASE)
+
+
+def _canonical_time(spoken: str) -> str:
+    """Canonical spoken time for a tool argument: '9am' -> '9 am', 'noon' -> 'noon'."""
+    parsed = parse_time(spoken)
+    if parsed is None:
+        return " ".join(spoken.split()).strip()
+    return spoken_time(parsed).lower()
 _CONVERT_TO = re.compile(
     r"convert (?:the |my )?(?:file |document )?(?P<name>.+?) (?:into|in|to) (?:a |an )?(?P<fmt>.+?)"
     r"(?: file| document)?(?: in (?:the |my )?(?P<folder>.+?)(?: folder)?)?",
@@ -1651,7 +1659,7 @@ def route(text: str) -> ToolCall | None:
                 "calendar_add_weekly",
                 title=_cal_w.group("title").strip(),
                 weekday=_cal_w.group("day").lower(),
-                time=_cal_w.group("time").strip(),
+                time=_canonical_time(_cal_w.group("time")),
             )
     if _CAL_WEEK_Q.fullmatch(s):
         return call("calendar_week", person="")
