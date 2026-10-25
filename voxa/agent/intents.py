@@ -657,7 +657,14 @@ _OPEN_NOTES = re.compile(r"open (?:my )?notes", re.IGNORECASE)
 _LIST_KNOWN = r"to[- ]?do|todo|task|tasks|shopping|grocery|groceries"
 _LIST = rf"(?:my |the )?(?:(?:{_LIST_KNOWN})(?: list)?|(?!clipboard\b)[a-z]+ list)"
 _LIST_NAMED = rf"(?:my |the )?(?:{_LIST_KNOWN}|(?!clipboard\b)[a-z]+(?: plan)?) list"
-_LIST_ADD = re.compile(rf"(?:add|put) (?P<item>.+?) (?:to|on) (?P<list>{_LIST})", re.IGNORECASE)
+# Whisper often drops the last letter of "add" ("can you at finish the report to my to-do list").
+_LIST_ADD = re.compile(rf"(?:add|ad|at|put) (?P<item>.+?) (?:to|on) (?P<list>{_LIST})", re.IGNORECASE)
+# "I've finished the report to my to-do list" (mangled "add finish the report to my to-do list"):
+# the words name a list, so the item is being added, not marked done.
+_LIST_ADDED = re.compile(
+    rf"(?:i(?:'?ve| have)? (?:just )?)finished (?P<item>.+?) (?:to|on|in) (?P<list>{_LIST})",
+    re.IGNORECASE,
+)
 _PRESENTATION = re.compile(
     r"(?:make|create|build|give|do)\s+(?:me\s+)?(?:a\s+)?"
     r"(?:(?P<count>\d+|one|two|three|four|five|six|seven|eight)\s+slides?"
@@ -1809,6 +1816,9 @@ def _route_command(text: str) -> ToolCall | None:
     list_add = _LIST_ADD.fullmatch(s)
     if list_add:
         return call("list_add", item=list_add.group("item"), list=_list_word(list_add.group("list")))
+    list_added = _LIST_ADDED.fullmatch(s)
+    if list_added:
+        return call("list_add", item=list_added.group("item"), list=_list_word(list_added.group("list")))
     list_read = _LIST_READ.fullmatch(s)
     if list_read:
         return call("list_read", list=_list_word(list_read.group("a") or list_read.group("b") or list_read.group("c")))
