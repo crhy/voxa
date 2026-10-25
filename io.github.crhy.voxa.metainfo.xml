@@ -34,6 +34,18 @@
   </screenshots>
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="0.1.7" date="2026-10-25">
+      <description>
+        <p>Voxa 0.1.7 works out of the box: she brings her own small AI brain, her faces work for everyone, and she can do much more.</p>
+        <ul>
+          <li>Voxa downloads her own small brain (about 530 MB) and runs it herself, with or without a graphics card; installing Ollama is no longer needed.</li>
+          <li>The Medium face moves again, and the High neural face installs from inside Voxa on computers with an NVIDIA graphics card.</li>
+          <li>Models load on a new install, and the character's voice keeps its accent when the online voice is unavailable.</li>
+          <li>New: plan trips, events and projects, family schedules, travel documents, financial documents, presentations, conversation summaries and more.</li>
+          <li>Play music in the app you name, change the Spaced theme by voice, and spoken sums are worked out exactly.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.6" date="2026-10-14">
       <description>
         <p>Voxa 0.1.6 makes everyday voice use more reliable and expands the local assistant with practical desktop capabilities.</p>
