@@ -2200,36 +2200,6 @@
       "capability": 81
     },
     {
-      "id": "cap81-e1-p1",
-      "category": "files_and_productivity",
-      "prompt": "Can you open the calculator for me",
-      "expected_contains": [],
-      "expected_keywords": [
-        "opening"
-      ],
-      "rubric": "The reply opens the calculator",
-      "expected_tool": "open_app",
-      "expected_args": {},
-      "after": "",
-      "verify": {},
-      "capability": 81
-    },
-    {
-      "id": "cap81-e1-p2",
-      "category": "files_and_productivity",
-      "prompt": "Hey please open the calculator",
-      "expected_contains": [],
-      "expected_keywords": [
-        "opening"
-      ],
-      "rubric": "The reply opens the calculator",
-      "expected_tool": "open_app",
-      "expected_args": {},
-      "after": "",
-      "verify": {},
-      "capability": 81
-    },
-    {
       "id": "cap81-e2",
       "category": "files_and_productivity",
       "prompt": "Switch to the calculator",
@@ -2260,21 +2230,6 @@
       "capability": 81
     },
     {
-      "id": "cap81-e2-p2",
-      "category": "files_and_productivity",
-      "prompt": "Hey can you switch to the calculator",
-      "expected_contains": [],
-      "expected_keywords": [
-        "switching"
-      ],
-      "rubric": "The reply switches to the calculator",
-      "expected_tool": "switch_to",
-      "expected_args": {},
-      "after": "",
-      "verify": {},
-      "capability": 81
-    },
-    {
       "id": "cap81-e3",
       "category": "files_and_productivity",
       "prompt": "Minimize the calculator",
@@ -2283,36 +2238,6 @@
         "minimized"
       ],
       "rubric": "The reply confirms the window was minimized.",
-      "expected_tool": "minimize_app",
-      "expected_args": {},
-      "after": "",
-      "verify": {},
-      "capability": 81
-    },
-    {
-      "id": "cap81-e3-p1",
-      "category": "files_and_productivity",
-      "prompt": "Can you minimize the calculator",
-      "expected_contains": [],
-      "expected_keywords": [
-        "minimized"
-      ],
-      "rubric": "The reply confirms the window was minimized",
-      "expected_tool": "minimize_app",
-      "expected_args": {},
-      "after": "",
-      "verify": {},
-      "capability": 81
-    },
-    {
-      "id": "cap81-e3-p2",
-      "category": "files_and_productivity",
-      "prompt": "Hey please minimize the calculator window",
-      "expected_contains": [],
-      "expected_keywords": [
-        "minimized"
-      ],
-      "rubric": "The reply confirms the window was minimized",
       "expected_tool": "minimize_app",
       "expected_args": {},
       "after": "",
@@ -2335,6 +2260,21 @@
       "capability": 81
     },
     {
+      "id": "cap81-e3-p1",
+      "category": "files_and_productivity",
+      "prompt": "Can you minimize the calculator",
+      "expected_contains": [],
+      "expected_keywords": [
+        "minimized"
+      ],
+      "rubric": "The reply confirms the window was minimized",
+      "expected_tool": "minimize_app",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 81
+    },
+    {
       "id": "cap81-e4-p1",
       "category": "files_and_productivity",
       "prompt": "Can you restore the calculator please",
@@ -2344,6 +2284,21 @@
       ],
       "rubric": "The reply confirms the window was restored",
       "expected_tool": "restore_app",
+      "expected_args": {},
+      "after": "",
+      "verify": {},
+      "capability": 81
+    },
+    {
+      "id": "cap81-e3-p2",
+      "category": "files_and_productivity",
+      "prompt": "Hey please minimize the calculator window",
+      "expected_contains": [],
+      "expected_keywords": [
+        "minimized"
+      ],
+      "rubric": "The reply confirms the window was minimized",
+      "expected_tool": "minimize_app",
       "expected_args": {},
       "after": "",
       "verify": {},
@@ -2425,24 +2380,24 @@
       "capability": 81
     },
     {
-      "id": "cap81-e6-p1",
+      "id": "cap81-e1-p1",
       "category": "files_and_productivity",
-      "prompt": "Can you close the calculator",
+      "prompt": "Can you open the calculator for me",
       "expected_contains": [],
       "expected_keywords": [
-        "closing|closed"
+        "opening"
       ],
-      "rubric": "The reply closes the calculator",
-      "expected_tool": "close_app",
+      "rubric": "The reply opens the calculator",
+      "expected_tool": "open_app",
       "expected_args": {},
       "after": "",
       "verify": {},
       "capability": 81
     },
     {
-      "id": "cap81-e6-p2",
+      "id": "cap81-e6-p1",
       "category": "files_and_productivity",
-      "prompt": "Hey please close the calculator window",
+      "prompt": "Can you close the calculator",
       "expected_contains": [],
       "expected_keywords": [
         "closing|closed"
