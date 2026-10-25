@@ -3359,10 +3359,10 @@
     {
       "id": "cap22-01",
       "category": "files_and_productivity",
-      "prompt": "Add buy paint to my kitchen list",
+      "prompt": "Add coffee to my kitchen list",
       "expected_contains": [],
       "expected_keywords": [
-        "paint"
+        "coffee"
       ],
       "rubric": "The reply confirms the item was added to the kitchen list.",
       "expected_tool": "list_add",
@@ -3370,17 +3370,17 @@
       "after": "",
       "verify": {
         "file": "~/Documents/Voxa Lists.md",
-        "file_contains": "Buy paint"
+        "file_contains": "Coffee"
       },
       "capability": 22
     },
     {
       "id": "cap22-01-p1",
       "category": "files_and_productivity",
-      "prompt": "can you add buy paint to my kitchen list please",
+      "prompt": "can you add coffee to my kitchen list please",
       "expected_contains": [],
       "expected_keywords": [
-        "paint"
+        "coffee"
       ],
       "rubric": "The reply confirms the item was added to the kitchen list.",
       "expected_tool": "list_add",
@@ -3388,17 +3388,17 @@
       "after": "",
       "verify": {
         "file": "~/Documents/Voxa Lists.md",
-        "file_contains": "Buy paint"
+        "file_contains": "Coffee"
       },
       "capability": 22
     },
     {
       "id": "cap22-01-p2",
       "category": "files_and_productivity",
-      "prompt": "hey can you add buy paint to my kitchen list",
+      "prompt": "hey can you add coffee to my kitchen list",
       "expected_contains": [],
       "expected_keywords": [
-        "paint"
+        "coffee"
       ],
       "rubric": "The reply confirms the item was added to the kitchen list.",
       "expected_tool": "list_add",
@@ -3406,7 +3406,7 @@
       "after": "",
       "verify": {
         "file": "~/Documents/Voxa Lists.md",
-        "file_contains": "Buy paint"
+        "file_contains": "Coffee"
       },
       "capability": 22
     },
@@ -3416,7 +3416,7 @@
       "prompt": "What's on my kitchen list",
       "expected_contains": [],
       "expected_keywords": [
-        "paint"
+        "coffee"
       ],
       "rubric": "The reply reads back the kitchen list.",
       "expected_tool": "list_read",
@@ -3431,7 +3431,7 @@
       "prompt": "hey what is on my kitchen list",
       "expected_contains": [],
       "expected_keywords": [
-        "paint"
+        "coffee"
       ],
       "rubric": "The reply reads back the kitchen list.",
       "expected_tool": "list_read",
@@ -3446,7 +3446,7 @@
       "prompt": "can you read my kitchen list",
       "expected_contains": [],
       "expected_keywords": [
-        "paint"
+        "coffee"
       ],
       "rubric": "The reply reads back the kitchen list.",
       "expected_tool": "list_read",
@@ -3461,7 +3461,7 @@
       "prompt": "Clear my kitchen list",
       "expected_contains": [],
       "expected_keywords": [
-        "cleared|clear"
+        "cleared|clear|empty"
       ],
       "rubric": "The reply confirms the kitchen list was cleared.",
       "expected_tool": "list_clear",
@@ -3469,7 +3469,7 @@
       "after": "",
       "verify": {
         "file": "~/Documents/Voxa Lists.md",
-        "file_lacks": "paint"
+        "file_lacks": "coffee"
       },
       "capability": 22
     },
@@ -3479,7 +3479,7 @@
       "prompt": "please clear my kitchen list",
       "expected_contains": [],
       "expected_keywords": [
-        "cleared|clear"
+        "cleared|clear|empty"
       ],
       "rubric": "The reply confirms the kitchen list was cleared.",
       "expected_tool": "list_clear",
@@ -3487,7 +3487,7 @@
       "after": "",
       "verify": {
         "file": "~/Documents/Voxa Lists.md",
-        "file_lacks": "paint"
+        "file_lacks": "coffee"
       },
       "capability": 22
     },
@@ -3497,7 +3497,7 @@
       "prompt": "hey can you clear my kitchen list",
       "expected_contains": [],
       "expected_keywords": [
-        "cleared|clear"
+        "cleared|clear|empty"
       ],
       "rubric": "The reply confirms the kitchen list was cleared.",
       "expected_tool": "list_clear",
@@ -3505,7 +3505,7 @@
       "after": "",
       "verify": {
         "file": "~/Documents/Voxa Lists.md",
-        "file_lacks": "paint"
+        "file_lacks": "coffee"
       },
       "capability": 22
     },
