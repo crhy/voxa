@@ -1040,8 +1040,10 @@ _DATE_SUBSCRIPTION = re.compile(
     r"|(?P<renew>.+?) renews (?:on |by )?(?P<renewwhen>.+)",
     re.IGNORECASE,
 )
+# the small brain hears "is due on" as "do 1"/"do 2" and drops the plural s: "the oil changes do 1 March 3rd"
 _DATE_SERVICE = re.compile(
-    r"(?:the |my )?(?P<name>.+?\b(?:service|inspection|registration|oil change|check-?up|maintenance)) is due (?:on |in )?(?P<when>.+)",
+    r"(?:the |my )?(?P<name>.+?\b(?:service|inspection|registration|oil change|check-?up|maintenance))"
+    r"(?:s|es)? (?:is due|does|do|due|2)(?:s)? (?:on |in |1 |one )?(?P<when>.+)",
     re.IGNORECASE,
 )
 _DATE_BILLS_QUESTION = re.compile(

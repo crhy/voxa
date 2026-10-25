@@ -76,6 +76,19 @@ def test_new_phrases_route() -> None:
     assert route("forget the electricity bill") == ToolCall("date_forget", {"name": "electricity"})
 
 
+def test_cap61_misheard_service_due_phrases_route() -> None:
+    # the small brain hears "the oil change is due on" as "the oil changes do 1"
+    assert route("the oil changes do 1 March 3rd") == ToolCall(
+        "date_remember", {"kind": "service", "name": "oil change", "when": "March 3rd"}
+    )
+    assert route("the oil change does 1 March 3rd") == ToolCall(
+        "date_remember", {"kind": "service", "name": "oil change", "when": "March 3rd"}
+    )
+    assert route("the car service 2 March 3rd") == ToolCall(
+        "date_remember", {"kind": "service", "name": "car service", "when": "March 3rd"}
+    )
+
+
 def test_new_rules_do_not_steal_other_phrases() -> None:
     assert route("what's on my to-do list") == ToolCall("list_read", {"list": "to-do"})
     assert route("what time is it") == ToolCall("tell_time", {})

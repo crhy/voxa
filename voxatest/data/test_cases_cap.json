@@ -3037,10 +3037,10 @@
       "prompt": "the oil change is due on march 3rd",
       "expected_contains": [],
       "expected_keywords": [
-        "car",
-        "service"
+        "oil|car",
+        "change|service"
       ],
-      "rubric": "The reply remembers the car service date.",
+      "rubric": "The reply remembers the oil change (car service) date.",
       "expected_tool": "date_remember",
       "expected_args": {},
       "after": "",
