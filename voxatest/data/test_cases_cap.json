@@ -3065,7 +3065,25 @@
       "capability": 68
     },
     {
-      "id": "cap68-01-p1",
+      "id": "cap68-02",
+      "category": "dates",
+      "prompt": "the electricity bill is due on the 15th of every month",
+      "expected_contains": [],
+      "expected_keywords": [
+        "electricity",
+        "bill"
+      ],
+      "rubric": "The reply remembers the monthly electricity bill (recreates the date before the next forget).",
+      "expected_tool": "date_remember",
+      "expected_args": {
+        "kind": "bill"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 68
+    },
+    {
+      "id": "cap68-02-p1",
       "category": "dates",
       "prompt": "Can you forget the electricity bill",
       "expected_contains": [],
@@ -3080,7 +3098,25 @@
       "capability": 68
     },
     {
-      "id": "cap68-01-p2",
+      "id": "cap68-03",
+      "category": "dates",
+      "prompt": "the electricity bill is due on the 15th of every month",
+      "expected_contains": [],
+      "expected_keywords": [
+        "electricity",
+        "bill"
+      ],
+      "rubric": "The reply remembers the monthly electricity bill (recreates the date before the next forget).",
+      "expected_tool": "date_remember",
+      "expected_args": {
+        "kind": "bill"
+      },
+      "after": "",
+      "verify": {},
+      "capability": 68
+    },
+    {
+      "id": "cap68-03-p1",
       "category": "dates",
       "prompt": "Hey please forget the electricity bill",
       "expected_contains": [],
