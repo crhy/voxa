@@ -1,8 +1,16 @@
 import threading
 from types import SimpleNamespace
 
+import pytest
+
 from voxa.faceinstall import Manifest, Part, gb, offer_text
-from voxa.ui.face_quality import FaceQualitySwitch
+
+
+def FaceQualitySwitch():  # noqa: N802 - stands in for the widget class; GTK tests skip where PyGObject is missing (CI's plain job)
+    pytest.importorskip("gi")
+    from voxa.ui.face_quality import FaceQualitySwitch as widget
+
+    return widget()
 
 SHA = "a" * 64
 
@@ -53,7 +61,7 @@ def test_go_back_to_medium_sets_prerendered():
         shell=SimpleNamespace(face_quality=FaceQualitySwitch()),
         _apply_face_mode=lambda: applied.append(True),
     )
-    from voxa.window import MainWindow
+    MainWindow = pytest.importorskip("voxa.window").MainWindow
 
     MainWindow._go_back_to_medium(fake)
     assert fake.settings.face_mode == "prerendered"
@@ -69,7 +77,7 @@ def test_on_shell_face_mode_selected_cancels_install():
         _face_install_cancel=cancel,
         _apply_face_mode=lambda: None,
     )
-    from voxa.window import MainWindow
+    MainWindow = pytest.importorskip("voxa.window").MainWindow
 
     MainWindow._on_shell_face_mode_selected(fake, "prerendered")
     assert cancel.is_set()
@@ -84,7 +92,7 @@ def test_on_shell_face_mode_selected_no_cancel_for_live():
         _face_install_cancel=cancel,
         _apply_face_mode=lambda: None,
     )
-    from voxa.window import MainWindow
+    MainWindow = pytest.importorskip("voxa.window").MainWindow
 
     MainWindow._on_shell_face_mode_selected(fake, "live")
     assert not cancel.is_set()
