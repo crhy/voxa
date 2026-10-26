@@ -579,6 +579,10 @@ def test_cancelling_stops_the_browser_task_after_the_current_step(window, monkey
     assert calls == [("click_on", {"text": "Opening hours"})]
     assert _settle(window, lambda: client.n == 1)
     assert window.status_label.get_text() != "Never reported."
+    assert _settle(
+        window,
+        lambda: any(record["route"] == "browser" for record in window.action_log.read()),
+    )
     records = window.action_log.read()
     assert len([record for record in records if record["route"] == "browser"]) == 1
 
