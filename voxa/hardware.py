@@ -66,10 +66,9 @@ def _fits(available_gb: float, model: ModelSuggestion) -> bool:
     return available_gb >= model.approx_gb * _HEADROOM_FACTOR + _HEADROOM_FLOOR_GB
 
 
-# The only brains a machine without a graphics card is ever offered: the two
-# small GGUF brains Voxa ships, never an 8-12B model that would thrash system
-# RAM. Names match the Ollama-style tags used in the catalog.
-SMALL_BRAIN_NAMES = ("qwen2.5:0.5b", "qwen3.5:0.8b")
+# The only Ollama brains a machine without a graphics card is offered. Keep
+# these names in the Ollama catalog; bundled GGUF brains are managed separately.
+SMALL_BRAIN_NAMES = ("qwen2.5:0.5b", "gemma3:1b", "qwen2.5:1.5b")
 
 
 def no_gpu_suggestions(
@@ -197,6 +196,24 @@ def detect_system_ram_gb(meminfo_path: Path = Path("/proc/meminfo")) -> float | 
     return None
 
 
+_GPU_VENDOR_NAMES = {
+    "0x1002": "AMD GPU",
+    "0x10de": "NVIDIA GPU",
+    "0x8086": "Intel integrated GPU",
+}
+
+
+def detect_graphics_adapter(sysfs_base: Path = Path("/sys/class/drm")) -> str | None:
+    """Describe a graphics adapter even when it has no dedicated VRAM counter."""
+    for path in sysfs_base.glob("card*/device/vendor"):
+        try:
+            vendor = path.read_text(encoding="utf-8").strip().lower()
+        except OSError:
+            continue
+        return _GPU_VENDOR_NAMES.get(vendor, "GPU")
+    return None
+
+
 @dataclass(slots=True, frozen=True)
 class GpuUsage:
     utilization_percent: float
@@ -281,5 +298,8 @@ def detect_available_model_memory_gb() -> tuple[float, str]:
         return vram, "GPU VRAM"
     ram = detect_system_ram_gb()
     if ram is not None:
+        adapter = detect_graphics_adapter()
+        if adapter is not None:
+            return ram, f"system RAM shared with {adapter}"
         return ram, "system RAM — no GPU detected"
     return 4.0, "an undetected machine (conservative default)"

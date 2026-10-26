@@ -2,12 +2,12 @@
 
 This report measures Voxa's deterministic command router. It does not exercise the microphone, speech recognition, model backend, network, or desktop side effects. Use the spoken `voxatest run` suite for those end-to-end paths.
 
-Result: 38400 checks, 38400 passed, 0 failed (pass rate 100.0%). 384 unique cases repeated 100 time(s).
+Result: 38700 checks, 38700 passed, 0 failed (pass rate 100.0%). 387 unique cases repeated 100 time(s).
 
 ## Throughput
 
-- Elapsed: 3.111247 seconds
-- Rate: 12,342.3 checks/second (44,432,347 checks/hour)
+- Elapsed: 6.900773 seconds
+- Rate: 5,608.1 checks/second (20,189,044 checks/hour)
 - Required minimum: 1,000 checks/hour
 - Throughput result: **PASS**
 
@@ -26,7 +26,7 @@ Result: 38400 checks, 38400 passed, 0 failed (pass rate 100.0%). 384 unique case
 | home | 2000 | 2000 | 0 | PASS |
 | images | 2000 | 2000 | 0 | PASS |
 | keys | 2200 | 2200 | 0 | PASS |
-| media | 5500 | 5500 | 0 | PASS |
+| media | 5800 | 5800 | 0 | PASS |
 | question | 2200 | 2200 | 0 | PASS |
 | reading | 700 | 700 | 0 | PASS |
 | reminders | 1500 | 1500 | 0 | PASS |

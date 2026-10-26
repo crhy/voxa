@@ -4,11 +4,12 @@ import os
 import re
 from collections.abc import Callable
 
-from voxa.agent.player import AudaciousPlayer, AudioPlayer, VlcPlayer, active_player, music_player
+from voxa.agent.player import AudaciousPlayer, VlcPlayer, active_player, music_player
 from voxa.agent.policy import RiskLevel
 from voxa.agent.registry import Tool
 from voxa.agent.result import ToolResult
 from voxa.agent.tools.browser import play_youtube
+from voxa.agent.tools.localmusic import play_local_music
 from voxa.agent.tools.typing import _press_key_handler
 from voxa.agent.ytdlp import ResolveError, latest_from_channel, resolve
 
@@ -93,6 +94,9 @@ def _play_video_handler(args: dict[str, str]) -> ToolResult:
 
 def _play_music_handler(args: dict[str, str]) -> ToolResult:
     query = args["query"]
+    local = play_local_music(query)
+    if local is not None:
+        return local
     media = resolve(query, audio_only=True)
     music_player().play(media)
     return ToolResult.success(f"Playing {media.title}.", detail=media.webpage_url)
@@ -136,7 +140,7 @@ def _media_control_handler(args: dict[str, str]) -> ToolResult:
     action = args["action"]
     if action == "stop":
         stopped = False
-        for player in (VlcPlayer(), AudaciousPlayer(), AudioPlayer()):
+        for player in (VlcPlayer(), AudaciousPlayer(), music_player("builtin")):
             if player.status() in ("Playing", "Paused"):
                 _apply_to_player(player, "stop")
                 stopped = True
@@ -153,6 +157,26 @@ def _media_control_handler(args: dict[str, str]) -> ToolResult:
     if key is None:
         return ToolResult.failure("I don't know that control.")
     return _press_key_handler({"key": key})
+
+
+def _now_playing_handler(_args: dict[str, str]) -> ToolResult:
+    player = active_player()
+    metadata = player.now_playing() if player is not None else None
+    if metadata is not None:
+        title, artist = metadata
+        if title and artist:
+            return ToolResult.success(f"{title} by {artist} is playing.")
+        if title:
+            return ToolResult.success(f"{title} is playing.")
+        return ToolResult.success(f"Music by {artist} is playing.")
+
+    from voxa.agent.tools import radio as radio_tools
+
+    if radio_tools.now_playing is not None:
+        from voxa.agent import radio
+
+        return ToolResult.success(radio.describe(radio_tools.now_playing))
+    return ToolResult.failure("I can't find anything playing right now.")
 
 
 def media_tools() -> list[Tool]:
@@ -195,5 +219,12 @@ def media_tools() -> list[Tool]:
             risk=RiskLevel.REVERSIBLE,
             handler=_media_control_handler,
             required=("action",),
+        ),
+        Tool(
+            name="now_playing",
+            description="Say the title and artist currently reported by the active media player.",
+            parameters={},
+            risk=RiskLevel.READ_ONLY,
+            handler=_now_playing_handler,
         ),
     ]

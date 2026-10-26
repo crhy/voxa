@@ -5,6 +5,7 @@ import os
 from voxa.agent.tools import default_registry
 from voxa.agent.tools.media import (
     _media_control_handler,
+    _now_playing_handler,
     _play_latest_handler,
     _play_music_handler,
     _play_video_handler,
@@ -96,6 +97,24 @@ def test_play_music_speech(monkeypatch):
     assert played.calls[0][0] == "play"
 
 
+def test_play_music_prefers_local_library(monkeypatch):
+    local = __import__("voxa.agent.result", fromlist=["ToolResult"]).ToolResult(True, "Playing Whitesnake.", "local")
+    monkeypatch.setattr("voxa.agent.tools.media.play_local_music", lambda query: local)
+    monkeypatch.setattr("voxa.agent.tools.media.resolve", lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError))
+    assert _play_music_handler({"query": "whitesnake"}) is local
+
+
+def test_now_playing_reports_player_metadata(monkeypatch):
+    class Player:
+        def now_playing(self):
+            return "Whiskey in the Jar", "The LeperKhanz"
+
+    monkeypatch.setattr("voxa.agent.tools.media.active_player", lambda: Player())
+    result = _now_playing_handler({})
+    assert result.ok
+    assert result.speech == "Whiskey in the Jar by The LeperKhanz is playing."
+
+
 def test_play_latest_uses_env_channel(monkeypatch):
     monkeypatch.setenv("VOXA_YOUTUBE_CHANNEL", "TechLinked")
     monkeypatch.setattr("voxa.agent.tools.media.latest_from_channel", lambda channel, **kw: ["https://yt/watch/1"])
@@ -180,7 +199,7 @@ def test_media_control_stop_reaches_every_player(monkeypatch):
     players = [Running(), Running(), Running()]
     monkeypatch.setattr("voxa.agent.tools.media.VlcPlayer", lambda: players[0])
     monkeypatch.setattr("voxa.agent.tools.media.AudaciousPlayer", lambda: players[1])
-    monkeypatch.setattr("voxa.agent.tools.media.AudioPlayer", lambda: players[2])
+    monkeypatch.setattr("voxa.agent.tools.media.music_player", lambda *_args: players[2])
     result = _media_control_handler({"action": "stop"})
     assert result.ok
     assert result.speech == "Stopped."
@@ -198,7 +217,7 @@ def test_media_control_stop_falls_back_when_nothing_runs(monkeypatch):
 
     monkeypatch.setattr("voxa.agent.tools.media.VlcPlayer", lambda: Idle())
     monkeypatch.setattr("voxa.agent.tools.media.AudaciousPlayer", lambda: Idle())
-    monkeypatch.setattr("voxa.agent.tools.media.AudioPlayer", lambda: Idle())
+    monkeypatch.setattr("voxa.agent.tools.media.music_player", lambda *_args: Idle())
     pressed: list[dict] = []
     monkeypatch.setattr(
         "voxa.agent.tools.media._press_key_handler",

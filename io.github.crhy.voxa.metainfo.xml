@@ -34,6 +34,17 @@
   </screenshots>
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="0.1.8" date="2026-10-26">
+      <description>
+        <p>Voxa 0.1.8 fixes conversation follow-ups, local music playback, model choices, and desktop integration.</p>
+        <ul>
+          <li>Typed and spoken questions now share a reliable conversation history, so follow-up questions keep their subject.</li>
+          <li>Music in the Music folder is preferred over online streams, loaded Audacious playlists can resume, and Voxa can name the track reported by an active player.</li>
+          <li>Bundled llama.cpp brains are available from Preferences, and Ollama suggestions exclude models that are already installed.</li>
+          <li>The desktop launcher now uses the Voxa icon name expected by Spaced Linux.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.7" date="2026-10-25">
       <description>
         <p>Voxa 0.1.7 works out of the box: she brings her own small AI brain, her faces work for everyone, and she can do much more.</p>

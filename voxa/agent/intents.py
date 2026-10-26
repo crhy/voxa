@@ -168,8 +168,21 @@ _FORGET_EMAIL = re.compile(r"forget (?:my )?(.+?)(?:'s|s')? e-?mail(?: address)?
 _PLAY_YT_ON = re.compile(r"(?:play|watch|put on)\s+(.+?)\s+on\s+youtube", re.IGNORECASE)
 # "play boz skaggs on my audacious", "play UFO in my Audacious player" -> the Music folder, in that app (#109).
 _PLAY_ON_APP = re.compile(
-    r"(?:play|put on|listen to)\s+(.+?)\s+(?:on|in|with|using)\s+(?:my\s+|the\s+)?(.+?)"
+    r"(play|open|put on|listen to)\s+(.+?)\s+(?:on|in|with|using)\s+(?:my\s+|the\s+)?(.+?)"
     r"(?:\s+(?:music\s+)?(?:player|app|application))?",
+    re.IGNORECASE,
+)
+_OPEN_MEDIA_APPS = frozenset({"audacious", "vlc", "vlc media player", "rhythmbox"})
+_RESUME_APP = re.compile(
+    r"(?:play|resume|continue)\s+(?:the\s+)?(?:currently\s+loaded\s+|current\s+)?"
+    r"(?:playlist|queue)\s+(?:on|in|with|using)\s+(?:my\s+|the\s+)?(.+?)"
+    r"(?:\s+(?:music\s+)?(?:player|app|application))?",
+    re.IGNORECASE,
+)
+_NOW_PLAYING = re.compile(
+    r"what(?:'s| is)\s+(?:the\s+)?(?:song|track|music|video)\s+(?:playing|on)(?:\s+now)?"
+    r"|what\s+(?:song|track|music|video)\s+is\s+(?:playing|on)(?:\s+now)?"
+    r"|what(?:'s| is)\s+playing(?:\s+now)?|what\s+am\s+i\s+listening\s+to",
     re.IGNORECASE,
 )
 _NOT_AN_APP = frozenset({"youtube", "you tube", "yt", "youtube music", "spotify", "radio", "tv", "television", "repeat", "loop",
@@ -209,7 +222,8 @@ _PLAY_MUSIC_QUERY = re.compile(r"play\s+music\s+(.+)", re.IGNORECASE)
 _PLAY_SOME_MUSIC = re.compile(r"play\s+(?:some\s+)?music", re.IGNORECASE)
 _LISTEN_TO = re.compile(r"listen\s+to\s+(.+)", re.IGNORECASE)
 _PUT_ON_SOME = re.compile(r"put\s+on\s+some\s+(.+)", re.IGNORECASE)
-_PLAY_YT = re.compile(r"(?:play|put on|watch)\s+(.+?)(?:\s+on\s+youtube)?", re.IGNORECASE)
+_PLAY_YT = re.compile(r"(?:play|put on)\s+(.+?)(?:\s+on\s+youtube)?", re.IGNORECASE)
+_WATCH_ANY = re.compile(r"watch\s+(.+?)(?:\s+on\s+youtube)?", re.IGNORECASE)
 _GENRE = r"(?:jazz|rock|classical|blues|lo-?fi|hip\s?hop|country|metal|ambient|reggae|soul|funk|pop|techno|house|folk|piano|guitar)"
 _MOOD = r"(?:relaxing|upbeat|chill|calm)"
 _PLAY_MUSIC_BY = re.compile(r"play\s+music\s+by\s+(.+)", re.IGNORECASE)
@@ -1153,6 +1167,9 @@ ROUTED_TOOLS = frozenset(
         "play_youtube",
         "play_video",
         "play_music",
+        "play_on_app",
+        "resume_app",
+        "now_playing",
         "play_latest",
         "set_youtube_channel",
         "voxa_help",
@@ -2107,6 +2124,9 @@ def _route_command(text: str) -> ToolCall | None:
                                     or market_match.group("what7") or market_match.group("what8")
                                     or market_match.group("what9") or market_match.group("what_missing") or ""))
 
+    if _NOW_PLAYING.fullmatch(s):
+        return call("now_playing")
+
     if _QUESTION.match(s):
         return None
 
@@ -2130,9 +2150,20 @@ def _route_command(text: str) -> ToolCall | None:
     if _NOISE_GET.fullmatch(s):
         return call("get_noise_cancellation")
 
+    resume_app = _RESUME_APP.fullmatch(s)
+    if resume_app:
+        return call("resume_app", app=resume_app.group(1).strip())
+
     on_app = _PLAY_ON_APP.fullmatch(s)
-    if on_app and on_app.group(2).casefold() not in _NOT_AN_APP and len(on_app.group(2).split()) <= 3:
-        return call("play_on_app", query=on_app.group(1).strip(), app=on_app.group(2).strip())
+    if on_app:
+        action, query, app = (part.strip() for part in on_app.groups())
+        app_key = app.casefold()
+        if (
+            app_key not in _NOT_AN_APP
+            and len(app.split()) <= 3
+            and (action.casefold() != "open" or app_key in _OPEN_MEDIA_APPS)
+        ):
+            return call("play_on_app", query=query, app=app)
 
     theme_match = _CHANGE_THEME.fullmatch(s)
     if theme_match:
@@ -2161,7 +2192,8 @@ def _route_command(text: str) -> ToolCall | None:
         (_PLAY_BY_ARTIST, "play_music"),
         (_PLAY_THE_VIDEO, "play_video"),
         (_PLAY_VIDEO_SUFFIX, "play_video"),
-        (_PLAY_YT, "play_video"),
+        (_WATCH_ANY, "play_video"),
+        (_PLAY_YT, "play_music"),
         (_SEARCH_YT, "search_youtube"),
         (_FIND_YT, "search_youtube"),
         (_SEARCH_WEB, "web_search"),

@@ -77,6 +77,7 @@ class FakeSpeech:
 class FakeClient:
     def __init__(self) -> None:
         self.queries: list[str] = []
+        self.messages: list[list[dict[str, str]] | None] = []
 
     def is_busy(self) -> bool:
         return False
@@ -86,6 +87,7 @@ class FakeClient:
 
     def generate_stream(self, model, prompt, cancel_event, on_chunk, messages=None) -> str:
         self.queries.append(prompt)
+        self.messages.append([dict(message) for message in messages] if messages else None)
         return "Paris."
 
 
@@ -270,6 +272,23 @@ def test_a_real_question_still_asks_the_model(window) -> None:
     assert _settle(window, lambda: window._fake_client.queries)
     assert registry.calls == []
     assert window._fake_client.queries == ["what is the capital of France"]
+
+
+def test_typed_follow_up_keeps_the_previous_turn(window) -> None:
+    window.ask_ai("Who was the oldest Roman emperor?")
+    assert _settle(window, lambda: len(window._fake_client.messages) == 1)
+    assert _settle(window, lambda: window._pending_user_generation is None)
+
+    window.ask_ai("How old was he when he died?")
+    assert _settle(window, lambda: len(window._fake_client.messages) == 2)
+
+    messages = window._fake_client.messages[1]
+    assert messages is not None
+    assert [(message["role"], message["content"]) for message in messages[-3:]] == [
+        ("user", "Who was the oldest Roman emperor?"),
+        ("assistant", "Paris."),
+        ("user", "How old was he when he died?"),
+    ]
 
 
 def test_open_files_launches_an_app(window, monkeypatch) -> None:
@@ -750,6 +769,18 @@ def test_smallest_chip_absent_when_already_installed(window, monkeypatch) -> Non
     dialogs = _capture_dialogs(monkeypatch)
     window._show_model_manager()
     assert not _has_label(dialogs[0], "Smallest — runs anywhere")
+
+
+def test_suggested_model_chip_absent_when_already_installed(window, monkeypatch) -> None:
+    window.settings.ai_backend = "ollama"
+    window._suggested_models = ["gemma3:1b"]
+    window.ollama_models = ["gemma3:1b"]
+    dialogs = _capture_dialogs(monkeypatch)
+    window._show_model_manager()
+    assert not any(
+        isinstance(widget, Gtk.Button) and widget.get_label() == "gemma3:1b"
+        for widget in _walk(dialogs[0])
+    )
 
 
 REAL_REFRESH = MainWindow._refresh_ollama_models

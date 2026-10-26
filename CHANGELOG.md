@@ -1,5 +1,18 @@
 # Voxa changelog
 
+## 0.1.8 — 2026-10-26
+
+### Fixed
+
+- Follow-up questions keep the earlier question and answer as context for both typed and spoken conversations.
+- Plain music requests search the Music folder before opening an online stream, and named desktop players still receive the requested local tracks.
+- “Play the currently loaded playlist in Audacious” resumes that player instead of searching for a file named “currently loaded playlist”.
+- “What song is playing?” reports the title and artist supplied by VLC, Audacious, the built-in player, or the current radio station.
+- Ollama suggestions no longer offer an already installed model, and the no-GPU list contains only valid Ollama tags.
+- Preferences exposes the bundled llama.cpp brain manager, including download, selection, and removal, without an Ollama installation or password prompt.
+- Preferences keeps llama.cpp and Ollama model choices separate, and recognizes Intel integrated graphics as shared-memory acceleration.
+- The desktop launcher uses the `voxa` icon name and the Flatpak installs the matching icon alias.
+
 ## 0.1.7 — 2026-10-25
 
 Plain-language notes for what people can now do.

@@ -17,6 +17,16 @@ Gst: Any = None  # Initialized lazily so importing this module needs no GStreame
 GLib: Any = None
 
 
+def parse_mpris_metadata(value: str) -> tuple[str, str] | None:
+    """Return title and artist from the text form emitted by ``gdbus``."""
+    title_match = re.search(r"'xesam:title':\s*<\s*'((?:\\.|[^'])*)'\s*>", value)
+    artist_match = re.search(r"'xesam:artist':\s*<\s*(?:@as\s*)?\[([^]]*)\]\s*>", value)
+    title = title_match.group(1).replace("\\'", "'") if title_match else ""
+    artists = re.findall(r"'((?:\\.|[^'])*)'", artist_match.group(1)) if artist_match else []
+    artist = ", ".join(item.replace("\\'", "'") for item in artists)
+    return (title, artist) if title or artist else None
+
+
 def mpris_bus_names(prefix: str) -> list[str]:
     """Every session-bus name that is org.mpris.MediaPlayer2.<prefix> or starts with that plus ".".
 
@@ -184,6 +194,20 @@ class MprisPlayer:
                 return value
         return ""
 
+    def now_playing(self) -> tuple[str, str] | None:
+        """Title and artist from the first running instance that exposes them."""
+        for bus in self._buses():
+            value = self._gdbus_on(
+                bus,
+                "org.freedesktop.DBus.Properties.Get",
+                self.iface,
+                "Metadata",
+            )
+            metadata = parse_mpris_metadata(value)
+            if metadata is not None:
+                return metadata
+        return None
+
 
 class VlcPlayer(MprisPlayer):
     """Video playback through the VLC Flatpak."""
@@ -222,6 +246,14 @@ class VlcPlayer(MprisPlayer):
 
             frame_vlc_window()
 
+    def play_files(self, paths: list[str]) -> None:
+        if not paths:
+            return
+        spawn([
+            "flatpak", "run", "org.videolan.VLC", "--one-instance", "--control", "dbus",
+            "--no-fullscreen", "--no-qt-video-autoresize", "--no-video", *paths,
+        ])
+
 
 class AudaciousPlayer(MprisPlayer):
     """Music playback through Audacious (the org.atheme.audacious Flatpak)."""
@@ -237,12 +269,21 @@ class AudaciousPlayer(MprisPlayer):
             argv = ["flatpak", "run", "org.atheme.audacious", url]
         spawn(argv)
 
+    def play_files(self, paths: list[str]) -> None:
+        if not paths:
+            return
+        argv = ["audacious", *paths] if shutil.which("audacious") else [
+            "flatpak", "run", "org.atheme.audacious", *paths
+        ]
+        spawn(argv)
+
 
 class AudioPlayer:
     """Music inside Voxa with no window: a GStreamer playbin."""
 
     def __init__(self) -> None:
         self.pipeline = None
+        self.media: Media | None = None
 
     def _uri(self, media: Media) -> str:
         url = media.audio_url or media.video_url
@@ -259,7 +300,16 @@ class AudioPlayer:
             return
         pipeline.set_property("uri", self._uri(media))
         self.pipeline = pipeline
+        self.media = media
         pipeline.set_state(gst.State.PLAYING)
+
+    def play_files(self, paths: list[str]) -> None:
+        if not paths:
+            return
+        from pathlib import Path
+
+        path = paths[0]
+        self.play(Media(Path(path).stem, "", 0, path, "", path, False))
 
     def pause(self) -> None:
         if self.pipeline is not None:
@@ -273,6 +323,7 @@ class AudioPlayer:
         if self.pipeline is not None:
             self.pipeline.set_state(Gst.State.STOPPED)
             self.pipeline = None
+            self.media = None
 
     def set_volume(self, level: float) -> None:
         if self.pipeline is not None:
@@ -288,8 +339,14 @@ class AudioPlayer:
             return "Paused"
         return "Stopped"
 
+    def now_playing(self) -> tuple[str, str] | None:
+        if self.pipeline is None or self.media is None:
+            return None
+        return self.media.title, self.media.uploader
+
 
 _INSTALLED_CACHE: dict[tuple[str, str], bool] = {}
+_BUILTIN_PLAYER = AudioPlayer()
 
 
 def _installed(app_id: str, binary: str) -> bool:
@@ -322,12 +379,12 @@ def music_player(name: str | None = None):
     """Pick the music player app: vlc (default), audacious, or builtin."""
     choice = (name or os.environ.get("VOXA_MUSIC_PLAYER") or "vlc").strip().lower()
     if choice == "builtin":
-        return AudioPlayer()
+        return _BUILTIN_PLAYER
     if choice == "audacious" and _installed("org.atheme.audacious", "audacious"):
         return AudaciousPlayer()
     if _installed("org.videolan.VLC", "vlc"):
         return VlcPlayer()
-    return AudioPlayer()
+    return _BUILTIN_PLAYER
 
 
 def active_player():
@@ -335,9 +392,8 @@ def active_player():
     for player in (VlcPlayer(), AudaciousPlayer()):
         if player.status() in ("Playing", "Paused"):
             return player
-    builtin = AudioPlayer()
-    if builtin.status() in ("Playing", "Paused"):
-        return builtin
+    if _BUILTIN_PLAYER.status() in ("Playing", "Paused"):
+        return _BUILTIN_PLAYER
     return None
 
 

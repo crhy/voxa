@@ -348,7 +348,7 @@
       "id": "yt-4",
       "category": "youtube",
       "say": "play the Beatles",
-      "tool": "play_video",
+      "tool": "play_music",
       "args": {
         "query": "the Beatles"
       }
@@ -1442,7 +1442,7 @@
       "id": "exception-1",
       "category": "media",
       "say": "play simon and garfunkel",
-      "tool": "play_video",
+      "tool": "play_music",
       "args": {
         "query": "simon and garfunkel"
       }
@@ -1451,7 +1451,7 @@
       "id": "exception-2",
       "category": "media",
       "say": "play rock and roll",
-      "tool": "play_video",
+      "tool": "play_music",
       "args": {
         "query": "rock and roll"
       }
@@ -1550,7 +1550,7 @@
       "id": "heard-8",
       "category": "heard",
       "say": "Please some John Barry",
-      "tool": "play_video",
+      "tool": "play_music",
       "args": {
         "query": "some John Barry"
       }
@@ -2076,6 +2076,32 @@
       "args": {
         "query": "one"
       }
+    },
+    {
+      "id": "media-56",
+      "category": "media",
+      "say": "open UFO in audacious",
+      "tool": "play_on_app",
+      "args": {
+        "query": "UFO",
+        "app": "audacious"
+      }
+    },
+    {
+      "id": "media-57",
+      "category": "media",
+      "say": "play the currently loaded playlist in audacious",
+      "tool": "resume_app",
+      "args": {
+        "app": "audacious"
+      }
+    },
+    {
+      "id": "media-58",
+      "category": "media",
+      "say": "what song is playing",
+      "tool": "now_playing",
+      "args": {}
     },
     {
       "id": "img-1",

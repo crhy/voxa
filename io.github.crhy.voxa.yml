@@ -185,3 +185,4 @@ modules:
       - install -Dm644 io.github.crhy.voxa.desktop /app/share/applications/io.github.crhy.voxa.desktop
       - install -Dm644 io.github.crhy.voxa.metainfo.xml /app/share/metainfo/io.github.crhy.voxa.metainfo.xml
       - install -Dm644 icons/io.github.crhy.voxa.png /app/share/icons/hicolor/256x256/apps/io.github.crhy.voxa.png
+      - install -Dm644 icons/io.github.crhy.voxa.png /app/share/icons/hicolor/256x256/apps/voxa.png
