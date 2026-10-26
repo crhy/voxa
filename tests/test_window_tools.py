@@ -67,7 +67,16 @@ class FakeSpeech:
     def __init__(self) -> None:
         self.spoken: list[str] = []
 
-    def speak(self, text, rate, voice, on_started=None, on_done=None, on_error=None) -> None:
+    def speak(
+        self,
+        text,
+        rate,
+        voice,
+        on_started=None,
+        on_done=None,
+        on_error=None,
+        on_words=None,
+    ) -> None:
         self.spoken.append(text)
 
     def stop(self) -> None:
@@ -285,9 +294,9 @@ def test_typed_follow_up_keeps_the_previous_turn(window) -> None:
     messages = window._fake_client.messages[1]
     assert messages is not None
     assert [(message["role"], message["content"]) for message in messages[-3:]] == [
-        ("user", "Who was the oldest Roman emperor?"),
+        ("user", "Who was the oldest Roman emperor"),
         ("assistant", "Paris."),
-        ("user", "How old was he when he died?"),
+        ("user", "How old was he when he died"),
     ]
 
 
@@ -403,6 +412,7 @@ def test_a_cold_model_shows_a_loading_caption(window, monkeypatch) -> None:
     gate = threading.Event()
     client = LoadingClient(gate)
     monkeypatch.setattr(MainWindow, "_ai_client", lambda self: client)
+    window.settings.ai_backend = "ollama"
     window.ask_ai("what is the capital of France")
     assert _settle(window, lambda: window.status_label.get_text().startswith("Loading "))
     assert "tiny" in window.status_label.get_text()
