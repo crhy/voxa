@@ -22,10 +22,11 @@ def test_no_gpu_suggestions_falls_back_to_first_when_neither_name_present():
 def test_no_gpu_suggestions_keeps_both_small_brains_in_declared_order():
     catalog = (
         ModelSuggestion("llama3.1:8b", 4.9, "big"),
-        ModelSuggestion("qwen3.5:0.8b", 0.8, "small"),
+        ModelSuggestion("gemma3:1b", 0.8, "small"),
+        ModelSuggestion("qwen2.5:1.5b", 1.0, "small"),
         ModelSuggestion("qwen2.5:0.5b", 0.4, "small"),
     )
-    assert [m.name for m in no_gpu_suggestions(catalog)] == ["qwen2.5:0.5b", "qwen3.5:0.8b"]
+    assert [m.name for m in no_gpu_suggestions(catalog)] == ["qwen2.5:0.5b", "gemma3:1b", "qwen2.5:1.5b"]
 
 
 def test_row_state_missing(tmp_path, monkeypatch):

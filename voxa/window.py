@@ -1375,8 +1375,6 @@ class MainWindow(Adw.ApplicationWindow):
     def _chat_model(self) -> str:
         """The model name to send with a request for the chosen backend."""
         if self.settings.ai_backend == "llamacpp":
-            if self.settings.ollama_model:
-                return self.settings.ollama_model
             if self.settings.llamacpp_model:
                 return Path(self.settings.llamacpp_model).stem
             return "local"
@@ -1841,20 +1839,21 @@ class MainWindow(Adw.ApplicationWindow):
         progress_bar = Gtk.ProgressBar(visible=False, show_text=True)
         pull_group.add(progress_bar)
 
-        if self._suggested_models:
+        suggested_models = [name for name in self._suggested_models if name not in self.ollama_models]
+        if suggested_models:
             suggestion_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
             suggestion_box.set_margin_top(4)
             suggestion_box.set_margin_bottom(8)
             suggestion_box.set_margin_start(12)
             suggestion_box.set_margin_end(12)
-            for name in self._suggested_models:
+            for name in suggested_models:
                 chip = Gtk.Button(label=name)
                 chip.connect("clicked", lambda _btn, model=name: pull_row.set_text(model))
                 suggestion_box.append(chip)
             pull_group.add(suggestion_box)
 
         smallest = MODEL_CATALOG[0].name
-        if smallest not in self._suggested_models and smallest not in self.ollama_models:
+        if smallest not in suggested_models and smallest not in self.ollama_models:
             smallest_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
             smallest_box.set_margin_top(4)
             smallest_box.set_margin_bottom(8)
@@ -3694,13 +3693,19 @@ class MainWindow(Adw.ApplicationWindow):
         self._tool_ran_for_request = False
         heard_prompt = prompt
         self.query_cancel.set()
+        if self._conversation_history and self._pending_user_generation is not None:
+            # A newer question supersedes a request that has not produced an
+            # answer yet. Remove that incomplete turn before adding the new one.
+            self._conversation_history.drop_last()
+            self._pending_user_generation = None
         cancel_event = threading.Event()
         self.query_cancel = cancel_event
         self._query_generation += 1
         generation = self._query_generation
 
-        # In conversation mode the question joins the running thread of turns;
-        # a plain dictation/typed question stays a single-shot prompt.
+        # Keep one bounded thread for every AI question.  Typed questions and
+        # spoken conversation use the same model, so follow-ups must see the
+        # same earlier turns regardless of how the user entered them.
         if self.conversation_active:
             wanted = requested_language(prompt)
             if wanted is not None:
@@ -3709,17 +3714,18 @@ class MainWindow(Adw.ApplicationWindow):
                 )
                 if is_only_a_language_request(prompt) and self._last_user_prompt:
                     prompt = self._last_user_prompt
-            self._conversation_history.add_user(prompt)
-            messages: list[dict[str, str]] | None = self._conversation_history.messages()
-            self._pending_user_generation = generation
-            self._last_user_prompt = prompt
-            if self._reply_language and self._reply_language != self._own_language():
-                messages[0]["content"] += f"\nAnswer only in {self._reply_language}."
-        else:
-            messages = None
-            self._pending_user_generation = None
+        self._conversation_history.add_user(prompt)
+        messages: list[dict[str, str]] | None = self._conversation_history.messages()
+        self._pending_user_generation = generation
+        self._last_user_prompt = prompt
+        if (
+            self.conversation_active
+            and self._reply_language
+            and self._reply_language != self._own_language()
+        ):
+            messages[0]["content"] += f"\nAnswer only in {self._reply_language}."
 
-        model = self.settings.ollama_model
+        model = self._chat_model()
         # A visible task for the request, and THINKING while hands-free. When OFFLINE
         # (for example an explicit Ask AI from the transcript window) no task is created.
         self._end_query_task("cancelled")
@@ -4351,17 +4357,10 @@ class MainWindow(Adw.ApplicationWindow):
             return False
         self._stop_model_loading()
         self.ask_button.set_sensitive(True)
-        if (
-            self.conversation_active
-            and self._conversation_history
-            and self._pending_user_generation == generation
-        ):
-            # This turn was abandoned (a spoken "cancel" or the Stop button),
-            # or its answer was lost: undo the user turn pushed when it started
-            # so the model's history stays coherent.
-            self._conversation_history.drop_last()
-        self._pending_user_generation = None
         if cancel_event.is_set():
+            if self._conversation_history and self._pending_user_generation == generation:
+                self._conversation_history.drop_last()
+            self._pending_user_generation = None
             self._end_query_task("cancelled")
             self._set_status("AI request stopped.")
             return False
@@ -4384,8 +4383,13 @@ class MainWindow(Adw.ApplicationWindow):
             self._scroll_to_end(self.response_view)
         self.shell.exchange_panel.show_answer(spoken)
         replaced = spoken == FALSE_CLAIM_REPLY
-        if spoken and self.conversation_active:
+        if spoken:
             self._conversation_history.add_assistant(spoken)
+        elif self._conversation_history and self._pending_user_generation == generation:
+            # Do not leave a question without an answer in the model thread.
+            self._conversation_history.drop_last()
+        self._pending_user_generation = None
+        if spoken and self.conversation_active:
             if replaced:
                 self._early = None  # what was said early is being corrected: say the honest answer in full
                 self._conversation_speak(spoken)
@@ -4406,11 +4410,7 @@ class MainWindow(Adw.ApplicationWindow):
             return False
         self._stop_model_loading()
         self.ask_button.set_sensitive(True)
-        if (
-            self.conversation_active
-            and self._conversation_history
-            and self._pending_user_generation == generation
-        ):
+        if self._conversation_history and self._pending_user_generation == generation:
             # The turn produced no usable answer, so it must not sit in the
             # conversation history as an unanswered question with no reply.
             self._conversation_history.drop_last()
@@ -4654,19 +4654,20 @@ class MainWindow(Adw.ApplicationWindow):
         ai_page.add(ai_group)
         backend_row = Adw.ComboRow(
             title="Backend",
-            subtitle="llama.cpp-compatible server, or Ollama",
+            subtitle="Voxa's bundled llama.cpp server, Ollama, or Strata",
         )
         backend_row.set_model(Gtk.StringList.new(["llama.cpp", "Ollama", "Strata"]))
         backend_row.set_selected({"llamacpp": 0, "ollama": 1, "strata": 2}.get(self.settings.ai_backend, 0))
         ai_group.add(backend_row)
 
         model_names = self.ollama_models or ["No models found"]
-        ai_row = Adw.ComboRow(title="Model", subtitle=self._hardware_summary)
+        ai_row = Adw.ComboRow(title="Ollama model", subtitle=self._hardware_summary)
         ai_row.set_model(Gtk.StringList.new(model_names))
         ai_row.set_factory(string_item_factory(wrap=False, width_chars=30))
         ai_row.set_list_factory(string_item_factory(wrap=True, width_chars=56))
         if self.settings.ollama_model in model_names:
             ai_row.set_selected(model_names.index(self.settings.ollama_model))
+        ai_row.set_visible(self.settings.ai_backend == "ollama")
         ai_group.add(ai_row)
 
         llamacpp_row = Adw.EntryRow(title="Server address")
@@ -4694,16 +4695,25 @@ class MainWindow(Adw.ApplicationWindow):
         web_search_row.set_selected(WEB_SEARCH_VALUES.index(self.settings.web_search))
         answers_group.add(web_search_row)
 
-        # Installing and pulling models is an Ollama-only convenience; a
-        # llama.cpp server serves whichever GGUF the user started it with.
-        # The group always exists so switching the backend combo shows or hides
-        # it immediately instead of only on the next dialog open.
+        brain_group = Adw.PreferencesGroup(title="Voxa brains")
+        brain_group.set_visible(self.settings.ai_backend == "llamacpp")
+        ai_page.add(brain_group)
+        brain_row = Adw.ActionRow(
+            title="Download or remove brains",
+            subtitle="Small local GGUF brains run through Voxa's bundled llama.cpp server",
+        )
+        brain_button = Gtk.Button(label="Manage brains…", valign=Gtk.Align.CENTER)
+        brain_button.connect("clicked", lambda *_: self._show_brain_manager())
+        brain_row.add_suffix(brain_button)
+        brain_group.add(brain_row)
+
+        # The groups always exist so switching the backend updates this dialog.
         ollama_group = Adw.PreferencesGroup(title="Ollama")
         ollama_group.set_visible(self.settings.ai_backend == "ollama")
         ai_page.add(ollama_group)
         install_row = Adw.ActionRow(
             title="Install or update Ollama",
-            subtitle="Downloads the installer from ollama.com and runs it with a password prompt",
+            subtitle="Downloads the installer from ollama.com and asks for one administrator password",
         )
         install_button = Gtk.Button(label="Install", valign=Gtk.Align.CENTER)
         install_button.connect("clicked", lambda *_: self._start_ollama_install())
@@ -4721,6 +4731,8 @@ class MainWindow(Adw.ApplicationWindow):
             llamacpp_row.set_visible(selected == 0)
             endpoint_row.set_visible(selected == 1)
             strata_row.set_visible(selected == 2)
+            ai_row.set_visible(selected == 1)
+            brain_group.set_visible(selected == 0)
             ollama_group.set_visible(selected == 1)
 
         backend_row.connect("notify::selected", update_backend_rows)
@@ -4782,11 +4794,13 @@ class MainWindow(Adw.ApplicationWindow):
             device = self.devices[min(mic_row.get_selected(), len(self.devices) - 1)]
             self.settings.microphone_id = device.identifier
             self.settings.microphone_name = device.name
-        if self.ollama_models:
-            self.settings.ollama_model = self.ollama_models[min(ai_row.get_selected(), len(self.ollama_models) - 1)]
         self.settings.ai_backend = {0: "llamacpp", 1: "ollama", 2: "strata"}.get(
             backend_row.get_selected(), "llamacpp"
         )
+        if self.settings.ai_backend == "ollama" and self.ollama_models:
+            self.settings.ollama_model = self.ollama_models[
+                min(ai_row.get_selected(), len(self.ollama_models) - 1)
+            ]
         self.settings.llamacpp_url = llamacpp_row.get_text().strip()
         self.settings.ollama_url = endpoint_row.get_text().strip()
         self.settings.strata_url = strata_row.get_text().strip()

@@ -2,7 +2,15 @@ from __future__ import annotations
 
 import pytest
 
-from voxa.agent.player import AudaciousPlayer, AudioPlayer, VlcPlayer, active_player, mpris_bus_names, music_player
+from voxa.agent.player import (
+    AudaciousPlayer,
+    AudioPlayer,
+    VlcPlayer,
+    active_player,
+    mpris_bus_names,
+    music_player,
+    parse_mpris_metadata,
+)
 
 
 @pytest.fixture
@@ -124,6 +132,11 @@ def test_mpris_status_parses(monkeypatch):
         lambda *a, **k: _completed(a[0], stdout="variant  string 'Playing'\n"),
     )
     assert VlcPlayer().status() == "Playing"
+
+
+def test_mpris_metadata_parses_title_and_artist():
+    value = "({'xesam:title': <'Whiskey in the Jar'>, 'xesam:artist': <['The LeperKhanz']>},)"
+    assert parse_mpris_metadata(value) == ("Whiskey in the Jar", "The LeperKhanz")
 
 
 def test_music_player_default_vlc(monkeypatch):

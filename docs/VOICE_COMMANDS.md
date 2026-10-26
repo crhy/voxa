@@ -21,7 +21,10 @@ model and take a few seconds.
 |---|---|
 | "play lo-fi beats on YouTube" | Searches YouTube and plays the top result |
 | "search youtube for cat videos" | Searches YouTube without playing anything |
-| "play simon and garfunkel" | Plays the artist on YouTube |
+| "play simon and garfunkel" | Searches your Music folder first, then falls back to YouTube |
+| "open UFO in Audacious" | Opens matching tracks from your Music folder in Audacious |
+| "play the currently loaded playlist in Audacious" | Resumes Audacious without replacing its playlist |
+| "what song is playing?" | Names the track reported by the active player |
 | "pause the music", "turn it down a bit" | Sends the matching media key to your player |
 
 ## Apps and windows

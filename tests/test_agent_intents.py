@@ -44,9 +44,10 @@ CASES: list[tuple[str, ToolCall | None]] = [
     ("write an email to mom about dinner", None),
     ("play Daft Punk on youtube music", ToolCall("play_youtube", {"query": "Daft Punk"})),
     ("play some music", ToolCall("play_music", {"query": "music"})),
+    ("what song is playing", ToolCall("now_playing", {})),
     ("play music jazz", ToolCall("play_music", {"query": "jazz"})),
     ("play the Beatles on youtube", ToolCall("play_youtube", {"query": "the Beatles"})),
-    ("play Nirvana", ToolCall("play_video", {"query": "Nirvana"})),
+    ("play Nirvana", ToolCall("play_music", {"query": "Nirvana"})),
     ("put on some jazz", ToolCall("play_music", {"query": "jazz music"})),
     ("watch cat videos on youtube", ToolCall("play_youtube", {"query": "cat videos"})),
     ("search youtube for lofi hip hop", ToolCall("search_youtube", {"query": "lofi hip hop"})),
@@ -239,8 +240,8 @@ CASES: list[tuple[str, ToolCall | None]] = [
     ("play the movie inception", ToolCall("play_video", {"query": "inception"})),
     ("play the trailer inception", ToolCall("play_video", {"query": "inception"})),
     ("play the episode one", ToolCall("play_video", {"query": "one"})),
-    ("play rock and roll", ToolCall("play_video", {"query": "rock and roll"})),
-    ("play simon and garfunkel", ToolCall("play_video", {"query": "simon and garfunkel"})),
+    ("play rock and roll", ToolCall("play_music", {"query": "rock and roll"})),
+    ("play simon and garfunkel", ToolCall("play_music", {"query": "simon and garfunkel"})),
     ("show me images of a pony", ToolCall("image_search", {"query": "a pony"})),
     ("show me pictures of cats", ToolCall("image_search", {"query": "cats"})),
     ("find images of the moon", ToolCall("image_search", {"query": "the moon"})),
@@ -281,7 +282,7 @@ def test_every_routed_tool_is_registered_and_valid() -> None:
 
 
 def test_query_case_is_preserved() -> None:
-    assert route("Play Radiohead") == ToolCall("play_video", {"query": "Radiohead"})
+    assert route("Play Radiohead") == ToolCall("play_music", {"query": "Radiohead"})
     assert route("Type Hello World") == ToolCall("type_text", {"text": "Hello World"})
 
 
@@ -391,7 +392,7 @@ HEARD_CASES: list[tuple[str, ToolCall | None]] = [
     ("opened my email", ToolCall("open_site", {"name": "gmail"})),
     ("Open Libra Office, right?", ToolCall("open_app", {"name": "LibreOffice Writer"})),
     ("Open the GAMP.", ToolCall("open_app", {"name": "GIMP"})),
-    ("Please some John Barry", ToolCall("play_video", {"query": "some John Barry"})),
+    ("Please some John Barry", ToolCall("play_music", {"query": "some John Barry"})),
     ("Vox, save the file.", ToolCall("file_dialog", {"action": "save"})),
 ]
 

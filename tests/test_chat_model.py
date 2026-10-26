@@ -36,9 +36,9 @@ def test_llamacpp_nothing_set_falls_back_to_local() -> None:
     assert MainWindow._chat_model(host) == "local"
 
 
-def test_llamacpp_prefers_ollama_model_when_set() -> None:
+def test_llamacpp_ignores_the_unrelated_ollama_model() -> None:
     host = _settings("llamacpp", "qwen2.5:0.5b", "/home/rhy/models/Qwen3.5-0.8B-Q4_K_M.gguf")
-    assert MainWindow._chat_model(host) == "qwen2.5:0.5b"
+    assert MainWindow._chat_model(host) == "Qwen3.5-0.8B-Q4_K_M"
 
 
 def test_ollama_uses_ollama_model() -> None:

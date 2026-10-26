@@ -7,7 +7,9 @@ from unittest.mock import patch
 import voxa.hardware as hardware
 from voxa.hardware import (
     _nvidia_smi_command,
+    detect_available_model_memory_gb,
     detect_gpu_vram_gb,
+    detect_graphics_adapter,
     detect_system_ram_gb,
     reserved_gpu_gb,
     sample_gpu_usage,
@@ -93,6 +95,25 @@ def test_detect_system_ram_gb_parses_meminfo(tmp_path: Path) -> None:
     meminfo = tmp_path / "meminfo"
     meminfo.write_text("MemTotal:       16777216 kB\nMemFree:        1000 kB\n", encoding="utf-8")
     assert detect_system_ram_gb(meminfo) == 16.0
+
+
+def test_detect_graphics_adapter_recognizes_intel_integrated_gpu(tmp_path: Path) -> None:
+    vendor = tmp_path / "card0" / "device" / "vendor"
+    vendor.parent.mkdir(parents=True)
+    vendor.write_text("0x8086\n", encoding="utf-8")
+    assert detect_graphics_adapter(tmp_path) == "Intel integrated GPU"
+
+
+def test_available_memory_reports_shared_intel_graphics() -> None:
+    with (
+        patch("voxa.hardware.detect_gpu_vram_gb", return_value=None),
+        patch("voxa.hardware.detect_system_ram_gb", return_value=16.0),
+        patch("voxa.hardware.detect_graphics_adapter", return_value="Intel integrated GPU"),
+    ):
+        assert detect_available_model_memory_gb() == (
+            16.0,
+            "system RAM shared with Intel integrated GPU",
+        )
 
 
 def test_sample_gpu_usage_parses_nvidia_smi_csv_line() -> None:

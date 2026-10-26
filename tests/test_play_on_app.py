@@ -22,6 +22,20 @@ def test_route_play_on_app_caps():
     assert result.args["app"] == "Audacious"
 
 
+def test_route_open_music_in_app():
+    result = route("open UFO in audacious")
+    assert result is not None
+    assert result.tool == "play_on_app"
+    assert result.args == {"query": "UFO", "app": "audacious"}
+
+
+def test_route_resume_loaded_playlist():
+    result = route("play the currently loaded playlist in audacious")
+    assert result is not None
+    assert result.tool == "resume_app"
+    assert result.args == {"app": "audacious"}
+
+
 def test_route_play_music_in_app():
     result = route("play music in audacious")
     assert result is not None
@@ -118,3 +132,35 @@ def test_play_on_app_no_music(monkeypatch):
     result = lm.play_on_app({"query": "nonexistent", "app": "audacious"})
     assert not result.ok
     assert len(launched) == 0
+
+
+def test_play_local_music_uses_active_player(monkeypatch):
+    class Player:
+        def __init__(self):
+            self.files = ()
+
+        def play_files(self, paths):
+            self.files = tuple(paths)
+
+    player = Player()
+    monkeypatch.setattr(lm, "_music_files", lambda: ("/m", ["/m/Whitesnake/Is This Love.mp3"]))
+    monkeypatch.setattr(lm, "active_player", lambda: player)
+    result = lm.play_local_music("whitesnake")
+    assert result is not None and result.ok
+    assert player.files == ("/m/Whitesnake/Is This Love.mp3",)
+
+
+def test_resume_app_resumes_existing_audacious(monkeypatch):
+    calls: list[str] = []
+
+    class Player:
+        def status(self):
+            return "Paused"
+
+        def resume(self):
+            calls.append("resume")
+
+    monkeypatch.setattr(lm, "AudaciousPlayer", Player)
+    result = lm.resume_app({"app": "audacious"})
+    assert result.ok
+    assert calls == ["resume"]

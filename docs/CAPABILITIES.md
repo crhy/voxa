@@ -59,7 +59,7 @@ adaptive noise cancellation.
 | Click the round portrait (top right) | Grid of 22 characters; picking one switches face and voice | 🧪 |
 | Facial Quality → **Low** | Still portrait | ✅ |
 | Facial Quality → **Medium** | Lips move with the words; blinks | 🧪 |
-| Facial Quality → **High** | Neural face with head movement — needs an NVIDIA card and the face server (developer machine only for now, see #73) | ⚠️ |
+| Facial Quality → **High** | Neural face with head movement — on a supported NVIDIA computer, Voxa checks the hardware and disk space, then installs and manages the face server in the app | 🧪 |
 | Lip sync | Lips neither early nor late | ⚠️ reported a split second late; adjustable lead is in |
 
 ## Questions and the web
@@ -229,6 +229,5 @@ adaptive noise cancellation.
 
 ## Not built yet
 
-Tracked as issues: adaptive noise cancellation (#72), installing the High face from inside the app (#73), first-boot
-welcome (#76), slimming the
+Tracked as issues: adaptive noise cancellation (#72), first-boot welcome (#76), slimming the
 download (#75), messages, email triage, calendar, phone calls, purchases and the other assistant plans (#41–#67).
