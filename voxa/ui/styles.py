@@ -410,9 +410,12 @@ window.voxa-focus-window {
     border-radius: 999px;
 }
 
+/* A floating caption: take its surface and text from libadwaita's overlay
+   (osd) palette so the Spaced desktop theme drives it too, instead of a
+   hard-coded near-black box with white text. */
 .voxa-focus-window-caption {
-    background: rgba(20, 20, 24, 0.82);
-    color: #ffffff;
+    background: alpha(@osd_bg_color, 0.82);
+    color: @osd_fg_color;
     border-radius: 10px;
     padding: 3px 10px;
     font-size: 12px;

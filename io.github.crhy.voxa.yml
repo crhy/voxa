@@ -31,6 +31,11 @@ finish-args:
   # host, which is invisible to the sandbox without this grant. Read-only:
   # Voxa only loads avatar .glb/.png files and never writes there.
   - --filesystem=xdg-data/voxa:ro
+  # Spaced's theme switcher writes ~/.config/spaced/libadwaita.css and theme.json
+  # (the active desktop theme's libadwaita colour overrides and a "dark" flag).
+  # Voxa reads them so its palette matches the desktop like Spaced RGB does, and
+  # watches the css for live theme changes. Read-only: Voxa never writes here.
+  - --filesystem=xdg-config/spaced:ro
 
 modules:
   - name: espeak-ng

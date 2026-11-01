@@ -121,6 +121,7 @@ from .ui.radio_picker import RadioPicker  # noqa: E402
 from .ui.shell import AssistantShell, build_header  # noqa: E402
 from .ui.state import AssistantModel, AssistantState  # noqa: E402
 from .ui.styles import install_styles  # noqa: E402
+from .ui.spaced_palette import install_spaced_palette  # noqa: E402
 from .ui.welcome_dialog import WelcomeDialog  # noqa: E402
 
 WHISPER_MODELS = ["tiny", "base", "small", "medium", "large-v3", "turbo"]
@@ -338,6 +339,8 @@ class MainWindow(Adw.ApplicationWindow):
         self._search_results: list = []
         self._last_site_url: tuple[float, str] | None = None
         self.style_manager = Adw.StyleManager.get_default()
+        # Follow the Spaced desktop theme when this machine has one: load ~/.config/spaced/libadwaita.css and read theme.json's "dark" flag. Returns None on a non-Spaced machine, leaving libadwaita's default behaviour in place.
+        self._spaced_palette = install_spaced_palette(style_manager=self.style_manager)
         self._apply_appearance()
         self.whisper = WhisperService()
         self.wake_whisper = WhisperService()
@@ -4484,6 +4487,15 @@ class MainWindow(Adw.ApplicationWindow):
         elif appearance == "light":
             scheme = Adw.ColorScheme.FORCE_LIGHT
         elif self.style_manager.get_system_supports_color_schemes():
+            # A Spaced desktop theme is authoritative for the "system" case: match
+            # the desktop like Spaced RGB does, rather than the portal's preference.
+            spaced_dark = getattr(self._spaced_palette, "theme_dark", None)
+            if spaced_dark is True:
+                self.style_manager.set_color_scheme(Adw.ColorScheme.FORCE_DARK)
+                return
+            if spaced_dark is False:
+                self.style_manager.set_color_scheme(Adw.ColorScheme.FORCE_LIGHT)
+                return
             # Let libadwaita use the portal's actual system preference.  A
             # preference here can conflict with the host GTK theme inherited
             # by a Flatpak, leaving dark foregrounds on a light surface (or
