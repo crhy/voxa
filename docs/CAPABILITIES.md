@@ -160,6 +160,16 @@ adaptive noise cancellation.
 | “Email Bob about the meeting” | Voxa writes a draft about that topic and opens it for you to review | 🧪 |
 | “Mom's email is mom at example dot com” / “what is Mom's email?” | Remembers and reads back email addresses | 🧪 |
 
+## About you
+
+| Try saying | What should happen | Status |
+| --- | --- | --- |
+| “My name is Rhy” / “what is my name?” | Remembers your name and reads it back | 🧪 |
+| “My address is 12 oak street” / “what address do you have?” | Saves your home address in the settings file and reads it back | 🧪 |
+| “My phone number is 555 1212” / “what is my phone number?” | Saves and reads back your phone number | 🧪 |
+| “Forget my address” | Clears it | 🧪 |
+| A secret, such as a password | Kept in the system keyring (libsecret's `secret-tool`, or the `keyring` command); its value appears in no file Voxa writes and is never said back, only its name. No keyring on the machine means nothing is kept | 🧪 |
+
 ## Time and routines
 
 | Try saying | What should happen | Status |
@@ -231,3 +241,6 @@ adaptive noise cancellation.
 
 Tracked as issues: adaptive noise cancellation (#72), first-boot welcome (#76), slimming the
 download (#75), messages, email triage, calendar, phone calls, purchases and the other assistant plans (#41–#67).
+For #41 the first step is in — the keyring wrapper, and the plain profile (name, home address,
+phone number) said and read back; still open there: using those fields inside forms, and speaking
+a secret without its value reaching the action log.

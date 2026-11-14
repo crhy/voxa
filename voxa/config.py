@@ -66,6 +66,11 @@ class Settings:
     github_owner: str = ""
     youtube_channel: str = ""
     contacts: dict[str, str] = field(default_factory=dict)
+    # The personal profile: plain facts, said out loud and read back. Anything secret
+    # (a password, a code) belongs in the system keyring, never in this file.
+    name: str = ""
+    home_address: str = ""
+    phone_number: str = ""
     home_assistant_url: str = ""
     home_assistant_token: str = ""
 
@@ -99,6 +104,10 @@ class Settings:
             self.echo_mode = "voxa"
         if not self.echo_cancel:
             self.echo_mode = "off"
+        # Profile lines are short spoken facts; collapse the spaces dictation left behind.
+        self.name = " ".join(self.name.split())[:200]
+        self.home_address = " ".join(self.home_address.split())[:200]
+        self.phone_number = " ".join(self.phone_number.split())[:200]
         return self
 
 

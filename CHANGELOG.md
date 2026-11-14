@@ -2,8 +2,23 @@
 
 ## 0.1.8 — 2026-10-26
 
+### New
+
+- **Your name, home address and phone number by voice.** “My address is 12 oak street”,
+  “what address do you have?”, “forget my address” — the same three for your name and your
+  phone number. They are saved in the settings file with the other preferences and read back
+  out loud. (`voxa/agent/profile.py`, `voxa/agent/tools/profile.py`, `voxa/config.py`,
+  `voxa/agent/intents.py`) (#41) 🧪
+- **Secrets live in the system keyring.** libsecret's `secret-tool` is used when it is there,
+  otherwise the `keyring` command; a machine with neither is told so and nothing is kept. Keys
+  are namespaced `voxa/<name>` and labelled “Voxa <name>”. A secret's value appears in no file
+  Voxa writes — not the settings, not the action log — and only its name is ever read back.
+  (`voxa/agent/secrets.py`) (#41) 🧪
+
 ### Fixed
 
+- A source-only install without `aiohttp` no longer fails on import: only the browser tools
+  need it, and they say so when it is missing.
 - Follow-up questions keep the earlier question and answer as context for both typed and spoken conversations.
 - Plain music requests search the Music folder before opening an online stream, and named desktop players still receive the requested local tracks.
 - “Play the currently loaded playlist in Audacious” resumes that player instead of searching for a file named “currently loaded playlist”.

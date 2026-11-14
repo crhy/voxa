@@ -165,6 +165,35 @@ _NOISE_GET = re.compile(
 _SET_EMAIL = re.compile(r"(?:my )?(.+?)(?:'s|s')? e-?mail(?: address)? is (.+)", re.IGNORECASE)
 _GET_EMAIL = re.compile(r"what(?:'s| is) (?:my )?(.+?)(?:'s|s')? e-?mail(?: address)?", re.IGNORECASE)
 _FORGET_EMAIL = re.compile(r"forget (?:my )?(.+?)(?:'s|s')? e-?mail(?: address)?", re.IGNORECASE)
+# The personal profile (#41): your name, your home address, your phone number. Plain
+# facts, kept in the settings file, so they may be read back out loud; a secret goes
+# to the keyring instead and is never said back.
+_SET_NAME = re.compile(r"(?:please )?my name is (.+)", re.IGNORECASE)
+_GET_NAME = re.compile(
+    r"(?:please )?(?:what|which)(?:'s| is)? +(?:my |the )?name(?: do (?:you|i) have)?",
+    re.IGNORECASE,
+)
+_FORGET_NAME = re.compile(r"(?:please )?forget (?:my |the )?name", re.IGNORECASE)
+_SET_ADDRESS = re.compile(r"(?:my )?(?:home )?address is (.+)", re.IGNORECASE)
+_GET_ADDRESS = re.compile(
+    r"(?:please )?(?:what|which)(?:'s| is)? +(?:my |the |your )?(?:home )?address"
+    r"(?: do (?:you|i) have)?",
+    re.IGNORECASE,
+)
+_FORGET_ADDRESS = re.compile(r"(?:please )?forget (?:my |the |your )?(?:home )?address", re.IGNORECASE)
+_SET_PHONE = re.compile(
+    r"(?:my )?(?:home |cell |mobile )?(?:phone|telephone|landline)(?: number)? is (.+)",
+    re.IGNORECASE,
+)
+_GET_PHONE = re.compile(
+    r"(?:please )?(?:what|which)(?:'s| is)? +(?:my |the |your )?(?:home |cell |mobile )?"
+    r"(?:phone|telephone|landline)(?: number)?(?: do (?:you|i) have)?",
+    re.IGNORECASE,
+)
+_FORGET_PHONE = re.compile(
+    r"(?:please )?forget (?:my |the |your )?(?:home |cell |mobile )?(?:phone|telephone|landline)(?: number)?",
+    re.IGNORECASE,
+)
 _PLAY_YT_ON = re.compile(r"(?:play|watch|put on)\s+(.+?)\s+on\s+youtube", re.IGNORECASE)
 # "play boz skaggs on my audacious", "play UFO in my Audacious player" -> the Music folder, in that app (#109).
 _PLAY_ON_APP = re.compile(
@@ -1179,6 +1208,15 @@ ROUTED_TOOLS = frozenset(
         "set_contact_email",
         "get_contact_email",
         "forget_contact_email",
+        "set_name",
+        "get_name",
+        "forget_name",
+        "set_home_address",
+        "get_home_address",
+        "forget_home_address",
+        "set_phone_number",
+        "get_phone_number",
+        "forget_phone_number",
         "media_control",
         "system_volume",
         "compiz_control",
@@ -2056,6 +2094,28 @@ def _route_command(text: str) -> ToolCall | None:
     forget_email_match = _FORGET_EMAIL.fullmatch(s)
     if forget_email_match:
         return call("forget_contact_email", name=forget_email_match.group(1))
+
+    name_match = _SET_NAME.fullmatch(s)
+    if name_match:
+        return call("set_name", name=name_match.group(1).strip())
+    if _GET_NAME.fullmatch(s):
+        return call("get_name")
+    if _FORGET_NAME.fullmatch(s):
+        return call("forget_name")
+    address_match = _SET_ADDRESS.fullmatch(s)
+    if address_match:
+        return call("set_home_address", home_address=address_match.group(1).strip())
+    if _GET_ADDRESS.fullmatch(s):
+        return call("get_home_address")
+    if _FORGET_ADDRESS.fullmatch(s):
+        return call("forget_home_address")
+    phone_match = _SET_PHONE.fullmatch(s)
+    if phone_match:
+        return call("set_phone_number", phone_number=phone_match.group(1).strip())
+    if _GET_PHONE.fullmatch(s):
+        return call("get_phone_number")
+    if _FORGET_PHONE.fullmatch(s):
+        return call("forget_phone_number")
 
     if _RADIO_LIST.fullmatch(s):
         return call("list_radio")

@@ -15,7 +15,10 @@ import urllib.parse
 import urllib.request
 from collections import deque
 
-import aiohttp
+try:
+    import aiohttp
+except ImportError:  # Only the browser tools need it; importing this module must not need it.
+    aiohttp = None
 
 EVENT_QUEUE_LIMIT = 200
 
@@ -123,6 +126,8 @@ class CdpConnection:
                 self._boxes.clear()
 
     async def _pump_async(self) -> None:
+        if aiohttp is None:
+            raise CdpError("the browser tools need aiohttp, which is not installed here")
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.ws_connect(self._websocket_url) as ws:
