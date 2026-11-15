@@ -1,5 +1,16 @@
 # Voxa changelog
 
+## Unreleased
+
+### Hearing
+
+- **Voxa starts from the hearing she learned for this speaker and microphone.** The filter her canceller ends
+  up with is saved per output/microphone pair under `$XDG_DATA_HOME/voxa/hearing/`, and the next time she listens
+  through that pair she starts from it instead of adapting from scratch; she keeps adapting quietly during use
+  and saves what she learns. A profile belonging to another speaker, or to a very different volume, is not used:
+  she says she is re-learning her hearing and adapts from scratch. Re-measuring the echo delay no longer throws
+  the learned filter away. (`voxa/anccal.py`, `voxa/audio.py`, `voxa/window.py`) (#72) 🧪
+
 ## 0.1.8 — 2026-10-26
 
 ### Fixed

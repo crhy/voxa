@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -88,6 +89,12 @@ def profile_path(sink: str, source: str) -> Path:
     return base / "voxa" / "hearing" / f"{_safe(sink)}__{_safe(source)}.json"
 
 
+# A profile is reused while the volume stays within these bounds of the level it was learned at
+# (one stop either way is 1.41; two stops is the safe outer edge).
+LEVEL_RATIO_LOW = 0.5
+LEVEL_RATIO_HIGH = 2.0
+
+
 @dataclass
 class CalibrationResult:
     delay: int
@@ -95,6 +102,8 @@ class CalibrationResult:
     passes: int
     per_signal: dict[str, float]
     state: dict
+    # Loudest microphone level seen while calibrating (0.0-1.0): the volume range the filter was learned at.
+    level: float = 0.0
 
 
 def calibrate(play_and_record, signals=None, target_db: float = 30.0,
@@ -111,6 +120,7 @@ def calibrate(play_and_record, signals=None, target_db: float = 30.0,
 
     canceller = EchoCanceller(sample_rate=sample_rate)
     delay = 0
+    loudest = 0.0
     best_mean = float("-inf")
     best_per: dict[str, float] = {}
     best_state = canceller.export_state()
@@ -121,6 +131,8 @@ def calibrate(play_and_record, signals=None, target_db: float = 30.0,
         per: dict[str, float] = {}
         for name, sig in signals:
             mic, ref = play_and_record(sig)
+            if len(mic):
+                loudest = max(loudest, float(np.max(np.abs(mic))))
             if p == 0 and name == "sweep" and delay == 0:
                 delay = estimate_delay(mic, ref)
                 if delay > 0:
@@ -141,16 +153,44 @@ def calibrate(play_and_record, signals=None, target_db: float = 30.0,
         prev_mean = mean
 
     return CalibrationResult(delay=delay, erle_db=best_mean, passes=best_passes,
-                             per_signal=best_per, state=best_state)
+                             per_signal=best_per, state=best_state, level=loudest)
+
+
+def _write_profile(sink: str, source: str, payload: dict) -> Path:
+    """Write one hearing profile for a speaker/microphone pair; returns the path written."""
+    path = profile_path(sink, source)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+    return path
 
 
 def save_profile(result: CalibrationResult, sink: str, source: str) -> Path:
     """Write the best filter state to disk; returns the path written."""
-    path = profile_path(sink, source)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    payload = {"delay": int(result.delay), "state": result.state}
-    path.write_text(json.dumps(payload))
-    return path
+    return _write_profile(sink, source, {
+        "delay": int(result.delay),
+        "state": result.state,
+        "sink": sink,
+        "source": source,
+        "level": float(result.level),
+        "saved_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    })
+
+
+def save_live_state(state: dict, delay: int, sink: str, source: str,
+                    level: float | None = None) -> Path:
+    """Save what the running canceller learned for this pair, with no calibration run involved.
+
+    The live listening path keeps adapting during normal use; the filter Voxa ends up with becomes
+    the starting point for the next time she hears through this speaker and microphone.
+    """
+    return _write_profile(sink, source, {
+        "delay": int(delay),
+        "state": state,
+        "sink": sink,
+        "source": source,
+        "level": float(level) if level is not None else 0.0,
+        "saved_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    })
 
 
 def load_profile(sink: str, source: str) -> dict | None:
@@ -162,6 +202,30 @@ def load_profile(sink: str, source: str) -> dict | None:
         return json.loads(path.read_text())
     except (OSError, ValueError):
         return None
+
+
+def profile_is_current(profile: dict | None, sink: str | None, source: str | None,
+                       level: float | None = None) -> bool:
+    """True when a saved profile belongs to this speaker/microphone pair at a similar volume.
+
+    A profile written by an older build carries no pair of its own (the file name already is the pair)
+    and no level, so it is accepted for the pair it is read from. A level is only compared when both
+    sides know one: outside that range the speakers or the microphone have changed enough that the
+    saved filter is no longer a good starting point.
+    """
+    if not isinstance(profile, dict) or not sink or not source:
+        return False
+    saved_sink = profile.get("sink")
+    if saved_sink is not None and _safe(str(saved_sink)) != _safe(sink):
+        return False
+    saved_source = profile.get("source")
+    if saved_source is not None and _safe(str(saved_source)) != _safe(source):
+        return False
+    learned = float(profile.get("level") or 0.0)
+    if level is None or learned <= 0.0:
+        return True
+    ratio = float(level) / learned
+    return LEVEL_RATIO_LOW <= ratio <= LEVEL_RATIO_HIGH
 
 
 def spoken_summary(result: CalibrationResult) -> str:
