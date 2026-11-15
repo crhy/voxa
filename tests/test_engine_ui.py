@@ -37,9 +37,11 @@ def test_status_dot_follows_engine_health_for_llamacpp():
     assert ai_status_for_backend("llamacpp", [], SERVER_READY) == "online"
 
 
-def test_other_backends_keep_the_list_rule():
-    assert ai_status_for_backend("ollama", ["qwen2.5:0.5b"], SERVER_FAILED) == "online"
-    assert ai_status_for_backend("ollama", [], SERVER_READY) == "offline"
+def test_ollama_follows_health_and_unmanaged_backends_keep_the_list_rule():
+    # Ollama now lists models read from disk, so like llama.cpp its dot follows
+    # the server's health; only a backend Voxa does not manage keeps the list rule.
+    assert ai_status_for_backend("ollama", ["qwen2.5:0.5b"], SERVER_FAILED) == "offline"
+    assert ai_status_for_backend("ollama", [], SERVER_READY) == "online"
     assert ai_status_for_backend("strata", ["Strata is not running"], SERVER_READY) == "offline"
 
 

@@ -1,5 +1,12 @@
 # Voxa changelog
 
+## Unreleased
+
+### Fixed
+
+- Installed Ollama models appear in the picker as soon as Voxa opens, even when the Ollama server is stopped: the list is read from Ollama's own model folder, and the live list replaces it the moment the server answers. The Online / Starting / Offline dot follows the server, so a full list never claims a stopped engine is running (#27).
+- The Ollama choices (install, pull or remove models) sit at the top of the Local AI menu, directly under the model server group (#27).
+
 ## 0.1.8 — 2026-10-26
 
 ### Fixed

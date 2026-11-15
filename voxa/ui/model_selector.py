@@ -33,11 +33,12 @@ def ai_status_for(models: list[str]) -> str:
 def ai_status_for_backend(backend: str, models: list[str], server_status: str) -> str:
     """The status dot for the chosen backend.
 
-    For llama.cpp the model list is GGUF paths (which never contain spaces), so
-    ``ai_status_for`` would wrongly read "online" even when the server is down;
-    the engine's own health decides instead. Other backends keep the list rule.
+    For llama.cpp the model list is GGUF paths and for Ollama it can be models
+    read from disk, so in both cases a non-empty list says nothing about whether
+    the server is answering: the engine's own health decides instead. Only a
+    backend Voxa does not manage (Strata) keeps the list rule.
     """
-    if backend == "llamacpp":
+    if backend in ("llamacpp", "ollama"):
         if server_status == SERVER_READY:
             return "online"
         if server_status == SERVER_STARTING:

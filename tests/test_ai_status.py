@@ -12,7 +12,8 @@ if not Gtk.init_check():
 
 Adw.init()
 
-from voxa.ui.model_selector import AI_STATUS, ModelSelector, ai_status_for  # noqa: E402
+from voxa.ui.model_selector import AI_STATUS, ModelSelector, ai_status_for, ai_status_for_backend  # noqa: E402
+from voxa.server import SERVER_FAILED, SERVER_IDLE, SERVER_READY, SERVER_STARTING, SERVER_UNAVAILABLE  # noqa: E402
 
 
 def test_status_from_model_list():
@@ -20,6 +21,28 @@ def test_status_from_model_list():
     assert ai_status_for([]) == "offline"
     assert ai_status_for(["Strata is not running"]) == "offline"
     assert ai_status_for(["No models available - Ollama"]) == "offline"
+
+
+def test_ollama_dot_follows_the_server_not_the_disk_list():
+    # Installed models are now listed from disk, so a non-empty Ollama list no
+    # longer proves the server is answering: its health decides, as for llama.cpp.
+    disk = ["qwen2.5:0.5b", "llama3:latest"]
+    assert ai_status_for_backend("ollama", disk, SERVER_READY) == "online"
+    assert ai_status_for_backend("ollama", disk, SERVER_STARTING) == "starting"
+    for down in (SERVER_FAILED, SERVER_UNAVAILABLE, SERVER_IDLE, ""):
+        assert ai_status_for_backend("ollama", disk, down) == "offline"
+
+
+def test_llamacpp_dot_still_follows_the_engine_health():
+    gguf = "/home/rhy/.local/share/voxa/models/voxa-small.gguf"
+    assert ai_status_for_backend("llamacpp", [gguf], SERVER_READY) == "online"
+    assert ai_status_for_backend("llamacpp", [gguf], SERVER_STARTING) == "starting"
+    assert ai_status_for_backend("llamacpp", [gguf], SERVER_FAILED) == "offline"
+
+
+def test_a_backend_voxa_does_not_manage_keeps_the_list_rule():
+    assert ai_status_for_backend("strata", ["qwen3.8"], SERVER_READY) == "online"
+    assert ai_status_for_backend("strata", ["Strata is not running"], SERVER_READY) == "offline"
 
 
 def test_indicator_shows_and_hides():

@@ -101,8 +101,8 @@ from .hardware import (  # noqa: E402
 )
 from .installer import InstallerError, install_ollama, ollama_installed  # noqa: E402
 from .llamacpp import LlamaCppClient, StrataClient  # noqa: E402
-from .modelwait import wait_for_models  # noqa: E402
-from .ollama import OllamaClient, OllamaError, strip_reasoning  # noqa: E402
+from .modelwait import models_to_show, wait_for_models  # noqa: E402
+from .ollama import OllamaClient, OllamaError, disk_models, strip_reasoning  # noqa: E402
 from .ownspeech import OwnSpeech  # noqa: E402
 from .pausewords import is_pause_request, resume_request  # noqa: E402
 from .replylang import LANGUAGES, is_only_a_language_request, requested_language  # noqa: E402
@@ -1412,6 +1412,14 @@ class MainWindow(Adw.ApplicationWindow):
             threading.Thread(target=strata_worker, name="strata-models", daemon=True).start()
             return
 
+        # Ollama's installed models are a folder on disk, so the picker can show
+        # them straight away, with the server stopped or still starting (crhy/voxa#27:
+        # "They should show up even if ollama isn't running."). The live list
+        # replaces this one as soon as the server answers.
+        disk = disk_models() if self.settings.ai_backend == "ollama" else []
+        if disk:
+            idle(self._apply_ollama_models, disk)
+
         def list_models() -> list[str]:
             client = self._ai_client()
             try:
@@ -1441,9 +1449,15 @@ class MainWindow(Adw.ApplicationWindow):
             if generation != self._models_generation:
                 return
             if models is None:
-                # Say so in the model picker too ("No models available - Ollama") instead of
-                # leaving it blank, and keep the saved model selection untouched.
-                idle(self._show_no_models)
+                # The server never answered. Installed models are still listed from
+                # disk (and the saved choice stays pointing at one of them); only
+                # when the disk holds nothing too does the picker say "No models
+                # available - Ollama".
+                shown = models_to_show(disk, models)
+                if shown is None:
+                    idle(self._show_no_models)
+                else:
+                    idle(self._apply_ollama_models, shown)
                 idle(
                     self._set_status,
                     f"The AI server ({label}) is offline. Dictation is still available.",
@@ -1604,6 +1618,9 @@ class MainWindow(Adw.ApplicationWindow):
                 self.settings.llamacpp_model = str(smallbrain.path_for(smallbrain.BRAINS[0]))
                 self.config_store.save(self.settings)
         elif models and self.settings.ollama_model not in models:
+            # A saved choice that is still installed — live, or on disk while the
+            # server is stopped — is left alone; only a model that has gone is
+            # replaced.
             self.settings.ollama_model = models[0]
             self.config_store.save(self.settings)
         self._apply_model_combo(models)
@@ -4685,6 +4702,27 @@ class MainWindow(Adw.ApplicationWindow):
         strata_row.set_visible(self.settings.ai_backend == "strata")
         ai_group.add(strata_row)
 
+        # The Ollama choices come straight after the model server group, at the top
+        # of the Local AI menu (crhy/voxa#27). The groups always exist so switching
+        # the backend updates this dialog.
+        ollama_group = Adw.PreferencesGroup(title="Ollama")
+        ollama_group.set_visible(self.settings.ai_backend == "ollama")
+        ai_page.add(ollama_group)
+        install_row = Adw.ActionRow(
+            title="Install or update Ollama",
+            subtitle="Downloads the installer from ollama.com and asks for one administrator password",
+        )
+        install_button = Gtk.Button(label="Install", valign=Gtk.Align.CENTER)
+        install_button.connect("clicked", lambda *_: self._start_ollama_install())
+        install_row.add_suffix(install_button)
+        ollama_group.add(install_row)
+
+        manage_row = Adw.ActionRow(title="Pull or remove models")
+        manage_button = Gtk.Button(label="Manage models…", valign=Gtk.Align.CENTER)
+        manage_button.connect("clicked", lambda *_: self._show_model_manager())
+        manage_row.add_suffix(manage_button)
+        ollama_group.add(manage_row)
+
         answers_group = Adw.PreferencesGroup(title="Answers")
         ai_page.add(answers_group)
         web_search_row = Adw.ComboRow(
@@ -4707,33 +4745,15 @@ class MainWindow(Adw.ApplicationWindow):
         brain_row.add_suffix(brain_button)
         brain_group.add(brain_row)
 
-        # The groups always exist so switching the backend updates this dialog.
-        ollama_group = Adw.PreferencesGroup(title="Ollama")
-        ollama_group.set_visible(self.settings.ai_backend == "ollama")
-        ai_page.add(ollama_group)
-        install_row = Adw.ActionRow(
-            title="Install or update Ollama",
-            subtitle="Downloads the installer from ollama.com and asks for one administrator password",
-        )
-        install_button = Gtk.Button(label="Install", valign=Gtk.Align.CENTER)
-        install_button.connect("clicked", lambda *_: self._start_ollama_install())
-        install_row.add_suffix(install_button)
-        ollama_group.add(install_row)
-
-        manage_row = Adw.ActionRow(title="Pull or remove models")
-        manage_button = Gtk.Button(label="Manage models…", valign=Gtk.Align.CENTER)
-        manage_button.connect("clicked", lambda *_: self._show_model_manager())
-        manage_row.add_suffix(manage_button)
-        ollama_group.add(manage_row)
-
         def update_backend_rows(*_):
+            # Same rules as above, in the order the page now shows them.
             selected = backend_row.get_selected()
             llamacpp_row.set_visible(selected == 0)
             endpoint_row.set_visible(selected == 1)
             strata_row.set_visible(selected == 2)
             ai_row.set_visible(selected == 1)
-            brain_group.set_visible(selected == 0)
             ollama_group.set_visible(selected == 1)
+            brain_group.set_visible(selected == 0)
 
         backend_row.connect("notify::selected", update_backend_rows)
         dialog.add(ai_page)

@@ -35,3 +35,17 @@ def wait_for_models(
                 on_waiting(attempt)
             sleep(delay)
     return None
+
+
+def models_to_show(disk: list[str], live: list[str] | None) -> list[str] | None:
+    """Decide what the model picker shows once the server had its chance to answer.
+
+    A list that came from the running server always wins.  When the server never
+    answered, the models read from disk are shown instead of "No models available"
+    (crhy/voxa#27: installed models must be visible with Ollama stopped); ``None``
+    is returned only when there is nothing on disk either, which is the case that
+    still has to say so.  Pure: no waiting, no I/O.
+    """
+    if live is not None:
+        return live
+    return disk or None

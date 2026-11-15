@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import threading
 import urllib.error
@@ -8,6 +9,7 @@ import urllib.parse
 import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 
 
 class OllamaError(RuntimeError):
@@ -131,6 +133,71 @@ def strip_reasoning(text: str) -> str:
     if "</think>" in cleaned:
         cleaned = cleaned.rsplit("</think>", 1)[1]
     return cleaned.strip()
+
+
+def ollama_models_dir() -> Path:
+    """Where Ollama keeps its models: ``$OLLAMA_MODELS`` when set, else ``~/.ollama/models``.
+
+    The same rule Ollama itself uses, so Voxa reads the store the server writes
+    to whether or not it is running.  Nothing is created here: listing installed
+    models must not leave an empty folder behind on a machine without Ollama.
+    """
+    configured = os.environ.get("OLLAMA_MODELS", "").strip()
+    if configured:
+        return Path(configured).expanduser()
+    return Path.home() / ".ollama" / "models"
+
+
+def ollama_display_name(manifest_relative: Path) -> str:
+    """The name Ollama itself shows for a manifest path under ``manifests/``.
+
+    The tree is ``<registry>/<library>/<name>/<tag>``: the default registry
+    (``registry.ollama.ai``) and the default library (``library``) are not part
+    of the name, everything else is — so a GGUF pulled from Hugging Face keeps
+    its ``hf.co/<user>/<repo>`` prefix.  The same rule ``voxa/backup.py`` uses
+    when it inventories models, and the same one ``ollama list`` prints.
+    """
+    parts = list(manifest_relative.parts)
+    if parts and parts[0] == "registry.ollama.ai":
+        parts = parts[1:]
+    if parts and parts[0] == "library":
+        parts = parts[1:]
+    if not parts:
+        return ""
+    if len(parts) == 1:
+        return parts[0]
+    return "/".join(parts[:-1]) + ":" + parts[-1]
+
+
+def disk_models(models_dir: Path | None = None) -> list[str]:
+    """The Ollama models installed on disk, with the server stopped.
+
+    Ollama keeps one JSON manifest per tag under ``<models dir>/manifests/…/<tag>``;
+    the content-addressed ``blobs/`` tree beside it carries no names.  Pure
+    filesystem: never touches the network, never raises (a missing, empty or
+    unreadable store simply means no models), so the picker can list what is
+    installed while Ollama is down (crhy/voxa#27).
+    """
+    root = Path(models_dir) if models_dir is not None else ollama_models_dir()
+    manifests = root / "manifests"
+    names: set[str] = set()
+    # os.walk skips directories it cannot read instead of raising.
+    for dirpath, _dirnames, filenames in os.walk(manifests):
+        try:
+            here = Path(dirpath).relative_to(manifests)
+        except ValueError:
+            continue
+        if len(here.parts) < 2:
+            # A file loose in manifests/, or in the registry/folder above the
+            # model name, is not the manifest of a named tag.
+            continue
+        for tag in filenames:
+            if tag.startswith("."):
+                continue  # a partial download, not an installed tag
+            name = ollama_display_name(here / tag)
+            if name:
+                names.add(name)
+    return sorted(names)
 
 
 @dataclass(slots=True, frozen=True)
