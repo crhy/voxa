@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import subprocess
 
 from voxa import simulation
@@ -184,6 +185,83 @@ def find_file(args: dict[str, str]) -> ToolResult:
             return ToolResult.success(f"I found {total}. The closest are {spoken_list(entries, 3)}.")
         entries = [f"{os.path.basename(p)} in {os.path.basename(os.path.dirname(p))}" for p in lines]
         return ToolResult.success(f"I found {total}: {spoken_list(entries)}.")
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as error:
+        return ToolResult.failure(f"That did not work: {_error_text(error)}")
+
+
+_GREP_HIT = re.compile(r"(.*?):(\d+):(.*)")
+# A matched line is spoken, not read: a long line in a text file is cut rather than recited.
+_MAX_SPOKEN_LINE = 120
+
+
+def _grep_hits(stdout: str) -> list[tuple[str, int, str]]:
+    """Parse grep's file:line:text output into (path, line number, the line itself)."""
+    hits: list[tuple[str, int, str]] = []
+    for line in stdout.splitlines():
+        match = _GREP_HIT.match(line)
+        if match is None:
+            continue
+        name, number, text = match.groups()
+        text = " ".join(text.split())
+        if not text:
+            continue
+        if len(text) > _MAX_SPOKEN_LINE:
+            text = text[:_MAX_SPOKEN_LINE].rstrip() + "\u2026"
+        hits.append((name, int(number), text))
+    return hits
+
+
+def search_file_contents(args: dict[str, str]) -> ToolResult:
+    try:
+        words = " ".join(args.get("text", "").split())
+        if not words:
+            return ToolResult.failure("Tell me the words to look for.")
+        spoken = args.get("folder") or "documents"
+        key = folder_key(spoken)
+        if key is None:
+            spoken, key = "documents", "DOCUMENTS"
+        path = _folder(spoken)
+        if not path:
+            return ToolResult.failure("I cannot reach your home folder.")
+        out = _run(
+            [
+                "timeout",
+                "15",
+                "grep",
+                "-rIn",
+                "-i",
+                "--exclude-dir=.*",
+                "--exclude-dir=node_modules",
+                "--exclude-dir=__pycache__",
+                "-m",
+                "3",
+                "--",
+                words,
+                path,
+            ],
+            check=False,
+        )
+        hits = _grep_hits(out.stdout)
+        label = STANDARD_NAMES.get(key) or "your home folder"
+        if not hits:
+            if out.returncode == 124:
+                return ToolResult.failure("I ran out of time looking. Try naming a folder.")
+            return ToolResult.failure(f"No file in {label} says {words}.")
+        top = set(STANDARD_NAMES.values())
+
+        def rank(hit: tuple[str, int, str]) -> tuple[int, int]:
+            parent = os.path.dirname(hit[0])
+            is_top = os.path.basename(parent) in top or parent.rstrip("/") == path.rstrip("/")
+            return (0 if is_top else 1, hit[0].count("/"))
+
+        hits.sort(key=rank)
+        detail = "\n".join(f"{name}:{number}" for name, number, _ in hits)
+        entries = [f"{os.path.basename(name)}: \u201c{text}\u201d" for name, _, text in hits]
+        files = len(dict.fromkeys(name for name, _, _ in hits))
+        if files == 1:
+            return ToolResult.success(f"One file in {label} says {words}: {entries[0]}.", detail=detail)
+        speech = f"I found {count_noun(files, 'file')} in {label} that say {words}: {spoken_list(entries, 3)}."
+        return ToolResult.success(speech, detail=detail)
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as error:
         return ToolResult.failure(f"That did not work: {_error_text(error)}")
 
@@ -464,6 +542,14 @@ def file_manage_tools() -> list[Tool]:
             risk=RiskLevel.REVERSIBLE,
             handler=find_file,
             required=("name",),
+        ),
+        Tool(
+            name="search_file_contents",
+            description="Find files by the words inside them.",
+            parameters={"text": "the words to look for", "folder": "which standard folder to search"},
+            risk=RiskLevel.READ_ONLY,
+            handler=search_file_contents,
+            required=("text",),
         ),
         Tool(
             name="find_large_files",

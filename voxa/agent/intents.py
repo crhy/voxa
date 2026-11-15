@@ -415,6 +415,16 @@ _LARGE_FILES = re.compile(
 _FIND_FILE = re.compile(
     r"(?:find|locate|where is|where's) (?:the |my |a )?file (?:called |named? )?(.+)", re.IGNORECASE
 )
+_FILE_CONTENTS = re.compile(
+    r"(?:search|look in|look through)(?: my | the | all )?(?:(?:all |any |every |the |my )*"
+    r"(documents?|downloads?|files?|folders?|my computer|my machine))\s+for\s+(.+)"
+    r"|(?:find|locate|show)(?: me)?(?: all)?(?: the)? files? "
+    r"(?:(?:containing|mentioning)|(?:that|which) (?:contains?|mentions?|contain|mention)|with)"
+    r"(?: the words?| the phrase| the text)?\s+(.+)"
+    r"|which files? (?:that |the |any )?(?:contains?|mentions?|containing|mentioning)"
+    r"(?: the words?| the phrase| the text)?\s+(.+)",
+    re.IGNORECASE,
+)
 _OPEN_FOLDER = re.compile(
     r"(?:open|show)(?: me)? (?:my |the )?(.+?) (?:folder|directory)", re.IGNORECASE
 )
@@ -1191,6 +1201,7 @@ ROUTED_TOOLS = frozenset(
         "empty_trash",
         "find_file",
         "find_large_files",
+        "search_file_contents",
         "open_file",
         "open_folder",
         "install_app",
@@ -2436,6 +2447,10 @@ def _route_command(text: str) -> ToolCall | None:
         return call("trash_file", name=trash_match.group(1), folder=trash_match.group(2))
     if _EMPTY_TRASH.fullmatch(s):
         return call("empty_trash")
+    contents_match = _FILE_CONTENTS.fullmatch(s)
+    if contents_match:
+        words = next((group for group in contents_match.groups()[1:] if group), "")
+        return call("search_file_contents", text=words, folder=contents_match.group(1) or "documents")
     large_match = _LARGE_FILES.fullmatch(s)
     if large_match:
         return call("find_large_files", amount=large_match.group(1), unit=large_match.group(2))
