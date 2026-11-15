@@ -4,6 +4,7 @@ from voxa.agent.registry import ToolRegistry
 from voxa.agent.tools.anc import anc_tools
 from voxa.agent.tools.applications import application_tools
 from voxa.agent.tools.appstore import appstore_tools
+from voxa.agent.tools.bills import bills_tools
 from voxa.agent.tools.briefing import briefing_tools
 from voxa.agent.tools.browser import browser_tools
 from voxa.agent.tools.calc import calc_tools
@@ -100,6 +101,7 @@ def default_registry() -> ToolRegistry:
         *memory_facts_tools(),
         *calendar_local_tools(),
         *expense_tools(),
+        *bills_tools(),
         *date_tools(),
         *screenshot_tools(),
         *camera_tools(),
