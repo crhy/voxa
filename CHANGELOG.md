@@ -1,5 +1,17 @@
 # Voxa changelog
 
+## Unreleased
+
+### New
+
+- **Pick which graphics card the AI runs on.** Preferences → Local AI has a "Graphics card"
+  row listing the cards this machine has, plus "Automatic" and "Processor only". The choice is
+  handed to the server Voxa starts — Ollama through its environment
+  (`CUDA_VISIBLE_DEVICES`), llama.cpp through its own `--device` option — and the Local AI
+  indicator says which device is in use, e.g. "● Online · card 0". Combining cards is left to
+  the backend, and Whisper's own device choice is not part of this yet. (`voxa/hardware.py`,
+  `voxa/config.py`, `voxa/engine.py`, `voxa/server.py`, `voxa/window.py`) (#9) 🧪
+
 ## 0.1.8 — 2026-10-26
 
 ### Fixed

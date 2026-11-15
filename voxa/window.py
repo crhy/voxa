@@ -77,7 +77,7 @@ from .anc import EchoCanceller as AncCanceller  # noqa: E402
 from .audio import AudioCapture, AudioDevice, webrtc_available  # noqa: E402
 from .bargein import BargeInGate, is_own_voice  # noqa: E402
 from .catalog import CatalogUnavailable, load_catalog, refresh_and_cache, refresh_due  # noqa: E402
-from .config import ConfigStore  # noqa: E402
+from .config import ConfigStore, gpu_choice_index, normalize_gpu_choice  # noqa: E402
 from .controller import AssistantController, ControllerPorts  # noqa: E402
 from .conversation import (  # noqa: E402
     ConversationController,
@@ -92,8 +92,10 @@ from .echo import (  # noqa: E402
 )
 from .hardware import (  # noqa: E402
     MODEL_CATALOG,
+    Gpu,
     GpuUsage,
     detect_available_model_memory_gb,
+    detect_gpus,
     no_gpu_suggestions,
     reserved_gpu_gb,
     sample_gpu_usage,
@@ -116,7 +118,7 @@ from .ui.avatars import character_choices, describe_characters, find_character, 
 from .ui.focus_window import overlay_supported  # noqa: E402
 from .ui.legacy_view import LegacyCallbacks, LegacyView  # noqa: E402
 from .ui.live_face import LiveFaceClient, decode_audio_to_pcm16k  # noqa: E402
-from .ui.model_selector import ai_status_for_backend  # noqa: E402
+from .ui.model_selector import ai_status_for_backend, gpu_status_detail  # noqa: E402
 from .ui.radio_picker import RadioPicker  # noqa: E402
 from .ui.shell import AssistantShell, build_header  # noqa: E402
 from .ui.state import AssistantModel, AssistantState  # noqa: E402
@@ -133,6 +135,10 @@ WAKE_WHISPER_MODEL = "tiny"
 RADIO_CHOICE_SECONDS = 45.0
 MEDIA_START_TOOLS = frozenset({"play_radio", "play_tv", "play_music", "play_video", "play_youtube"})
 GPU_POLL_INTERVAL_SECONDS = 2.0
+# The "Graphics card" row of Preferences (crhy/voxa#9). The first two entries are
+# fixed; detected cards are appended after them, in detect_gpus() order.
+GPU_CHOICE_SUBTITLE = "Which card the local AI runs on; combining cards is left to the backend"
+GPU_CHOICE_FIXED_LABELS = ["Automatic", "Processor only"]
 APPEARANCE_VALUES = ["system", "light", "dark"]
 APPEARANCE_LABELS = ["System", "Light", "Dark"]
 WEB_SEARCH_VALUES = ["auto", "always", "never"]
@@ -390,6 +396,15 @@ class MainWindow(Adw.ApplicationWindow):
         self._installing = False
         self._has_gpu = False
         self._gpu_poll_stop: threading.Event | None = None
+        # The cards this machine has, as hardware.detect_gpus() listed them; the
+        # "Graphics card" row and the status line both read this.
+        self._detected_gpus: tuple[Gpu, ...] = ()
+        # The "Graphics card" row of Preferences, set when that dialog is built.
+        self._gpu_row = None
+        self._gpu_row_updating = False
+        # Set when the row's choice changes: a server already running keeps the
+        # card it started with until Preferences restarts it.
+        self._gpu_choice_needs_restart = False
         # Watches real transcription speeds and offers a lighter model when dictation lags.
         self._rtf_guard = speechfit.RtfGuard()
         self._rtf_asked: set[str] = set()
@@ -1490,6 +1505,10 @@ class MainWindow(Adw.ApplicationWindow):
 
         def worker() -> None:
             available_gb, source = detect_available_model_memory_gb()
+            # The cards are listed separately from the sizing figure: two cards
+            # with different VRAM collapse into one number above, but each has
+            # to be pickable on its own (crhy/voxa#9).
+            cards = detect_gpus()
             has_gpu = source == "GPU VRAM"
             reserved = reserved_gpu_gb(self.settings.face_mode, True) if has_gpu else 0.0
             # Show something immediately from the built-in or cached catalog,
@@ -1507,6 +1526,7 @@ class MainWindow(Adw.ApplicationWindow):
                 suggestions,
                 reserved,
                 gpu_fit_warning(available_gb, reserved) if reserved else False,
+                cards,
             )
             if not refresh_due():
                 return
@@ -1526,12 +1546,14 @@ class MainWindow(Adw.ApplicationWindow):
                     ),
                     reserved,
                     False,  # One toast per detection run.
+                    cards,
                 )
 
         threading.Thread(target=worker, name="hardware-detect", daemon=True).start()
 
-    def _apply_hardware_summary(self, available_gb: float, source: str, suggestions: list, reserved_gb: float = 0.0, gpu_fit_warning: bool = False) -> bool:
+    def _apply_hardware_summary(self, available_gb: float, source: str, suggestions: list, reserved_gb: float = 0.0, gpu_fit_warning: bool = False, cards: tuple[Gpu, ...] = ()) -> bool:
         self._suggested_models = [model.name for model in suggestions]
+        self._detected_gpus = cards
         names = ", ".join(self._suggested_models)
         self._hardware_summary = f"Suggested for this machine (~{available_gb:.0f} GB {source}): {names}"
         if reserved_gb > 0:
@@ -1546,7 +1568,72 @@ class MainWindow(Adw.ApplicationWindow):
         # not only while an Ollama query is in flight.
         if not self._closing:
             self._start_gpu_monitor()
+        # A Preferences dialog opened before detection finished (or after a card
+        # was added) lists the cards as they are now. A dialog the user has since
+        # closed is dropped rather than written to.
+        if self._gpu_row is not None:
+            try:
+                self._apply_gpu_choice_row(self._gpu_row)
+            except Exception:  # noqa: BLE001 - a closed dialog must not break detection
+                self._gpu_row = None
         return False
+
+    def _gpu_choice_entries(self) -> tuple[list[str], dict[int, int]]:
+        """The "Graphics card" row's entries, and where each card's index sits.
+
+        The two fixed choices come first ("Automatic", "Processor only"), then one
+        entry per detected card labelled with its VRAM. The dict matters because
+        a card's index is the number the backends address it by, which is not
+        necessarily its position in the list.
+        """
+        entries = list(GPU_CHOICE_FIXED_LABELS)
+        positions: dict[int, int] = {}
+        for gpu in self._detected_gpus:
+            label = gpu.label if gpu.vram_gb is None else f"{gpu.label} ({gpu.vram_gb:g} GB)"
+            positions[gpu.index] = len(entries)
+            entries.append(label)
+        return entries, positions
+
+    def _apply_gpu_choice_row(self, row) -> None:
+        """Fill the "Graphics card" row from the cards detected so far.
+
+        A saved choice naming a card this machine does not have stays selected
+        (so a card added later still gets it) but says so in the subtitle.
+        """
+        entries, positions = self._gpu_choice_entries()
+        choice = normalize_gpu_choice(self.settings.gpu_choice)
+        index = gpu_choice_index(choice)
+        position = positions.get(index) if index is not None else (1 if choice == "cpu" else 0)
+        missing = index is not None and position is None
+        self._gpu_row_updating = True
+        try:
+            row.set_model(Gtk.StringList.new(entries))
+            row.set_selected(position if position is not None else 0)
+            row.set_subtitle(
+                GPU_CHOICE_SUBTITLE + (" — the saved card is not in this machine" if missing else "")
+            )
+        finally:
+            self._gpu_row_updating = False
+
+    def _remember_gpu_choice(self, row) -> None:
+        """Store the card the user just picked in the "Graphics card" row."""
+        if self._gpu_row_updating:
+            return
+        _entries, positions = self._gpu_choice_entries()
+        selected = row.get_selected()
+        if selected == 1:
+            choice = "cpu"
+        elif selected >= 2:
+            choice = next(
+                (f"gpu:{gpu.index}" for gpu in self._detected_gpus if positions.get(gpu.index) == selected),
+                "auto",
+            )
+        else:
+            choice = "auto"
+        if choice == normalize_gpu_choice(self.settings.gpu_choice):
+            return
+        self.settings.gpu_choice = choice
+        self._gpu_choice_needs_restart = True
 
     def _start_gpu_monitor(self) -> None:
         # Runs for the window's lifetime once hardware detection finds a
@@ -1596,7 +1683,13 @@ class MainWindow(Adw.ApplicationWindow):
             # the engine's health (paths never contain spaces, so ai_status_for
             # would read "online" even with the server down).
             models = smallbrain.available_labels(self.settings.llamacpp_model)
-        self.shell.model_selector.set_status(ai_status_for_backend(backend, models, self.ai_server.health().status))
+        status = ai_status_for_backend(backend, models, self.ai_server.health().status)
+        # "Show which device is in use" (crhy/voxa#9): the card the server was
+        # told to run on, next to the dot. Strata runs elsewhere, so it says nothing.
+        detail = "" if backend == "strata" else gpu_status_detail(
+            self.settings.gpu_choice, tuple(gpu.index for gpu in self._detected_gpus)
+        )
+        self.shell.model_selector.set_status(status, detail)
         self.ollama_models = models
         if backend == "llamacpp":
             current = self.settings.llamacpp_model
@@ -4660,6 +4753,18 @@ class MainWindow(Adw.ApplicationWindow):
         backend_row.set_selected({"llamacpp": 0, "ollama": 1, "strata": 2}.get(self.settings.ai_backend, 0))
         ai_group.add(backend_row)
 
+        # "Graphics card" (crhy/voxa#9): the cards this machine has, plus the two
+        # choices that name none. Picking one writes settings.gpu_choice, which is
+        # what the server Voxa starts is told to use.
+        gpu_row = Adw.ComboRow(title="Graphics card", subtitle=GPU_CHOICE_SUBTITLE)
+        gpu_row.set_factory(string_item_factory(wrap=True, width_chars=30))
+        gpu_row.set_list_factory(string_item_factory(wrap=True, width_chars=56))
+        gpu_row.set_visible(self.settings.ai_backend != "strata")
+        ai_group.add(gpu_row)
+        self._gpu_row = gpu_row
+        self._apply_gpu_choice_row(gpu_row)
+        gpu_row.connect("notify::selected", lambda *_: self._remember_gpu_choice(gpu_row))
+
         model_names = self.ollama_models or ["No models found"]
         ai_row = Adw.ComboRow(title="Ollama model", subtitle=self._hardware_summary)
         ai_row.set_model(Gtk.StringList.new(model_names))
@@ -4734,6 +4839,9 @@ class MainWindow(Adw.ApplicationWindow):
             ai_row.set_visible(selected == 1)
             brain_group.set_visible(selected == 0)
             ollama_group.set_visible(selected == 1)
+            # Strata answers from elsewhere, so the card choice only applies to
+            # the servers Voxa starts itself; the row hides itself for it.
+            gpu_row.set_visible(selected != 2)
 
         backend_row.connect("notify::selected", update_backend_rows)
         dialog.add(ai_page)
@@ -4831,6 +4939,15 @@ class MainWindow(Adw.ApplicationWindow):
         self._refresh_ollama_models()
         # Keep the main-shell backend dropdown in step with what was just saved.
         self.shell.set_backend(self.settings.ai_backend)
+        # The row goes away with the dialog; hardware detection must not write to
+        # a destroyed widget afterwards.
+        self._gpu_row = None
+        # A card picked in this dialog only reaches a server that is already
+        # running by restarting it, the same way a backend change does.
+        if self._gpu_choice_needs_restart:
+            self._gpu_choice_needs_restart = False
+            if self.settings.ai_backend != "strata":  # Voxa does not manage Strata's server
+                self._restart_ai_server_async()
 
     def show_shortcuts(self) -> None:
         builder = Gtk.Builder.new_from_string(

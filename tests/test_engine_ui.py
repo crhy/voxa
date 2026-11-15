@@ -73,9 +73,11 @@ def _fake_window(backend, *, llamacpp_model="", ollama_model="", server_status=S
 
     class Selector:
         status = None
+        detail = None
 
-        def set_status(self, value):
+        def set_status(self, value, detail=""):
             self.status = value
+            self.detail = detail
 
     class Shell:
         def __init__(self):
@@ -98,6 +100,7 @@ def _fake_window(backend, *, llamacpp_model="", ollama_model="", server_status=S
         shell=Shell(),
         ai_server=Server(server_status),
         ollama_models=[],
+        _detected_gpus=(),
         config_store=SimpleNamespace(save=lambda s: saved.append(s)),
         _apply_model_combo=lambda models: None,
         _restart_ai_server_async=lambda: restarted.append("restart"),

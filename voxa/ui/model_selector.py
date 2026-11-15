@@ -10,12 +10,20 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Pango", "1.0")
 from gi.repository import Gtk, Pango  # noqa: E402
 
+from ..config import gpu_choice_index, normalize_gpu_choice  # noqa: E402
 from ..server import SERVER_READY, SERVER_STARTING  # noqa: E402
 
 EMPTY_LABEL = "No models available"
 BACKENDS = ["llama.cpp", "Ollama", "Strata"]
 BACKEND_VALUES = ["llamacpp", "ollama", "strata"]
 MAX_BUTTON_CHARS = 24
+
+# The card the Local AI dot reports: "Processor only" says "processor", a chosen
+# card says its index, and "Automatic" says nothing because the backend's own
+# pick is not Voxa's choice to report.
+GPU_AUTO_LABEL = ""
+GPU_CPU_LABEL = "processor"
+GPU_MISSING_LABEL = "card {index} (not in this machine)"
 
 AI_STATUS = {"online": "● Online", "starting": "● Starting…", "offline": "● Offline"}
 AI_STATUS_HINTS = {
@@ -28,6 +36,23 @@ AI_STATUS_HINTS = {
 def ai_status_for(models: list[str]) -> str:
     """"online" when the list holds real model names (they never contain spaces), else "offline"."""
     return "online" if any(name and " " not in name for name in models) else "offline"
+
+
+def gpu_status_detail(choice: str, card_indexes: tuple[int, ...]) -> str:
+    """Name the graphics card the Local AI status dot should report.
+
+    ``card_indexes`` are the indexes ``hardware.detect_gpus`` listed on this machine,
+    so a saved choice pointing at a card that is not here says so instead of lying.
+    """
+    choice = normalize_gpu_choice(choice)
+    if choice == "cpu":
+        return GPU_CPU_LABEL
+    index = gpu_choice_index(choice)
+    if index is None:
+        return GPU_AUTO_LABEL
+    if index not in card_indexes:
+        return GPU_MISSING_LABEL.format(index=index)
+    return f"card {index}"
 
 
 def ai_status_for_backend(backend: str, models: list[str], server_status: str) -> str:
@@ -119,9 +144,15 @@ class ModelSelector(Gtk.Box):
             self.append(self._status)
         self._status_state = ""
 
-    def set_status(self, state: str) -> None:
-        """Show "online", "starting" or "offline"; anything else hides the indicator."""
+    def set_status(self, state: str, detail: str = "") -> None:
+        """Show "online", "starting" or "offline"; anything else hides the indicator.
+
+        ``detail`` names the graphics card in use, so the dot reads
+        "● Online · card 0" once a card has been chosen.
+        """
         text = AI_STATUS.get(state, "")
+        if text and detail:
+            text = f"{text} · {detail}"
         for name in AI_STATUS:
             self._status.remove_css_class(f"voxa-ai-{name}")
         self._status_state = state if text else ""
@@ -129,7 +160,10 @@ class ModelSelector(Gtk.Box):
         self._status.set_visible(bool(text))
         if text:
             self._status.add_css_class(f"voxa-ai-{state}")
-            self._status.set_tooltip_text(AI_STATUS_HINTS[state])
+            hint = AI_STATUS_HINTS[state]
+            if detail:
+                hint = f"{hint} — {detail}"
+            self._status.set_tooltip_text(hint)
 
     def get_status(self) -> str:
         return self._status_state

@@ -214,6 +214,136 @@ def detect_graphics_adapter(sysfs_base: Path = Path("/sys/class/drm")) -> str | 
     return None
 
 
+# --- Picking a card (crhy/voxa#9) -------------------------------------------
+#
+# Everything above collapses the machine's cards into one number, which is
+# enough to size a model but useless for choosing a card: two cards with
+# different VRAM look identical. ``detect_gpus`` keeps them apart instead, one
+# entry per card, with the index the backends address them by. The single-value
+# probes stay untouched so their byte-compatible behaviour is unchanged.
+#
+# The index is the card's position in the tool's own listing, which is what
+# Ollama's ``CUDA_VISIBLE_DEVICES`` and llama.cpp's ``--device cuda:N`` expect
+# for Nvidia cards. Cards found through rocm-smi or sysfs are listed so the
+# choice can be saved and shown, but the CUDA-based hand-off only steers
+# Nvidia cards; the AMD-specific plumbing stays open (docs/notes/voxa-gpu-choice.md).
+
+
+@dataclass(slots=True, frozen=True)
+class Gpu:
+    """One graphics card, as the Preferences list shows it."""
+
+    index: int
+    label: str
+    vram_gb: float | None
+
+
+def detect_gpus(sysfs_base: Path = Path("/sys/class/drm")) -> tuple[Gpu, ...]:
+    """List every graphics card this machine has, best effort, never raising.
+
+    Returns ``()`` when nothing is found, so the Preferences row offers only
+    "Automatic" and "Processor only" rather than a card that cannot be picked.
+    """
+    for probe in (_nvidia_gpus, _rocm_gpus):
+        cards = probe()
+        if cards:
+            return cards
+    return _sysfs_amdgpus(sysfs_base)
+
+
+def _nvidia_gpus() -> tuple[Gpu, ...]:
+    """One line per card from nvidia-smi: index, name, memory in MiB."""
+    try:
+        result = subprocess.run(
+            [
+                _nvidia_smi_command(),
+                "--query-gpu=index,name,memory.total",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5.0,
+            check=True,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return ()
+    cards: list[Gpu] = []
+    for line in result.stdout.splitlines():
+        parts = [part.strip() for part in line.split(",")]
+        if len(parts) < 3:
+            continue
+        try:
+            index = int(parts[0])
+        except ValueError:
+            continue
+        name = ", ".join(parts[1:-1]) or "GPU"
+        vram_gb: float | None = None
+        try:
+            vram_gb = float(parts[-1]) / 1024.0
+        except ValueError:
+            pass
+        cards.append(Gpu(index=index, label=f"GPU {index}: {name}", vram_gb=vram_gb))
+    return tuple(cards)
+
+
+def _rocm_gpus() -> tuple[Gpu, ...]:
+    """One entry per card from rocm-smi's VRAM JSON (gpu0, gpu1, ... in order)."""
+    try:
+        result = subprocess.run(
+            ["rocm-smi", "--showmeminfo", "vram", "--json"],
+            capture_output=True,
+            text=True,
+            timeout=5.0,
+            check=True,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return ()
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return ()
+    if not isinstance(payload, dict):
+        return ()
+    cards: list[Gpu] = []
+    for entry in payload.values():
+        if not isinstance(entry, dict):
+            continue
+        raw = entry.get("VRAM Total Memory (B)")
+        vram_gb: float | None = None
+        try:
+            vram_gb = float(raw) / (1024.0**3)
+        except (TypeError, ValueError):
+            pass
+        cards.append(Gpu(index=len(cards), label=f"GPU {len(cards)}: AMD GPU", vram_gb=vram_gb))
+    return tuple(cards)
+
+
+def _drm_card_number(path: Path) -> int:
+    match = re.match(r"card(\d+)", path.name)
+    return int(match.group(1)) if match else 0
+
+
+def _sysfs_amdgpus(base: Path = Path("/sys/class/drm")) -> tuple[Gpu, ...]:
+    """Cards readable from sysfs, named with the vendor ``detect_graphics_adapter`` gives."""
+    vendor = detect_graphics_adapter(base)
+    if vendor is None:
+        return ()
+    cards: list[Gpu] = []
+    for card in sorted(base.glob("card*"), key=_drm_card_number):
+        try:
+            vram_bytes = int((card / "device" / "mem_info_vram_total").read_text(encoding="utf-8").strip())
+        except (OSError, ValueError):
+            continue
+        cards.append(
+            Gpu(
+                index=len(cards),
+                label=f"GPU {len(cards)}: {vendor}",
+                vram_gb=vram_bytes / (1024.0**3),
+            )
+        )
+    return tuple(cards)
+
+
 @dataclass(slots=True, frozen=True)
 class GpuUsage:
     utilization_percent: float
