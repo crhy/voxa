@@ -223,6 +223,8 @@ def test_registry_lists_all_tools():
             "calendar_cancel",
             "calendar_conflicts",
             "calendar_day",
+            "calendar_free",
+            "calendar_move",
             "calendar_next",
             "calendar_week",
             "cancel_reminders",

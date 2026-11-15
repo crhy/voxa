@@ -179,6 +179,10 @@ def entries_on(content: str, day: date) -> list[tuple[date, tuple[int, int] | No
     return out
 
 
+FREE_DAY_START = (8, 0)
+FREE_DAY_END = (22, 0)
+
+
 def conflicts(items: list[tuple[date, tuple[int, int] | None, str]], day: date, time: tuple[int, int], minutes: int = 60) -> list[str]:
     """Titles of entries on that day whose time is within ``minutes`` of the new one."""
     if time is None:
@@ -191,6 +195,26 @@ def conflicts(items: list[tuple[date, tuple[int, int] | None, str]], day: date, 
         if delta <= minutes:
             out.append(title)
     return out
+
+
+def free_slot(content: str, day: date, minutes: int, start: tuple[int, int] | None = None) -> tuple[int, int] | None:
+    """The first time on that day where ``minutes`` fits between appointments; None when the day has no such gap.
+
+    Each timed entry on the day blocks the 60 minutes ``conflicts`` treats as a clash, and ``entries_on`` folds
+    the recurring weekly lines in. The search steps half an hour from ``start`` (8 AM by default) up to 10 PM, so
+    the answer lands on a time a person would say out loud.
+    """
+    items = entries_on(content, day)
+    first = start if start else FREE_DAY_START
+    first_min = min(max(first[0], 0) * 60 + max(first[1], 0), 23 * 60 + 59)
+    end_min = FREE_DAY_END[0] * 60 + FREE_DAY_END[1]
+    probe = first_min
+    while probe + minutes <= end_min:
+        middle = probe + minutes // 2
+        if not conflicts(items, day, (middle // 60, middle % 60), minutes // 2 + 30):
+            return (probe // 60, probe % 60)
+        probe += 30
+    return None
 
 
 def entries(content: str) -> list[tuple[date, tuple[int, int] | None, str]]:
@@ -269,6 +293,19 @@ def remove(content: str, title: str) -> tuple[str, str | None, date | None, tupl
         day, time = when(best_m)
         return ("\n".join(kept) + "\n" if kept else "", title_of(best_m), day, time)
     return (content, None, None, None)
+
+
+def move(content: str, title: str, day: date, time: tuple[int, int] | None) -> tuple[str, str | None, date | None, tuple[int, int] | None]:
+    """Move an appointment to another day and time; (new content, moved title or None, old day, old time).
+
+    The line comes out through ``remove`` (exact, then contains, then fuzzy) and goes back through ``add``, so it
+    stays a single line, keeps its sorted place and keeps "--:--" when it has no time. The old day and time come
+    back so the caller can speak the change and move the reminder that goes with it.
+    """
+    new_content, moved, old_day, old_time = remove(content, title)
+    if moved is None:
+        return (content, None, None, None)
+    return (add(new_content, day, time, moved), moved, old_day, old_time)
 
 
 def on_day(items: list[tuple[date, tuple[int, int] | None, str]], day: date) -> list:

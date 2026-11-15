@@ -1,5 +1,11 @@
 # Voxa changelog
 
+## Unreleased
+
+### New
+
+- **Move an appointment and speak the free time.** "Move my dentist to Thursday at 4", "When am I free tomorrow", "When do I have an hour free" — the appointment moves to its new slot and its reminder moves with it, and Voxa names the first gap on the day that is long enough.
+
 ## 0.1.8 — 2026-10-26
 
 ### Fixed
