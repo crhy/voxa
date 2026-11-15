@@ -86,9 +86,13 @@ def looks_like_browser_task(text: str) -> bool:
     return any(re.search(rf"\b{re.escape(verb)}\b", folded) for verb in BROWSER_TASK_VERBS)
 
 
-def system_prompt(registry: ToolRegistry) -> str:
-    """The instruction the model gets when it must plan a sequence of tools."""
-    return (
+def system_prompt(registry: ToolRegistry, context: str = "") -> str:
+    """The instruction the model gets when it must plan a sequence of tools.
+
+    `context` is optional background — the screen block from voxa.agent.screencontext —
+    appended after the tool list. Without it the prompt is exactly what it was before.
+    """
+    prompt = (
         "You are the planner for a desktop voice assistant. You turn one spoken "
         "request into a short sequence of tool calls.\n"
         f"Available tools:\n{registry.describe()}\n"
@@ -107,6 +111,10 @@ def system_prompt(registry: ToolRegistry) -> str:
         '"args": {"query": "jazz"}}, {"tool": "press_key", "args": {"key": "volume up"}}], '
         '"say": "Playing jazz and turning it up."}'
     )
+    context = context.strip()
+    if context:
+        return f"{prompt}\n\n{context}"
+    return prompt
 
 
 @dataclass(frozen=True, slots=True)

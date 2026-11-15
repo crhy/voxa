@@ -1,5 +1,14 @@
 # Voxa changelog
 
+## [Unreleased]
+
+### New
+
+- **She understands "this" and "here" by reading the window in front of you.** Ask "read this to me", "what's here"
+  or "summarize this" and Voxa attaches the focused window's title and visible text to the request before the AI
+  answers it. Questions that do not refer to the screen read nothing at all, and web phrasing such as "on this page"
+  still goes to the browser.
+
 ## 0.1.8 — 2026-10-26
 
 ### Fixed
