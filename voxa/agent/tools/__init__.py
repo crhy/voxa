@@ -30,6 +30,7 @@ from voxa.agent.tools.headsup import headsup_tools
 from voxa.agent.tools.help import help_tools
 from voxa.agent.tools.hidden_files import hidden_files_tools
 from voxa.agent.tools.home import home_tools
+from voxa.agent.tools.invoices import invoice_tools
 from voxa.agent.tools.lists import list_tools
 from voxa.agent.tools.livetv import livetv_tools
 from voxa.agent.tools.local import local_tools
@@ -100,6 +101,7 @@ def default_registry() -> ToolRegistry:
         *memory_facts_tools(),
         *calendar_local_tools(),
         *expense_tools(),
+        *invoice_tools(),
         *date_tools(),
         *screenshot_tools(),
         *camera_tools(),

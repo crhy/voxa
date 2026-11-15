@@ -2,6 +2,10 @@
 
 ## 0.1.8 — 2026-10-26
 
+### New
+
+- **An invoice from one sentence.** "Make me an invoice for two office chairs to Acme, net 40 dollars freight 6 taxes 2, terms 15 days" — Voxa works out the client, what is being delivered, the net, freight and taxes, numbers the invoice, writes it as a document in your Voxa Drafts folder and opens it in LibreOffice; "read me the invoice back" repeats the client, the total and when it is due. (#54) 🧪
+
 ### Fixed
 
 - Follow-up questions keep the earlier question and answer as context for both typed and spoken conversations.
