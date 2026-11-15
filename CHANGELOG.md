@@ -1,5 +1,9 @@
 # Voxa changelog
 
+## [Unreleased]
+
+- Saying "download the latest Spaced ISO" finds the newest Spaced Linux release, checks there is room on disk before fetching anything, saves the image, and says plainly when the release publishes no checksum to verify it against.
+
 ## 0.1.8 — 2026-10-26
 
 ### Fixed
