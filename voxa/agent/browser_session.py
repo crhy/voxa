@@ -383,6 +383,18 @@ def profile_dir() -> str:
     return os.path.expanduser("~/.var/app/com.brave.Browser/config/voxa-profile")
 
 
+def download_dir() -> str:
+    """Voxa's own downloads folder, created when first needed."""
+    folder = os.path.expanduser("~/Downloads/Voxa")
+    os.makedirs(folder, exist_ok=True)
+    return folder
+
+
+# Chrome writes a file in progress under one of these names; a finished download
+# never keeps them, so they are never reported as the saved file.
+PARTIAL_SUFFIXES = (".part", ".crdownload", ".download")
+
+
 def launch_command(
     port: int,
     headless: bool = False,
@@ -448,6 +460,13 @@ class BrowserSession:
             conn = CdpConnection(socket_url)
             for domain in ("Page", "Runtime", "DOM"):
                 conn.call(f"{domain}.enable")
+            try:
+                conn.call("Page.setDownloadBehavior",
+                          {"behavior": "allow", "downloadPath": download_dir()})
+            except (CdpError, OSError) as exc:
+                # An old Chromium without this method, or a home folder that cannot
+                # be created, must not break browsing.
+                log.warning("could not set the download folder: %s", exc)
             self._conn = conn
         return self._conn
 
@@ -460,6 +479,49 @@ class BrowserSession:
                 raise
             self._conn = None
             return self.page().call(method, params, timeout)
+
+    def allow_downloads(self, folder: str | None = None) -> str:
+        """Point the browser at Voxa's downloads folder; returns the folder used."""
+        folder = folder or download_dir()
+        self._call("Page.setDownloadBehavior", {"behavior": "allow", "downloadPath": folder})
+        return folder
+
+    def await_download(self, before: set[str], folder: str | None = None,
+                       timeout: float = 30.0) -> str | None:
+        """Poll folder every 0.25 s for a finished download and return its path.
+
+        Ignores names Chrome still writes (.part, .crdownload, .download) and any
+        file whose size changed since the previous poll, so a download in progress
+        is never reported. Returns the newest such file whose name was not in
+        before, or None when nothing lands in time.
+        """
+        folder = folder or download_dir()
+        deadline = time.monotonic() + timeout
+        sizes: dict[str, int] = {}
+        while True:
+            try:
+                entries = list(os.scandir(folder))
+            except OSError:
+                entries = []
+            found: list[tuple[float, str]] = []
+            for entry in entries:
+                if entry.name in before or entry.name.endswith(PARTIAL_SUFFIXES):
+                    continue
+                try:
+                    if not entry.is_file():
+                        continue
+                    stat = entry.stat()
+                except OSError:
+                    continue
+                if sizes.get(entry.name) != stat.st_size:
+                    sizes[entry.name] = stat.st_size
+                    continue
+                found.append((stat.st_mtime, entry.path))
+            if found:
+                return max(found, key=lambda item: item[0])[1]
+            if time.monotonic() >= deadline:
+                return None
+            time.sleep(0.25)
 
     def goto(self, url: str, wait: float = 15.0) -> None:
         """Navigate and wait for the load event."""

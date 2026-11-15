@@ -1,5 +1,13 @@
 # Voxa changelog
 
+## Unreleased
+
+### New
+
+- **Voxa keeps her downloads in one folder.** "Download the annual report" clicks the link you name, saves the file
+  in your Downloads/Voxa folder, and tells you the file's name and where it went; if nothing arrives she says so
+  instead of guessing.
+
 ## 0.1.8 — 2026-10-26
 
 ### Fixed

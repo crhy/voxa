@@ -250,6 +250,7 @@ def test_registry_lists_all_tools():
             "directions",
             "disk_space",
             "doc_extract",
+            "download_file",
             "empty_trash",
             "event_plan",
             "exchange_rate",
