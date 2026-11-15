@@ -63,6 +63,25 @@ finishes the message wherever you are typing.
 
 Any key you can name, Voxa can press.
 
+## Spending and bank statements
+
+| Say | Voxa does |
+|---|---|
+| "i spent 12 dollars on lunch" | Adds the expense to your spending log |
+| "how much have I spent this week" | Totals the spending log for the period |
+| "import the statement march 2026" | Reads a bank statement file you already have and adds its transactions |
+| "compare this month with last month" | This month against the month before, per category, with the change |
+| "how much did I spend on groceries last month" | One category, last month against the month before it |
+| "report on my spending" | Writes a spending report document and speaks a short summary |
+| "what is the biggest charge this month" | The largest charges, the merchants you pay most often, anything unusual |
+
+The statement is a file already on your machine (a CSV, a text file or a PDF); Voxa
+reads it with `pdftotext` or `cat`, categorises each line locally and appends it to
+`Documents/Voxa Expenses.md`, tagged with the statement's name so it can be traced
+back. Importing the same statement again is refused rather than counted twice. No
+part of this feature uses the network: the file is read locally, the spending log
+is written locally, and merchant corrections are kept in Voxa's own state file.
+
 ## Multi-step requests
 
 You can chain actions in one sentence and Voxa carries them out in order:

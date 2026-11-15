@@ -71,8 +71,10 @@ def category_for(what: str) -> str:
     return "other"
 
 
-def add(content: str, day: date, amount: float, what: str, tag: str = "") -> str:
-    category = category_for(what)
+def add(content: str, day: date, amount: float, what: str, tag: str = "", category: str | None = None) -> str:
+    # A statement import already knows the merchant's category; anything else
+    # is categorised from the spoken words exactly as before.
+    category = category if category in CATEGORIES else category_for(what)
     label = what.strip()
     if label:
         label = label[0].upper() + label[1:]

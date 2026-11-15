@@ -1009,6 +1009,30 @@ _EXPENSE_SHEET = re.compile(
     r"|export my (?:expenses|spending)(?: to a spreadsheet)?",
     re.IGNORECASE,
 )
+# A statement the user already has on disk: import it, compare two months, report on it.
+_STATEMENT_MONTH = r"(?:this|last|the previous|previous) month"
+_STATEMENT_IMPORT = re.compile(
+    r"(?:import|read|load|add|file) (?:the |my |a |an )?(?:bank |credit card |debit card )?statement"
+    r"(?: (?:file|document|csv|pdf|export))?"
+    r"(?: (?:called|named) (?P<n1>.+)| (?P<n2>.+))?",
+    re.IGNORECASE,
+)
+_STATEMENT_COMPARE = re.compile(
+    rf"compare (?:my )?(?:spending|expenses|budget|this month)(?: (?:with|to|against|and) (?P<m1>{_STATEMENT_MONTH}|.+?))?"
+    rf"|(?:this month|my spending|my expenses) (?:compared?|versus|vs)(?: (?:with|to))? (?P<m2>{_STATEMENT_MONTH})"
+    rf"|how much (?:did|have) i spen[dt](?: on (?P<c1>.+?))? (?P<m3>{_STATEMENT_MONTH})"
+    rf"|what did i spend(?: on (?P<c2>.+?))? (?P<m3b>{_STATEMENT_MONTH})",
+    re.IGNORECASE,
+)
+_STATEMENT_REPORT = re.compile(
+    r"(?:report|print|write)(?: on)? (?:my |the |a )?(?:spending|expenses|budget|statement)(?: report)?(?: (?:for|on|in) (?P<m1>.+))?"
+    r"|(?:spending|expenses|budget|statement) report(?: (?:for|on|in) (?P<m2>.+))?"
+    r"|(?:what|which) (?:is|was|are) (?:the |my |a )?(?:biggest|largest|most expensive|unusual|surprising)"
+    r"(?: (?:charge|charges|expense|expenses|transaction|transactions|item|items))(?: (?:this|last) month)?"
+    r"|what (?:is|was) unusual(?: in my (?:spending|expenses|statement))?"
+    r"|(?:any|show me|what are) unusual (?:charges?|expenses?|items?)(?: in my (?:spending|expenses|statement))?",
+    re.IGNORECASE,
+)
 _BUDGET_SET = re.compile(
     rf"set (?:my |the )?(?P<c1>{_EXPENSE_CATEGORY}) budget to (?P<a1>.+?)(?: a month)?"
     rf"|my (?P<c2>{_EXPENSE_CATEGORY}) budget is (?P<a2>.+)",
@@ -1301,6 +1325,9 @@ ROUTED_TOOLS = frozenset(
         "budget_set",
         "budget_status",
         "trip_cost",
+        "import_statement",
+        "statement_compare",
+        "statement_report",
         "date_remember",
         "date_when",
         "date_upcoming",
@@ -1627,6 +1654,28 @@ def _route_command(text: str) -> ToolCall | None:
         return call("expense_undo")
     if _EXPENSE_SHEET.fullmatch(s):
         return call("expense_spreadsheet")
+    statement_import = _STATEMENT_IMPORT.fullmatch(s)
+    if statement_import:
+        return call(
+            "import_statement",
+            name=(statement_import.group("n1") or statement_import.group("n2") or "").strip(),
+        )
+    statement_compare = _STATEMENT_COMPARE.fullmatch(s)
+    if statement_compare:
+        return call(
+            "statement_compare",
+            month=(
+                statement_compare.group("m1")
+                or statement_compare.group("m2")
+                or statement_compare.group("m3")
+                or statement_compare.group("m3b")
+                or ""
+            ),
+            category=statement_compare.group("c1") or statement_compare.group("c2") or "",
+        )
+    statement_report = _STATEMENT_REPORT.fullmatch(s)
+    if statement_report:
+        return call("statement_report", month=statement_report.group("m1") or statement_report.group("m2") or "")
     event_plan = _EVENT_PLAN.fullmatch(s)
     if event_plan:
         event = event_plan.group("event").strip()

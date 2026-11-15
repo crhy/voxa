@@ -1,5 +1,15 @@
 # Voxa changelog
 
+## Unreleased
+
+### New
+
+- **Import a bank statement you already have.** "Import the statement march 2026", "Read the statement called march statement" — Voxa reads the CSV, text or PDF file from your own folders, works out the category of every transaction (known merchants by rule, the rest by the usual spending words) and adds the rows to your spending log, tagged with the statement's name. Summary and balance lines are never counted twice, and importing the same statement again does not double-count it. (#45)
+- **Compare months of spending.** "Compare this month with last month", "How much did I spend on groceries last month" — this month against the month before it, per category, with the change spoken out.
+- **A spending report you can keep.** "Report on my spending", "What is the biggest charge this month" — totals by category, the largest charges, the merchants you pay most often, anything unusually large and the month-over-month table, written as a document in your Voxa Drafts folder and opened in LibreOffice, with a short spoken summary.
+- **Merchant corrections stick.** Once a merchant's category is corrected in Voxa's own local corrections file, every later import files it the same way.
+- Nothing about your spending leaves the machine: the statement is read from your own disk, the transactions go into your local spending log, and these commands use no network at all.
+
 ## 0.1.8 — 2026-10-26
 
 ### Fixed

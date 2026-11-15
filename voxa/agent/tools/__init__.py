@@ -47,6 +47,7 @@ from voxa.agent.tools.recite import recite_tools
 from voxa.agent.tools.reminders import reminders_tools
 from voxa.agent.tools.screenshot import screenshot_tools
 from voxa.agent.tools.slides import slides_tools
+from voxa.agent.tools.statement import statement_tools
 from voxa.agent.tools.system import system_tools
 from voxa.agent.tools.sysupdate import sysupdate_tools
 from voxa.agent.tools.textedit import textedit_tools
@@ -100,6 +101,7 @@ def default_registry() -> ToolRegistry:
         *memory_facts_tools(),
         *calendar_local_tools(),
         *expense_tools(),
+        *statement_tools(),
         *date_tools(),
         *screenshot_tools(),
         *camera_tools(),

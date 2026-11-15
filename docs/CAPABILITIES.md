@@ -160,6 +160,23 @@ adaptive noise cancellation.
 | “Email Bob about the meeting” | Voxa writes a draft about that topic and opens it for you to review | 🧪 |
 | “Mom's email is mom at example dot com” / “what is Mom's email?” | Remembers and reads back email addresses | 🧪 |
 
+## Spending and bank statements
+
+| Try saying | What should happen | Status |
+| --- | --- | --- |
+| “Import the statement march 2026” | Reads a bank statement you already have (CSV, text or PDF), categorises every transaction and adds it to your spending log, tagged with the statement's name | 🧪 |
+| “Import the same statement again” | Refused, not counted twice: she says it is already in your spending log | 🧪 |
+| “Compare this month with last month” | This month against the month before, per category, with the change | 🧪 |
+| “How much did I spend on groceries last month” | One category, last month against the month before it | 🧪 |
+| “Report on my spending” | A spending report document in Voxa Drafts, opened in LibreOffice, plus a short spoken summary | 🧪 |
+| “What is the biggest charge this month” | The largest charges, the merchants you pay most often, anything unusually large | 🧪 |
+| A merchant no rule knows | Lands in **other** until you correct it; the local model is not wired in yet | ⚠️ |
+| “Download my statement from my bank” | Not built: fetching a statement needs browser control (#40, #41) | ❌ |
+
+Nothing about your spending leaves the machine: the file is read from your own disk,
+the spending log and the merchant corrections are written on your own machine, and
+these commands use no network at all.
+
 ## Time and routines
 
 | Try saying | What should happen | Status |
