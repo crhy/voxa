@@ -1,5 +1,11 @@
 # Voxa changelog
 
+## Unreleased
+
+### New
+
+- **Put a routine on a schedule.** “Schedule the movie time routine for Friday at seven”, “Put the morning routine on Thursday at 4pm”, “Every Friday at five, send me my weekly spending” — the routine runs its steps by itself at that weekday and time, says its name once, and “unschedule the movie time routine” takes it back off.
+
 ## 0.1.8 — 2026-10-26
 
 ### Fixed
