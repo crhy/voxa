@@ -12,5 +12,6 @@ Working notes, decisions and standing orders for this project, kept by Claude Co
 - [voxa-speed-is-top-priority](voxa-speed-is-top-priority.md): rhY made response speed and natural conversation Voxa's top priority (GitHub crhy/voxa #69), ahead of new features; goal is the most efficient and most capable voice assistant.
 - [voxa-tell-before-live-audio-tests](voxa-tell-before-live-audio-tests.md): Tell rhY before any lab test that plays sound or records the microphones, so the room can be quietened first
 - [voxa-two-brains-plan](voxa-two-brains-plan.md): Voxa's next phase (after the Dr. Mario Wii port ships) is the two-brain design in crhy/voxa#116.
+- [voxa-verify-before-root](voxa-verify-before-root.md): Voxa only runs a downloaded Ollama installer as root when its SHA-256 is on a reviewed pin list (empty until rhY pins one); Spaced owns the privileged host helper, Voxa owns the user flow and the refusal.
 - [voxatest-clean-up-after-each-run](voxatest-clean-up-after-each-run.md): After every live Voxa/VoxaTest run, close what the run opened (VLC, windows, browser tabs) and remove its leftovers
 - [voxatest-never-lower-volume](voxatest-never-lower-volume.md): VoxaTest runs and Voxa lab runs must never turn rhY's system volume down

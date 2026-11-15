@@ -1,5 +1,12 @@
 # Voxa changelog
 
+## Unreleased
+
+### Fixed
+
+- **Installing Ollama no longer runs unreviewed web content as root.** Voxa hashes the installer it downloads from ollama.com and only hands it to the password prompt when that hash is on its reviewed list; otherwise it says so plainly and gives the terminal command to run yourself (#132).
+- **The reviewed list starts empty on purpose**, so the install button explains itself until a hash is pinned; `python tools/pin_ollama_installer.py` prints the hash of the script ollama.com currently serves, to paste in after reading it (#132).
+
 ## 0.1.8 — 2026-10-26
 
 ### Fixed
