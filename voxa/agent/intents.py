@@ -1266,6 +1266,9 @@ ROUTED_TOOLS = frozenset(
         "model_status",
         "flight_status",
         "track_package",
+        "track_order",
+        "order_status",
+        "orders_arriving",
         "compare_prices",
         "look_up",
         "market",
@@ -1433,6 +1436,21 @@ _FLIGHT_STATUS = re.compile(
 _TRACK_PACKAGE = re.compile(
     r"track (?:my |the )?(?:package|parcel|order|delivery)(?: number)? (?P<tracking>.+)"
     r"|where is (?:my )?(?:package|parcel) (?P<tracking2>.+)",
+    re.IGNORECASE,
+)
+_TRACK_ORDER = re.compile(
+    r"track (?:this|these|those) (?:package|parcel|order|delivery|shipment)s?(?: number)? ?(?P<text>.*)",
+    re.IGNORECASE,
+)
+_ORDER_NOTE = re.compile(
+    r"where(?:'s| is) (?P<note>.*?)(?:'s|s)? order"
+    r"|what(?:'s| is) (?P<note2>.*?)(?:'s|s)? order",
+    re.IGNORECASE,
+)
+_ARRIVING = re.compile(
+    r"what(?:'s|s| is)? arriving(?: (?P<when>this week|today|soon|tomorrow|this month))?"
+    r"|(?:when|what) (?:'s|s|is) (?:my |the )?(?:next |any )?(?:order|package|parcel|delivery|shipment)s?"
+    r" (?:is |was )?(?:arriving|arrives|due)(?: (?P<when2>this week|today|soon|tomorrow|this month))?",
     re.IGNORECASE,
 )
 _COMPARE_PRICES = re.compile(
@@ -2127,6 +2145,19 @@ def _route_command(text: str) -> ToolCall | None:
     if _NOW_PLAYING.fullmatch(s):
         return call("now_playing")
 
+    order_note_match = _ORDER_NOTE.fullmatch(s)
+    if order_note_match:
+        return call(
+            "order_status",
+            note=order_note_match.group("note") or order_note_match.group("note2") or "",
+        )
+    arriving_match = _ARRIVING.fullmatch(s)
+    if arriving_match:
+        return call(
+            "orders_arriving",
+            when=arriving_match.group("when") or arriving_match.group("when2") or "",
+        )
+
     if _QUESTION.match(s):
         return None
 
@@ -2499,6 +2530,9 @@ def _route_command(text: str) -> ToolCall | None:
     package_match = _TRACK_PACKAGE.fullmatch(s)
     if package_match:
         return call("track_package", tracking=package_match.group("tracking") or package_match.group("tracking2"))
+    order_text_match = _TRACK_ORDER.fullmatch(s)
+    if order_text_match:
+        return call("track_order", text=order_text_match.group("text"))
     price_match = _COMPARE_PRICES.fullmatch(s)
     if price_match:
         return call("compare_prices",

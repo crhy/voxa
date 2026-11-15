@@ -1,5 +1,11 @@
 # Voxa changelog
 
+## Unreleased
+
+### New
+
+- **Track a parcel from text you paste.** Paste or select a confirmation email or a shop's order page and say "Track this package" — Voxa finds the tracking numbers in the text, opens each carrier page, says the status that page actually states, and keeps a list of what is coming, so "Where is my filament order?" and "What's arriving this week?" answer from that list without opening anything.
+
 ## 0.1.8 — 2026-10-26
 
 ### Fixed

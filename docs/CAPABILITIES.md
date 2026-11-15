@@ -120,6 +120,7 @@ adaptive noise cancellation.
 | “Rent a car in Denver next week” | Expedia car search by price | 🧪 |
 | “Cheapest used Toyota Tacoma under 20000” | Cars.com by list price | 🧪 |
 | “Best price on a 4070 Ti Super” | Google Shopping, price ascending | 🧪 |
+| “Track this package” with a confirmation email pasted | Reads the tracking numbers out of the pasted text, opens each carrier page, speaks the status that page states and keeps an order list; “Where is my filament order?” and “What's arriving this week?” answer from that list | 🧪 |
 | “Give me directions to the San Diego Zoo” | Google Maps directions | 🧪 |
 | “Where is the nearest gas station?” | Google Maps, nearest first | 🧪 |
 | “Show me pictures of …” | Image search | ✅ |
