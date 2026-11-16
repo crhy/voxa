@@ -68,7 +68,10 @@ adaptive noise cancellation.
 | --- | --- | --- |
 | “What is Tesla's stock price?” | Speaks the current Nasdaq quote, including after-hours trading when available | ✅ |
 | “What is the British pound in USD?” | Speaks the latest GBP-to-USD reference exchange rate | ✅ |
-| “What is the current price of Bitcoin?” | Searches the web, answers from the results, shows **Source:** under the answer | 🧪 |
+| “What is the current price of Bitcoin?” | Speaks the price your exchange's public ticker reports (Kraken, Coinbase or Bitstamp); no key needed | 🧪 |
+| “How much Bitcoin do I have?” | Speaks the balance your exchange holds for your trade-only key | 🧪 |
+| “Show my recent exchange orders” | Reads out your most recent orders at the exchange | 🧪 |
+| “Buy fifty dollars of Bitcoin” | Refused out loud until issue #43 decides the spending rule; this slice never trades, withdraws or sends funds | 🧪 |
 | “Tell me about Spaced Linux” | Searches for the named thing instead of guessing | 🧪 |
 | “How many wins do they have?” (after a sports question) | Follow-up search using the previous topic | 🧪 |
 | “What's 532 plus 789?” / “15 percent of 80” / “square root of 144” | Answered instantly, exactly, without the AI model | 🧪 |

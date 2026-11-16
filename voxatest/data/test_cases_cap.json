@@ -5143,7 +5143,7 @@
         "price"
       ],
       "rubric": "The reply confirms the price report.",
-      "expected_tool": "market",
+      "expected_tool": "bitcoin_price",
       "expected_args": {},
       "after": "",
       "verify": {},
@@ -5158,7 +5158,7 @@
         "price"
       ],
       "rubric": "The reply confirms the price report.",
-      "expected_tool": "market",
+      "expected_tool": "bitcoin_price",
       "expected_args": {},
       "after": "",
       "verify": {},
@@ -5173,7 +5173,7 @@
         "price"
       ],
       "rubric": "The reply confirms the price report.",
-      "expected_tool": "market",
+      "expected_tool": "bitcoin_price",
       "expected_args": {},
       "after": "",
       "verify": {},

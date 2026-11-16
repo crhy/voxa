@@ -19,6 +19,7 @@ from voxa.agent.tools.deals import deal_tools
 from voxa.agent.tools.desktoptheme import desktoptheme_tools
 from voxa.agent.tools.devstatus import devstatus_tools
 from voxa.agent.tools.events import event_tools
+from voxa.agent.tools.exchange import exchange_tools
 from voxa.agent.tools.expenses import expense_tools
 from voxa.agent.tools.extract import extract_tools
 from voxa.agent.tools.family import family_tools
@@ -95,6 +96,7 @@ def default_registry() -> ToolRegistry:
         *devstatus_tools(),
         *headsup_tools(),
         *lookups_tools(),
+        *exchange_tools(),
         *transcribe_file_tools(),
         *convert_tools(),
         *memory_facts_tools(),
