@@ -988,6 +988,25 @@ _CAL_CANCEL = re.compile(
 _CAL_NAMED = re.compile(r"calendar|appointment|meeting", re.IGNORECASE)
 _EXPENSE_CATEGORY = r"food|transport|home|fun|health|other"
 _EXPENSE_PERIOD = r"today|this week|this month|this year"
+# Where a receipt lives: a folder word, or a file name with a picture's ending.
+_RECEIPT_EXT = r"\.(?:png|jpe?g|tif|tiff|webp|bmp|gif)"
+_RECEIPT_FILE = rf"[^ ]+{_RECEIPT_EXT}"
+_RECEIPT_WHERE = (
+    r"(?:my |the )?(?:downloads?|download folder|documents?|desktop|pictures|photos)(?: folder)?"
+    rf"|{_RECEIPT_FILE}"
+)
+_RECEIPT_LOG = re.compile(
+    r"(?:"
+    r"(?:log|add|file|record|read|scan) (?:this |the |my |an? )?(?:photo |scan |image )?"
+    rf"(?P<f1>receipt(?:{_RECEIPT_EXT})?)"
+    rf"(?: (?:from|in|off|of) (?P<w1>{_RECEIPT_WHERE}))?"
+    rf"(?: (?P<w3>{_RECEIPT_FILE}))?"
+    rf"(?: (?:to|into|as|for) (?:my |the )?(?:expenses?|spending|ledger))?"
+    r"|(?:what|how much) (?:did )?i spen[dt] according to (?:this |the |my |an? )?receipt"
+    rf"(?: (?:from|in) (?P<w2>{_RECEIPT_WHERE}))?"
+    r")",
+    re.IGNORECASE,
+)
 _EXPENSE_ADD = re.compile(
     r"i spent (?P<a1>.+?) on (?P<w1>.+)|i paid (?P<a2>.+?) for (?P<w2>.+)"
     r"|add an expense of (?P<a3>.+?) for (?P<w3>.+)|log (?P<a4>.+?) for (?P<w4>.+)",
@@ -1298,6 +1317,7 @@ ROUTED_TOOLS = frozenset(
         "expense_breakdown",
         "expense_undo",
         "expense_spreadsheet",
+        "receipt_log",
         "budget_set",
         "budget_status",
         "trip_cost",
@@ -1627,6 +1647,16 @@ def _route_command(text: str) -> ToolCall | None:
         return call("expense_undo")
     if _EXPENSE_SHEET.fullmatch(s):
         return call("expense_spreadsheet")
+    receipt_log = _RECEIPT_LOG.fullmatch(s)
+    if receipt_log:
+        named = receipt_log.group("f1") or ""
+        path = (
+            receipt_log.group("w1")
+            or receipt_log.group("w2")
+            or receipt_log.group("w3")
+            or (named if "." in named else "")
+        )
+        return call("receipt_log", path=path.strip())
     event_plan = _EVENT_PLAN.fullmatch(s)
     if event_plan:
         event = event_plan.group("event").strip()
