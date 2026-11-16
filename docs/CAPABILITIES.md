@@ -116,6 +116,7 @@ adaptive noise cancellation.
 | Try saying | What should happen | Status |
 | --- | --- | --- |
 | “Get me the cheapest ticket to Hawaii” | Expedia flight search from your current city, cheapest first | 🧪 |
+| “Read back the flights” / “what are the cheapest flights” / “compare them” | Opens the search in the browser Voxa controls, or reads the page already open, and says the top three aloud, cheapest first, with stops, duration and price | 🧪 |
 | “Find me a cheap hotel in Tokyo for 4 nights” | Expedia hotels, low to high | 🧪 |
 | “Rent a car in Denver next week” | Expedia car search by price | 🧪 |
 | “Cheapest used Toyota Tacoma under 20000” | Cars.com by list price | 🧪 |

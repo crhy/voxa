@@ -2,6 +2,10 @@
 
 ## 0.1.8 — 2026-10-26
 
+### New
+
+- **A flight search reads itself back.** "Read back the flights", "what are the cheapest flights" or "compare them" opens the search in the browser Voxa controls and says the top three aloud, cheapest first, with stops, duration and price. Hotel and product searches read back their names and prices; when a page will not parse, she says what she opened and leaves it to your eyes.
+
 ### Fixed
 
 - Follow-up questions keep the earlier question and answer as context for both typed and spoken conversations.

@@ -1328,6 +1328,7 @@ ROUTED_TOOLS = frozenset(
         "home_scene",
         "home_status",
         "find_deal",
+        "deal_results",
         "set_location",
         "tell_time",
         "transcribe_file",
@@ -1475,6 +1476,18 @@ _FACT_CHECK = re.compile(
     r"fact check (?:that )?(?P<claim>.+)"
     r"|is it true that (?P<claim2>.+)"
     r"|verify (?:that )?(?P<claim3>.+)",
+    re.IGNORECASE,
+)
+
+# Reading a price or booking search back aloud instead of only opening it (crhy/voxa#48).
+_DEAL_NOUN = r"(?:results?|options?|choices?|fares?|flights?|hotels?|tickets?|deals?|prices?|ones?)"
+_DEAL_COUNT = r"(?:top|best|first|cheapest|three|two|few|several|\d+)"
+_DEAL_READ = re.compile(
+    r"(?:read|recite|speak|tell)(?:\s+back)?\s+(?:me\s+)?(?:the\s+|these\s+|those\s+|my\s+)?"
+    rf"(?:{_DEAL_COUNT}\s+)*(?:{_DEAL_NOUN}|{_DEAL_COUNT})\b"
+    rf"|(?:what|how)\b.*?\b(?:are|is)\s+(?:the\s+)?(?:{_DEAL_COUNT}\s+)*{_DEAL_NOUN}\b"
+    rf"|(?:compare|rank)\s+(?:the\s+|these\s+|my\s+|both\s+)?"
+    rf"(?:{_DEAL_COUNT}\s+)*(?:{_DEAL_NOUN}|them|these|those)\b",
     re.IGNORECASE,
 )
 
@@ -2019,6 +2032,9 @@ def _route_command(text: str) -> ToolCall | None:
         return call("set_location", city=location_use.group(1))
     if _LOCATION_FORGET.fullmatch(s):
         return call("set_location", city="")
+
+    if _DEAL_READ.fullmatch(s):
+        return call("deal_results", request=s)
 
     if parse_request(s, date.today()):
         return call("find_deal", request=s)

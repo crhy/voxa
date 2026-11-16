@@ -246,6 +246,7 @@ def test_registry_lists_all_tools():
             "date_remember",
             "date_upcoming",
             "date_when",
+            "deal_results",
             "delete_last_note",
             "directions",
             "disk_space",
