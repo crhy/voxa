@@ -214,6 +214,7 @@ adaptive noise cancellation.
 | Preferences → Local AI → pull a model | Moving progress bar; list refreshes when done | 🧪 |
 | Backend → Strata | Shows Strata's model when Strata is running | 🧪 |
 | Backend → llama.cpp | Lists model files even before the server starts | 🧪 |
+| Backend → llama.cpp, brains list | Suggests the largest brain this machine fits, and each rung says "Fits this machine" or "Too big for this machine (~N GB)"; no Ollama tag is ever offered (#130) | 🧪 |
 | High selected with a large model | Warns when the two will not fit on the graphics card | 🧪 |
 | Look beside the backend selector | A dot and a word: Online, Starting… or Offline | 🧪 |
 

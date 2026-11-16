@@ -4,6 +4,7 @@
 
 ### Fixed
 
+- llama.cpp now suggests brains sized for the machine: the hardware summary names GGUF brains instead of Ollama tags, and the brain manager marks each rung "Fits this machine" or "Too big for this machine (~N GB)" (#130).
 - Follow-up questions keep the earlier question and answer as context for both typed and spoken conversations.
 - Plain music requests search the Music folder before opening an online stream, and named desktop players still receive the requested local tracks.
 - “Play the currently loaded playlist in Audacious” resumes that player instead of searching for a file named “currently loaded playlist”.

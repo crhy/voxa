@@ -386,6 +386,9 @@ class MainWindow(Adw.ApplicationWindow):
         self._loading_cancel: threading.Event | None = None
         self._hardware_summary = "Detecting your hardware…"
         self._suggested_models: list[str] = []
+        # What the hardware sweep measured, kept so the brains page can say which
+        # rungs are worth this machine's memory before anything is downloaded.
+        self._available_model_gb: float | None = None
         self._install_cancel = threading.Event()
         self._installing = False
         self._has_gpu = False
@@ -1473,6 +1476,19 @@ class MainWindow(Adw.ApplicationWindow):
         self.shell.model_selector.set_status("offline")
         return False
 
+    def _pick_suggestions(self, available_gb: float, source: str, catalog, reserved_gb: float) -> list:
+        """The suggestion list for the backend in use.
+
+        llama.cpp thinks with GGUF files on disk, so it gets brains from the
+        pinned ladder; only Ollama gets Ollama tags, since a name containing
+        ":" is a model llama.cpp cannot run.
+        """
+        if self.settings.ai_backend == "llamacpp":
+            return smallbrain.brain_suggestions(available_gb, reserved_gb=reserved_gb)
+        if source == "GPU VRAM":
+            return suggest_models(available_gb, catalog=catalog, reserved_gb=reserved_gb)
+        return no_gpu_suggestions(catalog)
+
     def _detect_hardware_async(self) -> None:
         def gpu_fit_warning(available_gb: float, reserved_gb: float) -> bool:
             """True when the current model plus the reservation exceeds the VRAM."""
@@ -1495,11 +1511,7 @@ class MainWindow(Adw.ApplicationWindow):
             # Show something immediately from the built-in or cached catalog,
             # so the suggestion never waits on the network.
             catalog = load_catalog()
-            suggestions = (
-                suggest_models(available_gb, catalog=catalog, reserved_gb=reserved)
-                if has_gpu
-                else no_gpu_suggestions(catalog)
-            )
+            suggestions = self._pick_suggestions(available_gb, source, catalog, reserved)
             idle(
                 self._apply_hardware_summary,
                 available_gb,
@@ -1519,11 +1531,7 @@ class MainWindow(Adw.ApplicationWindow):
                     self._apply_hardware_summary,
                     available_gb,
                     source,
-                    (
-                        suggest_models(available_gb, catalog=refreshed, reserved_gb=reserved)
-                        if has_gpu
-                        else no_gpu_suggestions(refreshed)
-                    ),
+                    self._pick_suggestions(available_gb, source, refreshed, reserved),
                     reserved,
                     False,  # One toast per detection run.
                 )
@@ -1531,8 +1539,10 @@ class MainWindow(Adw.ApplicationWindow):
         threading.Thread(target=worker, name="hardware-detect", daemon=True).start()
 
     def _apply_hardware_summary(self, available_gb: float, source: str, suggestions: list, reserved_gb: float = 0.0, gpu_fit_warning: bool = False) -> bool:
-        self._suggested_models = [model.name for model in suggestions]
+        # GGUF rungs carry a label, Ollama catalog entries a tag name.
+        self._suggested_models = [model.label if hasattr(model, "label") else model.name for model in suggestions]
         names = ", ".join(self._suggested_models)
+        self._available_model_gb = available_gb
         self._hardware_summary = f"Suggested for this machine (~{available_gb:.0f} GB {source}): {names}"
         if reserved_gb > 0:
             self._hardware_summary += f" ({reserved_gb:g} GB kept free for the High face and speech recognition)"
@@ -1601,7 +1611,7 @@ class MainWindow(Adw.ApplicationWindow):
         if backend == "llamacpp":
             current = self.settings.llamacpp_model
             if models and (not current or not Path(current).is_file()):
-                self.settings.llamacpp_model = str(smallbrain.path_for(smallbrain.BRAINS[0]))
+                self.settings.llamacpp_model = str(smallbrain.path_for(smallbrain.DEFAULT_BRAIN))
                 self.config_store.save(self.settings)
         elif models and self.settings.ollama_model not in models:
             self.settings.ollama_model = models[0]
@@ -1978,6 +1988,19 @@ class MainWindow(Adw.ApplicationWindow):
         cancel_event = threading.Event()
         dialog.connect("closed", lambda *_: cancel_event.set())
         in_use = self.settings.llamacpp_model
+        # The hardware sweep measured this machine already; if the page opens
+        # before that finished, measure here rather than guess.
+        available_gb = self._available_model_gb
+        if available_gb is None:
+            available_gb = detect_available_model_memory_gb()[0]
+        reserved_gb = reserved_gpu_gb(self.settings.face_mode, True) if self._has_gpu else 0.0
+
+        def state_text(model: smallbrain.ModelFile, state: str) -> str:
+            if state == "in use":
+                return "In use"
+            if state == "downloaded":
+                return "Downloaded"
+            return f"About {model.bytes / 1e6:.0f} MB"
 
         def select_brain(model: smallbrain.ModelFile) -> None:
             self.settings.llamacpp_model = str(smallbrain.path_for(model))
@@ -1988,15 +2011,13 @@ class MainWindow(Adw.ApplicationWindow):
         for model in smallbrain.BRAINS:
             row = Adw.ActionRow(title=model.label)
             state = smallbrain.row_state(model, in_use)
-            if state == "in use":
-                row.set_subtitle("In use")
-            elif state == "downloaded":
-                row.set_subtitle("Downloaded")
-            else:
-                row.set_subtitle(f"About {model.bytes / 1e6:.0f} MB")
+            note = smallbrain.fit_note(model, available_gb, reserved_gb)
+            resting = f"{state_text(model, state)} — {note}"
+            row.set_subtitle(resting)
+            row.set_tooltip_text(note)
 
             if state == "missing":
-                def start_download(btn, model=model, row=row) -> None:
+                def start_download(btn, model=model, row=row, resting=resting) -> None:
                     btn.set_sensitive(False)  # one download at a time into the same .part file
                     def on_progress(done: int, total: int) -> None:
                         if total > 0:
@@ -2010,7 +2031,7 @@ class MainWindow(Adw.ApplicationWindow):
                         try:
                             path = smallbrain.download(model, on_progress=on_progress, cancel=cancel_event)
                         except smallbrain.DownloadCancelled:
-                            idle(row.set_subtitle, f"About {model.bytes / 1e6:.0f} MB")
+                            idle(row.set_subtitle, resting)
                             idle(btn.set_sensitive, True)
                             return
                         except smallbrain.DownloadError as exc:
