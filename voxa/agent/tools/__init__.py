@@ -37,6 +37,7 @@ from voxa.agent.tools.localmusic import local_music_tools
 from voxa.agent.tools.lookups import lookups_tools
 from voxa.agent.tools.meals import meals_tools
 from voxa.agent.tools.media import media_tools
+from voxa.agent.tools.meeting_notes import meeting_note_tools
 from voxa.agent.tools.memory_facts import memory_facts_tools
 from voxa.agent.tools.notes import notes_tools
 from voxa.agent.tools.projectsteps import project_steps_tools
@@ -96,6 +97,7 @@ def default_registry() -> ToolRegistry:
         *headsup_tools(),
         *lookups_tools(),
         *transcribe_file_tools(),
+        *meeting_note_tools(),
         *convert_tools(),
         *memory_facts_tools(),
         *calendar_local_tools(),

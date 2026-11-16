@@ -1,5 +1,18 @@
 # Voxa changelog
 
+## Unreleased
+
+### New
+
+- **A call recording becomes a dated meeting note.** "Take notes on the dentist call" finds that recording in
+  your usual folders, transcribes it with the local Whisper model, and saves one block in Documents: the
+  transcript, the decisions heard in it, the action items heard in it and the speakers. The transcript never
+  leaves the machine. (#65)
+- **Ask what was decided.** "What did we decide yesterday", "What did we agree last week", "Read my meeting
+  notes" search the archive on your machine and read the decisions and action items back. (#65)
+- **A meeting's action items become appointments.** "Add the action items from the dentist call to my calendar"
+  writes them on the calendar you already have. (#65)
+
 ## 0.1.8 — 2026-10-26
 
 ### Fixed

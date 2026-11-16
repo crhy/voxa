@@ -12,6 +12,7 @@ from voxa.agent.filematch import folder_key
 from voxa.agent.hearing import normalize
 from voxa.agent.helptext import topic_for
 from voxa.agent.mailflow import spoken_address
+from voxa.agent.meeting_notes import relative_span
 from voxa.agent.tools import translate
 from voxa.agent.tools.browser import site_url
 from voxa.apps import clean_spoken_app_name
@@ -895,6 +896,49 @@ _TRANSCRIBE = re.compile(
     r"(?: in (?:the |my )?(?P<folder>.+?)(?: folder)?)?",
     re.IGNORECASE,
 )
+# crhy/voxa#65: notes on a call, and what was decided in one already taken.
+_MEETING_NOTE_SAVE = re.compile(
+    r"(?:take|make|keep|record|note|write|summariz(?:e|ing)|transcrib(?:e|ing))"
+    r" (?:me |my |a |an )?(?:meeting |call |conversation |recording |voice ?memo )?notes?"
+    r"(?: (?:on|about|for|from) (?:the |my |this |that )?(?P<name>.+?))?"
+    r"(?: in (?:the |my )?(?P<folder>.+?)(?: folder)?)?",
+    re.IGNORECASE,
+)
+_MEETING_NOTE_DECIDED = re.compile(
+    r"what (?:did we|was|were) (?:decid\w*|agree\w*|settle\w*)(?: on| about)? (?P<scope>.+)",
+    re.IGNORECASE,
+)
+_MEETING_NOTE_READ = re.compile(
+    r"(?:read|show|open|list) (?:me |my |the )?(?:meeting |call |conversation )notes?"
+    r"(?: (?:on|about|for) (?:the |my )?(?P<keyword>.+?))?",
+    re.IGNORECASE,
+)
+_MEETING_NOTE_ACTIONS = re.compile(
+    r"(?:(?:turn|make|take|put|add|save|schedule|move) )?"
+    r"(?:(?:the |my |our )|(?P<lead>\w+'s) )?"
+    r"(?P<items>action items?|actions?|to dos?|todos?)"
+    r"(?: (?:from|of|in|for) (?:my |the )?(?P<name>.+?))?"
+    r"(?: (?:on|to|in|into|for|onto) (?:my |the )?calendar(?: (?:entries?|items?|appointments?)|(?P<when>.+))?)?",
+    re.IGNORECASE,
+)
+_NOTE_CONNECTIVE = re.compile(r"(?:on|about|of|for|regarding)", re.IGNORECASE)
+
+
+def _note_scope(scope: str) -> tuple[str, str]:
+    """Split a scope such as "the dentist call yesterday at 3" into its day phrase and its keyword."""
+    text = " ".join(scope.strip().split())
+    tail = re.search(r" at (?P<time>.+)$", text)
+    if tail is not None and parse_time(tail.group("time")) is not None:
+        text = text[: tail.start()]
+    words = text.split()
+    for cut in range(1, len(words) + 1):
+        phrase = " ".join(words[cut - 1 :])
+        if relative_span(phrase, date.today()) is not None:
+            keyword = " ".join(words[: cut - 1])
+            return (phrase, "" if _NOTE_CONNECTIVE.fullmatch(keyword) else keyword)
+    if _NOTE_CONNECTIVE.fullmatch(text):
+        return ("", "")
+    return ("", text)
 _FOCUS_DURATION = r"(?:\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|fifteen|twenty|thirty)[\s-]+(?:minutes?|hours?)"
 _FOCUS_START = re.compile(
     rf"(?:start|begin)\s+(?:a |an |at )?(?:(?P<dur1>{_FOCUS_DURATION})\s+)?focus\s+(?:session|time|timer|block)"
@@ -1331,6 +1375,9 @@ ROUTED_TOOLS = frozenset(
         "set_location",
         "tell_time",
         "transcribe_file",
+        "meeting_note_actions",
+        "meeting_note_from_recording",
+        "meeting_note_recall",
         "tell_date",
         "world_time",
         "time_difference",
@@ -1633,6 +1680,19 @@ def _route_command(text: str) -> ToolCall | None:
         tail = event_plan.group("tail").strip()
         when = re.sub(r"^(?:for|on)\s+", "", tail, flags=re.IGNORECASE).strip()
         return call("event_plan", event=event, when=when)
+    # crhy/voxa#65 step 2: the action items of a meeting note become calendar entries. It sits
+    # before the calendar rules so "add the action items ... to my calendar" is not read as an
+    # appointment called "the action items"; the rules above keep spending intact.
+    note_actions = _MEETING_NOTE_ACTIONS.fullmatch(s)
+    if note_actions:
+        spoken = note_actions.group("name") or (note_actions.group("lead") or "").removesuffix("'s")
+        day, keyword = _note_scope(spoken)
+        return call(
+            "meeting_note_actions",
+            name=keyword,
+            day=day,
+            when=(note_actions.group("when") or "").strip(),
+        )
     for _cal_add in (_CAL_ADD1, _CAL_ADD2, _CAL_ADD3, _CAL_ADD4):
         _cal_m = _cal_add.fullmatch(s)
         if _cal_m and _cal_m.group("when") and split_when(_cal_m.group("when"), date.today()) is not None:
@@ -1705,6 +1765,24 @@ def _route_command(text: str) -> ToolCall | None:
     transcribe = _TRANSCRIBE.fullmatch(s)
     if transcribe:
         return call("transcribe_file", name=transcribe.group("name"), folder=transcribe.group("folder") or "")
+    note_save = _MEETING_NOTE_SAVE.fullmatch(s)
+    if note_save:
+        return call(
+            "meeting_note_from_recording",
+            name=note_save.group("name") or "",
+            folder=note_save.group("folder") or "",
+        )
+    note_decided = _MEETING_NOTE_DECIDED.fullmatch(s)
+    if note_decided:
+        day, keyword = _note_scope(note_decided.group("scope"))
+        # "what did we decide" on its own stays the conversation summary; only a day
+        # or a topic asks the meeting archive.
+        if day or keyword:
+            return call("meeting_note_recall", day=day, keyword=keyword)
+    note_read = _MEETING_NOTE_READ.fullmatch(s)
+    if note_read:
+        day, keyword = _note_scope(note_read.group("keyword") or "")
+        return call("meeting_note_recall", day=day, keyword=keyword)
     if _CAL_CONFLICTS.fullmatch(s):
         return call("calendar_conflicts")
     for _cal_weekly in (_CAL_WEEKLY1, _CAL_WEEKLY2, _CAL_WEEKLY3):
