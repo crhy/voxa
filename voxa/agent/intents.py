@@ -106,6 +106,21 @@ _GPU_STATUS = re.compile(
     r"|gpu (?:temperature|status|usage)",
     re.IGNORECASE,
 )
+# Which card Voxa's own brain runs on, and asking for it to be moved (crhy/voxa#113).
+# Kept apart from _GPU_STATUS, which is about the card's temperature and load.
+_GPU_BRAIN_WHERE = re.compile(
+    r"(?:which|what|where) (?:gpu|graphics card|card) (?:is )?voxa(?:'s)?(?: (?:brain|ai|model))?(?: (?:using|used|on|running|sitting|going))?"
+    r"|voxa(?:'s)? (?:brain|ai|model) (?:gpu|graphics card|card)"
+    r"|voxa(?:'s)? (?:brain|ai|model) on (?:a |the |which |another |other )?(?:gpu|graphics card|card)"
+    r"|(?:which|what) (?:gpu|graphics card|card) (?:does|is) voxa (?:use|using|run|running)",
+    re.IGNORECASE,
+)
+_GPU_BRAIN_MOVE = re.compile(
+    r"(?:put|move|switch|change|set) voxa(?:'s)?(?: (?:brain|ai|model))?(?: (?:on|onto|to|in))?(?: (?:the |a |an |another |her |discrete ))?(?:other|second|different|free|spare|discrete|main)? ?(?:gpu|graphics card|card)"
+    r"|(?:keep|put|move|switch|set|use) voxa(?:'s)?(?: (?:brain|ai|model))?(?: on)? (?:on |to |in )?(?:the |her )?cpu"
+    r"|(?:is )?voxa(?:'s)? (?:brain|ai|model) on (?:the |a |another )?(?:other |different |free |spare )?(?:gpu|graphics card|cpu)",
+    re.IGNORECASE,
+)
 _CPU_STATUS = re.compile(
     r"how hot is (?:my|the) (?:cpu|processor|computer)"
     r"|what(?:'s| is) (?:my|the) (?:cpu|processor) (?:temperature|temp|usage|load)"
@@ -1338,6 +1353,7 @@ ROUTED_TOOLS = frozenset(
         "disk_space",
         "memory_free",
         "gpu_status",
+        "gpu_choose",
         "cpu_status",
         "system_health",
         "battery_level",
@@ -2088,6 +2104,10 @@ def _route_command(text: str) -> ToolCall | None:
     if _MEMORY_FREE.fullmatch(s):
         return call("memory_free")
     if _GPU_STATUS.fullmatch(s):
+        return call("gpu_status")
+    if _GPU_BRAIN_MOVE.fullmatch(s):
+        return call("gpu_choose", move="cpu" if "cpu" in s else "other")
+    if _GPU_BRAIN_WHERE.fullmatch(s):
         return call("gpu_status")
     if _CPU_STATUS.fullmatch(s):
         return call("cpu_status")

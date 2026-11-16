@@ -1,5 +1,19 @@
 # Voxa changelog
 
+## Unreleased
+
+### New
+
+- **Voxa names every graphics card she has and can take one of them.** "Which gpu is voxa
+  using" answers with the card her brain runs on, its vendor, its size and why that card was
+  picked. "Put voxa on the other gpu" or "keep voxa on the cpu" saves the choice, and the next
+  time her AI server starts it is handed to that server - Ollama through its environment
+  (`CUDA_VISIBLE_DEVICES`, `OLLAMA_NUM_GPU=0` for the processor), llama.cpp through
+  `--device cuda --main-gpu N`. A machine with a single card is told so out loud instead of
+  being promised a split, and a saved card that is not in the machine today falls back to
+  automatic. Running the split on real silicon is still to be measured. (`voxa/hardware.py`,
+  `voxa/config.py`, `voxa/engine.py`, `voxa/server.py`, `voxa/agent/tools/system.py`) (#113) 🧪
+
 ## 0.1.8 — 2026-10-26
 
 ### Fixed

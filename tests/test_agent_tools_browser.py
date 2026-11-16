@@ -281,6 +281,7 @@ def test_registry_lists_all_tools():
             "get_contact_email",
             "get_noise_cancellation",
             "go_back",
+            "gpu_choose",
             "gpu_status",
             "heads_up",
             "hidden_files",
