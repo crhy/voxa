@@ -1,5 +1,13 @@
 # Voxa changelog
 
+## Unreleased
+
+### New
+
+- **The morning briefing carries your bills.** "Good morning" now adds this month's spending after the reminders, and says so plainly when a budget you set is over: "You have spent 12 dollars and 50 cents this month. You are 2 dollars and 50 cents over your 10 dollar food budget this month." Nothing is said when the spending log is empty or unreadable. (`voxa/agent/briefing.py`, `voxa/agent/tools/briefing.py`) (#57) 🧪
+
+Still open on #57: important email and deliveries join the briefing only once a mail-read path and an orders/deliveries module exist — neither is on `main` yet, and nothing here pretends otherwise.
+
 ## 0.1.8 — 2026-10-26
 
 ### Fixed

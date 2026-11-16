@@ -1,9 +1,11 @@
-"""The morning briefing: the day, the weather, and what is due — each part optional."""
+"""The morning briefing: the day, the weather, what is due, and the bills — each part optional."""
 
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import date, datetime
+
+from voxa.agent.expenses import period_start, spoken_budget, spoken_total, total
 
 
 def parse_weather(json_text: str, fahrenheit: bool = True) -> str:
@@ -44,8 +46,30 @@ def reminders_today(reminders, now: datetime) -> str:
     return f"You have {len(due)} {noun} today: {listed}{more}."
 
 
-def compose(greeting: str, date_sentence: str, weather: str, reminders: str, calendar: str = "") -> str:
-    parts = [greeting, date_sentence, weather, reminders or "Nothing is on your reminder list today.", calendar]
+def money_line(items, budgets, today: date) -> str:
+    """"You have spent 12 dollars and 50 cents this month."; "" when nothing was spent this month.
+
+    A set budget that is actually over adds its own sentence; a budget still within reach adds nothing.
+    """
+    start, _words = period_start("", today)
+    if not total(items, start):
+        return ""
+    line = spoken_total(items, today, "", None)
+    for category, budget in budgets.items():
+        if total(items, start, category) > budget:
+            line = f"{line} {spoken_budget(items, budgets, today, category)}"
+    return line
+
+
+def compose(
+    greeting: str,
+    date_sentence: str,
+    weather: str,
+    reminders: str,
+    calendar: str = "",
+    money: str = "",
+) -> str:
+    parts = [greeting, date_sentence, weather, reminders or "Nothing is on your reminder list today.", calendar, money]
     return " ".join(part.strip() for part in parts if part and part.strip())
 
 
