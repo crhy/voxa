@@ -63,6 +63,15 @@ _FILLERS = frozenset(
 )
 
 
+def language_name(spoken: str) -> str | None:
+    """The language NAME Voxa has a voice for, from how it was said ("japanese", "Spanish."); None when she has none."""
+    wanted = "".join(ch for ch in (spoken or "").casefold() if ch.isalpha() or ch == " ").strip()
+    for name, aliases in ALIASES.items():
+        if wanted == name.lower() or wanted in {a.lower() for a in aliases}:
+            return name
+    return None
+
+
 def requested_language(text: str) -> str | None:
     """The language NAME the sentence asks for, or None."""
     lowered = text.lower()

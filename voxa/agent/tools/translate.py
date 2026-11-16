@@ -6,7 +6,7 @@ from collections.abc import Callable
 from voxa.agent.policy import RiskLevel
 from voxa.agent.registry import Tool
 from voxa.agent.result import ToolResult
-from voxa.replylang import ALIASES, LANGUAGES
+from voxa.replylang import LANGUAGES, language_name
 
 ask_model: Callable | None = None                 # set by the window: messages -> text
 speak_in: Callable[[str], None] | None = None     # set by the window: speak the NEXT reply with this language's voice
@@ -15,15 +15,6 @@ PROMPT = (
     "Translate the user's text into {language}. Reply with ONLY the translation in {language}: "
     "no quotes, no explanation, no transliteration, no extra words."
 )
-
-
-def language_name(spoken: str) -> str | None:
-    """The language Voxa has a voice for, from how it was said ("japanese", "Spanish."); None when she has none."""
-    wanted = re.sub(r"[^a-z ]", "", (spoken or "").lower()).strip()
-    for name, aliases in ALIASES.items():
-        if wanted == name.lower() or wanted in {a.lower() for a in aliases}:
-            return name
-    return None
 
 
 def tidy(answer: str) -> str:

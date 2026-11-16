@@ -29,7 +29,20 @@ from . import (  # noqa: E402
     websearch,
     welcome,
 )
-from .agent import hearing, host, intents, issueflow, livetv, mailflow, planner, radio, repeat, saveflow, ui  # noqa: E402
+from .agent import (  # noqa: E402
+    hearing,
+    host,
+    intents,
+    interpreter,
+    issueflow,
+    livetv,
+    mailflow,
+    planner,
+    radio,
+    repeat,
+    saveflow,
+    ui,
+)
 from .agent.actionlog import ActionLog, ActionRecord  # noqa: E402
 from .agent.claims import claims_action, first_sentences  # noqa: E402
 from .agent.host import host_command  # noqa: E402
@@ -72,6 +85,7 @@ from .agent.tools import (  # noqa: E402
     windows,
 )
 from .agent.tools import briefing as briefing_tool  # noqa: E402
+from .agent.tools import interpreter as interpreter_tools  # noqa: E402
 from .agent.tools.web import get_session  # noqa: E402
 from .anc import EchoCanceller as AncCanceller  # noqa: E402
 from .audio import AudioCapture, AudioDevice, webrtc_available  # noqa: E402
@@ -372,6 +386,10 @@ class MainWindow(Adw.ApplicationWindow):
         self._reply_language: str | None = None
         # The last question actually asked, so a bare "in German" can re-answer it.
         self._last_user_prompt: str | None = None
+        # Interpreter mode (#66): one session alternating two languages. The tools
+        # module owns the single object, so the spoken commands and the microphone
+        # pipeline always see the same pair.
+        self.interpreter_session = interpreter_tools.SESSION
         self.query_cancel = threading.Event()
         self.devices: list[AudioDevice] = []
         self.ollama_models: list[str] = []
@@ -426,6 +444,8 @@ class MainWindow(Adw.ApplicationWindow):
         rebook.ask_model = lambda messages: textedit.ask_model(messages)
         slides.ask_model = lambda messages: textedit.ask_model(messages)
         translate.speak_in = self._speak_next_reply_in
+        interpreter_tools.ask_model = lambda messages: textedit.ask_model(messages)
+        interpreter_tools.speak_in = self._speak_next_reply_in
         briefing_tool.get_location = lambda: self.settings.home_location
         anc.get_echo_mode = lambda: getattr(self.settings, "echo_mode", "voxa")
         anc.set_echo_mode = self._save_echo_mode
@@ -2362,7 +2382,7 @@ class MainWindow(Adw.ApplicationWindow):
 
         self.dictation = DictationController(
             self.whisper,
-            language=self.settings.language,
+            language=self._transcription_language(),
             threshold=self.settings.voice_threshold,
             silence_ms=self.settings.silence_ms,
             max_segment_seconds=self.settings.max_segment_seconds,
@@ -2473,6 +2493,8 @@ class MainWindow(Adw.ApplicationWindow):
             on_timing=lambda stage: idle(session(self._on_stage_timing), stage, time.monotonic()),
         )
         self.conversation.own_speech = self.own_speech
+        # An interpreter session already open listens in its current side language.
+        self._apply_interpreter_language()
         # Test builds: what was heard without a wake word goes to barge.log (local only), so a missed
         # "Voxa, …" can be explained. Remove or make optional before a release.
         self.conversation.on_ignored = self._trace_ignored
@@ -2880,6 +2902,10 @@ class MainWindow(Adw.ApplicationWindow):
             # queue is empty. The per-step speech is suppressed; only "Done." speaks.
             self._run_routine_step()
             return False
+        if self._last_tool_started.startswith("interpreter_"):
+            # Interpreter mode just turned on, off or flipped: the microphone has to
+            # listen in the session's current language from the next breath.
+            self._apply_interpreter_language()
         speech = result.speech
         detail = getattr(result, "detail", "") or ""
         self._media_just_started = (
@@ -3541,6 +3567,46 @@ class MainWindow(Adw.ApplicationWindow):
             self._reply_language = self._language_before_once
             del self._language_before_once
 
+    def _transcription_language(self) -> str:
+        """The language to transcribe in: the interpreter session's side, else the setting."""
+        if self.interpreter_session.active:
+            code = interpreter.transcription_code(self.interpreter_session.last_side)
+            if code is not None:
+                return code
+        return self.settings.language
+
+    def _apply_interpreter_language(self) -> None:
+        """Hand the session's current side to the live microphone pipeline.
+
+        Only the prompt (real) model follows it: the wake phase keeps listening in
+        the normal language, so the wake word still works whatever language is
+        being interpreted.
+        """
+        session = self.interpreter_session
+        if self.conversation is not None:
+            self.conversation.prompt_language = (
+                interpreter.transcription_code(session.last_side) if session.active else None
+            )
+        if self.dictation is not None:
+            self.dictation.language = self._transcription_language()
+
+    def _interpreter_turn(self) -> tuple[str, str] | None:
+        """One interpreter turn: the language just heard, and the language to answer in.
+
+        Every turn flips the side, so the next utterance is transcribed in the other
+        language and the two voices alternate exactly as one reply language does.
+        """
+        if not self.interpreter_session.active:
+            return None
+        heard = self.interpreter_session.last_side
+        answer = interpreter.target_language(self.interpreter_session.sides(), heard)
+        if answer is None:
+            return None
+        self._speak_next_reply_in(answer)
+        self.interpreter_session.switch()
+        self._apply_interpreter_language()
+        return (heard, answer)
+
     def ask_ai(self, prompt: str | None = None) -> None:
         marks = getattr(self, "_cmd_marks", None) or {}
         if "prompt" not in marks:
@@ -3657,6 +3723,13 @@ class MainWindow(Adw.ApplicationWindow):
             self._toast("No model is selected yet.")
             return
 
+        interpreter_turn = self._interpreter_turn() if self.interpreter_session.active else None
+        if interpreter_turn is not None:
+            # An interpreter turn is a translation, not an answer: the heard words go
+            # to the model inside the same strict instruction the "say X in Y" tool
+            # uses, and the reply comes back in the other side's voice.
+            prompt = f"{interpreter.prompt_for(interpreter_turn[1])}\n\n{prompt}"
+
         email = mail.parse_email_command(prompt)
         if email is not None:
             self._draft_and_act(
@@ -3706,7 +3779,7 @@ class MainWindow(Adw.ApplicationWindow):
         # Keep one bounded thread for every AI question.  Typed questions and
         # spoken conversation use the same model, so follow-ups must see the
         # same earlier turns regardless of how the user entered them.
-        if self.conversation_active:
+        if self.conversation_active and interpreter_turn is None:
             wanted = requested_language(prompt)
             if wanted is not None:
                 self._reply_language = (

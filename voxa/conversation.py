@@ -241,6 +241,10 @@ class ConversationController:
         self.wake_whisper = wake_whisper
         self.prompt_whisper = prompt_whisper
         self.language = language
+        # Interpreter mode (#66): the language of the side speaking now. Only the
+        # prompt (real) model follows it; the wake phase keeps listening in `language`,
+        # so the wake word is still recognised whatever language is interpreted.
+        self.prompt_language: str | None = None
         self.wake_word = wake_word
         self.threshold = threshold
         self.silence_seconds = silence_ms / 1000.0
@@ -508,7 +512,8 @@ class ConversationController:
             self.on_status("Transcribing…")
             prompt_model = whisper is self.prompt_whisper
             start = time.perf_counter() if prompt_model else 0.0
-            text = whisper.transcribe(segment, self.language, hint) if hint else whisper.transcribe(segment, self.language)
+            language = self.prompt_language if prompt_model and self.prompt_language else self.language
+            text = whisper.transcribe(segment, language, hint) if hint else whisper.transcribe(segment, language)
             if prompt_model:
                 self._report_timing(whisper, len(segment) / 32000.0, time.perf_counter() - start)
         except Exception as exc:  # noqa: BLE001 - worker boundary

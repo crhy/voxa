@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass
 from datetime import date
 
-from voxa.agent import calc, dates, livetv, lookups, radio, worldtime
+from voxa.agent import calc, dates, interpreter, livetv, lookups, radio, worldtime
 from voxa.agent.calendar_local import parse_time, split_when, spoken_time
 from voxa.agent.convert import target_extension
 from voxa.agent.deals import parse_request
@@ -195,6 +195,38 @@ _BRIEFING = re.compile(
 )
 _SAY_IN = re.compile(
     r"(?:how\s+(?:do\s+(?:i|you)|would\s+(?:i|you))\s+say|say|translate|what(?:'s|\s+is))\s+(.+?)\s+(?:in|into|to)\s+([a-z]+)",
+    re.IGNORECASE,
+)
+# Interpreter mode (#66): one session alternating two languages live. The pair may
+# be named in the request ("interpreter mode english and spanish") or left out, in
+# which case the tool asks for it.
+_INTERPRETER_START = re.compile(
+    r"(?:(?:start|begin|resume|enter|use|try)\s+(?:live\s+)?|(?:live\s+)?)"
+    r"(?:interpreter(?:\s+mode)?|interpreting|interpret)(?:\s+(.*))?",
+    re.IGNORECASE,
+)
+# Words that carry no language, so "interpreter mode now" still asks for the pair.
+_INTERPRETER_TAIL_FILLERS = frozenset({"mode", "live", "real", "time", "now", "please", "again", "session", "for", "me", "on"})
+_INTERPRETER_STOP = re.compile(
+    r"(?:stop|end|leave|exit|quit|disable|(?:turn|switch)\s+off)\s*(?:(?:the|my|live)\s+)?"
+    r"(?:interpreter\s+mode|interpreting|interpreter|interpretation)(?:\s+(?:now|mode))?",
+    re.IGNORECASE,
+)
+# Only the plural object: "switch languages" flips the pair, while "switch to Spanish"
+# stays a reply-language request.
+_INTERPRETER_SWITCH = re.compile(
+    r"(?:switch|swap|change|flip|alternate)\s*(?:(?:the|my|our)\s+)?"
+    r"(?:interpreter\s+|interpreting\s+)?(?:languages|sides)(?:\s+(?:now|back|again|in\s+interpreter\s+mode))?",
+    re.IGNORECASE,
+)
+_INTERPRETER_STATUS = re.compile(
+    r"(?:what|which)\s+(?:the\s+|my\s+)?(?:languages?|sides?|language\s+pair)"
+    r"(?:\s+(?:am\s+i|do\s+i|are\s+we)\s+(?:interpreting|interpreter(?:\s+mode)?|in\s+interpreter\s+mode)"
+    r"|\s+(?:in|of|now|this|mode|pair)\b(?:\s+.*)?|\s+it\s+(?:interpreting|in\s+interpreter\s+mode))?"
+    r"|(?:what|how)\s+(?:'s|is|are)\s+(?:the\s+|my\s+)?interpreter(?:\s+mode)?(?:\s+.*)?"
+    r"|(?:is|am\s+i)\s+(?:the\s+|my\s+)?interpreter(?:\s+mode)?\s+(?:on|active|running|in\s+use)"
+    r"|(?:interpreter(?:\s+mode)?)\s+(?:status|state)"
+    r"|(?:which|what)\s+side\s+(?:speaks|is\s+it|goes|answers)\b(?:\s+.*)?",
     re.IGNORECASE,
 )
 _RADIO_PLAY = re.compile(
@@ -1312,6 +1344,10 @@ ROUTED_TOOLS = frozenset(
         "take_screenshot",
         "take_picture",
         "say_in_language",
+        "interpreter_start",
+        "interpreter_stop",
+        "interpreter_status",
+        "interpreter_switch",
         "daily_briefing",
         "play_radio",
         "list_radio",
@@ -1515,6 +1551,20 @@ def _route_command(text: str) -> ToolCall | None:
 
     if _REPEAT_LAST.fullmatch(s):
         return call("repeat_last")
+    interpreter_start = _INTERPRETER_START.fullmatch(s)
+    if interpreter_start:
+        sides = interpreter.pair_in(interpreter_start.group(1) or "")
+        if sides is not None:
+            return call("interpreter_start", language_a=sides[0], language_b=sides[1])
+        tail = " ".join(re.findall(r"[a-z']+", (interpreter_start.group(1) or "").lower()))
+        if not tail or all(word in _INTERPRETER_TAIL_FILLERS for word in tail.split()):
+            return call("interpreter_start", language_a="", language_b="")
+    if _INTERPRETER_STOP.fullmatch(s):
+        return call("interpreter_stop")
+    if _INTERPRETER_STATUS.fullmatch(s):
+        return call("interpreter_status")
+    if _INTERPRETER_SWITCH.fullmatch(s):
+        return call("interpreter_switch")
     say_in_match = _SAY_IN.fullmatch(s)
     if say_in_match and translate.language_name(say_in_match.group(2)) is not None:
         return call("say_in_language", phrase=say_in_match.group(1).strip("\"'“”"), language=say_in_match.group(2))

@@ -30,6 +30,7 @@ from voxa.agent.tools.headsup import headsup_tools
 from voxa.agent.tools.help import help_tools
 from voxa.agent.tools.hidden_files import hidden_files_tools
 from voxa.agent.tools.home import home_tools
+from voxa.agent.tools.interpreter import interpreter_tools
 from voxa.agent.tools.lists import list_tools
 from voxa.agent.tools.livetv import livetv_tools
 from voxa.agent.tools.local import local_tools
@@ -108,6 +109,7 @@ def default_registry() -> ToolRegistry:
         *local_tools(),
         *briefing_tools(),
         *translate_tools(),
+        *interpreter_tools(),
         *home_tools(),
         *volume_tools(),
         *compiz_tools(),
