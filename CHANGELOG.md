@@ -1,5 +1,11 @@
 # Voxa changelog
 
+## Unreleased
+
+### New
+
+- **Read the inbox hands-free.** "Any important email?", "How many unread emails?", "What's in my inbox?" and "Read me the email from Sam" now read your own account over IMAP: the unread count, who it is from, what it is about, and one message spoken aloud. Add the IMAP server, your account and its password in Preferences; the password is redacted in every backup. Reading only — nothing is sent, deleted, moved or unsubscribed, nothing is marked as read, and "open gmail", "show my email" and "check my inbox" still open the browser. (#56)
+
 ## 0.1.8 — 2026-10-26
 
 ### Fixed

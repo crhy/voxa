@@ -10,6 +10,8 @@ model and take a few seconds.
 | Say | Voxa does |
 |---|---|
 | "open gmail", "show my email", "check my inbox" | Opens Gmail in your browser |
+| "any important email", "how many unread emails?", "what's in my inbox?" | Reads your inbox over IMAP: the unread count, who it is from, what it is about, and the important ones first |
+| "read me the email from Sam" | Speaks that message aloud without marking it read |
 | "open https://example.com" | Opens that exact web page |
 | "search the web for the weather today" | Runs a web search for the phrase you said |
 | "compose an email" | Opens a new Gmail compose window |

@@ -311,6 +311,8 @@ def test_registry_lists_all_tools():
             "local_weather",
             "lock_screen",
             "look_up",
+            "mail_read",
+            "mail_summary",
             "make_folder",
             "market",
             "maximize_app",

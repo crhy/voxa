@@ -51,6 +51,26 @@ _OPEN_MAIL = re.compile(
     r"(?:open|check|go to|show|look at)\s+(?:my\s+)?(?:gmail|google mail|e-?mail|mail|inbox)",
     re.IGNORECASE,
 )
+# "any important email?", "how many unread emails?", "what's in my inbox?": read the
+# inbox hands-free instead of opening it in the browser (#56, part 1). "show my email"
+# and "check my inbox" deliberately stay with the browser, so their verbs are not here.
+_MAIL_SUMMARY = re.compile(
+    r"\b[^.?!]*\b(?:unread|important|latest|recent)\s+(?:e-?mails?|mail|messages?|inbox)s?\b[^.?!]*"
+    r"|\b(?:any|how many|how much|number of|count|what(?:'s|s)?|read|tell me)\b[^.?!]*"
+    r"\b(?:in|from|to|in my|my)\s+(?:e-?mail|mail|inbox|mailing)s?\b(?!\s+address)[^.?!]*",
+    re.IGNORECASE,
+)
+# "read me the email from Sam": the body is spoken. Without a person or subject
+# named it falls back to the summary.
+_MAIL_READ = re.compile(
+    r"(?:"
+    r"read\s+(?:me\s+)?(?:(?:the|an|that|this|my|your)\s+)?(?:e-?mail|mail|message)s?\b"
+    r"|(?:read|open)\s+(?:me\s+)?(?:the|an|that|this)\s+(?:e-?mail|mail|message)s?\b"
+    r"|read\s+(?:it|them|these)\b"
+    r")"
+    r"(?:\s+(?:from|about|regarding|for)\s+(?P<who>.+))?",
+    re.IGNORECASE,
+)
 _COMPOSE = re.compile(
     r"(?:write|compose|start|draft|new)\s+(?:a|an|the)?\s*(?:new\s+)?(?:e-?mail|message)"
     r"(?:\s+in\s+gmail)?",
@@ -1164,6 +1184,8 @@ ROUTED_TOOLS = frozenset(
         "open_site",
         "open_url",
         "compose_gmail",
+        "mail_read",
+        "mail_summary",
         "play_youtube",
         "play_video",
         "play_music",
@@ -2126,6 +2148,18 @@ def _route_command(text: str) -> ToolCall | None:
 
     if _NOW_PLAYING.fullmatch(s):
         return call("now_playing")
+
+    # Reading the inbox hands-free (#56, part 1) must be seen before the general-question
+    # handoff below, because "how many unread emails?" and "what's in my inbox?" are questions.
+    # "open gmail", "show my email" and "check my inbox" still open the browser further down.
+    mail_read_match = _MAIL_READ.fullmatch(s)
+    if mail_read_match:
+        who = (mail_read_match.group("who") or "").strip()
+        if who:
+            return call("mail_read", who=who)
+        return call("mail_summary")
+    if _MAIL_SUMMARY.fullmatch(s):
+        return call("mail_summary")
 
     if _QUESTION.match(s):
         return None

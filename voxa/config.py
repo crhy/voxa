@@ -68,6 +68,13 @@ class Settings:
     contacts: dict[str, str] = field(default_factory=dict)
     home_assistant_url: str = ""
     home_assistant_token: str = ""
+    # The user's own IMAP account, read hands-free by voxa/agent/mailread.py (#56).
+    # ``mail_password`` is that account's own password: ``SECRET_KEY_BASES`` in voxa/backup.py
+    # lists "password", so its value is replaced by the redaction marker in every backup.
+    # An empty triple means "mail is not set up": Voxa says so instead of connecting anywhere.
+    mail_host: str = ""
+    mail_user: str = ""
+    mail_password: str = ""
 
     def normalized(self) -> Settings:
         self.tts_rate = max(80, min(350, int(self.tts_rate)))
