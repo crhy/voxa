@@ -1,5 +1,29 @@
 # Voxa changelog
 
+## Unreleased
+
+### New
+
+- **Home control reaches doors, locks and colours.** "Open the garage door", "close
+  the blinds", "lock the front door", "unlock the door", "set the kitchen lights to
+  pink", "make the lamp warm white", "toggle the ceiling fan" and "list my home
+  devices" all resolve by rule, with no model call: covers and garage doors
+  go through open_cover/close_cover (open_garage_door/close_garage_door for a garage
+  door), a lock through lock/unlock, a colour through turn_on with color_name or
+  hs_color, and a toggle moves a cover or lock to the state it is not already in,
+  so one spoken command is one state fetch and one service call. A cover or lock
+  move is REVERSIBLE, never an external write, and "is the garage door open?" still
+  answers from the state Voxa already holds. (#44) 🧪
+- **A device name that misses says what Voxa can see.** "Turn off the kitcen lites"
+  answers "I couldn't find a light, switch, fan or plug called kitcen lites. The
+  closest I can see are Kitchen Light." — up to three nearest devices by the same
+  sound matcher that finds apps, and nothing is sent to the hub. Names that sound
+  close enough still resolve, so "kithen lites" turns the Kitchen Light off. (#44)
+- **Still open:** the Preferences page and keyring storage for the hub token wait on
+  #41, and the under-300 ms acceptance is proven only as one request per command,
+  not as measured latency on a real network.
+  (`voxa/agent/homeassistant.py`, `voxa/agent/tools/home.py`, `voxa/agent/intents.py`) (#44) 🧪
+
 ## 0.1.8 — 2026-10-26
 
 ### Fixed

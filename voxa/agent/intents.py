@@ -10,6 +10,7 @@ from voxa.agent.convert import target_extension
 from voxa.agent.deals import parse_request
 from voxa.agent.filematch import folder_key
 from voxa.agent.hearing import normalize
+from voxa.agent.homeassistant import colour_payload
 from voxa.agent.helptext import topic_for
 from voxa.agent.mailflow import spoken_address
 from voxa.agent.tools import translate
@@ -470,6 +471,34 @@ _HOME_SET = re.compile(r"set\s+(.+?)\s+to\s+(\d+)\s*(?:percent|%|degrees?|\u00b0
 _HOME_SCENE = re.compile(r"(?:run|start|activate)\s+(?:the\s+)?(.+?)\s+scene", re.IGNORECASE)
 _HOME_STATUS = re.compile(r"is\s+(?:the\s+)?(.+?)\s+(on|off|open|closed|locked)", re.IGNORECASE)
 _HOME_APP_NOUNS = frozenset({"computer", "pc", "laptop", "it", "the computer"})
+_HOME_COVER = re.compile(r"(open|close)\s+(?:the\s+)?(.+)", re.IGNORECASE)
+# "open the door" is a home command only when the words name something a cover
+# moves, so "open the browser" and "close the text editor" still mean apps.
+_HOME_COVER_NOUNS = frozenset(
+    {
+        "door", "doors", "gate", "gates", "garage", "garages", "cover", "covers",
+        "blind", "blinds", "shutter", "shutters", "curtain", "curtains", "hatch",
+        "hatches",
+    }
+)
+_HOME_LOCK = re.compile(r"(lock|unlock)\s+(?:the\s+)?(.+)", re.IGNORECASE)
+_HOME_LOCK_NOUNS = frozenset(
+    {"door", "doors", "lock", "locks", "gate", "gates", "garage", "deadbolt", "latch", "padlock"}
+)
+_HOME_TOGGLE = re.compile(r"toggle\s+(?:the\s+)?(.+)", re.IGNORECASE)
+# "list my home devices" is the way to ask what Voxa can see; a "what …" question
+# is answered by the web rules before the home rules are tried.
+_HOME_DEVICES = re.compile(r"(?:list|show)\s+(?:my\s+|the\s+)?(?:home\s+)?devices?", re.IGNORECASE)
+_HOME_COLOUR = re.compile(r"(?:set|change|make)\s+(?:the\s+)?(.+?)\s+(?:to|in)\s+(.+)", re.IGNORECASE)
+# A colour command needs a device to colour in: these names belong to other rules
+# even when the word after "to" happens to be a colour.
+_HOME_COLOUR_STOPS = frozenset(
+    {
+        "character", "characters", "theme", "volume", "level", "mode", "language",
+        "temperature", "thermostat", "screen", "desktop", "it", "this", "that",
+        "yourself", "myself", "name", "colour", "color",
+    }
+)
 _PRESS_KEY = re.compile(
     r"press\s+(enter|tab|escape|backspace|space|home|end|delete)", re.IGNORECASE
 )
@@ -1327,6 +1356,11 @@ ROUTED_TOOLS = frozenset(
         "home_set",
         "home_scene",
         "home_status",
+        "home_cover",
+        "home_lock",
+        "home_toggle",
+        "home_colour",
+        "home_devices",
         "find_deal",
         "set_location",
         "tell_time",
@@ -2358,6 +2392,28 @@ def _route_command(text: str) -> ToolCall | None:
     status_match = _HOME_STATUS.fullmatch(s)
     if status_match:
         return call("home_status", name=status_match.group(1))
+    if _HOME_DEVICES.fullmatch(s):
+        return call("home_devices")
+    cover_match = _HOME_COVER.fullmatch(s)
+    if cover_match:
+        name = cover_match.group(2).strip()
+        words = name.split()
+        if words and words[-1] in _HOME_COVER_NOUNS:
+            return call("home_cover", name=name, action=cover_match.group(1).casefold())
+    lock_match = _HOME_LOCK.fullmatch(s)
+    if lock_match:
+        name = lock_match.group(2).strip()
+        words = name.split()
+        if words and words[-1] in _HOME_LOCK_NOUNS:
+            return call("home_lock", name=name, action=lock_match.group(1).casefold())
+    toggle_match = _HOME_TOGGLE.fullmatch(s)
+    if toggle_match:
+        return call("home_toggle", name=toggle_match.group(1).strip())
+    colour_match = _HOME_COLOUR.fullmatch(s)
+    if colour_match:
+        name, colour = colour_match.group(1).strip(), colour_match.group(2).strip()
+        if name.casefold() not in _HOME_COLOUR_STOPS and colour_payload(colour):
+            return call("home_colour", name=name, colour=colour)
 
     if _CLOSE_YOURSELF.fullmatch(s) or _CLOSE_YOURSELF.fullmatch(_prepare(text)):
         return call("close_yourself")
