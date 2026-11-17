@@ -1,5 +1,11 @@
 # Voxa changelog
 
+## Unreleased
+
+### Changed
+
+- The Flatpak no longer carries debug symbols. Every module that installs compiled binaries now drops its `debug` directories — about 38 MB by the owner's own measurement, and nothing is lost at run time. The three bigger size questions (CUDA as an add-on, which characters ship in the core, whether the 3D avatars stay) are still open and unchanged here.
+
 ## 0.1.8 — 2026-10-26
 
 ### Fixed
