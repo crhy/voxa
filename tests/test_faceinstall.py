@@ -1,3 +1,5 @@
+import hashlib
+import os
 import subprocess
 import threading
 
@@ -211,3 +213,125 @@ def test_cancel_stops_the_background_download(tmp_path):
     proc.wait(timeout=5)
     time.sleep(2.5)
     assert not marker.exists()
+
+
+def _argv_before_issue_117(m: Manifest) -> list[str]:
+    """How install_command built the argv before the torrent work: the regression guard."""
+    args = [m.version, str(len(m.parts))]
+    for p in m.parts:
+        args += [p.name, p.url, str(p.bytes), p.sha256]
+    for e in m.external:
+        args += [e.name, e.url, str(e.bytes), e.sha256]
+    return ["bash", "-c", INSTALL_SCRIPT, "bash", *args]
+
+
+def test_install_command_is_unchanged_when_the_release_publishes_no_torrent():
+    m = Manifest(
+        version="7",
+        download_bytes=0,
+        install_bytes=0,
+        parts=(
+            Part(name="p0", url="https://x/0", bytes=100, sha256=SHA_A),
+            Part(name="p1", url="https://x/1", bytes=200, sha256=SHA_B),
+        ),
+        external=(Part(name="sub/e.onnx", url="https://x/e", bytes=5, sha256="c" * 64),),
+    )
+    assert install_command(m) == _argv_before_issue_117(m)
+    assert install_command(m, None) == _argv_before_issue_117(m)
+
+
+def test_install_command_adds_only_web_seed_urls_when_a_torrent_is_published():
+    from voxa.torrentsource import read_torrent
+
+    def encode(value: object) -> bytes:
+        if isinstance(value, int):
+            return b"i%de" % value
+        if isinstance(value, bytes):
+            return b"%d:%s" % (len(value), value)
+        if isinstance(value, list):
+            return b"l" + b"".join(encode(item) for item in value) + b"e"
+        return b"d" + b"".join(encode(k) + encode(v) for k, v in sorted(value.items())) + b"e"
+
+    seed = "https://github.com/crhy/voxa/releases/download/face-server-1/p0"
+    meta = read_torrent(encode({
+        b"info": {b"length": 100, b"piece length": 100},
+        b"name": b"p0",
+        b"url-list": [seed.encode()],
+    }))
+    m = Manifest(
+        version="7",
+        download_bytes=0,
+        install_bytes=0,
+        parts=(Part(name="p0", url="https://x/0", bytes=100, sha256=SHA_A),),
+    )
+    cmd = install_command(m, meta)
+    assert cmd[:6] == _argv_before_issue_117(m)[:6]
+    assert cmd[6:] == ["p0", "https://x/0", "100", SHA_A, seed]
+
+
+def test_the_checksum_checks_survive_the_web_seed_wiring():
+    # A peer or a web seed may only make the download faster, never different: the script must
+    # still check the bytes before resuming and after downloading.
+    assert 'sha256sum "$f"' in INSTALL_SCRIPT
+    assert 'sha256sum "$NEW/$epath"' in INSTALL_SCRIPT
+    assert 'echo "ERROR checksum $name"' in INSTALL_SCRIPT
+    assert 'echo "ERROR checksum $epath"' in INSTALL_SCRIPT
+
+
+def test_the_script_hands_the_web_seeds_to_curl_and_still_refuses_wrong_bytes(tmp_path):
+    # The published URL fails and the web seed serves the file: the install succeeds. Then the
+    # web seed serves bytes that are not the release's: the checksum must refuse them.
+    home = tmp_path / "home"
+    home.mkdir()
+    stub = tmp_path / "bin"
+    stub.mkdir()
+    served = tmp_path / "served"
+    served.mkdir()
+    payload = _tiny_tar_xz()
+    (served / "p0").write_bytes(payload)
+    log = tmp_path / "curl-urls.log"
+    (stub / "curl").write_text(
+        'out=""; urls=()\n'
+        'while [ "$#" -gt 0 ]; do\n'
+        '  if [ "$1" = "-o" ]; then shift; out=$1; shift; continue; fi\n'
+        '  if [ "${1#-}" != "$1" ]; then shift; continue; fi\n'
+        '  urls+=("$1"); shift\n'
+        'done\n'
+        'for u in "${urls[@]}"; do printf \'%s\\n\' "$u" >> "' + str(log) + '"; done\n'
+        'for u in "${urls[@]}"; do\n'
+        '  case "$u" in *missing*) continue;; esac\n'
+        '  f="' + str(served) + '/${u#https://seed/}"\n'
+        '  [ -f "$f" ] || continue\n'
+        '  cat "$f" > "$out"; exit 0\n'
+        'done\n'
+        'exit 22\n'
+    )
+    (stub / "curl").chmod(0o755)
+    sha = hashlib.sha256(payload).hexdigest()
+    env = dict(os.environ, HOME=str(home), PATH=f"{stub}:{os.environ['PATH']}")
+    argv = [
+        "bash", "-c", INSTALL_SCRIPT, "bash", "1", "1",
+        "p0", "https://release/missing", str(len(payload)), sha,
+        "https://seed/p0",
+    ]
+    result = subprocess.run(argv, capture_output=True, text=True, env=env, timeout=60)
+    assert result.stdout.split()[-1] == "DONE"
+    assert log.read_text().split() == ["https://release/missing", "https://seed/p0"]
+
+    (served / "p0").write_bytes(b"someone else's bytes")
+    result = subprocess.run(argv, capture_output=True, text=True, env=env, timeout=60)
+    assert "ERROR checksum p0" in result.stdout
+    assert not (home / ".local/share/voxa/face-server.download/p0").exists()
+
+
+def _tiny_tar_xz() -> bytes:
+    """A valid tar.xz, so the script's unpack step has something real to unpack."""
+    import io
+    import tarfile
+
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:xz") as tar:
+        info = tarfile.TarInfo("hello.txt")
+        info.size = 5
+        tar.addfile(info, io.BytesIO(b"hello"))
+    return buf.getvalue()

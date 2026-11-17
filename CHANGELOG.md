@@ -1,5 +1,11 @@
 # Voxa changelog
 
+## Unreleased
+
+### New
+
+- **The High face download can arrive from more than one place.** When a release publishes a torrent, a file your machine already has is reused if it matches the published checksum, and the release's web seeds are tried alongside the GitHub download. The published checksums are checked either way, so another machine can only ever make the download faster, never different; when nothing else has the file, the plain GitHub download is used at full speed. (#117)
+
 ## 0.1.8 — 2026-10-26
 
 ### Fixed
