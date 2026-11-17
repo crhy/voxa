@@ -54,6 +54,7 @@ from voxa.agent.tools.transcribe_file import transcribe_file_tools
 from voxa.agent.tools.translate import translate_tools
 from voxa.agent.tools.traveldocs import travel_doc_tools
 from voxa.agent.tools.trips import trip_tools
+from voxa.agent.tools.turnlog import turn_log_tools
 from voxa.agent.tools.typing import typing_tools
 from voxa.agent.tools.uicontrol import uicontrol_tools
 from voxa.agent.tools.volume import volume_tools
@@ -122,6 +123,7 @@ def default_registry() -> ToolRegistry:
         *appstore_tools(),
         *uicontrol_tools(),
         *anc_tools(),
+        *turn_log_tools(),
     ]:
         registry.register(tool)
     return registry

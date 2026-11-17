@@ -216,6 +216,8 @@ adaptive noise cancellation.
 | Backend → llama.cpp | Lists model files even before the server starts | 🧪 |
 | High selected with a large model | Warns when the two will not fit on the graphics card | 🧪 |
 | Look beside the backend selector | A dot and a word: Online, Starting… or Offline | 🧪 |
+| "Show my turn log" | Speaks the summary of the turns logged on this machine (which brain answered, escalation accuracy, review hits, median time to the first spoken word) and names the file; off until switched on, and nothing leaves the machine (#116) | 🧪 |
+| "Clear my turn log" | Deletes that file and says where it was | 🧪 |
 
 ## On the screen
 
@@ -230,4 +232,5 @@ adaptive noise cancellation.
 ## Not built yet
 
 Tracked as issues: adaptive noise cancellation (#72), first-boot welcome (#76), slimming the
-download (#75), messages, email triage, calendar, phone calls, purchases and the other assistant plans (#41–#67).
+download (#75), messages, email triage, calendar, phone calls, purchases and the other assistant plans (#41–#67),
+and #116's big brain itself — its model choice, the GPU split and the review sampling rate stay open.

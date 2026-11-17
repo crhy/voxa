@@ -9,6 +9,8 @@ rhY decided on 2026-10-22: finish the Dr. Mario Wii port first, then Voxa's two-
 
 Key points he asked for: little brain (LFM2.5-2.6B NEO-MAX Q6_K, downloaded to /media/rhy/data/Models/LFM2.5-2.6B-TBrilliance/) keeps quick web searches, app opening, dictation; an ABLITERATED big brain, resident for instant switching, takes tougher/more detailed questions and must consider alternate and non-mainstream sources (show disagreement, cite each); the big brain reviews the little brain's answers in the background and live usage data (local, opt-in) feeds concrete improvements via VoxaTest.
 
+**Shipped so far:** the background review plumbing (sampling rule, own worker thread, "Correction: …" payload, logged cases) and the local opt-in turn log with "show/clear my turn log" are in and tested with a fake reviewer; the model choice, the GPU split and the sampling rate remain open.
+
 **Why:** rhY wants Voxa fast for easy things and much smarter for hard ones without manual switching.
 
 **How to apply:** start Voxa work from #116; big-brain model choice and the GPU split are open and must be decided by measurement. Related: [[voxa-speed-is-top-priority]], [[voxa-spec-lives-in-github-issues]], [[delegate-coding-to-local-qwen]].

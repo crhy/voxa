@@ -262,6 +262,13 @@ CASES: list[tuple[str, ToolCall | None]] = [
     ("search for images of a lighthouse", ToolCall("image_search", {"query": "a lighthouse"})),
     ("image search for lofi album art", ToolCall("image_search", {"query": "lofi album art"})),
     ("what does a capybara look like", ToolCall("image_search", {"query": "a capybara"})),
+    ("show my turn log", ToolCall("turn_log_show", {})),
+    ("turn log", ToolCall("turn_log_show", {})),
+    ("summarize my turn log", ToolCall("turn_log_show", {})),
+    ("how many turns are logged", ToolCall("turn_log_show", {})),
+    ("clear my turn log", ToolCall("turn_log_clear", {})),
+    ("delete the turn log", ToolCall("turn_log_clear", {})),
+    ("turn log clear", ToolCall("turn_log_clear", {})),
 ]
 
 

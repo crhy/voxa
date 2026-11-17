@@ -403,6 +403,8 @@ def test_registry_lists_all_tools():
             "trip_forget",
             "trip_plan",
             "trip_read",
+            "turn_log_clear",
+            "turn_log_show",
             "type_text",
             "undo_file_action",
             "uninstall_app",

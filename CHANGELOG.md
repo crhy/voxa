@@ -1,5 +1,18 @@
 # Voxa changelog
 
+## Unreleased — background review and the local turn log (#116)
+
+### New
+
+- **Voxa keeps a turn log you can view and delete.** "Show my turn log" sums up the turns she logged — which brain answered, how often she escalated, how often the background review disagreed, and the median time to the first spoken word — and names the file. "Clear my turn log" deletes it. The log is off until you switch it on, it lives only on this machine, and nothing in it is sent anywhere.
+- **The big brain re-checks a sample of answers in the background.** Every escalation-worthy answer is re-checked, plus a fixed fraction of the rest; a real disagreement comes back afterwards as "Correction: …" and the case is logged. The re-check runs on its own, so the answer you just heard is never delayed by it.
+
+### Still open
+
+- Which big-brain model to run, how the GPU is split between the two brains, and the review sampling rate: #116 §7 keeps these to be decided by measurement, and nothing here chooses them.
+- The escalation prompt that decides when the little brain asks the big brain.
+- The improvement loop that turns logged disagreements into VoxaTest cases and periodic reports.
+
 ## 0.1.8 — 2026-10-26
 
 ### Fixed
