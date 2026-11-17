@@ -49,7 +49,7 @@ def press_button(args: dict[str, str]) -> ToolResult:
         return ToolResult.failure(f"{label} is greyed out right now.")
     if error == "program not found":
         return ToolResult.failure(f"I could not find the program {app}.")
-    if error == "not found":
+    if error in ("not found", "not found on screen"):
         message = f"I could not find a button called {label}."
         names = [
             item.get("name")

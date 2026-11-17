@@ -1,5 +1,13 @@
 # Voxa changelog
 
+## Unreleased — development build after 0.1.8
+
+### New
+
+- **Desktop accessibility stays off, and Voxa puts it back after every action.** Pressing a button in another program turns the desktop accessibility bus on for that one action only, and the value that was there before is restored when the action finishes - also when the action fails. If you had accessibility on yourself, Voxa leaves it on.
+- **Voxa can operate a window it cannot reach through the accessibility bus.** When a program has not registered with the bus (the usual case for a program that started with accessibility off), Voxa takes a screenshot, finds the control by the text written on it, and sends the click or the typing to the screen itself.
+- **You are told when Voxa takes control of another program**, and the accessibility switch goes back the moment the action ends - however it ends.
+
 ## 0.1.8 — 2026-10-26
 
 ### Fixed

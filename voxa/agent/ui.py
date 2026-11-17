@@ -1,4 +1,9 @@
-"""Press buttons and read text in other programs, through the helper that runs on the host."""
+"""Press buttons and read text in other programs, through the helper that runs on the host.
+
+Accessibility is off on the desktop by default, so each app-control call here turns the a11y bus on for its own
+duration only (`voxa/agent/a11y_scope.py`) and puts it back afterwards. When the accessibility bus cannot reach a
+program at all, pressing falls back to Voxa's own screen toolset (`voxa/agent/visual_control.py`).
+"""
 from __future__ import annotations
 
 import json
@@ -9,6 +14,8 @@ from collections.abc import Callable
 from pathlib import Path
 
 import voxa.simulation
+from voxa.agent import visual_control
+from voxa.agent.a11y_scope import AccessibilityScope
 from voxa.agent.host import host_command
 
 log = logging.getLogger("voxa.agent.ui")
@@ -17,6 +24,24 @@ SCRIPT = Path(__file__).with_name("uihost_script.py")
 
 say: Callable[[str], None] | None = None
 PASSWORD_NOTICE = "Please enter your password."
+
+# Tests set a fake bus here; None means the real one, reached with gdbus.
+a11y_bus = None
+
+# Answers that mean "the accessibility bus cannot see this control", so the screen toolset gets a turn. A control
+# reported as disabled is the bus's own answer and is never retried by clicking.
+_VISUAL_FALLBACK_ERRORS = frozenset({"not found", "program not found", "helper failed", "no output", "bad JSON"})
+
+
+def _scope(app: str = "", *, announce: bool = False) -> AccessibilityScope:
+    """Accessibility on for this one action, restored on the way out whatever the action did."""
+    return AccessibilityScope(a11y_bus, notice=_spoken_notice if announce else None, subject=app)
+
+
+def _spoken_notice(message: str) -> None:
+    """Speak the taking-control notice; the scope logs it whether or not there is a speaker."""
+    if say is not None:
+        say(message)
 
 
 def call(command: str, *args: str, timeout: float = 15.0, runner=subprocess.run) -> dict:
@@ -45,25 +70,32 @@ def call(command: str, *args: str, timeout: float = 15.0, runner=subprocess.run)
 
 
 def apps(**kw) -> list[dict]:
-    return call("apps", **kw).get("apps") or []
+    with _scope():
+        return call("apps", **kw).get("apps") or []
 
 
 def items(app: str, *roles: str, **kw) -> list[dict]:
-    return call("list", app, *roles, **kw).get("items") or []
+    with _scope(app):
+        return call("list", app, *roles, **kw).get("items") or []
 
 
 def press(app: str, label: str, role: str = "", **kw) -> dict:
-    if role:
-        return call("press", app, label, role, **kw)
-    return call("press", app, label, **kw)
+    """Press a named button: AT-SPI in the a11y scope first, Voxa's own screen toolset second."""
+    with _scope(app, announce=True):
+        result = call("press", app, label, role, **kw) if role else call("press", app, label, **kw)
+    if result.get("ok") or result.get("error") not in _VISUAL_FALLBACK_ERRORS:
+        return result
+    return visual_control.press_text(app, label, notice=_spoken_notice)
 
 
 def wait(app: str, label: str, seconds: float, **kw) -> dict:
-    return call("wait", app, label, str(seconds), timeout=seconds + 10, **kw)
+    with _scope(app):
+        return call("wait", app, label, str(seconds), timeout=seconds + 10, **kw)
 
 
 def text(app: str, **kw) -> list[str]:
-    return call("text", app, **kw).get("text") or []
+    with _scope(app):
+        return call("text", app, **kw).get("text") or []
 
 
 def wait_for_any(

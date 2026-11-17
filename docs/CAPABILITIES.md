@@ -192,7 +192,10 @@ adaptive noise cancellation.
 | "Click the Install button" | Presses the named button in the window in front | 🧪 |
 | "What buttons are there?" | Lists the buttons you can press in the window in front | 🧪 |
 | "Read this window" | Reads the text shown in the window in front | 🧪 |
-| Deleting, formatting, paying and buying are never pressed by voice. | Refused by safety rule | 🧪 |
+| "Press Save in GIMP" in a program the accessibility bus cannot see | Voxa reads the screen instead: takes a screenshot, finds the control by the text written on it, and clicks there | 🧪 |
+| Desktop accessibility off the whole time | The a11y bus is on for the length of one action only, and the value that was there before is put back when the action ends, also when it fails | 🧪 |
+| Voxa takes control of another program | She says she is operating that program, and the switch goes back as soon as the action ends | 🧪 |
+| Deleting, formatting, paying and buying are never pressed by voice. | Refused by safety rule, before either layer is tried | 🧪 |
 
 ## Hearing
 
