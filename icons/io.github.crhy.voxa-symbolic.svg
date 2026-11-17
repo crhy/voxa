@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Voxa symbolic icon (issue #23). Drawn from the medallion logo: the disc
+     outline becomes the ring, the V and its diamond counter become the mark.
+     Painted with currentColor so the desktop theme supplies both tones. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-label="Voxa">
+  <title>Voxa</title>
+  <circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.4" opacity="0.55"/>
+  <path fill="currentColor" d="M6.19 3.75 L8.91 3.75 L12 14.25 L15.09 3.75 L17.81 3.75 L12 19.22 Z"/>
+  <path fill="currentColor" d="M12 7 L13.4 8.6 L12 10.2 L10.6 8.6 Z"/>
+</svg>

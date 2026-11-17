@@ -12,6 +12,7 @@
 - Preferences exposes the bundled llama.cpp brain manager, including download, selection, and removal, without an Ollama installation or password prompt.
 - Preferences keeps llama.cpp and Ollama model choices separate, and recognizes Intel integrated graphics as shared-memory acceleration.
 - The desktop launcher uses the `voxa` icon name and the Flatpak installs the matching icon alias.
+- Panels and menus draw Voxa as a two-tone symbolic icon that takes the desktop theme's colours; the app grid keeps the colour medallion.
 
 ## 0.1.7 — 2026-10-25
 
