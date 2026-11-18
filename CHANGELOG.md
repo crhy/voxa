@@ -2,6 +2,10 @@
 
 ## 0.1.8 — 2026-10-26
 
+### New
+
+- **A product search reads itself back.** "Read back the products", "what are the best rated", "compare the prices" or "tell me the top three" opens the search in the browser Voxa controls and says the top three products aloud, cheapest first, with price and rating — and the shop when the page names one. Nothing is bought and no spend rule is involved; when a page will not parse, she says what she opened and leaves it to your eyes.
+
 ### Fixed
 
 - Follow-up questions keep the earlier question and answer as context for both typed and spoken conversations.

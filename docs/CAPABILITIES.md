@@ -120,6 +120,7 @@ adaptive noise cancellation.
 | “Rent a car in Denver next week” | Expedia car search by price | 🧪 |
 | “Cheapest used Toyota Tacoma under 20000” | Cars.com by list price | 🧪 |
 | “Best price on a 4070 Ti Super” | Google Shopping, price ascending | 🧪 |
+| “Read back the products” / “what are the best rated” / “compare the prices” / “tell me the top three” | Product search opened in the browser Voxa controls, top three said aloud cheapest first with price and rating | 🧪 |
 | “Give me directions to the San Diego Zoo” | Google Maps directions | 🧪 |
 | “Where is the nearest gas station?” | Google Maps, nearest first | 🧪 |
 | “Show me pictures of …” | Image search | ✅ |
