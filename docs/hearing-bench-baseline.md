@@ -255,6 +255,16 @@ Two deliberate choices worth stating:
    stream yields a transcript with words to check, and in smoke none do — while `echo_leak_word_rate` says
    16.5 % of the words in that stream are her own. Task 4's target (≤ 1 %) is measured against the
    *leak* metric, not this one.
+7. **The `voxa` mode's zero barge-ins have a bench cause, not only a product one** (found by f138, left
+   unfixed on purpose): `voxa/bench/runner.py:_clean_frame` clips `ReferenceMask.process`'s output to -1..1
+   and then scales it by 32767, while that stage returns samples in the scale it was given. Every non-silent
+   frame of echo mode `voxa` therefore lands at ±32767, the barge-in level is pinned at 1.0 for her voice
+   AND for the user's, and the gate can never open — hence erle 0 dB, `suspects` 0 and the NULL
+   `turn_retention_rate` / `first_word_trunc_bargein` / `duck_latency_*` / `stop_latency_*` columns above.
+   Re-scaling it would move every number in the `voxa` column and invalidate the ratchet in
+   `voxa/bench/gates.toml`, so it belongs with the echo tasks that re-record the baseline (tasks 1-4),
+   not with a retention task. Milestone A's retention numbers are measured in echo mode `off`, where the
+   barge-in path runs and this file has samples for them (n=17 smoke, n=171 full).
 
 ## TODO — roadmap B4: the real-room corpus (NOT this task)
 

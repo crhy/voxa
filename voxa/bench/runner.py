@@ -44,6 +44,7 @@ import numpy as np
 from ..anc import EchoCanceller, estimate_delay
 from ..audio import AudioCapture, ReferenceRing, mix_chunk, webrtc_available
 from ..bargectl import BargeInController
+from ..capture import Frame
 from ..config import Settings
 from ..conversation import ConversationController, detect_exit_phrase, strip_wake_word
 from ..dictation import SpeechSegmenter
@@ -199,6 +200,8 @@ class ClipRunner:
         self.own_speech = OwnSpeech(clock=self._clock)
         self.barge = BargeInController(clock=self._clock)
         self.segmenter: SpeechSegmenter | None = None
+        # Frame sequence ids already handed to the speech-pause rules (dedupe by frame id).
+        self._segmented: set[int] = set()
         # What the clip produced.
         self.requests: list[str] = []
         self.turns: list[dict] = []
@@ -276,6 +279,13 @@ class ClipRunner:
         cleaned = np.frombuffer(mic_bytes, dtype="<i2").astype(np.float32)
         erle = erle_removed_db(mic, cleaned) if self.canceller is not None else 0.0
         if self.mask is not None:
+            # KNOWN instrument defect, left exactly as B2/B5 recorded it: ReferenceMask.process
+            # is a spectral gain and returns samples in the scale it was given, so clipping them
+            # to -1..1 and scaling by 32767 saturates every non-silent frame of echo mode voxa
+            # at ±32767 - which is why that mode reports erle 0 dB, a level pinned at 1.0, zero
+            # suspects, zero barge-ins and a NULL turn_retention_rate (see gates.toml). Re-scaling
+            # here would silently invalidate the B5 ratchet every later task's gate runs against,
+            # so milestone A measures retention in echo mode off, where the barge-in path runs.
             masked = np.clip(np.asarray(self.mask.process(cleaned.astype(np.float64),
                                                           ref.astype(np.float64)), dtype=np.float64), -1.0, 1.0)
             if masked.size:
@@ -298,11 +308,27 @@ class ClipRunner:
     # --- one finished utterance -------------------------------------------------
 
     def _finish_utterance(self, segment: bytes, frame: int) -> None:
-        """The decision ``ConversationController._run`` makes once a segment is complete."""
+        """The decision ``ConversationController._run`` makes once a segment is complete.
+
+        A turn that began with a promoted span keeps its stable prefix: the prefix's words were
+        recognised once, from exactly the promoted audio, and only the audio that arrived after
+        the span is transcribed here (the same rule the live controller applies).
+        """
         self.emit("pause", segment_seconds=round(len(segment) / 32000.0, 3))
         waiting = self.conversation.waiting_for_prompt or self.conversation.keep_prompt
         hint = f"{self.wake_word.strip().capitalize()}." if not waiting else ""
-        heard = self.asr.transcribe_words(segment, hint)
+        prefix_text, prefix_bytes, prefix_words = self.conversation.take_turn_prefix()
+        if prefix_text:
+            tail = segment[prefix_bytes:] if len(segment) >= prefix_bytes else b""
+            heard = (self.asr.transcribe_words(tail, hint) if tail
+                     else {"text": "", "words": [], "no_speech_prob": None,
+                           "audio_seconds": 0.0, "asr_seconds": 0.0, "segments": 0})
+            heard["text"] = f"{prefix_text} {heard['text']}".strip()
+            heard["words"] = [*prefix_words, *heard["words"]]
+            heard["audio_seconds"] = round(len(segment) / 32000.0, 3)
+            heard["prefixed"] = True
+        else:
+            heard = self.asr.transcribe_words(segment, hint)
         self.emit("transcript", **heard)
         self.transcript_texts.append(heard["text"])
         text = self.conversation._filter_own_speech(heard["text"])
@@ -366,6 +392,17 @@ class ClipRunner:
 
     # --- the barge-in effects ---------------------------------------------------
 
+    def _segment_frame(self, frame: Frame) -> bytes | None:
+        """Feed one captured frame to the speech-pause rules, EXACTLY ONCE per sequence id.
+
+        The promoted span and the frames that arrive after an interruption overlap in time;
+        the frame id is what makes the continuation an append instead of a duplicate.
+        """
+        if frame.seq in self._segmented:
+            return None
+        self._segmented.add(frame.seq)
+        return self.segmenter.step(frame.pcm, frame.level, frame.t_s)
+
     def _apply_barge(self, outcome) -> None:
         if outcome.action == "offline":
             self.counts["exit"] += 1
@@ -382,6 +419,17 @@ class ClipRunner:
         # not an omission.
         self.emit("tts-stop", heard=outcome.heard)
         self.own_speech.finished()
+        # The effects voxa/window.py performs on its INTERRUPT branch, plus milestone A's
+        # promotion: the pinned span becomes the beginning of the user turn (once), and the
+        # microphone that opens next continues the same utterance. The live controller queues
+        # those frames for its worker thread (ConversationController.promote_pinned); this
+        # runner drives the same frames through its own SpeechSegmenter instead.
+        promoted = self.conversation.promote_pinned(enqueue=False)
+        self.emit("capture-promote", frames=[item.seq for item in promoted],
+                  span_seconds=round(self.conversation.capture.span_seconds, 3),
+                  pin_from=self.conversation.capture.pin_from)
+        for item in promoted:
+            self._segment_frame(item)
         self.conversation.unmute()
         self.conversation.arm_prompt()
         self.conversation.waiting_for_prompt = True
@@ -408,6 +456,9 @@ class ClipRunner:
             on_error=lambda text: None,
         )
         self.conversation.own_speech = self.own_speech
+        # The capture ring timestamps its frames with the runner's simulated clock, so a
+        # clip replayed faster than real time keeps real ordering and real durations.
+        self.conversation.capture.clock = self._clock
         self.segmenter = SpeechSegmenter(
             threshold=self.settings.voice_threshold,
             silence_seconds=self.settings.silence_ms / 1000.0,
@@ -452,11 +503,12 @@ class ClipRunner:
             erle_values.append(erle)
             mask_gains.append(gain_db)
             level = AudioCapture._rms(cleaned_bytes)
-            self.conversation.feed(cleaned_bytes, level)  # while muted this fills only the barge buffer
-            # While the mic is muted the live queue receives nothing either (conversation.py:331),
-            # so no utterance is segmented out of her own playback.
-            completed = (self.segmenter.step(cleaned_bytes, level, self._now)
-                         if not self.conversation.muted else None)
+            captured = self.conversation.feed(cleaned_bytes, level, seq=frame, raw=mic_bytes)
+            # While the mic is muted the live queue receives nothing either (conversation.py:feed),
+            # so no utterance is segmented out of her own playback. The CAPTURE ring keeps every
+            # frame in both states, which is what lets an accepted interruption keep its words.
+            completed = (self._segment_frame(captured)
+                         if captured is not None and not self.conversation.muted else None)
             detector = self.conversation._voice_detector
             prob = float(detector.last_prob) if detector is not None else 0.0
             self.emit(
@@ -482,6 +534,13 @@ class ClipRunner:
                 wake_word=wake,
                 candidate=self._candidate,
             )
+            if outcome.onset:
+                # Speech onset: pin the captured span (pre-roll included) before the words are
+                # judged, exactly as voxa/window.py does on the same observation.
+                self.conversation.note_onset(seq=frame,
+                                             level_floor=self.barge.onset_level_floor())
+                self.emit("capture-pin", onset_frame=frame, pin_from=self.conversation.capture.pin_from,
+                          span_seconds=round(self.conversation.capture.span_seconds, 3))
             if outcome.gate_opened and outcome.reason == "listening" and self.barge.pending_since == self._now:
                 self.counts["suspect"] += 1
                 self.emit("suspect", level=round(outcome.level, 4),
@@ -492,6 +551,8 @@ class ClipRunner:
                           own_voice=bool(outcome.action == "own-voice"))
                 if outcome.action == "own-voice":
                     self.counts["own_voice"] += 1
+                    # Rejected, not deleted: the span survives its evidence window.
+                    self.conversation.note_rejected()
             self._apply_barge(outcome)
             if completed is not None:
                 self._finish_utterance(completed, frame)

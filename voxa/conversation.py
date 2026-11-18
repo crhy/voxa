@@ -12,6 +12,7 @@ from difflib import SequenceMatcher
 
 from . import spellings
 from .agent.intents import is_start_dictation
+from .capture import CaptureRing, Frame
 from .dictation import DICTATION_CHUNK_SECONDS, segment_stream
 from .endpoint import is_complete, is_followup
 from .transcription import WhisperService
@@ -297,14 +298,31 @@ class ConversationController:
         # The raw utterance most recently heard (before wake-word stripping), so
         # the caller can still see the wake word for pause/resume phrasing.
         self.last_heard: str = ""
-        # Rolling window of the mic kept while muted (echo cancellation has
-        # already removed her own voice), so the UI can transcribe what a
-        # level-based barge-in heard before stopping her reply (candidate_text).
+        # Bounded timestamped capture of the microphone with pinning (voxa/capture.py):
+        # every frame gets a sequence id, speech onset pins the span, and reading it never
+        # consumes it. This replaces the old five-second ``_barge_buf``, which ``candidate_text()``,
+        # ``mute()`` and ``unmute()`` all destroyed, so the words that proved an interruption
+        # never reached the request (handoff 5.1).
+        self.capture = CaptureRing(clock=time.monotonic)
+        # The transcript of the pinned span last inspected, with the span it came from, so the
+        # same audio is never transcribed twice while nothing new has arrived.
+        self._candidate_cache: tuple[int, int, str] | None = None
+        # Transcript of the captured span before her own words were stripped, so the caller
+        # can see what the echo filter removed (the barge-in trace and the bench keep it).
         self.last_candidate_raw = ""
+        # Word timings of that same candidate pass, when the transcription service reports them.
+        self.last_candidate_words: list[dict] = []
+        # The candidate's own words, so promoting the span can carry them into the turn once.
+        self._candidate_text = ""
+        # The turn in progress that began with a promoted span: its stable transcript prefix
+        # and how many bytes of audio that prefix already accounts for.
+        self._turn_prefix_text = ""
+        self._turn_prefix_bytes = 0
+        self._turn_prefix_words: list[dict] = []
+        # The prefix belongs to the turn in progress: the UI thread promotes while the worker
+        # thread takes, so the handover is guarded.
+        self._turn_lock = threading.Lock()
         self.on_ignored = None
-        self._barge_buf: list[bytes] = []
-        self._barge_bytes = 0
-        self._barge_max_bytes = 160_000  # ~5 s of 16 kHz 16-bit mono
         # Optional echo filter (see voxa/ownspeech.py): set by the window so a
         # transcript that is (part of) what Voxa was saying is dropped, not fed
         # to the wake check, the prompt or a barge-in candidate. None = off.
@@ -328,19 +346,29 @@ class ConversationController:
         except Exception as exc:  # noqa: BLE001 - hint boundary, never fatal
             logging.debug("prompt hint build failed: %s", exc)
 
-    def feed(self, pcm: bytes, level: float) -> None:
-        # Dropped while muted so the assistant's own spoken reply, played
-        # through the speakers, is never picked back up as a new utterance.
+    def feed(self, pcm: bytes, level: float, seq: int | None = None, *,
+             raw: bytes | None = None) -> None:
+        """Capture one frame, then queue it only when the microphone is open.
+
+        Capture runs in EVERY state (handoff 6.5: AEC/capture keep running across turn
+        states): while muted the frame still gets a sequence id and stays in the ring, so
+        the audio of an interruption survives the decision about what to do with it. Only
+        the QUEUE is gated: her own spoken reply is never picked back up as an utterance
+        until the caller promotes the pinned span into one.
+        """
         if self.stop_event.is_set():
-            return
+            return None
+        frame = self.capture.add(pcm, level, seq=seq, raw=raw)
         if self._muted.is_set():
-            # Keep only a short rolling window: the UI may transcribe it to
-            # check a barge-in, but it must never become a queued utterance.
-            self._barge_buf.append(pcm)
-            self._barge_bytes += len(pcm)
-            while self._barge_bytes > self._barge_max_bytes and self._barge_buf:
-                self._barge_bytes -= len(self._barge_buf.pop(0))
-            return
+            return frame
+        if self.capture.was_consumed(frame.seq):
+            # Already handed to the user turn by promote_pinned(): appending it twice
+            # would make the user's words reach the request twice.
+            return frame
+        self._enqueue(frame.pcm, frame.level)
+        return frame
+
+    def _enqueue(self, pcm: bytes, level: float) -> None:
         try:
             self.queue.put_nowait((pcm, level))
         except queue.Full:
@@ -354,14 +382,43 @@ class ConversationController:
                 pass
 
     def mute(self) -> None:
+        """Stop queueing the microphone. Capture and any pinned span are untouched."""
         self._muted.set()
-        self._barge_buf = []
-        self._barge_bytes = 0
 
     def unmute(self) -> None:
+        """Let the microphone through again. A pinned span is never dropped here:
+        the audio that proved the interruption is still owed to the user turn.
+        """
         self._muted.clear()
-        self._barge_buf = []
-        self._barge_bytes = 0
+
+    def note_onset(self, seq: int | None = None, *, level_floor: float | None = None) -> bool:
+        """Speech onset: pin the span, from the onset back over the run of speech it belongs
+        to, plus :data:`voxa.capture.PRE_ROLL_SECONDS` before it.
+
+        Called by the UI and the bench when the barge-in gate opens. Pinning is what stops a
+        rolling trim from overwriting an utterance that is still being judged.
+        """
+        return self.capture.pin(seq, level_floor=level_floor)
+
+    def note_rejected(self) -> None:
+        """A candidate the classifier did not accept: its audio stays for the evidence window.
+
+        Rejection releases the PIN after that window; it never deletes the frames.
+        """
+        self.capture.note_rejected()
+
+    def promote_pinned(self) -> int:
+        """Make the pinned span the beginning of the user turn, exactly once.
+
+        The frames keep their sequence ids and are marked consumed, so the frames that arrive
+        after the interruption are appended as the continuation of the SAME utterance instead
+        of the span being transcribed again or the same audio queued twice. Returns the number
+        of frames promoted (0 when nothing is pinned).
+        """
+        frames = self.capture.promote()
+        for frame in frames:
+            self._enqueue(frame.pcm, frame.level)
+        return len(frames)
 
     def arm_prompt(self) -> None:
         """Skip the wake word: the next utterance becomes a prompt directly.
@@ -583,20 +640,87 @@ class ConversationController:
             pass
 
     def candidate_text(self) -> str:
-        """Transcribe the mic window captured while muted, as a prompt would be.
+        """Transcribe a SNAPSHOT of the captured span, as a prompt would be.
 
-        Called by the UI when the level gate opens, to check the words before
-        her reply is stopped. The window is consumed: a checked candidate is
-        never checked again. "" when nothing was captured.
+        Called by the UI when the level gate opens, to check the words before her reply is
+        stopped. Reading is non-destructive: the span stays in the ring, keeps its sequence
+        ids, and becomes the request when the interruption is accepted (handoff 5.1: the
+        words that proved the interruption must not be consumed by the check). The snapshot is
+        the part of the span not yet handed to a user turn, so a second candidate judges only
+        the audio that arrived since the first was accepted. "" when nothing was captured; the
+        same span is not transcribed twice while no new frame arrived.
         """
-        if not self._barge_buf:
+        start, end = self.capture.span_bounds()
+        segment = self.capture.snapshot()
+        if not segment:
+            self.last_candidate_raw = ""
+            self.last_candidate_words = []
             return ""
-        segment = b"".join(self._barge_buf)
-        self._barge_buf = []
-        self._barge_bytes = 0
-        raw = self._transcribe(segment, self.prompt_whisper, hint=self._prompt_hint)
+        cached = self._candidate_cache
+        if cached is not None and cached[0] == start and cached[1] == end:
+            return cached[2]
+        raw, words = self._transcribe_span(segment)
         self.last_candidate_raw = raw or ""
-        return self._filter_own_speech(raw) or ""
+        self.last_candidate_words = words
+        text = self._filter_own_speech(raw) or ""
+        self._candidate_cache = (start, end, text)
+        self._candidate_text = text
+        return text
+
+    def _transcribe_span(self, segment: bytes) -> tuple[str, list[dict]]:
+        """One ASR pass over a captured span, keeping word timings when the service reports them.
+
+        The candidate pass and the turn prefix want the same audio transcribed once, with its
+        words; a service that only returns text (the live ``WhisperService`` today) simply yields
+        no timings, and nothing else changes.
+        """
+        hook = getattr(self.prompt_whisper, "transcribe_words", None)
+        if hook is not None:
+            try:
+                found = hook(segment, self._prompt_hint)
+                return str(found.get("text") or ""), list(found.get("words") or [])
+            except Exception as exc:  # noqa: BLE001 - word-timed pass is optional, text is not
+                logging.debug("word-timed pass failed: %s", exc)
+        return self._transcribe(segment, self.prompt_whisper, hint=self._prompt_hint), []
+
+    def promote_pinned(self, *, enqueue: bool = True) -> list[Frame]:
+        """Make the pinned span the beginning of the user turn, exactly once.
+
+        The frames keep their sequence ids and are marked consumed, so the frames that arrive
+        after the interruption are appended as the continuation of the SAME utterance instead
+        of the span being transcribed again or the same audio queued twice. The words already
+        recognised from exactly that audio become the turn's stable transcript prefix (handoff
+        6.4: a stable prefix and a revisable suffix, never a second command from partial ASR),
+        and only the audio after the span is transcribed from now on.
+
+        ``enqueue=False`` is for a caller that drives the speech-pause rules itself (the hearing
+        bench) and wants the frames back to feed them onward instead of putting them on the
+        worker queue. Returns the promoted frames, oldest first, ids intact.
+        """
+        frames = self.capture.promote()
+        if not frames:
+            return frames
+        for frame in frames:
+            if enqueue:
+                self._enqueue(frame.pcm, frame.level)
+        with self._turn_lock:
+            self._turn_prefix_bytes += sum(len(frame.pcm) for frame in frames)
+            self._turn_prefix_text = f"{self._turn_prefix_text} {self._candidate_text}".strip()
+            self._turn_prefix_words = [*self._turn_prefix_words, *self.last_candidate_words]
+        return frames
+
+    def take_turn_prefix(self) -> tuple[str, int, list[dict]]:
+        """Take the stable prefix of the turn in progress (empty when the turn started normally).
+
+        Text, the number of audio bytes it already accounts for, and its word timings when the
+        transcription service reported them. Taken once: the same prefix never heads two turns.
+        """
+        with self._turn_lock:
+            prefix = (self._turn_prefix_text, self._turn_prefix_bytes, self._turn_prefix_words)
+            self._turn_prefix_text = ""
+            self._turn_prefix_bytes = 0
+            self._turn_prefix_words = []
+        return prefix
 
     def _run(self) -> None:
         while not self.stop_event.is_set():
@@ -617,7 +741,24 @@ class ConversationController:
 
             self.on_timing("speech_end")
 
-            if not self.early_final_pass and self._early_text is not None:
+            prefix_text, prefix_bytes, _prefix_words = self.take_turn_prefix()
+            prefixed = bool(prefix_text)
+            if prefixed:
+                # The turn began with audio promoted out of the capture ring: its words were
+                # already recognised once, from exactly that audio, at the moment the interruption
+                # was accepted. Only the audio that arrived AFTER the span is transcribed here,
+                # so the user's words reach the request once - not twice, and not not at all
+                # (handoff 6.4: a stable transcript prefix and a revisable suffix).
+                tail = segment[prefix_bytes:] if len(segment) >= prefix_bytes else b""
+                whisper = self.prompt_whisper if waiting_for_prompt else self.wake_whisper
+                tail_raw = self._transcribe(
+                    tail,
+                    whisper,
+                    hint=self._prompt_hint if waiting_for_prompt else f"{self.wake_word.strip().capitalize()}.",
+                ) if tail else ""
+                tail_text = (self._filter_own_speech(tail_raw) or "") if tail_raw else ""
+                text = f"{prefix_text} {tail_text}".strip()
+            elif not self.early_final_pass and self._early_text is not None:
                 text = self._early_text
             else:
                 whisper = self.prompt_whisper if waiting_for_prompt else self.wake_whisper
@@ -630,12 +771,13 @@ class ConversationController:
                 continue
             self.on_timing("transcribed")
             self.last_heard = text
-            filtered = self._filter_own_speech(text)
-            if filtered is None:
-                continue
-            text = filtered
-            if not text:
-                continue
+            if not prefixed:
+                filtered = self._filter_own_speech(text)
+                if filtered is None:
+                    continue
+                text = filtered
+                if not text:
+                    continue
             if self.stop_event.is_set():
                 break
 

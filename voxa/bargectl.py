@@ -38,6 +38,10 @@ INTERRUPT = "interrupt"
 # are an interrupt word or address her by name.
 _MEDIA_EXCEPTION = re.compile(r"\b(?:stop|pause|cancel|quiet|enough|wait)\b")
 
+# The capture path reports levels in int16 units; the gate works on the 0..1 scale the
+# window builds by dividing by this (voxa/window.py: ``self._latest_level / 4000.0``).
+LEVEL_SCALE = 4000.0
+
 
 @dataclass(slots=True)
 class BargeOutcome:
@@ -50,6 +54,10 @@ class BargeOutcome:
     level: float = 0.0
     gate_opened: bool = False
     listening_seconds: float = 0.0
+    # True on the observation where the level gate first opened: independent speech onset.
+    # The caller pins the captured span from here (voxa/conversation.py:note_onset), which is
+    # what keeps the beginning of an interruption alive while the words are still being judged.
+    onset: bool = False
 
 
 class BargeInController:
@@ -84,6 +92,17 @@ class BargeInController:
         # What Voxa is saying now and the reply before it: the own-voice check's evidence.
         self.speaking_text = ""
         self.recent_spoken = ""
+
+    def onset_level_floor(self) -> float:
+        """The microphone level that separates speech from silence for THIS reply, in the
+        caller's level units (the window and the bench divide the capture level by LEVEL_SCALE
+        before feeding the gate, so the floor comes back scaled the same way).
+
+        Used to walk the capture ring back over the run of speech that an onset belongs to,
+        which is what recovers the first word of an interruption that started before the gate
+        had time to open.
+        """
+        return max(self.gate.min_level, self.gate.ratio * self.gate.baseline) * LEVEL_SCALE
 
     def _trace(self, event: str, **fields) -> None:
         if self.trace is None:
@@ -130,6 +149,7 @@ class BargeInController:
         """
         now = self.clock()
         stats = self.stats
+        onset_open = False
         if speaking != stats.get("speaking", False):
             if not speaking:
                 self._trace("reply-end", **{key: value for key, value in stats.items() if key != "speaking"})
@@ -169,10 +189,12 @@ class BargeInController:
             stats["gate_opened"] = stats.get("gate_opened", 0) + 1
             self._trace("gate-open", level=level01, baseline=float(self.gate.baseline),
                         settled=self.gate.settled)
+            onset_open = True
         # Always judge the words. A loudness shortcut was tried and interrupted her on her
         # own loudest syllables; the user is given a word or two first.
         if now - self.pending_since < self.listen_seconds:
-            return BargeOutcome(IGNORED, reason="listening", level=level01, gate_opened=True)
+            return BargeOutcome(IGNORED, reason="listening", level=level01, gate_opened=True,
+                                onset=onset_open)
         started = self.clock()
         heard, raw = (candidate() if candidate is not None else ("", ""))
         # A spoken OFFLINE command is a kill switch even over Voxa's reply, and short

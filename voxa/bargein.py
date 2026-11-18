@@ -132,6 +132,16 @@ class BargeInGate:
     def baseline(self) -> float:
         return self._baseline
 
+    @property
+    def ratio(self) -> float:
+        """How far above her own level the microphone must be to count as someone else speaking."""
+        return self._ratio
+
+    @property
+    def min_level(self) -> float:
+        """The floor below which the microphone is silence, whatever the baseline says."""
+        return self._min_level
+
     def reset(self) -> None:
         self._count = 0
         self._recent = []

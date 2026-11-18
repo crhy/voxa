@@ -3157,13 +3157,29 @@ class MainWindow(Adw.ApplicationWindow):
         if outcome.action == "offline":
             self._on_conversation_exit("goodbye")
             return
+        if outcome.onset and self.conversation is not None:
+            # Independent speech onset: pin the captured span (pre-roll included) so the
+            # audio of this possible interruption cannot be trimmed away while the words are
+            # still being judged (voxa/capture.py, handoff 6.4).
+            self.conversation.note_onset(level_floor=self._barge_ctl.onset_level_floor())
+        if outcome.action == "own-voice":
+            if self.conversation is not None:
+                # Rejected, not deleted: the span stays for its evidence window.
+                self.conversation.note_rejected()
         if outcome.action != "interrupt":
             return
         self._barge_trace("INTERRUPT")
         self.own_speech.finished()
         self.speech.stop()
         self._live_reset()
-        self.conversation.unmute()
+        if self.conversation is not None:
+            # The words of the interruption BECOME the request: the pinned span is handed to
+            # the user turn once, and the microphone that opens next continues the same
+            # utterance (handoff 5.1/6.4 - the user must never have to repeat themselves).
+            promoted = self.conversation.promote_pinned()
+            self._barge_trace("promote", frames=len(promoted),
+                              span_seconds=self.conversation.capture.span_seconds)
+            self.conversation.unmute()
         self.conversation.arm_prompt()
         self.assistant.barge_in(self.assistant.token())
         self._toast("Interrupted — go ahead.")
@@ -3172,9 +3188,10 @@ class MainWindow(Adw.ApplicationWindow):
     def _barge_candidate(self) -> tuple[str, str]:
         """The words the muted microphone captured, as the barge-in decision read them.
 
-        ``candidate_text()`` consumes the rolling window: a checked candidate is never
-        checked again (voxa/conversation.py:585). ``last_candidate_raw`` is the same audio
-        before her own words were stripped.
+        ``candidate_text()`` reads a SNAPSHOT of the pinned span and never consumes it
+        (voxa/conversation.py, voxa/capture.py): the same audio is what the accepted
+        interruption is promoted from. ``last_candidate_raw`` is the same audio before her
+        own words were stripped.
         """
         heard = self.conversation.candidate_text()
         return heard, getattr(self.conversation, "last_candidate_raw", "")
