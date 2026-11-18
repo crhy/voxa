@@ -29,9 +29,43 @@ def _learned(canceller, ref, echo, delay):
 
 
 # ---------------------------------------------------------------------------
-# 1. Reference silent: output bit-identical to the mic, filter does not adapt,
-#    no state lost (sound returns -> cancels at once from the learned filter).
+# 1. Nothing of the speaker path can be in the microphone: output bit-identical to the mic,
+#    filter does not adapt, no state lost (sound returns -> cancels at once from the learned
+#    filter). "Nothing can be in the mic" is judged on the reference AT THE MICROPHONE'S MOMENT
+#    (delayed by the echo path), NOT on the render block being fed: silence there does not
+#    imply silence in the room while the echo tail is still arriving (handoff 5.7, task A4).
 # ---------------------------------------------------------------------------
+
+
+def test_echo_tail_is_cancelled_not_passed_through():
+    """The speakers stopped, their echo has not: the tail must still be cancelled.
+
+    The old rule asked what the reference block being fed contains and handed the RAW microphone
+    through whenever the answer was silence - which is exactly the tail, so the last words of a
+    reply that already stopped came back as user words. The mic and the reference here agree with
+    each other (``anc_signals.echo_path``), so what is left after the cut is only the room's tail.
+    """
+    ref, _echo, _speech, delay = anc_signals.make()
+    n = 6 * SR
+    ref_cut = ref[:n].copy()
+    ref_cut[4 * SR:] = 0.0  # the speakers go silent at 4 s
+    mic = anc_signals.echo_path(ref_cut, delay)  # ... and its echo keeps arriving
+    c = EchoCanceller(delay=delay)
+    out = feed(c, mic, ref_cut, 160)
+    tail_start = 4 * SR + delay
+    tail = slice(tail_start, tail_start + int(0.05 * SR))
+    assert float(np.mean(mic[tail] ** 2)) > 1e-6  # the tail really is audible in the microphone
+    assert erle_db(mic[tail], out[tail]) >= 15.0
+    # The first block of the tail is cancelled too: it is not one of the blocks the echo cannot
+    # reach (those, and only those, are handed on raw).
+    assert erle_db(mic[tail_start:tail_start + 160],
+                   out[tail_start:tail_start + 160]) >= 15.0
+
+
+def _past_the_tail(canceller, ref, echo, delay, seconds=0.4):
+    """Advance the stream until the echo of the last playback has finished arriving."""
+    silent = np.zeros(int(seconds * SR), dtype=np.float32)
+    feed(canceller, silent, silent, 160)
 
 
 def test_silent_reference_is_bit_identical_to_mic():
@@ -39,10 +73,11 @@ def test_silent_reference_is_bit_identical_to_mic():
     d = max(0, estimate_delay(echo, ref) - 256)
     c = EchoCanceller(delay=d)
     _learned(c, ref, echo, d)
+    _past_the_tail(c, ref, echo, d)
     w_before = c.weights.copy()
     mic = (echo + speech).astype(np.float32)
     silent = np.zeros(160, dtype=np.float32)
-    for _ in range(20):  # a block of near-silence right after loud playback
+    for _ in range(20):  # the tail has finished: nothing of the speakers can be in the mic
         out = c.process(mic[:160], silent)
         assert np.array_equal(out, mic[:160].astype(np.float32))
         assert np.array_equal(c.weights, w_before)
@@ -53,6 +88,7 @@ def test_silent_reference_below_60dbfs_is_bit_identical():
     d = max(0, estimate_delay(echo, ref) - 256)
     c = EchoCanceller(delay=d)
     _learned(c, ref, echo, d)
+    _past_the_tail(c, ref, echo, d)
     mic = (echo + speech).astype(np.float32)
     rng = np.random.default_rng(7)
     faint = (1e-4 * rng.standard_normal(160)).astype(np.float32)  # ~ -80 dBFS
@@ -69,6 +105,7 @@ def test_silent_reference_does_not_adapt_filter():
     w_before = c.weights.copy()
     silent = np.zeros(160, dtype=np.float32)
     mic = (echo + speech).astype(np.float32)
+    _past_the_tail(c, ref, echo, d)
     for _ in range(50):
         c.process(mic[:160], silent)
     assert np.array_equal(c.weights, w_before)
@@ -102,6 +139,7 @@ def test_near_end_speech_with_silent_reference_unchanged():
     d = max(0, estimate_delay(echo, ref) - 256)
     c = EchoCanceller(delay=d)
     _learned(c, ref, echo, d)
+    _past_the_tail(c, ref, echo, d)
     mic = speech.astype(np.float32)  # near-end speech, no echo at all
     out = feed(c, mic, np.zeros_like(mic), 160)
     assert np.array_equal(out, mic)

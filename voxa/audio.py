@@ -10,6 +10,7 @@ from typing import Any
 import numpy as np
 
 from .anc import EchoCanceller, estimate_delay
+from .transport import TransportHealth
 
 Gst: Any = None  # Initialized lazily so importing this module needs no GStreamer or PyGObject.
 
@@ -92,14 +93,16 @@ def mix_chunk(mic_bytes: bytes, ref_ring: ReferenceRing, counter: int, canceller
     ``counter`` is the global sample position where this microphone chunk begins; ``ref_offset``
     is the microphone position that corresponds to the reference stream's position 0, so the
     reference samples for the same wall-clock span start at ``counter - ref_offset`` (zero-padded
-    when the reference has not produced enough yet). An idle monitor delivers nothing, so a chunk
-    whose reference span is silence is passed through untouched (bypass). Returns the cleaned
-    chunk as int16 bytes. Raises if the canceller raises.
+    when the reference has not produced enough yet). An idle monitor delivers nothing, so the
+    reference window of this span can be silence: that is NOT a licence to hand the raw microphone
+    through. The echo of what was playing ``delay`` samples ago is still arriving, and the canceller's
+    own reference history covers it, so the chunk always goes through the canceller, and the canceller
+    decides - from the reference at the microphone's moment, never from the current render block -
+    whether anything of the speaker path can be in this block at all (handoff 5.7). Returns the
+    cleaned chunk as int16 bytes. Raises if the canceller raises.
     """
     mic = np.frombuffer(mic_bytes, dtype="<i2").astype(np.float32) / 32768.0
     ref = ref_ring.window(counter - ref_offset, mic.size)
-    if float(np.mean(ref * ref)) < 1e-9:
-        return mic_bytes
     cleaned = canceller.process(mic, ref)
     cleaned = np.clip(np.rint(np.asarray(cleaned, dtype=np.float32) * 32767.0), -32768, 32767)
     return cleaned.astype("<i2").tobytes()
@@ -162,6 +165,9 @@ class AudioCapture:
         self.reference_source: str | None = None
         # The canceller in voxa/anc.py that cleans the microphone, or None when inactive.
         self.canceller: EchoCanceller | None = None
+        # Counted transport health (voxa/transport.py): dropped capture buffers, queue overruns,
+        # canceller fallbacks, and the degraded flag the raw fallback sets.
+        self.health = TransportHealth()
         self._on_audio = None
         self._on_error = None
         self._last_level_emit = 0.0
@@ -283,6 +289,7 @@ class AudioCapture:
         self._ref_anchor = None
         self._canceller_enabled = True
         self._canceller_logged = False
+        self.health.reset_capture_clock()
         self._delay_done = self.canceller is None
         self._delay_mic = []
         self._delay_ref = []
@@ -381,6 +388,7 @@ class AudioCapture:
         if result == gst.StateChangeReturn.FAILURE or result == gst.StateChangeReturn.ASYNC:
             pipeline.set_state(gst.State.NULL)
             log.info("webrtc echo cancellation failed: pipeline did not start (monitor or microphone unavailable)")
+            self.health.note_canceller_fallback("webrtc echo pipeline did not start")
             return False
         self._mic_counter = 0
         self._ref_anchor = None
@@ -391,6 +399,7 @@ class AudioCapture:
         self._delay_ref = []
         self._ref_ring = None
         self.pipeline = pipeline
+        self.health.clear_degraded("webrtc echo pipeline running")
         return True
 
     def _on_ref_sample(self, sink, _on_level):
@@ -428,6 +437,7 @@ class AudioCapture:
             pcm = bytes(mapped.data)
         finally:
             buffer.unmap(mapped)
+        self._note_capture_buffer(sample)
 
         if self.canceller is not None and self._canceller_enabled:
             self._maybe_estimate_delay(pcm)
@@ -447,8 +457,30 @@ class AudioCapture:
             return gst.FlowReturn.ERROR
         return gst.FlowReturn.OK
 
+    def _note_capture_buffer(self, sample) -> None:
+        """Count the capture buffers the appsink dropped between this one and the last.
+
+        The capture appsinks run ``max-buffers=12, drop=True``: when the pipeline cannot keep up,
+        GStreamer discards whole buffers and emits nothing for them. The buffers' own timestamps are
+        the only witness, so a gap of more than one buffer length is counted as a transport drop
+        instead of being a hole in what Voxa hears that nobody knows about (handoff 5.7).
+        """
+        try:
+            duration = float(sample.get_default_duration())
+            timestamp = float(sample.get_timestamp())
+        except Exception:  # noqa: BLE001 - a missing timestamp must never break capture
+            return
+        if not (duration > 0.0) or timestamp < 0.0:
+            return  # Gst.NO_TIMESTAMP (-1), or a source that reports no timing at all
+        self.health.note_capture_buffer(duration, timestamp)
+
     def _mix_or_passthrough(self, pcm: bytes) -> bytes:
-        """Clean ``pcm`` against the reference when a canceller is active; never break recording."""
+        """Clean ``pcm`` against the reference when a canceller is active; never break recording.
+
+        A canceller that raises is a DEGRADED state, not a silent success: the microphone keeps
+        running and its audio is kept, but from here on the capture path hands on audio no echo
+        model qualified, and the caller can see that (:attr:`health`, :attr:`echo_qualified`).
+        """
         if self.canceller is None or not self._canceller_enabled or self._ref_ring is None:
             self._mic_counter += len(pcm) // 2
             return pcm
@@ -456,14 +488,23 @@ class AudioCapture:
             cleaned = mix_chunk(pcm, self._ref_ring, self._mic_counter, self.canceller,
                                 self._ref_anchor or 0)
         except Exception as exc:  # noqa: BLE001 - recording must never break
-            if not self._canceller_logged:
-                log.warning("echo canceller failed; using raw microphone: %s", exc)
-                self._canceller_logged = True
+            self.health.note_canceller_fallback(str(exc))
+            self._canceller_logged = True
             self._canceller_enabled = False
             self._mic_counter += len(pcm) // 2
             return pcm
         self._mic_counter += len(pcm) // 2
         return cleaned
+
+    @property
+    def echo_qualified(self) -> bool:
+        """False while the microphone is RAW because the echo path failed (never because echo is off).
+
+        While a reply is playing, audio in this state may be her own voice with its echo in it, so
+        no automatic command, duck or playback stop is taken from it (handoff 6.7). Capture itself
+        keeps running and the audio is retained.
+        """
+        return self.health.echo_qualified
 
     def _maybe_estimate_delay(self, pcm: bytes) -> None:
         """During the first loud-enough 3 seconds, measure the echo delay once and rebuild the canceller."""
@@ -552,6 +593,10 @@ class AudioCapture:
             mode = "voxa" if mode else "off"
         if mode == "webrtc" and not webrtc_available():
             log.info("webrtc echo cancellation unavailable: running with echo off")
+            # Visible, counted degraded state: the user asked for echo cancellation this machine
+            # cannot do, so the microphone is raw and no automatic command may come from her own
+            # playback (voxa/transport.py).
+            self.health.note_canceller_fallback("webrtc echo cancellation unavailable in this runtime")
             mode = "off"
         if mode == "webrtc":
             self.pulse_source = None
@@ -559,6 +604,7 @@ class AudioCapture:
             self.canceller = None
             self._canceller_enabled = False
             self._canceller_logged = False
+            self.health.clear_degraded()
             self._delay_done = True
             self._delay_mic = []
             self._delay_ref = []
@@ -583,6 +629,9 @@ class AudioCapture:
             self._delay_ref = []
             self._ref_ring = None
             self._ref_anchor = None
+            # Echo was switched off by the user: raw audio is their choice here, not a failed
+            # canceller, so the degraded flag is cleared rather than set.
+            self.health.clear_degraded()
             if self._ref_pipeline is not None:
                 gst = _ensure_gstreamer()
                 self._ref_pipeline.set_state(gst.State.NULL)
@@ -594,6 +643,7 @@ class AudioCapture:
             self.canceller = EchoCanceller()
         self._canceller_enabled = True
         self._canceller_logged = False
+        self.health.clear_degraded()
         if not self.is_active:
             self._delay_done = False
             self._delay_mic = []

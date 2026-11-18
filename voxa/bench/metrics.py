@@ -27,8 +27,9 @@ What each metric reads (the definitions in ``research/voxa-hearing/voxa-hearing-
 * text metrics: the user's reference words against what the pipeline's ASR stage heard.
 
 Unmeasurable at this stage, with the reason in ``UNMEASURED``: ``align_err_p90_ms`` (the live
-reference-to-echo alignment is task 1), ``erle_music_loss_db`` (the frozen clip set has no music
-playback), ``transport_drop_count`` (the offline runner has no queue; the live one is task A4).
+reference-to-echo alignment is task 1) and ``erle_music_loss_db`` (the frozen clip set has no music
+playback). ``transport_drop_count`` was in that list until task A4 gave the pipeline counters for
+its drops: the runner now reports them per clip (``summary["transport"]``) and sums them.
 """
 
 from __future__ import annotations
@@ -729,6 +730,25 @@ def reconverge_samples(facts: list[dict]) -> Samples:
     return Samples(values, "mean")
 
 
+def transport_drop_samples(facts: list[dict]) -> Samples:
+    """Counted transport losses of the clips: the pipeline's own drops, never an estimate.
+
+    Roadmap A4 (task f141) makes each resilience choice visible instead of silent: capture buffers
+    the appsink dropped (``max-buffers=12, drop=True``), conversation queue overruns, canceller
+    fallbacks to raw capture, hearing sample drops, and frames lost INSIDE a pinned or promoted
+    span. What is deliberately NOT counted is the rolling trim of audio that belongs to no span:
+    that is the bounded-memory rule of ``voxa/capture.py``, and audio the pipeline still owes the
+    user is never trimmed (handoff 8.4: zero transport loss in ACCEPTED spans).
+    """
+    values = []
+    for fact in facts:
+        transport = (fact["summary"] or {}).get("transport")
+        if transport is None:
+            continue  # a clip run before the counters existed: no number, and not a fake zero
+        values.append(float(transport.get("total", 0)))
+    return Samples(values, "sum")
+
+
 def cpu_core_share_samples(facts: list[dict]) -> Samples:
     """Cores the bench keeps busy: ASR processing seconds over the clip's wall seconds."""
     values = []
@@ -861,7 +881,7 @@ METRICS: tuple[tuple[str, str, str, object], ...] = (
     ("pair_accuracy", "fraction", ">=", pair_accuracy_samples),
     ("stop_latency_p50_ms", "ms", "<=", lambda facts: Samples(stop_latency_samples(facts)["values"], "p50")),
     ("stop_latency_p95_ms", "ms", "<=", stop_latency_samples),
-    ("transport_drop_count", "count", "<=", None),
+    ("transport_drop_count", "count", "<=", transport_drop_samples),
 )
 
 METRIC_NAMES = tuple(name for name, _unit, _direction, _builder in METRICS)
@@ -869,7 +889,6 @@ METRIC_NAMES = tuple(name for name, _unit, _direction, _builder in METRICS)
 UNMEASURED = {
     "align_err_p90_ms": "the live reference-to-echo alignment (audio.py's probe) is roadmap task 1",
     "erle_music_loss_db": "the frozen B1 clip set has no music playback, only Voxa's own replies",
-    "transport_drop_count": "the offline runner has no queue to drop; the live appsinks are task A4",
 }
 
 

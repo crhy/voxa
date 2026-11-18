@@ -45,6 +45,7 @@ import numpy as np
 
 from ..anc import MIN_REFERENCE_POWER, EchoCanceller, estimate_delay
 from ..audio import AudioCapture, ReferenceRing, mix_chunk, webrtc_available
+from ..transport import TransportHealth
 from ..bargectl import BargeInController
 from ..onset import dbfs
 from ..attribution import EchoPathBaseline, SourceEvidence, attribute
@@ -191,6 +192,9 @@ class ClipRunner:
         self.canceller: EchoCanceller | None = None
         self.mask: ReferenceMask | None = None
         self.degraded: str | None = None
+        # Counted transport health of this clip (voxa/transport.py): the same counters the live
+        # capture path keeps, so `transport_drop_count` measures the pipeline and not a guess.
+        self.health = TransportHealth()
         self._mic_counter = 0
         self._delay_done = True
         self._delay_mic: list[np.ndarray] = []
@@ -567,6 +571,9 @@ class ClipRunner:
             on_error=lambda text: None,
         )
         self.conversation.own_speech = self.own_speech
+        # The runner shares ONE transport health object with the conversation, exactly as the app
+        # does (voxa/window.py): queue overruns are counted where they happen.
+        self.conversation.health = self.health
         # The capture ring timestamps its frames with the runner's simulated clock, so a
         # clip replayed faster than real time keeps real ordering and real durations.
         self.conversation.capture.clock = self._clock
@@ -616,6 +623,10 @@ class ClipRunner:
             level = AudioCapture._rms(cleaned_bytes)
             evidence = self._evidence(min(level, 4000.0) / 4000.0, ref_power)
             captured = self.conversation.feed(cleaned_bytes, level, seq=frame, raw=mic_bytes)
+            # The live worker thread consumes this queue; this runner drives the speech-pause
+            # rules itself, so it must still take what the worker would have taken - otherwise a
+            # bounded queue reports overruns the product never has (voxa/conversation.py:drain).
+            self.conversation.drain()
             # While the mic is muted the live queue receives nothing either (conversation.py:feed),
             # so no utterance is segmented out of her own playback. The CAPTURE ring keeps every
             # frame in both states, which is what lets an accepted interruption keep its words.
@@ -660,6 +671,9 @@ class ClipRunner:
                 delay_ms=(self.canceller.delay_samples / SR * 1000.0
                           if self.canceller is not None and self.canceller.delay_samples > 0 else None),
                 dt_ms=CHUNK_MS,
+                # The canceller in this run never failed, so the audio is qualified; a fallback
+                # would make every playback-time decision HOLD instead of a command (A4).
+                qualified=self.health.echo_qualified,
             )
             if outcome.onset:
                 # Speech onset: pin the captured span (pre-roll included) before the words are
@@ -717,6 +731,11 @@ class ClipRunner:
             "realtime_factor": round(audio_seconds / wall, 3) if wall > 0 else None,
             "echo_mode": self.echo_mode,
             "degraded": self.degraded,
+            "transport": self.health.snapshot(
+                pinned_frames_dropped=(self.conversation.capture.dropped_pinned_frames
+                                       if self.conversation is not None else 0),
+                hearing_drops=0,  # the runner judges synchronously: no hearing queue to overrun
+            ),
             "delay_estimated_samples": self._delay_samples,
             "erle_median_db": _median(erle_values),
             "mask_gain_max_db": round(max(mask_gains), 2) if mask_gains else None,

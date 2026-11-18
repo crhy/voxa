@@ -385,10 +385,13 @@ def test_cpu_core_share_reads_the_runner_s_own_clock() -> None:
 
 def test_metrics_this_stage_cannot_measure_are_null_and_never_fail() -> None:
     rows = compute([], seed=0)
-    for name in ("align_err_p90_ms", "erle_music_loss_db", "transport_drop_count"):
+    for name in ("align_err_p90_ms", "erle_music_loss_db"):
         assert rows[name]["value"] is None
         assert rows[name]["ci"] == [None, None]
         assert rows[name]["reason"]
+    # transport_drop_count WAS in that list until task A4 gave the pipeline counters for its drops:
+    # with no clips it has no samples, and it says so without a `reason` (it is measurable, just empty).
+    assert compute([], seed=0)["transport_drop_count"]["value"] is None
 
 
 # --------------------------------------------------------------------------- the report and check
@@ -439,11 +442,11 @@ def test_gates_toml_lists_every_metric_and_b5_ratchets_every_measurable_one() ->
     from voxa.bench import gates
 
     limits = gates.thresholds()
-    assert len(limits) == 23  # B5: every metric the default-mode smoke baseline could sample
+    assert len(limits) == 24  # B5's 23, plus transport_drop_count, which task A4 made measurable
     listed = gates._load(gates.GATES_PATH).get("metric", [])
     assert sorted(entry["name"] for entry in listed) == sorted(METRIC_NAMES)
     unmeasurable_in_default_mode = {
-        "align_err_p90_ms", "erle_music_loss_db", "transport_drop_count",        # never measurable yet
+        "align_err_p90_ms", "erle_music_loss_db",
         "duck_latency_p50_ms", "duck_latency_p90_ms", "stop_latency_p50_ms",
         "stop_latency_p95_ms", "first_word_trunc_bargein", "turn_retention_rate",
         "reconverge_s",  # null in echo mode voxa: that mode has no duck, stop, span or recovery

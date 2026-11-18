@@ -49,3 +49,18 @@ def make(seconds: int = SECONDS, seed: int = 0):
 
 def speech_mask(speech: np.ndarray) -> np.ndarray:
     return np.abs(speech) > 0
+
+
+def echo_path(ref: np.ndarray, delay: int, seed: int = 1, level: float = 0.6) -> np.ndarray:
+    """The echo of `ref` through a decaying room, for tests that need mic and reference to AGREE.
+
+    A truncated reference must give a truncated echo with only the room's 60 ms tail left after it:
+    that is the echo tail, and a test that pairs a full echo with a truncated reference measures
+    the fixture, not the canceller.
+    """
+    rng = np.random.default_rng(seed)
+    room_len = int(0.06 * SR)
+    room = rng.standard_normal(room_len) * np.exp(-np.arange(room_len) / (0.012 * SR))
+    room /= np.sqrt(np.sum(room**2))
+    delayed = np.concatenate([np.zeros(delay), ref])[:len(ref)]
+    return (level * np.convolve(delayed, room)[:len(ref)]).astype(np.float32)

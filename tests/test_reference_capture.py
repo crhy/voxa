@@ -28,23 +28,32 @@ def test_mix_chunk_ref_offset_shifts_window():
     assert np.array_equal(fake.seen_ref, np.arange(10, 15, dtype=np.float32))
 
 
-def test_mix_chunk_bypasses_idle_monitor():
+def test_mix_chunk_never_bypasses_an_idle_monitor():
+    """A4: an idle monitor is NOT a licence to hand the raw microphone through.
+
+    The echo of what was playing `delay` samples ago is still arriving, and the canceller's own
+    reference history covers it, so the chunk always reaches the canceller; the canceller is the
+    one that decides (from the reference at the microphone's moment) whether anything of the
+    speaker path can be in the block at all.
+    """
     ring = ReferenceRing(100)
     fake = FakeCanceller()
     raw = _mic_bytes(6)
     out = mix_chunk(raw, ring, 0, fake)
-    assert out == raw
-    assert fake.seen_ref is None
+    assert fake.seen_ref is not None
+    assert np.array_equal(fake.seen_ref, np.zeros(6, dtype=np.float32))
+    assert out == raw  # this fake cancels nothing: the pass-through is its decision, not mix_chunk's
 
 
-def test_mix_chunk_bypasses_zero_padded_reference():
+def test_mix_chunk_never_bypasses_a_zero_padded_reference():
     ring = ReferenceRing(100)
     ring.append(np.zeros(50, dtype=np.float32))
     fake = FakeCanceller()
     raw = _mic_bytes(6)
     out = mix_chunk(raw, ring, 10, fake)
+    assert fake.seen_ref is not None
+    assert np.array_equal(fake.seen_ref, np.zeros(6, dtype=np.float32))
     assert out == raw
-    assert fake.seen_ref is None
 
 
 def test_first_reference_sample_anchors_to_mic_counter():

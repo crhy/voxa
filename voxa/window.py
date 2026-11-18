@@ -2480,6 +2480,10 @@ class MainWindow(Adw.ApplicationWindow):
             on_timing=lambda stage: idle(session(self._on_stage_timing), stage, time.monotonic()),
         )
         self.conversation.own_speech = self.own_speech
+        # One transport health object for the whole pipeline: the capture path counts dropped
+        # capture buffers and canceller fallbacks into it, the conversation counts its queue
+        # overruns into the same one (voxa/transport.py, roadmap A4).
+        self.conversation.health = self.audio.health
         # Test builds: what was heard without a wake word goes to barge.log (local only), so a missed
         # "Voxa, …" can be explained. Remove or make optional before a release.
         self.conversation.on_ignored = self._trace_ignored
@@ -3115,8 +3119,32 @@ class MainWindow(Adw.ApplicationWindow):
         self.level.set_value(self._latest_level)
         self.shell.set_audio_level(self._latest_level / 4000.0)
         self.status_box.queue_draw()
+        self._note_transport_health()
         self._maybe_barge_in()
         return True
+
+    def _note_transport_health(self) -> None:
+        """Say out loud when the echo path stops qualifying the microphone (roadmap A4).
+
+        A failed canceller is a DEGRADED state, not a silent one: capture keeps running, the audio
+        is kept, no automatic command is taken from unqualified audio while a reply plays, and the
+        user is told. The counters go to barge.log so a later report can explain a session.
+        """
+        health = self.audio.health
+        if health.degraded == getattr(self, "_transport_degraded", False):
+            return
+        self._transport_degraded = health.degraded
+        snapshot = health.snapshot(
+            pinned_frames_dropped=(self.conversation.capture.dropped_pinned_frames
+                                   if self.conversation is not None else 0),
+            hearing_drops=self._hearing.dropped,
+        )
+        if health.degraded:
+            self._barge_trace("transport-degraded", **snapshot)
+            self._toast("Echo cancellation failed — I can still hear you and I keep the audio, "
+                        "but I will not act on my own voice until the echo path works again.")
+        else:
+            self._barge_trace("transport-recovered", **snapshot)
 
     def _barge_trace(self, event: str, **fields) -> None:
         """Append one line to barge.log beside the action log, so a failed interruption can be explained."""
@@ -3224,6 +3252,8 @@ class MainWindow(Adw.ApplicationWindow):
             delay_ms=(self.audio.delay_samples / 16000.0 * 1000.0
                       if self.audio.delay_samples > 0 else None),
             dt_ms=min(max(dt_ms, 5.0), 250.0),
+            # False when the canceller failed: the audio is raw, so it may be her own voice.
+            qualified=self.audio.echo_qualified,
             candidate=self._barge_candidate,
             evidence=self._hearing_evidence,
         ))

@@ -84,6 +84,14 @@ class EchoCanceller:
     """
 
     BLOCK = 160
+    # The reference samples the filter can ever need: `taps` of filter history plus the delay it
+    # was fitted with plus the block being judged, with a margin so the bound is a stated rule
+    # rather than an off-by-one tight fit. Anything older cannot appear in the microphone any more
+    # (handoff 5.7: the reference history must be a bounded working set, not an append-only list).
+    REFERENCE_MARGIN = 1024
+    # A room keeps an echo alive after the speakers stop: reflections for ~100 ms. Judging "is an
+    # echo in flight" on the render block alone is what let the tail through (handoff 5.7).
+    ECHO_TAIL_MS = 128.0
 
     def __init__(self, sample_rate: int = 16000, taps: int = 1024, mu: float = 0.5, delay: int = 0):
         self._sample_rate = sample_rate
@@ -95,6 +103,8 @@ class EchoCanceller:
         self._mic_rem = np.zeros(0)
         self._ref_rem = np.zeros(0)
         self._ref_hist = np.zeros(0)
+        # Global stream position of ``_ref_hist[0]``: the working set slides, the positions do not.
+        self._ref_first = 0
         self._pos = 0
         self._floor = 1.0
         self._blocks_adapted = 0
@@ -105,23 +115,66 @@ class EchoCanceller:
         self._last_mic_power = 0.0
         self._last_residual_power = 0.0
         self._last_reference_power = 0.0
+        # Diagnostics for the health state: blocks handed on as the raw microphone because no
+        # echo could be in them (never because the CURRENT render block happened to be silent).
+        self._pass_through_blocks = 0
 
-    def _delayed_ref(self, length: int) -> np.ndarray:
-        start = self._pos - self._delay
-        if start >= 0:
-            return self._ref_hist[start:start + length]
-        head = np.zeros(-start)
-        return np.concatenate([head, self._ref_hist[:length + start]])
+    def _reference_capacity(self) -> int:
+        """How many reference samples the working set holds (see ``REFERENCE_MARGIN``)."""
+        return (self._taps + max(int(self._delay), 0) + self.BLOCK
+                + self._echo_tail_samples() + self.REFERENCE_MARGIN)
+
+    def _echo_tail_samples(self) -> int:
+        """How far before the microphone's moment a room can still be delivering an echo."""
+        return int(self.ECHO_TAIL_MS / 1000.0 * self._sample_rate)
+        return self._taps + max(int(self._delay), 0) + self.BLOCK + self.REFERENCE_MARGIN
+
+    def _push_reference(self, ref_b: np.ndarray) -> None:
+        """Append one block to the bounded reference working set.
+
+        Identical to the old append-everything history for every sample the filter can still be
+        asked about: the oldest position any block can read is ``_pos - delay``, and the working set
+        keeps everything from ``_pos + length - capacity`` back, which is older than that whenever
+        ``capacity >= delay + BLOCK`` (true by :meth:`_reference_capacity`). Older samples cannot
+        reach the microphone any more, so dropping them changes no output - and a 2 h session stops
+        growing at 737 MB.
+        """
+        self._ref_hist = np.concatenate([self._ref_hist, ref_b])
+        capacity = self._reference_capacity()
+        if self._ref_hist.size > capacity:
+            self._ref_hist = self._ref_hist[-capacity:]
+        self._ref_first = self._pos + len(ref_b) - self._ref_hist.size
+
+    def _delayed_ref(self, length: int, lookback: int = 0) -> np.ndarray:
+        """Reference samples for the microphone span, zero-padded where nothing is held.
+
+        ``lookback`` extends the window BEFORE the microphone's moment, which is where the room's
+        reflections come from: an echo can still be arriving from reference samples the speakers
+        stopped playing.
+        """
+        start = self._pos - self._delay - lookback
+        span = length + lookback
+        out = np.zeros(span)
+        lo = max(start, self._ref_first, 0)
+        hi = min(start + span, self._ref_first + self._ref_hist.size)
+        if hi > lo:
+            out[lo - start: hi - start] = self._ref_hist[lo - self._ref_first: hi - self._ref_first]
+        return out
 
     def _block(self, mic_b: np.ndarray, ref_b: np.ndarray) -> np.ndarray:
         length = len(mic_b)
-        self._ref_hist = np.concatenate([self._ref_hist, ref_b])
+        self._push_reference(ref_b)
         w0 = self.weights.copy() if self.weights is not None else None
         h0 = dict(self.history) if self.history is not None else None
         trial, w1, h1 = nlms_cancel(mic_b, ref_b, taps=self._taps, mu=self._mu,
                                     delay=self._delay, weights=w0, history=h0,
                                     freeze=np.ones(length, dtype=bool))
         delayed = self._delayed_ref(length)
+        # ``in_flight`` is the same window widened by the room's reflection tail: the reference samples
+        # that can still be producing sound IN THIS BLOCK. This, not the render block being fed, is
+        # what decides whether there is an echo to cancel and whether the microphone's energy is the
+        # user rather than her own voice.
+        in_flight = self._delayed_ref(length, self._echo_tail_samples())
         p_mic = float(np.mean(mic_b ** 2))
         p_res = float(np.mean(trial ** 2))
         # Kept for attribution (handoff 6.3, evidence stream 1): what the echo path explains and
@@ -129,20 +182,29 @@ class EchoCanceller:
         self._last_mic_power = p_mic
         self._last_residual_power = p_res
         self._last_reference_power = float(np.mean(delayed ** 2))
-        p_ref = self._last_reference_power
-        p_now = float(np.mean(ref_b ** 2))  # power of the reference block itself (what the speakers play now)
-        speaking = (p_ref < 1e-7 and p_mic > 1e-6) or (
+        p_in_flight = float(np.mean(in_flight ** 2))
+        # ``_last_reference_power`` is the power of the reference AT THE MICROPHONE'S MOMENT: what the
+        # speakers played ``delay`` samples ago, the only thing that can be in this block at all - including
+        # the echo of a reply that has already stopped (the tail). ``p_in_flight`` widens that window by the
+        # room's reflections. The old code asked instead what the speakers play NOW, and handed the raw
+        # microphone through whenever the answer was silence: that is the bypass that leaks her own last
+        # words back as user words (handoff 5.7: silence in the current render block does not imply silence
+        # in the room).
+        speaking = (p_in_flight < 1e-7 and p_mic > 1e-6) or (
             self._blocks_adapted > 100
             and p_res / max(p_mic, 1e-12) > max(8.0 * self._floor, 0.05)
             and p_res > 1e-6)
         if speaking:
             self._speaking_left = 25
-        # Nothing (or almost nothing) is being played: there is no echo to learn from, so do not adapt.
-        reference_quiet = p_now < MIN_REFERENCE_POWER
-        silent = p_now < SILENT_REFERENCE_POWER
+        # Nothing (or almost nothing) of the speaker path can be in this block: there is no echo
+        # to cancel and nothing to learn from, so do not adapt. Judged on the delayed reference, so
+        # the echo tail keeps being cancelled after the speakers went quiet.
+        reference_quiet = p_in_flight < MIN_REFERENCE_POWER
+        silent = p_in_flight < SILENT_REFERENCE_POWER
         if silent:
-            # The speakers are off: hand the microphone through untouched, bit for bit, keep the
-            # learned filter, and still advance the reference history so alignment is not lost.
+            # Nothing of the speaker path can be in this block (the echo tail has finished as well
+            # as the speakers went quiet): hand the microphone through untouched, bit for bit, keep
+            # the learned filter, and still advance the reference history so alignment is not lost.
             self._floor_pow = p_mic if self._floor_pow is None else (
                 0.5 * self._floor_pow + 0.5 * p_mic if p_mic < self._floor_pow
                 else 0.98 * self._floor_pow + 0.02 * p_mic)
@@ -150,6 +212,7 @@ class EchoCanceller:
             self.weights = w1
             self.history = h1
             self._pos += length
+            self._pass_through_blocks += 1
             return np.asarray(mic_b, dtype=np.float32)
         if self._floor_known and p_mic < 2.0 * self._floor_pow:
             # The speakers are playing but the microphone does not hear them above its own noise
@@ -157,6 +220,7 @@ class EchoCanceller:
             self.weights = w1
             self.history = h1
             self._pos += length
+            self._pass_through_blocks += 1
             return np.asarray(mic_b, dtype=np.float32)
         if self._speaking_left > 0 or reference_quiet:
             if self._speaking_left > 0:
@@ -223,6 +287,11 @@ class EchoCanceller:
     @property
     def converged_db(self) -> float:
         return self._converged
+
+    @property
+    def pass_through_blocks(self) -> int:
+        """Blocks handed on as the raw microphone because no echo could be in them."""
+        return int(self._pass_through_blocks)
 
     @property
     def delay_samples(self) -> int:

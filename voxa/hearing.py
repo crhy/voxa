@@ -57,6 +57,9 @@ class HearingSample:
     reference_db: float | None = None
     delay_ms: float | None = None
     dt_ms: float = FRAME_MS
+    # False when the capture path's echo canceller failed: the audio is raw, therefore unqualified
+    # for automatic decisions while a reply plays (voxa/transport.py, roadmap A4).
+    qualified: bool = True
     candidate: Callable[[], tuple[str, str]] | None = None
     evidence: Callable[[], object] | object | None = None
     generation: int = 0
@@ -155,6 +158,7 @@ class HearingDirector:
                 reference_db=event.reference_db,
                 delay_ms=event.delay_ms,
                 dt_ms=event.dt_ms,
+                qualified=event.qualified,
             )
             outcome.generation = self._generation
             self._deliver(outcome)

@@ -223,6 +223,7 @@ class BargeInController:
         reference_db: float | None = None,
         delay_ms: float | None = None,
         dt_ms: float = FRAME_MS,
+        qualified: bool = True,
     ) -> BargeOutcome:
         """Judge one level sample while a reply may be playing.
 
@@ -245,6 +246,12 @@ class BargeInController:
         when it was never estimated, which turns the onset claim off rather than on. ``dt_ms`` is
         how much audio this sample stands for; every window in this controller is counted in those
         milliseconds.
+
+        ``qualified`` comes from the capture path's transport health: ``False`` means the echo
+        canceller failed and the microphone is RAW, so this audio may be Voxa's own voice with its
+        echo in it. While a reply is playing no automatic command, duck or playback stop is taken
+        from unqualified audio (handoff 6.7); the audio itself is kept and the span stays pinned,
+        because a broken filter is never a licence to discard what the microphone heard.
         """
         now = self.clock()
         dt = max(0.0, float(dt_ms))
@@ -285,6 +292,15 @@ class BargeInController:
         # --- speech onset: milliseconds of audio the speaker path cannot explain -----------------
         self.onset.note_delay(delay_ms)
         onset = self.onset.observe(mic_db, reference_db, dt)
+        if not qualified:
+            # The echo path failed while this reply plays: the microphone is raw, so nothing here
+            # is qualified enough to stop her stream or to become a request. HOLD keeps the audio
+            # and the pin (the user's words are still owed to the turn) and runs no command; the
+            # degraded state itself is the caller's to show and to recover.
+            self._trace("unqualified", level=round(level01, 4), onset=bool(onset.onset),
+                        onset_audio_ms=round(onset.onset_audio_ms, 1))
+            return BargeOutcome(HOLD, reason="unqualified-audio", level=level01,
+                                onset=bool(onset.onset), gate_opened=bool(onset.onset))
         if onset.onset and not self._yielded:
             # The fast half of the decision (task A3): stop her playback NOW, before a single
             # word has been transcribed. The words are still being collected, and the outcome

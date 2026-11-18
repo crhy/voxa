@@ -195,8 +195,10 @@ hide how far the metric still has to go.
 Metrics with **no threshold**, and why (each is stated in the file):
 
 * permanently unmeasurable at this stage — `align_err_p90_ms` (the live reference-to-echo probe is task 1),
-  `erle_music_loss_db` (the frozen B1 clip set has no music playback), `transport_drop_count` (the offline
-  runner has no queue; the live appsinks are task A4);
+  `erle_music_loss_db` (the frozen B1 clip set has no music playback);
+* measurable only from task A4 (f141): `transport_drop_count` — the baseline could not measure it (the
+  offline runner had no counters), and A4 gave the pipeline counters for its drops, so the recorded
+  smoke run in the default mode is 0.0 [0.0, 0.0] (n=48) with the threshold at the target 0;
 * null **in the default mode only**, because that mode produces no samples — `duck_latency_p50_ms`,
   `duck_latency_p90_ms`, `stop_latency_p50_ms`, `stop_latency_p95_ms`, `first_word_trunc_bargein`,
   `turn_retention_rate` (0 barge-ins, 0 cessations, 0 accepted spans) and `reconverge_s` (11 unrecovered

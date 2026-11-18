@@ -304,6 +304,8 @@ direction = "<="
 name = "transport_drop_count"
 unit = "count"
 direction = "<="
-# no threshold: value null in every mode - the offline runner has no queue to drop
-# (`metrics.UNMEASURED`: the live appsinks are task A4). target: 0 (handoff 8.4: zero transport loss or
-# duplication in accepted user spans).
+threshold = 0
+# task A4 (f141) gave the pipeline counters for its drops, so this is no longer null: the smoke run
+# in the DEFAULT mode measures 0 ci [0, 0] over 48 clips (no appsink gap, no queue overrun, no
+# canceller fallback, no frame lost inside a pinned span). target: 0 (handoff 8.4: zero transport loss
+# or duplication in accepted user spans) - the line is the target, so any counted drop fails the run.

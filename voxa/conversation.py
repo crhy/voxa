@@ -13,6 +13,7 @@ from difflib import SequenceMatcher
 from . import spellings
 from .agent.intents import is_start_dictation
 from .capture import CaptureRing, Frame
+from .transport import TransportHealth
 from .dictation import DICTATION_CHUNK_SECONDS, segment_stream
 from .endpoint import is_complete, is_followup
 from .transcription import WhisperService
@@ -304,6 +305,10 @@ class ConversationController:
         # ``mute()`` and ``unmute()`` all destroyed, so the words that proved an interruption
         # never reached the request (handoff 5.1).
         self.capture = CaptureRing(clock=time.monotonic)
+        # Counted transport health, shared with the capture path by the caller (voxa/transport.py):
+        # the queue overruns are counted here, the dropped capture buffers and the canceller fallbacks
+        # there, and the frame clock reads one snapshot of both.
+        self.health: TransportHealth | None = None
         # The transcript of the pinned span last inspected, with the span it came from, so the
         # same audio is never transcribed twice while nothing new has arrived.
         self._candidate_cache: tuple[int, int, str] | None = None
@@ -380,6 +385,10 @@ class ConversationController:
         try:
             self.queue.put_nowait((pcm, level))
         except queue.Full:
+            # A bounded queue is the rule; dropping an item is a fact the caller must be able to
+            # see, never a silent hole in what Voxa heard (handoff 5.7, roadmap A4).
+            if self.health is not None:
+                self.health.note_queue_overrun()
             try:
                 self.queue.get_nowait()
             except queue.Empty:
@@ -387,7 +396,26 @@ class ConversationController:
             try:
                 self.queue.put_nowait((pcm, level))
             except queue.Full:
-                pass
+                if self.health is not None:
+                    self.health.note_queue_overrun()
+
+    def drain(self, limit: int = 0) -> list[tuple[bytes, float]]:
+        """Take what the worker thread would take now, without waiting for it.
+
+        A caller that drives the speech-pause rules itself (the hearing bench) still has to consume
+        the queue, otherwise a bounded queue fills up and reports overruns the product never has.
+        Never blocks, never drops.
+        """
+        out: list[tuple[bytes, float]] = []
+        while True:
+            try:
+                item = self.queue.get_nowait()
+            except queue.Empty:
+                return out
+            if item is not None:
+                out.append(item)
+            if limit and len(out) >= limit:
+                return out
 
     def mute(self) -> None:
         """Stop queueing the microphone. Capture and any pinned span are untouched."""

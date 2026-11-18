@@ -94,6 +94,10 @@ class CaptureRing:
         # Counted drops: bounded memory is a rule, a dropped frame is a fact to report.
         self.dropped_frames = 0
         self.dropped_bytes = 0
+        # Drops that touched a PINNED or already promoted span: unlike the rolling trim of loose
+        # audio, these are losses inside audio the pipeline still owes the user (handoff 8.4: zero
+        # transport loss in accepted spans). The bench reports exactly these as transport drops.
+        self.dropped_pinned_frames = 0
         self._lock = threading.RLock()
 
     # ------------------------------------------------------------------ capture
@@ -277,6 +281,9 @@ class CaptureRing:
         self.dropped_frames += 1
         self.dropped_bytes += len(frame.pcm) + (len(frame.raw) if frame.raw is not None else 0)
         self._bytes -= len(frame.pcm) + (len(frame.raw) if frame.raw is not None else 0)
+        if self._pin_from is not None and frame.seq >= self._pin_from:
+            # The span itself overflowed its bound: this is a loss the caller must see.
+            self.dropped_pinned_frames += 1
         self._consumed.discard(frame.seq)
 
     # ------------------------------------------------------------------ reporting
