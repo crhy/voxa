@@ -45,6 +45,7 @@ from voxa.agent.tools.readfile import readfile_tools
 from voxa.agent.tools.rebook import rebook_tools
 from voxa.agent.tools.recite import recite_tools
 from voxa.agent.tools.reminders import reminders_tools
+from voxa.agent.tools.reservations import reservation_tools
 from voxa.agent.tools.screenshot import screenshot_tools
 from voxa.agent.tools.slides import slides_tools
 from voxa.agent.tools.system import system_tools
@@ -67,6 +68,7 @@ def default_registry() -> ToolRegistry:
         *browser_tools(),
         *calc_tools(),
         *deal_tools(),
+        *reservation_tools(),
         *application_tools(),
         *desktoptheme_tools(),
         *local_music_tools(),

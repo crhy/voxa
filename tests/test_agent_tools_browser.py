@@ -358,6 +358,8 @@ def test_registry_lists_all_tools():
             "remember_fact",
             "rename_file",
             "repeat_last",
+            "reservation_fill",
+            "reservation_plan",
             "restore_all",
             "restore_app",
             "resume_app",

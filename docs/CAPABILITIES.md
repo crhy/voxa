@@ -122,6 +122,7 @@ adaptive noise cancellation.
 | “Best price on a 4070 Ti Super” | Google Shopping, price ascending | 🧪 |
 | “Give me directions to the San Diego Zoo” | Google Maps directions | 🧪 |
 | “Where is the nearest gas station?” | Google Maps, nearest first | 🧪 |
+| “Book a table for four at Luigi's on Friday at seven” | The restaurant's booking page opens with party size, date and time pre-filled; nothing submitted yet | 🧪 |
 | “Show me pictures of …” | Image search | ✅ |
 
 ## Browsing

@@ -2,6 +2,10 @@
 
 ## 0.1.8 — 2026-10-26
 
+### New
+
+- **Book a restaurant table by voice.** "Book a table for four at Luigi's on Friday at seven" opens the restaurant's booking page (OpenTable, Resy, Tock or a web search) and types the party size, date, time and restaurant into the fields that page offers. Nothing is submitted: pressing Book stays a separate, confirmed step.
+
 ### Fixed
 
 - Follow-up questions keep the earlier question and answer as context for both typed and spoken conversations.
