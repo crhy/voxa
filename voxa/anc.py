@@ -102,6 +102,9 @@ class EchoCanceller:
         self._speaking_left = 0
         self._floor_pow = None
         self._floor_known = False
+        self._last_mic_power = 0.0
+        self._last_residual_power = 0.0
+        self._last_reference_power = 0.0
 
     def _delayed_ref(self, length: int) -> np.ndarray:
         start = self._pos - self._delay
@@ -121,7 +124,12 @@ class EchoCanceller:
         delayed = self._delayed_ref(length)
         p_mic = float(np.mean(mic_b ** 2))
         p_res = float(np.mean(trial ** 2))
-        p_ref = float(np.mean(delayed ** 2))
+        # Kept for attribution (handoff 6.3, evidence stream 1): what the echo path explains and
+        # what is left over, measured on the frozen-filter trial, in dB. Read-only.
+        self._last_mic_power = p_mic
+        self._last_residual_power = p_res
+        self._last_reference_power = float(np.mean(delayed ** 2))
+        p_ref = self._last_reference_power
         p_now = float(np.mean(ref_b ** 2))  # power of the reference block itself (what the speakers play now)
         speaking = (p_ref < 1e-7 and p_mic > 1e-6) or (
             self._blocks_adapted > 100
@@ -215,3 +223,29 @@ class EchoCanceller:
     @property
     def converged_db(self) -> float:
         return self._converged
+
+    @property
+    def delay_samples(self) -> int:
+        """The delay this path was fitted with (0 = never estimated: alignment unhealthy)."""
+        return int(self._delay)
+
+    @property
+    def mic_power_db(self) -> float:
+        """Energy the microphone delivered on the last block, in dB."""
+        return 10.0 * float(np.log10(self._last_mic_power)) if self._last_mic_power > 1e-20 else -120.0
+
+    @property
+    def residual_power_db(self) -> float:
+        """Energy left after the echo-path fit on the last block, in dB."""
+        return 10.0 * float(np.log10(self._last_residual_power)) if self._last_residual_power > 1e-20 else -120.0
+
+    @property
+    def echo_explained_db(self) -> float:
+        """How much of the microphone the delayed reference explains, in dB (0.0 = all of it)."""
+        if self._last_mic_power <= 1e-20:
+            return -120.0
+        explained = max(self._last_mic_power - self._last_residual_power, 0.0)
+        if explained <= 1e-20:
+            return -120.0
+        return 10.0 * float(np.log10(explained / self._last_mic_power))
+

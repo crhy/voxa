@@ -17,7 +17,9 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from .bargein import BargeInGate, is_own_voice
+from .attribution import ECHO, SourceEvidence
+from .attribution import UNCERTAIN as SOURCE_UNCERTAIN
+from .bargein import BargeInGate, source_decision
 from .conversation import detect_addressed_exit_phrase, strip_wake_word
 
 # Barge-in: loud sustained speech while a reply is being read interrupts it.
@@ -33,6 +35,7 @@ IGNORED = "ignored"
 OFFLINE = "offline"
 OWN_VOICE = "own-voice"
 INTERRUPT = "interrupt"
+HOLD = "hold"  # the evidence did not decide: keep the audio, strip nothing, run no command
 
 # The presenter of a station Voxa has just started is not the user, unless the words
 # are an interrupt word or address her by name.
@@ -54,6 +57,11 @@ class BargeOutcome:
     level: float = 0.0
     gate_opened: bool = False
     listening_seconds: float = 0.0
+    # Which source the evidence supported, how strongly, and whether the path was degraded
+    # (traced to barge.log and recorded by the bench; the reason a span was kept or dropped).
+    source: str = ""
+    confidence: float = 0.0
+    degraded: bool = False
     # True on the observation where the level gate first opened: independent speech onset.
     # The caller pins the captured span from here (voxa/conversation.py:note_onset), which is
     # what keeps the beginning of an interruption alive while the words are still being judged.
@@ -87,11 +95,24 @@ class BargeInController:
         self.speaking_since = 0.0
         # When the level gate opened and the words are being collected (0.0 = not pending).
         self.pending_since = 0.0
+        # How far the microphone stood above her own level at the moment the gate opened. The gate
+        # watches 160 ms of samples and the words are judged about a second later, so the level of
+        # the judging frame is not the level of the sound that made us listen.
+        self.pending_ratio: float | None = None
         # Per-reply counters, traced to barge.log so a failed interruption can be explained.
         self.stats: dict = {}
         # What Voxa is saying now and the reply before it: the own-voice check's evidence.
         self.speaking_text = ""
         self.recent_spoken = ""
+
+    def _clear_candidate(self) -> None:
+        """Drop the pending candidate: the gate's streak and the level ratio it opened on.
+
+        The ratio belongs to the sound that made us listen; once that sound is over, a new one
+        has to earn it again.
+        """
+        self.pending_since = 0.0
+        self.pending_ratio = None
 
     def onset_level_floor(self) -> float:
         """The microphone level that separates speech from silence for THIS reply, in the
@@ -138,6 +159,7 @@ class BargeInController:
         wake_word: str = "voxa",
         media_just_started: bool = False,
         candidate: Callable[[], tuple[str, str]] | None = None,
+        evidence: Callable[[], SourceEvidence] | SourceEvidence | None = None,
     ) -> BargeOutcome:
         """Judge one level sample while a reply may be playing.
 
@@ -145,7 +167,11 @@ class BargeInController:
         divides ``_latest_level`` by 4000). ``candidate`` returns ``(heard, raw)``: the
         transcript of the audio captured while muted, after and before the own-speech
         filter. ``speaking``, ``paused`` and ``muted`` are the caller's state, read the
-        way ``_maybe_barge_in`` read them.
+        way ``_maybe_barge_in`` read them. ``evidence`` is the capture path's
+        :class:`voxa.attribution.SourceEvidence` for this moment (a callable is evaluated
+        only once the words are actually judged); ``None`` means the caller has no reference
+        to compare the microphone with, which puts the decision in its degraded text-only
+        form.
         """
         now = self.clock()
         stats = self.stats
@@ -161,20 +187,20 @@ class BargeInController:
             if speaking:
                 stats["paused_ticks"] = stats.get("paused_ticks", 0) + 1
             self.gate.reset()
-            self.pending_since = 0.0
+            self._clear_candidate()
             return BargeOutcome(IGNORED, reason="paused", level=level01)
         if not muted:
             if speaking:
                 stats["not_muted_ticks"] = stats.get("not_muted_ticks", 0) + 1
             self.gate.reset()
-            self.pending_since = 0.0
+            self._clear_candidate()
             return BargeOutcome(IGNORED, reason="not-muted", level=level01)
         if not speaking:
             return BargeOutcome(IGNORED, reason="not-speaking", level=level01)
         if now - self.speaking_since < self.grace_seconds:
             stats["grace_ticks"] = stats.get("grace_ticks", 0) + 1
             self.gate.reset()
-            self.pending_since = 0.0
+            self._clear_candidate()
             return BargeOutcome(IGNORED, reason="grace", level=level01)
         stats["ticks"] = stats.get("ticks", 0) + 1
         stats["max_level"] = max(stats.get("max_level", 0.0), level01)
@@ -187,8 +213,9 @@ class BargeInController:
                 return BargeOutcome(IGNORED, reason="gate-closed", level=level01)
             self.pending_since = now
             stats["gate_opened"] = stats.get("gate_opened", 0) + 1
+            self.pending_ratio = self.gate.peak / max(self.gate.baseline, self.gate.min_level)
             self._trace("gate-open", level=level01, baseline=float(self.gate.baseline),
-                        settled=self.gate.settled)
+                        settled=self.gate.settled, ratio=round(self.pending_ratio, 2))
             onset_open = True
         # Always judge the words. A loudness shortcut was tried and interrupted her on her
         # own loudest syllables; the user is given a word or two first.
@@ -202,11 +229,31 @@ class BargeInController:
         if detect_addressed_exit_phrase(heard, wake_word) == "goodbye":
             self._trace("offline-interrupt", heard=heard, raw=raw)
             self.gate.reset()
-            self.pending_since = 0.0
+            self._clear_candidate()
             return BargeOutcome(OFFLINE, heard=heard, raw=raw, level=level01)
-        own = is_own_voice(heard, self.speaking_text, self.recent_spoken, raw=raw)
-        self._trace("words", heard=heard, raw=raw, own_voice=own,
+        audio = evidence() if callable(evidence) else evidence
+        decision = source_decision(heard, self.speaking_text, self.recent_spoken, raw=raw,
+                                   evidence=audio,
+                                   level_ratio=(self.pending_ratio
+                                                if self.pending_ratio is not None else
+                                                self.gate.peak / max(self.gate.baseline,
+                                                                     self.gate.min_level)))
+        self._trace("words", heard=heard, raw=raw, source=decision.source,
+                    confidence=round(decision.confidence, 2), degraded=decision.degraded,
+                    reasons="; ".join(decision.reasons)[:200],
                     seconds=self.clock() - started, speaking=self.speaking_text[:60])
+        if decision.source == SOURCE_UNCERTAIN:
+            # Not her voice and not proven to be a person: hold. The captured span stays pinned
+            # for its evidence window, nothing is stripped from the transcript, and no command
+            # runs from audio this weak (handoff 6.5: an immediate output change for every raw
+            # VAD event would reintroduce self-interruption). The gate is cleared so the candidate
+            # is judged again on the next run of loud frames rather than staying stuck open.
+            self.gate.reset()
+            self._clear_candidate()
+            return BargeOutcome(HOLD, reason="uncertain", heard=heard, raw=raw, level=level01,
+                                source=decision.source, confidence=decision.confidence,
+                                degraded=decision.degraded)
+        own = decision.source == ECHO
         if (
             not own
             and media_just_started
@@ -216,12 +263,20 @@ class BargeInController:
             # The station she is announcing has already started: its presenter is not the user.
             own = True
         if own:
-            # The loud sound was Voxa's own voice: carry on speaking.
+            # The loud sound was Voxa's own voice: carry on speaking. This is the only branch
+            # that may strip words, and it is reached on audio evidence - never because the
+            # transcript is short or happens to contain a word she is saying herself (task A2:
+            # her saying "stop" alone must never stop her, and a person saying "stop" over her
+            # saying "stop" must always stop her).
             self.gate.reset()
-            self.pending_since = 0.0
-            return BargeOutcome(OWN_VOICE, heard=heard, raw=raw, level=level01)
+            self._clear_candidate()
+            return BargeOutcome(OWN_VOICE, heard=heard, raw=raw, level=level01,
+                                source=decision.source, confidence=decision.confidence,
+                                degraded=decision.degraded)
         self.gate.reset()
-        self.pending_since = 0.0
+        self._clear_candidate()
         self.speaking_since = 0.0
         return BargeOutcome(INTERRUPT, heard=heard, raw=raw, level=level01,
-                            listening_seconds=self.clock() - started)
+                            listening_seconds=self.clock() - started,
+                            source=decision.source, confidence=decision.confidence,
+                            degraded=decision.degraded)

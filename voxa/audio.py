@@ -507,6 +507,33 @@ class AudioCapture:
         """True while a capture pipeline exists, i.e. the microphone may be recording."""
         return self.pipeline is not None
 
+    def reference_power(self, samples: int = 1600) -> float:
+        """Power of the reference over the most recent ~100 ms (0.0 with no reference source).
+
+        Attribution evidence, read-only: "is the speaker path live at this moment" is handoff 6.3's
+        first stream. The window is the canceller's own block size scale, so a reply that stopped
+        a moment ago still counts while its echo is in flight.
+        """
+        if self._ref_ring is None:
+            return 0.0
+        window = self._ref_ring.window(self._mic_counter - max(1, int(samples)), max(1, int(samples)))
+        return float(np.mean(window * window)) if window.size else 0.0
+
+    def echo_measurements(self) -> tuple[float, float | None, float | None]:
+        """(reference_power, echo_explained_db, residual_db) of the last block the canceller fitted.
+
+        ``None`` for the two dB fields means this path has no echo model to measure with (echo off,
+        or no reference sink): the attribution decision then says so instead of guessing.
+        """
+        if self.canceller is None or not self._canceller_enabled or self._ref_ring is None:
+            return self.reference_power(), None, None
+        return self.reference_power(), self.canceller.echo_explained_db, self.canceller.residual_power_db
+
+    @property
+    def delay_samples(self) -> int:
+        """The delay the echo path was fitted with (0 = never estimated: alignment unhealthy)."""
+        return self.canceller.delay_samples if self.canceller is not None else 0
+
     def stop(self) -> None:
         gst = _ensure_gstreamer() if (self.pipeline is not None or self._ref_pipeline is not None) else None
         pipeline, self.pipeline = self.pipeline, None

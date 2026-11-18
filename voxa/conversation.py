@@ -314,6 +314,14 @@ class ConversationController:
         self.last_candidate_words: list[dict] = []
         # The candidate's own words, so promoting the span can carry them into the turn once.
         self._candidate_text = ""
+        # What the capture path currently knows about the source of the microphone (a
+        # voxa.attribution.SourceDecision, or None when there is no reference to compare with).
+        # The own-speech filter reads it, so a span the audio attributes to a second source is
+        # never rewritten by a text match.
+        self.audio_evidence = None
+        # The own-speech filter's text-overlap diagnostic for the last transcript (traced, never
+        # used to delete anything on its own).
+        self.last_filter_features: dict = {}
         # The turn in progress that began with a promoted span: its stable transcript prefix
         # and how many bytes of audio that prefix already accounts for.
         self._turn_prefix_text = ""
@@ -509,20 +517,29 @@ class ConversationController:
             logging.debug("voice detector failed; using the loudness rule: %s", exc)
             return level >= self.threshold
 
-    def _filter_own_speech(self, text: str) -> str | None:
+    def _filter_own_speech(self, text: str, *, evidence=None, confirmed_user: bool = False) -> str | None:
         """Strip echoes of Voxa's own voice from a transcript.
 
-        Returns the text to use, or ``None`` when the whole utterance is her own
-        voice (drop it). Never raises: a filter bug must not lose the user's
-        speech, so the original text is returned and the failure logged.
+        Returns the text to use, or ``None`` when the whole utterance is her own voice (drop it).
+        Never raises: a filter bug must not lose the user's speech, so the original text is
+        returned and the failure logged.
+
+        ``evidence`` is the attribution decision for that span and ``confirmed_user`` marks an
+        utterance already established as the user's: either one of them stops a text match from
+        rewriting anything (handoff 5.3 - the user may repeat Voxa's words on purpose). The
+        overlap is still measured and kept in :attr:`last_filter_features` as a diagnostic.
         """
         if self.own_speech is None or not self.own_speech.active():
             return text
         try:
-            if self.own_speech.is_echo(text, protect=[self.wake_word]):
+            ev = evidence if evidence is not None else self.audio_evidence
+            self.last_filter_features = self.own_speech.features(text, protect=[self.wake_word])
+            if self.own_speech.is_echo(text, protect=[self.wake_word],
+                                        evidence=ev, confirmed_user=confirmed_user):
                 logging.debug("ignored her own words: %s", text)
                 return None
-            stripped, _share = self.own_speech.strip(text, protect=[self.wake_word])
+            stripped, _share = self.own_speech.strip(text, protect=[self.wake_word],
+                                                     evidence=ev, confirmed_user=confirmed_user)
             return stripped
         except Exception as exc:  # noqa: BLE001 - echo filter must never lose speech
             logging.debug("own-speech filter failed: %s", exc)
@@ -662,7 +679,11 @@ class ConversationController:
         raw, words = self._transcribe_span(segment)
         self.last_candidate_raw = raw or ""
         self.last_candidate_words = words
-        text = self._filter_own_speech(raw) or ""
+        # The candidate is judged on the WHOLE transcript: her own words are not stripped out of
+        # it first, because the stripping is a decision about a SOURCE and the source is exactly
+        # what is still being decided (handoff 5.3: the user may repeat Voxa's words, and a
+        # repetition stripped here can never be attributed afterwards).
+        text = raw or ""
         self._candidate_cache = (start, end, text)
         self._candidate_text = text
         return text
@@ -756,7 +777,8 @@ class ConversationController:
                     whisper,
                     hint=self._prompt_hint if waiting_for_prompt else f"{self.wake_word.strip().capitalize()}.",
                 ) if tail else ""
-                tail_text = (self._filter_own_speech(tail_raw) or "") if tail_raw else ""
+                tail_text = (self._filter_own_speech(tail_raw, confirmed_user=True)
+                             or "") if tail_raw else ""
                 text = f"{prefix_text} {tail_text}".strip()
             elif not self.early_final_pass and self._early_text is not None:
                 text = self._early_text

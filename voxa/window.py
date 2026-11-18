@@ -75,7 +75,9 @@ from .agent.tools import briefing as briefing_tool  # noqa: E402
 from .agent.tools.web import get_session  # noqa: E402
 from .anc import EchoCanceller as AncCanceller  # noqa: E402
 from .audio import AudioCapture, AudioDevice, webrtc_available  # noqa: E402
-from .bargectl import BargeInController  # noqa: E402
+from .bargectl import BargeInController, HOLD  # noqa: E402
+from .attribution import MIN_REFERENCE_POWER, SourceEvidence, attribute  # noqa: E402
+from .attribution import EchoPathBaseline as _EchoPathBaseline  # noqa: E402
 from .catalog import CatalogUnavailable, load_catalog, refresh_and_cache, refresh_due  # noqa: E402
 from .config import ConfigStore  # noqa: E402
 from .controller import AssistantController, ControllerPorts  # noqa: E402
@@ -351,6 +353,9 @@ class MainWindow(Adw.ApplicationWindow):
         # the text being spoken now / the piece before it (own-voice check). The decision
         # itself is voxa/bargectl.py, shared with the hearing bench.
         self._barge_ctl = BargeInController(trace=self._barge_trace)
+        # Attribution evidence (handoff 6.3): the echo path's own recent residual level, so a
+        # residual only counts when it stands above what THIS path usually leaves behind.
+        self._echo_baseline = _EchoPathBaseline()
         # Echo filter: remembers what Voxa is saying so a mic transcript that is
         # (part of) her own sentence is dropped, not heard as the user (issue #88).
         self.own_speech = OwnSpeech()
@@ -3131,6 +3136,43 @@ class MainWindow(Adw.ApplicationWindow):
         except Exception:  # noqa: BLE001 - tracing must never disturb the conversation
             pass
 
+    def _hearing_evidence(self) -> SourceEvidence | None:
+        """The source-attribution evidence for this moment (voxa/attribution.py, handoff 6.3).
+
+        Three numbers the capture path already measured - the reference's power, how much of the
+        microphone the echo path explains, and the residual it leaves - plus the VAD probability
+        of the cleaned signal. Nothing here touches an audio device or runs a model: the GTK thread
+        only reads state (handoff 6.8: no inference on this thread).
+        """
+        try:
+            ref_power, explained, residual = self.audio.echo_measurements()
+            margin = self._echo_baseline.note(residual) if residual is not None else None
+            detector = (self.conversation._voice_detector
+                        if self.conversation is not None else None)
+            prob = float(detector.last_prob) if (detector is not None and detector.last_prob is not None
+                                                and detector.probs) else None
+            evidence = SourceEvidence(
+                reference_active=bool(ref_power > MIN_REFERENCE_POWER),
+                reference_power=float(ref_power),
+                echo_explained_db=explained,
+                residual_db=residual,
+                residual_margin_db=margin,
+                vad_prob=prob,
+                # A delay of 0 means the echo path was never fitted: unqualified audio, no decision.
+                alignment_healthy=bool(self.audio.delay_samples > 0
+                                       or ref_power <= MIN_REFERENCE_POWER),
+                mic_level=float(self._latest_level / 4000.0),
+                own_level=float(self._barge_ctl.gate.baseline),
+            )
+            if self.conversation is not None:
+                # The own-speech filter reads the decision, so a span the audio attributes to a
+                # second source is never rewritten by a text match (handoff 5.3).
+                self.conversation.audio_evidence = attribute(evidence)
+            return evidence
+        except Exception as exc:  # noqa: BLE001 - attribution must never break the conversation
+            logging.debug("hearing evidence unavailable: %s", exc)
+            return None
+
     def _maybe_barge_in(self) -> None:
         """Interrupt a spoken reply when the user talks over it.
 
@@ -3153,6 +3195,7 @@ class MainWindow(Adw.ApplicationWindow):
             wake_word=self.settings.wake_word,
             media_just_started=self._media_just_started,
             candidate=self._barge_candidate,
+            evidence=self._hearing_evidence(),
         )
         if outcome.action == "offline":
             self._on_conversation_exit("goodbye")
@@ -3166,6 +3209,10 @@ class MainWindow(Adw.ApplicationWindow):
             if self.conversation is not None:
                 # Rejected, not deleted: the span stays for its evidence window.
                 self.conversation.note_rejected()
+        if outcome.action == HOLD:
+            # The evidence did not decide: the pin stays open, nothing is stripped, and no
+            # command runs from audio this weak (voxa/attribution.py, handoff 6.5).
+            self._barge_trace("HOLD", source=outcome.source, confidence=round(outcome.confidence, 2))
         if outcome.action != "interrupt":
             return
         self._barge_trace("INTERRUPT")

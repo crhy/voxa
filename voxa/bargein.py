@@ -15,6 +15,7 @@ SETTLED_SAMPLES = 20
 WINDOW = 8
 
 
+
 def _words(text: str) -> list[str]:
     return [word for word in re.findall(r"[^\W\d_]+", text.lower()) if len(word) >= 2]
 
@@ -31,7 +32,9 @@ def overlap(heard: str, speaking: str) -> float:
     return hits / len(heard_words)
 
 
-STOP_WORDS = frozenset({"stop", "wait", "voxa", "cancel", "pause", "quiet", "enough", "no", "hey", "silence", "shush"})
+# Words that ask her to DO something. "voxa" is the wake word, not a command, and is scored
+# separately: hearing her name is a weaker cue than hearing "stop".
+STOP_WORDS = frozenset({"stop", "wait", "cancel", "pause", "quiet", "enough", "no", "hey", "silence", "shush"})
 
 
 def _letters(text: str) -> str:
@@ -59,40 +62,122 @@ def sounds_like(heard: str, spoken: str) -> float:
 
 
 OWN_VOICE_SOUND = 0.5
+# Below this many letters, a letter match against her sentence is noise: any three letters occur
+# inside any sentence ("yes" matched inside "quarterly report"), and a brief user answer is then
+# scored as her echo - the exact failure handoff 5.2 says not to make.
+LETTER_FEATURE_MIN = 5
 # Words other than interrupt words that are mostly hers mark an echo; with fewer than four of them
 # the letters must match closely too.
 ECHO_REST_OVERLAP = 0.75
 ECHO_REST_SOUND = 0.75
 
 
-def is_own_voice(heard: str, speaking_now: str, recently_spoken: str = "", raw: str = "") -> bool:
-    """True when what was heard is (a mishearing of) what Voxa is saying, or too little to be a person.
+def text_features(heard: str, speaking_now: str, recently_spoken: str = "", raw: str = "") -> dict:
+    """The WORDS as features: how much they look like her own sentence, plus the cues.
 
-    `heard` is the transcript after her own words were stripped; `raw` is the transcript before that.
+    These are inputs to a weighted score, never a decision on their own, and the NUMBER of words
+    is not among them: handoff 5.2 shows that "yes", "blue" and "that one" are valid brief
+    answers, so a short transcript is uncertainty, not echo.
     """
+    from .attribution import SourceEvidence
+
     spoken_text = f"{speaking_now} {recently_spoken}"
     words = _words(heard)
     spoken = set(_words(spoken_text))
-    stop = [w for w in words if w in STOP_WORDS and w not in spoken and not any(s.startswith(w) for s in spoken)]
+    # The LETTER feature needs enough letters to be specific: any three letters can be found
+    # inside any sentence, so below this size the match is noise, not evidence. A reliability guard
+    # on one feature - it decides nothing by itself, and the word count is not a feature.
+    letters = _letters(raw or heard)
+    sound_source = (raw or heard) if len(letters) >= LETTER_FEATURE_MIN else ""
+    def hers(word: str) -> bool:
+        # She says this word herself ("Stopping dictation" heard as "Stop", her own "Voxa" in the
+        # prompt hint's prefix): a word she is saying cannot be a cue that someone else is talking.
+        return word in spoken or any(s.startswith(word) for s in spoken)
+
+    stop = [w for w in words if w in STOP_WORDS and not hers(w)]
     rest = [w for w in words if w not in STOP_WORDS]
-    if len(rest) >= 2 and overlap(" ".join(rest), spoken_text) >= ECHO_REST_OVERLAP and (
-        len(rest) >= 4 or sounds_like(" ".join(rest), spoken_text) >= ECHO_REST_SOUND
-    ):
-        # Her own sentence with one interrupt word in it: "3. Do not steal" misheard as "3. Do not
-        # stop", or the transcription prompt adding "Voxa." to her words ("Voxa. Commands or cheat.
-        # Voxa. Do not bear false witness."). Both made her interrupt herself (traced 14 October).
-        # A person's interruption is the stop word alone or with words of their own.
-        return True
-    if stop and (len(words) <= 3 or sounds_like(raw or heard, spoken_text) < OWN_VOICE_SOUND):
-        # The words people actually interrupt with count — unless she is saying them herself
-        # ("Stopping dictation"), or they sit inside a long mishearing of her own sentence.
-        return False
-    if len(words) < 3:
-        # One or two stray words are usually her own voice misheard ("a celibate"), not a person.
-        return True
-    if sounds_like(raw or heard, spoken_text) >= OWN_VOICE_SOUND:
-        return True
-    return overlap(heard, spoken_text) >= OWN_VOICE_OVERLAP
+    wake = [w for w in words if w.startswith("voxa") and not hers(w)]
+    rest_overlap = overlap(" ".join(rest), spoken_text) if rest else 0.0
+    rest_sound = sounds_like(" ".join(rest), spoken_text) if len(_letters(" ".join(rest))) >= LETTER_FEATURE_MIN else 0.0
+    sentence_echo = bool(len(rest) >= 2 and rest_overlap >= ECHO_REST_OVERLAP and
+                         (len(rest) >= 4 or rest_sound >= ECHO_REST_SOUND))
+    return {
+        "evidence": SourceEvidence(
+            text_overlap=max(overlap(heard, spoken_text), rest_overlap if sentence_echo else 0.0),
+            text_sound=max(sounds_like(sound_source, spoken_text), rest_sound if sentence_echo else 0.0),
+            text_letters_measurable=bool(len(letters) >= LETTER_FEATURE_MIN),
+            word_count=len(words),
+            stop_word=bool(stop),
+            wake_word=bool(wake),
+        ),
+        # "her own sentence with an interrupt word inside it" (traced 14 October): a text feature
+        # with a heavier weight, still not a decision by itself.
+        "sentence_echo": sentence_echo,
+        "stop_in_own_speech": bool(any(w in spoken or any(s.startswith(w) for s in spoken)
+                                        for w in words if w in STOP_WORDS)),
+    }
+
+
+def source_decision(heard: str, speaking_now: str, recently_spoken: str = "", raw: str = "",
+                    evidence=None, level_ratio: float | None = None) -> "SourceDecision":
+    """The three-way answer for one candidate: user, echo, or undecided.
+
+    ``bargectl`` uses this directly, because "uncertain" is an outcome of its own: the audio and
+    the transcript are kept, nothing is stripped, and no command runs from it.
+    """
+    from .attribution import attribute
+
+    features = text_features(heard, speaking_now, recently_spoken, raw=raw)
+    ev = features["evidence"]
+    if features["sentence_echo"]:
+        ev.text_overlap = max(ev.text_overlap, ECHO_REST_OVERLAP)
+        ev.text_sound = max(ev.text_sound, ECHO_REST_SOUND)
+    if evidence is None:
+        # No capture-path evidence: a reply IS being read out (that is the only state in which
+        # the words are judged), so the reference is live and the audio streams are simply
+        # missing - the degraded path inside ``attribute``, reported as degraded.
+        ev.reference_active = True
+        ev.level_ratio = level_ratio
+        return attribute(ev)
+    merged = _merge(ev, evidence)
+    if merged.level_ratio is None:
+        merged.level_ratio = level_ratio
+    return attribute(merged)
+
+
+def is_own_voice(heard: str, speaking_now: str, recently_spoken: str = "", raw: str = "",
+                 evidence=None) -> bool:
+    """True when the evidence says the sound is (a mishearing of) what Voxa is saying.
+
+    ``evidence`` is a :class:`voxa.attribution.SourceEvidence` filled in by the caller from the
+    capture path. Without it there is no reference to compare the microphone with, so the words
+    are all there is: the degraded text-only path may answer ``echo`` or ``uncertain``, and
+    ``uncertain`` is NOT "her voice" - it means "do not decide", which is why the old
+    ``len(words) < 3 -> own voice`` rule is gone (handoff 5.2: short length is uncertainty).
+    """
+    from .attribution import ECHO
+
+    return source_decision(heard, speaking_now, recently_spoken, raw=raw,
+                           evidence=evidence).source == ECHO
+
+
+def _merge(text_ev, audio_ev):
+    """Combine the caller's audio evidence with the words' features into one evidence record."""
+    from .attribution import SourceEvidence
+
+    fields = {name: getattr(audio_ev, name) for name in audio_ev.__slots__}
+    for name in ("text_overlap", "text_sound", "word_count", "stop_word", "wake_word",
+                 "text_letters_measurable"):
+        value = getattr(text_ev, name)
+        if name in ("text_overlap", "text_sound"):
+            fields[name] = max(float(fields[name]), float(value))
+        elif name == "text_letters_measurable":
+            # The caller's evidence has no words of its own: this feature comes from the transcript.
+            fields[name] = bool(value)
+        else:
+            fields[name] = bool(fields[name]) or bool(value)
+    return SourceEvidence(**fields)
+
 
 
 class BargeInGate:
@@ -105,6 +190,7 @@ class BargeInGate:
         self._needed = needed
         self._count = 0
         self._recent: list[bool] = []
+        self._levels: list[float] = []
         self._baseline = 0.0
         self._samples = 0
 
@@ -114,6 +200,8 @@ class BargeInGate:
         # ticks among the last WINDOW instead.
         self._recent.append(mic_level > max(self._min_level, self._ratio * baseline))
         del self._recent[:-WINDOW]
+        self._levels.append(mic_level)
+        del self._levels[:-WINDOW]
         self._count = sum(self._recent)
         # Never open before the baseline has heard enough of her own voice to be trusted:
         # at session start the baseline is 0.0, so any loud sound would open the gate.
@@ -136,6 +224,16 @@ class BargeInGate:
     def ratio(self) -> float:
         """How far above her own level the microphone must be to count as someone else speaking."""
         return self._ratio
+
+    @property
+    def peak(self) -> float:
+        """The loudest of the last WINDOW samples.
+
+        The gate stays open across a dip between syllables, so the level of the frame that happens
+        to do the judging is not the level of the sound: "is the microphone towering" has to be
+        asked about the run of frames, not the instant.
+        """
+        return max(self._levels) if self._levels else 0.0
 
     @property
     def min_level(self) -> float:
