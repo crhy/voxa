@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import sys
 
-from . import agree, render, report, runner
+from . import agree, baseline, render, report, runner
 
 # Subcommand -> the roadmap task that implements it.
 NOT_IMPLEMENTED = {
@@ -21,6 +21,7 @@ USAGE = """usage: python -m voxa.bench <subcommand> [options]
   run      run the file-driven pipeline over a clip set (roadmap B2)
   agree    compare runner output with direct ASR (roadmap B2)
   check    assert metric conditions on a report (roadmap B3)
+  baseline record/check the baseline every later task is measured against (roadmap B5)
 """
 
 
@@ -38,6 +39,8 @@ def main(argv: list[str] | None = None) -> int:
         return agree.main(rest)
     if command == "check":
         return report.check(rest)
+    if command == "baseline":
+        return baseline.main(rest)
     task = NOT_IMPLEMENTED.get(command)
     if task is not None:
         print(f"voxa.bench {command} is not implemented yet; roadmap task {task} adds it.", file=sys.stderr)
