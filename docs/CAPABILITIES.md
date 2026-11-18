@@ -130,7 +130,8 @@ adaptive noise cancellation.
 | --- | --- | --- |
 | “Open my email” | Gmail opens | ✅ |
 | “Open Expedia” / “Open spacedlinux.com” | Site opens, known or not | 🧪 |
-| “Search Wikipedia for …”, “click History”, “go back” | Voxa drives her own browser | 🧪 |
+| "Search Wikipedia for …", "click History", "go back" | Voxa drives her own browser | 🧪 |
+| “Fill in this form” | Voxa reads the form's fields, fills name, address and email from what she remembers, asks for what is missing, and sends only when you say yes | 🧪 |
 
 ## Writing and files
 
