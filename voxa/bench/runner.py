@@ -18,13 +18,15 @@ through the same stages the live app uses, in the same order:
 
 A simulated clock advances 20 ms per frame, so a clip runs faster than real time and nothing sleeps.
 Per clip the runner writes ``.voxa-bench/<suite>/<clip>/events.jsonl``: one ``frame`` event per frame
-(frame sequence id, sample span, VAD verdict and probability, level, echo removed in dB, mask gain,
-current delay estimate) plus ``suspect``, ``candidate``, ``barge-in-confirm``, ``tts-stop``,
-``pause``, ``endpoint``, ``transcript`` and ``request`` (the text that would reach the assistant,
-with word times and ``no_speech_prob``).
+(frame sequence id, sample span, VAD verdict and probability, level, echo removed in dB, the
+microphone and cleaned levels in dB, mask gain, current delay estimate) plus ``suspect``, ``candidate``,
+``barge-in-confirm``, ``tts-stop``, ``pause``, ``endpoint``, ``transcript`` and ``request`` (the text that
+would reach the assistant, with word times and ``no_speech_prob``).
 
 This task MEASURES; it does not fix. The product pipeline is untouched except the two factoring
-steps that let both paths share one decision (``voxa/bargectl.py`` and ``SpeechSegmenter``).
+steps that let both paths share one decision (``voxa/bargectl.py`` and ``SpeechSegmenter``). Roadmap
+B3 hooks the metrics in: ``run`` hands each clip's events to ``voxa/bench/report.py``, which computes
+every metric the brief names with a bootstrap CI and writes ``report.json``.
 """
 
 from __future__ import annotations
@@ -48,6 +50,8 @@ from ..dictation import SpeechSegmenter
 from ..endpoint import is_complete, is_followup
 from ..ownspeech import OwnSpeech
 from ..refmask import ReferenceMask
+from . import metrics as metrics_module
+from . import report as report_module
 from .render import DEFAULT_DATA_ROOT, SR, read_wav
 
 CHUNK_MS = 20
@@ -72,6 +76,17 @@ def erle_removed_db(mic, cleaned) -> float:
         return 0.0
     cleaned_ms = max(float(np.mean(np.asarray(cleaned, dtype=np.float64) ** 2)), 1e-20)
     return 10.0 * float(np.log10(mic_ms / cleaned_ms))
+
+
+def level_db(samples: np.ndarray) -> float:
+    """One frame's RMS level in dB, the way the metrics compare what the pipeline did to it.
+
+    B3 measures what the echo stages do to the USER's own frames (near-end attenuation), which
+    needs both sides of the stage: the level the microphone delivered and the level the ASR stage
+    received. A silent frame floors at -160 dB instead of going to minus infinity.
+    """
+    rms_value = float(np.sqrt(np.mean(np.asarray(samples, dtype=np.float64) ** 2)))
+    return round(20.0 * float(np.log10(max(rms_value, 1e-8))), 3)
 
 
 class PinnedASR:
@@ -248,10 +263,12 @@ class ClipRunner:
         self.emit("delay-estimate", delay_samples=delay, delay_ms=round(delay / SR * 1000, 1),
                   collected_s=round(collected / SR, 2))
 
-    def _clean_frame(self, mic_bytes: bytes, ref: np.ndarray) -> tuple[bytes, float, float]:
-        """Cleaned chunk for this frame, the dB the canceller removed, and the mask's gain in dB."""
+    def _clean_frame(self, mic_bytes: bytes, ref: np.ndarray) -> tuple[bytes, float, float, float, float]:
+        """Cleaned chunk for this frame, the dB the canceller removed, the mask's gain in dB, and
+        the microphone and cleaned levels in dB (B3's near-end attenuation reads the last two)."""
         gain_db = 0.0
         mic = np.frombuffer(mic_bytes, dtype="<i2").astype(np.float32)
+        mic_db = level_db(mic)
         if self.canceller is not None and self.ref_ring is not None:
             self._estimate_delay(mic, ref)
             mic_bytes = mix_chunk(mic_bytes, self.ref_ring, self._mic_counter, self.canceller, 0)
@@ -266,7 +283,7 @@ class ClipRunner:
                 gain_db = 20.0 * float(np.log10(max(gain, 1e-9)))
                 mic_bytes = pcm16(masked)
         self._clean_stream.append(mic_bytes)
-        return mic_bytes, erle, gain_db
+        return mic_bytes, erle, gain_db, mic_db, level_db(np.frombuffer(mic_bytes, dtype="<i2"))
 
     # --- the barge-in candidate -------------------------------------------------
 
@@ -431,7 +448,7 @@ class ClipRunner:
                     self._speak_finished()
             # 2. The microphone frame through the echo stages, then the level the app would see.
             mic_bytes = np.asarray(mic_chunk_i16, dtype="<i2").tobytes()
-            cleaned_bytes, erle, gain_db = self._clean_frame(mic_bytes, ref_chunk)
+            cleaned_bytes, erle, gain_db, mic_db, clean_db = self._clean_frame(mic_bytes, ref_chunk)
             erle_values.append(erle)
             mask_gains.append(gain_db)
             level = AudioCapture._rms(cleaned_bytes)
@@ -450,6 +467,8 @@ class ClipRunner:
                 level=round(level, 1),
                 erle_db=round(erle, 2),
                 mask_gain_db=round(gain_db, 2),
+                mic_level_db=mic_db,
+                clean_level_db=clean_db,
                 delay_samples=self._delay_samples,
                 ref_power=round(ref_power, 8),
                 speaking=bool(self.barge.speaking_since > 0.0),
@@ -583,79 +602,24 @@ def load_clip(clip_dir: Path) -> dict:
 
 
 def build_report(suite: str, seed: int, echo_mode: str, results: list[dict],
-                 audio_seconds: float, wall: float, model: str) -> dict:
-    """The report envelope the bench fixes: suite, echo_mode, pass, metrics with CIs.
+                 facts: list[dict], audio_seconds: float, wall: float, model: str) -> dict:
+    """The report envelope the bench fixes: suite, echo_mode, pass, every metric with its CI.
 
-    Only metrics this stage can actually measure carry a value; the rest are reported null with
-    ``pass: true`` as the shared brief requires (roadmap B3 writes ``voxa/bench/metrics.py``).
+    Roadmap B3 moved the real work into :func:`voxa.bench.report.build_report`, which computes
+    every metric the shared brief names over the clip facts (``voxa/bench/metrics.py``), bootstraps
+    a 95 % CI from 1000 resamples and breaks the numbers down per scenario. This is the one call
+    site, kept so ``run`` reads as: run the clips, then report them.
     """
-    def _count(key: str) -> int:
-        return int(sum(item["counts"].get(key, 0) for item in results))
+    from .report import build_report as _build
 
-    def _metric(value, ci, threshold, op, measurable=True) -> dict:
-        if not measurable or value is None:
-            return {"value": None, "ci": list(ci), "threshold": threshold, "pass": True}
-        ok = value >= threshold if op == ">=" else value <= threshold
-        return {"value": round(value, 4), "ci": list(ci), "threshold": threshold, "pass": bool(ok)}
-
-    nst = [item for item in results if item["scenario"] == "nst"]
-    fst = [item for item in results if item["scenario"] == "fst"]
-    recall = (sum(1 for item in nst if item["requests"]) / len(nst)) if nst else None
-    self_command = (sum(1 for item in fst if item["requests"]) / len(fst)) if fst else None
-    fst_heard = (sum(1 for item in fst if item["transcript_texts"]) / len(fst)) if fst else None
-    overlap_clips = [item for item in results if item["counts"]["barge_in"]]
-    retained = sum(1 for item in overlap_clips
-                   if any(heard and heard.lower() in " ".join(item["requests"]).lower()
-                          for heard in item["barge_heard"]))
-    retention = (retained / len(overlap_clips)) if overlap_clips else None
-    fst_audio = sum(item["seconds"] for item in fst)
-    false_bargein = (sum(item["counts"]["barge_in"] for item in fst) / (fst_audio / 3600.0)) if fst_audio else None
-    metrics = {
-        "user_recall_nst": _metric(recall, [0.0, 1.0], 0.95, ">="),
-        "self_command_rate": _metric(self_command, [0.0, 1.0], 0.0, "<="),
-        "fst_transcript_rate": _metric(fst_heard, [0.0, 0.01], 0.01, "<="),
-        "turn_retention_rate": _metric(retention, [1.0, 1.0], 1.0, ">="),
-        "false_bargein_per_hour": _metric(false_bargein, [0.0, 0.5], 0.5, "<="),
-        "echo_leak_word_rate": {"value": None, "ci": [0.0, 0.001], "threshold": 0.001, "pass": True},
-    }
-    return {
-        "suite": suite,
-        "seed": seed,
-        "echo_mode": echo_mode,
-        "pass": True,
-        "metrics": metrics,
-        "run": {
-            "clips": len(results),
-            "audio_seconds": round(audio_seconds, 3),
-            "wall_seconds": round(wall, 3),
-            "realtime_factor": round(wall / audio_seconds, 4) if audio_seconds else None,
-            "target_realtime_factor": 0.5,
-            "model": model or Settings().normalized().whisper_model,
-            "chunk_ms": CHUNK_MS,
-            "asr_calls": sum(item["asr_calls"] for item in results),
-            "asr_audio_seconds": round(sum(item["asr_audio_seconds"] for item in results), 3),
-            "asr_processing_seconds": round(sum(item["asr_processing_seconds"] for item in results), 3),
-            "turns": sum(len(item["requests"]) for item in results),
-            "suspects": _count("suspect"),
-            "barge_ins": _count("barge_in"),
-            "own_voice_rejections": _count("own_voice"),
-            "ignored_utterances": _count("ignored"),
-            "exit_phrases": _count("exit"),
-            "delay_estimated": sum(1 for item in results if item["delay_estimated_samples"]),
-            "degraded": sorted({item["degraded"] for item in results if item["degraded"]}),
-        },
-        "clips": results,
-    }
+    return _build(suite, seed, echo_mode, results, facts, audio_seconds, wall, model)
 
 
 def check_gates(report: dict) -> list[str]:
-    """Evaluate ``voxa/bench/gates.toml`` if it exists (the file itself is roadmap B5)."""
+    """Evaluate ``voxa/bench/gates.toml`` (roadmap B3 creates it with no thresholds, B5 records them)."""
     from . import gates
 
-    path = gates.GATES_PATH
-    if not path.exists():
-        return []
-    return gates.evaluate(path, report)
+    return gates.evaluate(gates.GATES_PATH, report)
 
 
 def run(argv: list[str] | None = None) -> int:
@@ -689,6 +653,7 @@ def run(argv: list[str] | None = None) -> int:
         print(f"wrote {out_path}: {report['run']['clips']} clips, {audio:.1f} s of audio in "
               f"{wall:.1f} s wall ({audio / wall:.2f}x audio time), "
               f"{report['run']['turns']} turns, {report['run']['barge_ins']} barge-ins")
+        print("\n".join(report_module.format_metrics(report)))
     if not args.no_gates:
         failures = check_gates(report)
         for line in failures:
@@ -713,6 +678,7 @@ def run_clips(suite: str, seed: int, echo_mode: str, data_root: Path, limit: int
     started = time.perf_counter()
     audio_seconds = 0.0
     results: list[dict] = []
+    facts: list[dict] = []
     for index, clip_dir in enumerate(clip_dirs):
         loaded = load_clip(clip_dir)
         runner = ClipRunner(asr=asr, echo_mode=echo_mode, wake_word=wake_word)
@@ -723,12 +689,13 @@ def run_clips(suite: str, seed: int, echo_mode: str, data_root: Path, limit: int
             "".join(json.dumps(event, sort_keys=True) + "\n" for event in runner.events)
         )
         results.append(summary)
+        facts.append(metrics_module.clip_facts(loaded["truth"], runner.events, summary))
         audio_seconds += summary["seconds"]
         if not quiet:
             print(f"ran {index + 1}/{len(clip_dirs)} {summary['id']} {summary['seconds']:6.2f}s audio "
                   f"{summary['wall_seconds']:6.2f}s wall turns {len(summary['requests'])} "
                   f"barge {summary['counts']['barge_in']}", flush=True)
-    return build_report(suite, seed, echo_mode, results, audio_seconds,
+    return build_report(suite, seed, echo_mode, results, facts, audio_seconds,
                         time.perf_counter() - started, model)
 
 
