@@ -11,8 +11,16 @@ from difflib import SequenceMatcher
 
 OWN_VOICE_OVERLAP = 0.6
 BASELINE_ALPHA = 0.05
-SETTLED_SAMPLES = 20
-WINDOW = 8
+# Every window the gate keeps is a duration of AUDIO, not a number of UI callbacks (handoff 5.4:
+# "express evidence accumulation in milliseconds rather than UI callback counts"). A 50 ms UI timer
+# and a 20 ms bench frame therefore accumulate the same evidence for the same amount of sound.
+FRAME_MS = 20.0        # what one sample stands for when the caller does not say (the bench frame)
+SETTLED_MS = 400.0     # of her own voice the baseline must hear before it can be trusted
+WINDOW_MS = 160.0      # the run of audio the gate watches: syllable dips live inside it
+LOUD_MS = 80.0         # of that window must tower over the baseline for the gate to open
+# Kept so callers and tests that still count samples keep working: both are the same audio.
+SETTLED_SAMPLES = int(SETTLED_MS / FRAME_MS)
+WINDOW = int(WINDOW_MS / FRAME_MS)
 
 
 
@@ -181,40 +189,89 @@ def _merge(text_ev, audio_ev):
 
 
 class BargeInGate:
-    """Opens once `needed` of the last `WINDOW` calls tower over the level heard
+    """Opens once `LOUD_MS` of the last `WINDOW_MS` of audio tower over the level heard
     while Voxa speaks; a quieter frame only lowers the count, it does not reset."""
 
-    def __init__(self, ratio: float = 2.0, min_level: float = 0.02, needed: int = 4):
+    def __init__(self, ratio: float = 2.0, min_level: float = 0.02, needed_ms: float = LOUD_MS,
+                 window_ms: float = WINDOW_MS, settled_ms: float = SETTLED_MS) -> None:
         self._ratio = ratio
         self._min_level = min_level
-        self._needed = needed
-        self._count = 0
-        self._recent: list[bool] = []
-        self._levels: list[float] = []
+        self._needed_ms = needed_ms
+        self._window_ms = window_ms
+        self._settled_ms = settled_ms
+        self._loud_ms = 0.0
+        self._recent: list[tuple[bool, float]] = []  # (loud?, ms of audio), bounded by window_ms
+        self._levels: list[tuple[float, float]] = []
         self._baseline = 0.0
-        self._samples = 0
+        self._settled_audio_ms = 0.0
+        # How much of THIS reply has been heard: the first SETTLED_MS of it teaches nothing.
+        self._reply_audio_ms = 0.0
 
-    def update(self, mic_level: float, baseline: float) -> bool:
+    def update(self, mic_level: float, baseline: float, dt_ms: float = FRAME_MS) -> bool:
+        if not self.listening:
+            # The speaker's own onset window: the gate hears nothing at all (see note_reply_audio).
+            return False
         # Speech dips between syllables, so "six loud ticks in a row" almost never happened for a
         # short "Voxa, stop" (traced: 374 ticks at full level, gate never opened). Count the loud
-        # ticks among the last WINDOW instead.
-        self._recent.append(mic_level > max(self._min_level, self._ratio * baseline))
-        del self._recent[:-WINDOW]
-        self._levels.append(mic_level)
-        del self._levels[:-WINDOW]
-        self._count = sum(self._recent)
+        # audio inside the last window instead.
+        dt = max(0.0, float(dt_ms))
+        loud = mic_level > max(self._min_level, self._ratio * baseline)
+        self._recent.append((loud, dt))
+        self._levels.append((mic_level, dt))
+        self._trim()
+        self._loud_ms = sum(ms for flag, ms in self._recent if flag)
         # Never open before the baseline has heard enough of her own voice to be trusted:
         # at session start the baseline is 0.0, so any loud sound would open the gate.
-        return self.settled and self._count >= self._needed
+        return self.settled and self._loud_ms >= self._needed_ms
 
-    def note_speaking_level(self, mic_level: float) -> None:
+    def note_speaking_level(self, mic_level: float, dt_ms: float = FRAME_MS) -> None:
         self._baseline += BASELINE_ALPHA * (mic_level - self._baseline)
-        self._samples += 1
+        self._settled_audio_ms += max(0.0, float(dt_ms))
+
+    def note_reply_audio(self, dt_ms: float = FRAME_MS) -> None:
+        """One more frame of THIS reply, whatever it sounded like: the settling window advances.
+
+        The first ``SETTLED_MS`` of a reply is her speaker's onset - the loudest moment of her
+        own voice - so during it the gate hears nothing at all: it neither opens nor learns. The
+        old code expressed the same window as ``BARGE_IN_GRACE_SECONDS`` of wall clock and applied
+        it to the whole decision; here it is milliseconds of AUDIO and belongs to the LEVEL GATE
+        only. The fast path (``voxa/onset.py``) has no window and judges the FIRST frame of the
+        reply, which is where an interruption that starts together with her speech lives.
+        """
+        self._reply_audio_ms += max(0.0, float(dt_ms))
+
+    @property
+    def listening(self) -> bool:
+        """True once the reply's speaker-onset window is over and the gate is hearing again."""
+        return self._reply_audio_ms > self._settled_ms
+
+    def note_reply_start(self) -> None:
+        """A reply began being read out: the onset window, the loud run and the settling restart.
+
+        The baseline survives - it describes what Voxa's own voice sounds like in this room, and
+        a new reply does not change that - but it is not retrained from her speaker's onset.
+        """
+        self._reply_audio_ms = 0.0
+        self._settled_audio_ms = 0.0
+        self._loud_ms = 0.0
+        self._recent = []
+        self._levels = []
+
+    def _trim(self) -> None:
+        """Drop the oldest samples until the stored audio fits the window again."""
+        total = sum(ms for _flag, ms in self._recent)
+        while self._recent and total > self._window_ms:
+            _flag, ms = self._recent.pop(0)
+            total -= ms
+        total = sum(ms for _level, ms in self._levels)
+        while self._levels and total > self._window_ms:
+            _level, ms = self._levels.pop(0)
+            total -= ms
 
     @property
     def settled(self) -> bool:
         """True once the baseline has heard enough of her own voice to be trusted."""
-        return self._samples >= SETTLED_SAMPLES
+        return self._settled_audio_ms >= self._settled_ms
 
     @property
     def baseline(self) -> float:
@@ -233,7 +290,7 @@ class BargeInGate:
         to do the judging is not the level of the sound: "is the microphone towering" has to be
         asked about the run of frames, not the instant.
         """
-        return max(self._levels) if self._levels else 0.0
+        return max((level for level, _ms in self._levels), default=0.0)
 
     @property
     def min_level(self) -> float:
@@ -241,5 +298,7 @@ class BargeInGate:
         return self._min_level
 
     def reset(self) -> None:
-        self._count = 0
+        # The baseline and the settled audio survive a reset on purpose: they describe what Voxa's
+        # own voice sounds like in this room, which one interruption does not change.
+        self._loud_ms = 0.0
         self._recent = []

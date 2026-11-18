@@ -167,14 +167,30 @@ def open_the_gate(control, clock, heard: str) -> float:
     for _ in range(40):
         clock["now"] += 0.05
         control.observe(0.15, speaking=True, muted=True, wake_word="voxa",
-                        candidate=lambda: (heard, heard))
+                        candidate=lambda: (heard, heard), dt_ms=50.0)
     for _ in range(40):
         clock["now"] += 0.05
         outcome = control.observe(0.6, speaking=True, muted=True, wake_word="voxa",
-                                  candidate=lambda: (heard, heard))
+                                  candidate=lambda: (heard, heard), dt_ms=50.0)
         if outcome.reason == "listening" and outcome.gate_opened:
             return clock["now"]
     raise AssertionError("the level gate never opened")
+
+
+def judge(control, clock, heard: str, level: float = 0.6, **kwargs):
+    """Keep feeding AUDIO until the collected words are judged.
+
+    The listening window is a duration of sound (``BARGE_IN_LISTEN_MS``), not a number of
+    callbacks and not wall-clock time, so the helper advances the simulated clock by the same
+    50 ms each sample says it stands for.
+    """
+    for _ in range(40):
+        clock["now"] += 0.05
+        outcome = control.observe(level, speaking=True, muted=True, wake_word="voxa",
+                                  candidate=lambda: (heard, heard), dt_ms=50.0, **kwargs)
+        if outcome.action != "ignored":
+            return outcome
+    return None
 
 
 def test_the_own_speech_filter_keeps_a_user_who_repeats_her_words():
@@ -202,10 +218,8 @@ def test_the_controller_holds_when_the_audio_cannot_decide():
     control = BargeInController(clock=lambda: clock["now"])
     control.reply_started("The weather is clear today.")
     undecided = SourceEvidence(reference_active=True, alignment_healthy=False)
-    opened_at = open_the_gate(control, clock, "yes")
-    clock["now"] = opened_at + 1.0
-    held = control.observe(0.6, speaking=True, muted=True, wake_word="voxa",
-                           candidate=lambda: ("yes", "yes"), evidence=undecided)
+    open_the_gate(control, clock, "yes")
+    held = judge(control, clock, "yes", evidence=undecided)
     assert held.action == HOLD, held.reason
     assert held.source == UNCERTAIN
     assert control.pending_since == 0.0, "a held candidate does not leave the gate stuck open"
@@ -218,8 +232,6 @@ def test_the_controller_stops_her_only_on_audio_that_supports_a_second_source():
         clock = {"now": 0.0}
         control = BargeInController(clock=lambda: clock["now"])
         control.reply_started("Please stop the car now.")
-        opened_at = open_the_gate(control, clock, "stop")
-        clock["now"] = opened_at + 1.0
-        decided = control.observe(0.6, speaking=True, muted=True, wake_word="voxa",
-                                  candidate=lambda: ("stop", "stop"), evidence=evidence)
+        open_the_gate(control, clock, "stop")
+        decided = judge(control, clock, "stop", evidence=evidence)
         assert decided.action == action, (evidence.echo_explained_db, decided.reason)

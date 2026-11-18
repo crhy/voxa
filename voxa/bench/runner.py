@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import sys
 import time
@@ -45,6 +46,7 @@ import numpy as np
 from ..anc import MIN_REFERENCE_POWER, EchoCanceller, estimate_delay
 from ..audio import AudioCapture, ReferenceRing, mix_chunk, webrtc_available
 from ..bargectl import BargeInController
+from ..onset import dbfs
 from ..attribution import EchoPathBaseline, SourceEvidence, attribute
 from ..capture import Frame
 from ..config import Settings
@@ -219,6 +221,15 @@ class ClipRunner:
         self.barge_heard: list[str] = []
         self.transcript_texts: list[str] = []
         self.speaking = False
+        # When the reply being read out started, so a yield can report the position of her
+        # playback at the moment the floor was taken, and whether that floor was already taken.
+        self._speak_started_at = 0.0
+        self.barge_yielded = False
+        # The reply whose floor was taken. The reference stream keeps playing a reply the app
+        # stopped, and restarting the barge evidence for it would interrupt the same user words
+        # twice - the grace period used to hide that, and task A3 removed it.
+        self._spoken_text = ""
+        self._interrupted_text: str | None = None
         self._quiet_frames = 0
         # The follow-up window the app opens after every reply, kept on the simulated clock
         # (ConversationController.open_followup stamps a wall-clock deadline, which a bench
@@ -486,6 +497,21 @@ class ClipRunner:
         return self.segmenter.step(frame.pcm, frame.level, frame.t_s)
 
     def _apply_barge(self, outcome) -> None:
+        if outcome.action == "yield":
+            # The fast half of the decision (task A3): the floor is yielded on the ACOUSTIC
+            # onset, before a single word has been transcribed. The reference stream keeps
+            # playing - that is the echo the microphone still hears, and what the next frames
+            # compare against - while the app's own playback stops at the position it had
+            # reached. What happens to her WORDS is decided later, by the transcript.
+            self.emit("tts-stop", reason="barge-in-onset",
+                      audible_ms=round((self._now - self._speak_started_at) * 1000.0, 1),
+                      onset_audio_ms=round(outcome.onset_audio_ms, 1),
+                      evidence_ms=round(outcome.evidence_ms, 1),
+                      margin_db=round(outcome.margin_db, 2))
+            self.barge_yielded = True
+            self.conversation.unmute()
+            self.conversation.arm_prompt()
+            return
         if outcome.action == "offline":
             self.counts["exit"] += 1
             self.emit("exit", kind="goodbye", source="barge-in", text=outcome.heard)
@@ -494,12 +520,15 @@ class ClipRunner:
             return
         self.counts["barge_in"] += 1
         self.barge_heard.append(outcome.heard)
+        self._interrupted_text = self._spoken_text
         self.emit("barge-in-confirm", heard=outcome.heard, raw=outcome.raw,
                   level=round(outcome.level, 4), listening_seconds=round(outcome.listening_seconds, 3))
         # The effects voxa/window.py performs on its INTERRUPT branch. There is no duck/pause of
         # Voxa's own stream in the current code, so no "duck" event is emitted: that is a finding,
-        # not an omission.
-        self.emit("tts-stop", heard=outcome.heard)
+        # not an omission. When the onset already yielded the floor, the playback stopped there:
+        # a second tts-stop for the same reply would count the same cessation twice.
+        if not self.barge_yielded:
+            self.emit("tts-stop", heard=outcome.heard)
         self.own_speech.finished()
         # The effects voxa/window.py performs on its INTERRUPT branch, plus milestone A's
         # promotion: the pinned span becomes the beginning of the user turn (once), and the
@@ -621,6 +650,16 @@ class ClipRunner:
                 wake_word=wake,
                 candidate=self._candidate,
                 evidence=evidence,
+                # The onset rule's inputs (voxa/onset.py): the microphone level of this frame and
+                # the loudest the speaker path could have put in it at the same moment, BOTH in
+                # dBFS (the microphone arrives as an int16 RMS, the reference as a float -1..1),
+                # the echo's travel time - which is what makes the echo's moment knowable at all -
+                # and how much audio this frame stands for.
+                mic_db=dbfs(mic_db),
+                reference_db=10.0 * math.log10(ref_power) if ref_power > 1e-12 else -140.0,
+                delay_ms=(self.canceller.delay_samples / SR * 1000.0
+                          if self.canceller is not None and self.canceller.delay_samples > 0 else None),
+                dt_ms=CHUNK_MS,
             )
             if outcome.onset:
                 # Speech onset: pin the captured span (pre-roll included) before the words are
@@ -692,11 +731,21 @@ class ClipRunner:
         }
 
     def _speak_started(self, text: str) -> None:
-        """Voxa starts playing: the mic is muted and the grace period restarts (window.py:3004-3010)."""
+        """Voxa starts playing: the mic is muted and the onset evidence restarts (window.py:3004-3010).
+
+        There is no grace period any more (task A3): what restarts is the evidence - the gate's
+        baseline and the onset detector's run of unexplained sound - so the first frame of the
+        reply is already judged, which is where an interruption that starts together with her
+        speech lives.
+        """
         self.speaking = True
         self._quiet_frames = 0
+        self._speak_started_at = self._now
+        self.barge_yielded = False
         self.own_speech.started(text)
-        self.barge.reply_started(text)
+        self._spoken_text = text
+        if text != self._interrupted_text:
+            self.barge.reply_started(text)
         self.conversation.mute()
         self.emit("tts-start", text=text[:80])
 
@@ -714,7 +763,6 @@ class ClipRunner:
             self.conversation.arm_prompt()
             self._followup_deadline = self._now + self.settings.followup_seconds
         self.emit("tts-end")
-
     def _early_check(self, segment: bytes) -> bool:
         """``segment_stream``'s early hook: is what has been heard already a whole command?"""
         heard = self.asr.transcribe_words(segment, f"{self.wake_word.strip().capitalize()}.")

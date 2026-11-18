@@ -37,11 +37,25 @@ def test_is_own_voice_noise():
     assert is_own_voice(sentence, sentence) is True
 
 
+def settle(gate: BargeInGate, level: float = 0.0, calls: int = SETTLED_SAMPLES * 2) -> None:
+    """Teach the gate her own level until it trusts it, the way the controller drives it.
+
+    The first ``SETTLED_MS`` of a reply is her speaker's onset: during it the gate hears nothing
+    at all (``note_reply_audio`` advances the window; ``update`` and ``note_speaking_level`` are
+    skipped). So settling takes the window plus the settling itself.
+    """
+    for _ in range(calls):
+        gate.note_reply_audio()
+        gate.update(level, gate.baseline)
+        if gate.listening:
+            gate.note_speaking_level(level)
+
+
 def test_gate_opens_after_four_loud_ticks():
     gate = BargeInGate()
-    for _ in range(SETTLED_SAMPLES):  # teach the baseline so the gate trusts it
-        gate.note_speaking_level(0.0)
+    settle(gate)  # teach the baseline so the gate trusts it
     assert gate.baseline == 0.0
+    assert gate.settled
     for _ in range(3):
         assert gate.update(0.5, gate.baseline) is False
     assert gate.update(0.5, gate.baseline) is True
@@ -50,8 +64,7 @@ def test_gate_opens_after_four_loud_ticks():
 def test_gate_tolerates_dips_between_syllables():
     # "Voxa, stop": loud, dip, loud, loud, dip, loud — four loud ticks among the last eight.
     gate = BargeInGate()
-    for _ in range(SETTLED_SAMPLES):  # baseline heard her voice first
-        gate.note_speaking_level(0.0)
+    settle(gate)  # baseline heard her voice first
     results = [gate.update(level, gate.baseline) for level in (0.5, 0.01, 0.5, 0.5, 0.01, 0.5)]
     assert results[-1] is True and not any(results[:-1])
 
@@ -67,8 +80,7 @@ def test_gate_closes_again_after_quiet():
 
 def test_gate_follows_rising_baseline():
     gate = BargeInGate()
-    for _ in range(60):
-        gate.note_speaking_level(0.1)
+    settle(gate, 0.1, calls=100)
     assert 0.09 < gate.baseline < 0.1
     for _ in range(8):
         assert gate.update(0.15, gate.baseline) is False  # louder than her, but under twice her level
@@ -79,21 +91,19 @@ def test_gate_follows_rising_baseline():
 
 def test_gate_stays_shut_at_baseline_level():
     gate = BargeInGate()
-    for _ in range(20):
-        gate.note_speaking_level(0.1)
+    settle(gate, 0.1)
     for _ in range(10):
         assert gate.update(gate.baseline, gate.baseline) is False
 
 
 def test_gate_reset_clears_streak_only():
     gate = BargeInGate()
-    for _ in range(20):
-        gate.note_speaking_level(0.1)
+    settle(gate, 0.1)
     for _ in range(6):
         gate.update(0.5, gate.baseline)
     gate.reset()
     assert gate.update(0.5, gate.baseline) is False
-    assert gate.baseline > 0.0
+    assert gate.baseline > 0.0, "the baseline describes the room, one interruption does not change it"
 
 
 def test_a_single_stop_word_is_a_real_interruption():
