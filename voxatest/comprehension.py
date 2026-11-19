@@ -195,7 +195,12 @@ def _group_accuracy(cases: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def score_run(results: list[dict[str, Any]], wake_word: str | None = None, top: int = TOP_CONFUSIONS) -> dict[str, Any]:
-    """The Comprehension block of a whole run: the four JSON keys the brief fixes, plus the detail."""
+    """The Comprehension block of a whole run: the four JSON keys the brief fixes, plus the detail.
+
+    A hearing run (V3, :mod:`voxatest.hearing`) also carries the seven hearing keys, merged in at
+    the top of this block so ``voxatest check REPORT "request_word_retention>=0.9"`` reads them the
+    same way it reads the comprehension keys.
+    """
     wake = default_wake_word() if wake_word is None else wake_word
     cases = [score_case(result, wake) for result in results]
     accuracies = [float(case["hearing_word_accuracy"]) for case in cases if case["hearing_word_accuracy"] is not None]
@@ -213,7 +218,10 @@ def score_run(results: list[dict[str, Any]], wake_word: str | None = None, top: 
     by_category: dict[str, list[dict[str, Any]]] = {}
     for case in cases:
         by_category.setdefault(str(case["category"]), []).append(case)
-    return {
+    from . import hearing as hearing_module
+
+    measures = [row.get("hearing") for row in results if isinstance(row.get("hearing"), dict)]
+    block = {
         "hearing_word_accuracy": _mean(accuracies),
         "routed_tool_accuracy": None if not routed else _mean([1.0 if case["routed"] else 0.0 for case in routed]),
         "layer_counts": {layer: sum(1 for case in cases if case["layer"] == layer) for layer in LAYERS},
@@ -224,6 +232,8 @@ def score_run(results: list[dict[str, Any]], wake_word: str | None = None, top: 
         "by_category": {name: _group_accuracy(group) for name, group in sorted(by_category.items())},
         "cases": cases,
     }
+    block.update(hearing_module.score_hearing(measures))
+    return block
 
 
 # --------------------------------------------------------------------------- report text
@@ -257,6 +267,9 @@ def format_comprehension(comprehension: dict[str, Any], top: int = TOP_CONFUSION
         lines.append("    none: every word heard as it was said")
     for row in rows:
         lines.append(f"    {row['count']}x  {row['said']} -> {row['heard']}")
+    from . import hearing as hearing_module
+
+    lines.extend(hearing_module.format_hearing(comprehension))
     return lines
 
 

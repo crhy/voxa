@@ -17,6 +17,13 @@ from .config import HarnessSettings
 from .grader import REPLY_MATCH, GradeResult, grade_reply, keyword_grade, reply_match, spoken_words
 from .setup import run_setup
 
+
+def _hearing():
+    """The hearing suite, imported lazily: voxatest/hearing.py imports this module's ``RunResult``."""
+    from . import hearing
+
+    return hearing
+
 PLAYBACK_LISTEN_SECONDS = 10.0
 STOP_SETTLE_SECONDS = 5.0
 PLAYBACK_REPLY_MATCH = 0.5
@@ -70,6 +77,9 @@ class RunResult:
     # ``voxatest run --offline-audio`` (voxatest/offline.py): how this case's audio was made and what
     # the pipeline cost. None for a spoken run, which has no offline block to report.
     offline: dict[str, Any] | None = None
+    # V3 hearing suite (voxatest/hearing.py): the five hearing measures of this case. Filled by the
+    # offline hearing path (inside ``offline`` as well) and by the live hearing run.
+    hearing: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -89,6 +99,7 @@ class RunResult:
             "observed_tools": list(self.observed_tools),
             "heard_records": list(self.heard_records),
             "offline": dict(self.offline) if isinstance(self.offline, dict) else None,
+            "hearing": dict(self.hearing) if isinstance(self.hearing, dict) else None,
             "action_record": self.action_record,
         }
 
@@ -103,6 +114,7 @@ def run_case(
     *,
     log: Callable[[str], None] = print,
 ) -> RunResult:
+    hearing = _hearing()
     started = time.monotonic()
     if case.vm_only and os.environ.get("VOXATEST_ROOM") == "1":
         return RunResult(case.id, case.category, case.prompt, "", GradeResult(0, False, "Skipped (vm_only).", "skipped"), "", time.monotonic() - started)
@@ -113,6 +125,11 @@ def run_case(
         if setup_error:
             return RunResult(case.id, case.category, case.prompt, "", GradeResult(0, False, setup_error, "setup"), setup_error, time.monotonic() - started)
     prompt = _with_wake_word(case.prompt, settings.wake_word)
+    # V3 hearing suite, LIVE: the case names what Voxa must read out, and the harness speaks its
+    # own words at a moment measured from the start of HER reply (voxatest/hearing.py).
+    plan = hearing.plan_live(case, settings.wake_word) if hearing.is_hearing_case(case) else None
+    if plan is not None and plan.lead_prompt:
+        prompt = _with_wake_word(plan.lead_prompt, settings.wake_word)
     log(f"Speaking: {prompt}")
 
     if settings.settle_seconds > 0:
@@ -143,7 +160,33 @@ def run_case(
     stop_event = threading.Event()
     capture_errors: list[str] = []
 
+    conductor = hearing.LiveConductor(plan=plan, clock=time.monotonic) if plan is not None else None
+    recorded: list[tuple[float, float]] = []
+    spoken_at: list[float] = []
+
+    def speak_words(text: str) -> None:
+        """Speak one of the test user's breaths and wait for it to leave the speakers."""
+        if not text.strip():
+            return
+        done = threading.Event()
+        speech.speak(text, settings.tts_rate, settings.tts_voice,
+                     on_started=lambda: None, on_done=done.set,
+                     on_error=lambda _message: done.set())
+        done.wait(settings.speak_timeout_seconds)
+
+    def run_schedule() -> None:
+        if conductor is None or conductor.started_s is None:
+            return
+        if plan is not None and plan.wake_first:
+            speak_words(f"{settings.wake_word}.")
+        spoken_at.extend(hearing.speak_timed(speak_words, plan, float(conductor.started_s),
+                                             time.monotonic, time.sleep))
+
     def feed_audio(pcm: bytes, level: float) -> None:
+        now = time.monotonic()
+        recorded.append((now, float(level)))
+        if conductor is not None and conductor.note(float(level), now):
+            threading.Thread(target=run_schedule, daemon=True).start()
         try:
             audio_queue.put_nowait((pcm, level))
         except queue.Full:
@@ -232,10 +275,22 @@ def run_case(
         name = str(record.get("tool", ""))
         if name and name not in observed_tools:
             observed_tools.append(name)
+    hearing_block: dict[str, Any] | None = None
+    if plan is not None:
+        base = float(conductor.started_s) if conductor.started_s is not None else (
+            recorded[0][0] if recorded else time.monotonic())
+        levels = [(moment - base, level) for moment, level in recorded]
+        reply_seconds = max([moment for moment, level in levels
+                             if level >= hearing.LIVE_SPEECH_LEVEL] or [0.0])
+        hearing_block = hearing.measure_live(
+            case, spoken_at_s=(spoken_at[0] - base) if spoken_at else None,
+            tail_at_s=(spoken_at[1] - base) if len(spoken_at) > 1 else None,
+            levels=levels, transcript=transcript, wake_word=settings.wake_word,
+            reply_seconds=reply_seconds)
     return RunResult(
         case.id, case.category, case.prompt, transcript, grade, error,
         time.monotonic() - started, action_record, case.expected_tool, heard, case.capability,
-        observed_tools, heard_records,
+        observed_tools, heard_records, None, hearing_block,
     )
 
 

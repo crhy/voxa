@@ -71,8 +71,9 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     run.add_argument("--seed", type=int, default=0, help="offline audio: the noise seed (deterministic)")
     run.add_argument("--bench-data", default=None,
                      help="offline audio: the bench data root (default /home/rhy/voxa-bench-data)")
-    run.add_argument("--echo-mode", choices=("off", "voxa", "webrtc"), default="off",
-                     help="offline audio: which echo stages the pipeline runs (Voxa is silent, so off)")
+    run.add_argument("--echo-mode", choices=("off", "voxa", "webrtc"), default=None,
+                     help="offline audio: which echo stages the pipeline runs. Default: voxa for the hearing "
+                          "cases (Voxa is speaking) and off for the others (she is silent)")
     run.add_argument("--wake-mode", choices=("separate", "single"), default="separate",
                      help="offline audio: \"Voxa.\" in its own breath, then the question (separate), "
                           "or the one-breath prompt the live harness speaks today (single)")

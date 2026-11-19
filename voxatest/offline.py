@@ -57,6 +57,9 @@ from .runner import RunResult
 
 DEFAULT_DATA_ROOT = Path("/home/rhy/voxa-bench-data")
 DEFAULT_VARIANTS = "clean"
+# Voxa is speaking in every hearing case, so the hearing suite runs the product's own echo stages
+# by default; ``--echo-mode`` names another one (``off`` = the speaker path uncancelled).
+DEFAULT_HEARING_ECHO_MODE = "voxa"
 # The second voice of the ``voice2`` variant: a different Edge voice that is also a different
 # eSpeak voice offline (``voxa.speech.espeak_voice`` maps it to a female ``en-us+f3``).
 SECOND_VOICE = "en-US-JennyNeural"
@@ -546,6 +549,92 @@ def run_offline_case(case: TestCase, settings: Any, asr: Any, registry: Any, var
 # --------------------------------------------------------------------------- a whole run
 
 
+def hearing_grade(case: TestCase, measures: dict[str, Any]) -> GradeResult:
+    """Did this hearing case get the turn decision it asked for?
+
+    ``yield``  : she stopped her own playback.       ``keep``   : she kept speaking (nobody took the floor).
+    ``answer`` : her words reached her whole.        Reply grading is n/a: nothing is spoken here.
+    """
+    expect = str(measures.get("expect") or case.expect)
+    if expect == "yield":
+        ok = bool(measures.get("yielded"))
+        detail = (f"she {'stopped' if ok else 'did not stop'} her own playback "
+                  f"(stop latency {measures.get('stop_latency_ms')} ms)")
+    elif expect == "keep":
+        ok = bool(measures.get("kept_turn"))
+        detail = (f"she {'kept' if ok else 'lost'} the turn "
+                  f"(self-interruptions {measures.get('self_interrupt_count')})")
+    else:
+        ok = bool(measures.get("request_complete"))
+        detail = (f"request {'complete' if ok else 'incomplete'}: "
+                  f"retention {measures.get('word_retention')} of "
+                  f"{measures.get('expected_request')!r} -> {measures.get('request_text')!r}")
+    score = 100 if ok else int(round(100.0 * float(measures.get("word_retention") or 0.0)))
+    notes = (f"Hearing ({expect}, cell {measures.get('cell')}, echo {measures.get('echo_mode')}, "
+             f"onset {measures.get('user_onset_s')} s, {measures.get('clip', {}).get('level_db')} dB at the mic): "
+             f"{detail}. {GRADING_NOTE}")
+    return GradeResult(score, ok, notes, "hearing")
+
+
+def run_hearing_offline_case(case: TestCase, settings: Any, asr: Any, registry: Any, variant: Variant,
+                             seed: int, data_root: Path, *, index: int = 0, variant_index: int = 0,
+                             wake_word: str | None = None, log: Callable[[str], None] = log_line,
+                             echo_mode: str | None = None) -> RunResult:
+    """One hearing case: the overlap is BUILT with the bench renderer, no speakers, no microphone.
+
+    Voxa is speaking in every hearing case, so the echo stages that run are the product's own
+    (``voxa``) unless the caller names a mode: ``off`` measures the same cells with the speaker
+    path uncancelled, which is the condition the frozen bench's ``off`` mode means.
+    """
+    from . import hearing
+
+    mode = str(echo_mode or DEFAULT_HEARING_ECHO_MODE)
+    measures = hearing.run_hearing_case(case, settings, asr, registry, seed, Path(data_root),
+                                        index=index, echo_mode=mode, wake_word=wake_word,
+                                        voice=variant.voice, log=log)
+    grade = hearing_grade(case, measures)
+    routed_tool = str(measures.get("routed_tool") or "")
+    action_record = {"heard": measures.get("request_text", ""), "route": "offline-audio",
+                     "tool": routed_tool, "args": dict(measures.get("routed_args") or {}),
+                     "variant": variant.name, "hearing": True}
+    offline = {
+        "mode": "offline-audio",
+        "variant": variant.name,
+        "engine": measures.get("clip", {}).get("reply_engine") or measures.get("clip", {}).get("user_engine"),
+        "voice": measures.get("clip", {}).get("user_voice"),
+        "rate": None,
+        "wake_mode": "hearing",
+        "spoken": f"{case.reply} || {case.prompt}".strip(),
+        "rate_scale": variant.rate_scale,
+        "level_db": measures.get("clip", {}).get("level_db"),
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": None,
+        "peak": None,
+        "peak_guard": measures.get("clip", {}).get("peak_guard"),
+        "audio_seconds": measures.get("audio_seconds"),
+        "wall_seconds": measures.get("wall_seconds"),
+        "asr_calls": None,
+        "asr_processing_seconds": None,
+        "requests": [measures.get("request_text")] if measures.get("request_text") else [],
+        "turns": measures.get("turns") or [],
+        "counts": measures.get("counts") or {},
+        "routed_tool": measures.get("routed_tool"),
+        "routed_args": dict(measures.get("routed_args") or {}),
+        "routing_problem": "",
+        "hearing_word_accuracy": measures.get("hearing_word_accuracy"),
+        "echo_mode": measures.get("echo_mode"),
+        "hearing": measures,
+    }
+    return RunResult(case.id, case.category, case.prompt, "", grade, "",
+                     float(measures.get("wall_seconds") or 0.0), action_record,
+                     case.expected_tool, measures.get("request_text", ""), case.capability,
+                     [routed_tool] if routed_tool else [],
+                     [measures.get("request_text")] if measures.get("request_text") else [],
+                     offline, measures)
+
+
+
 def load_offline_cases(path: Path) -> list[TestCase]:
     """Cases for the offline run, from either case-file shape voxatest writes.
 
@@ -580,10 +669,13 @@ def _offline_block(results: list[RunResult], variants: list[Variant], seed: int,
                    data_root: Path, model: str, wall_total: float,
                    wake_mode: str = DEFAULT_WAKE_MODE) -> dict[str, Any]:
     """The ``offline`` block of the report: how the audio was made and what it cost in wall time."""
+    from . import hearing
+
     walls = [float(result.duration_seconds) for result in results]
     audio = [float((result.offline or {}).get("audio_seconds") or 0.0) for result in results]
     engines = sorted({str((result.offline or {}).get("engine", "")) for result in results})
-    return {
+    hearing_cases = [row for row in (result.hearing for result in results) if isinstance(row, dict)]
+    block = {
         "mode": "offline-audio",
         "seed": int(seed),
         "variants": [variant.name for variant in variants],
@@ -601,10 +693,16 @@ def _offline_block(results: list[RunResult], variants: list[Variant], seed: int,
         "reply_grading": "n/a",
         "not_measured": [
             "microphone and speakers (no audio device was touched)",
-            "Voxa's own voice as echo (she never speaks in this mode)",
             "the reply she would have spoken (no model was called)",
         ],
     }
+    if hearing_cases:
+        block["hearing_cases"] = len(hearing_cases)
+        block["echo_modes"] = sorted({str(row.get("echo_mode")) for row in hearing_cases})
+        block["hearing"] = hearing.score_hearing(hearing_cases)
+    else:
+        block["not_measured"].append("Voxa's own voice as echo (she never speaks in this mode)")
+    return block
 
 
 def _median(values: list[float]) -> float | None:
@@ -621,9 +719,15 @@ def _maximum(values: list[float]) -> float | None:
 
 def run_offline(cases: list[TestCase], settings: Any, variants: list[Variant], seed: int,
                 data_root: Path, *, registry: Any = None, asr: Any = None, model: str = "",
-                echo_mode: str = "off", wake_mode: str = DEFAULT_WAKE_MODE,
+                echo_mode: str | None = None, wake_mode: str = DEFAULT_WAKE_MODE,
                 log: Callable[[str], None] = log_line) -> tuple[list[RunResult], dict[str, Any]]:
-    """Every case through every variant, on one Whisper model loaded once."""
+    """Every case through every variant, on one Whisper model loaded once.
+
+    Hearing cases (the ones that name a turn decision) go through :func:`run_hearing_offline_case`,
+    which builds the overlap with the bench renderer; every other case goes through V2's path.
+    """
+    from . import hearing
+
     if registry is None:
         from voxa.agent.tools import default_registry
 
@@ -643,11 +747,23 @@ def run_offline(cases: list[TestCase], settings: Any, variants: list[Variant], s
             if case.vm_only:
                 log(f"[{number}/{total}] SKIP {case.id} (vm_only: needs a real desktop)")
                 continue
+            problem = hearing.validate_hearing(case)
+            if problem:
+                log(f"[{number}/{total}] SKIP {case.id}: {problem}")
+                continue
             log(f"[{number}/{total}] {case.id} ({case.category}) variant {variant.name}: "
                 f"\"{case.prompt}\"")
+            if hearing.is_hearing_case(case):
+                results.append(run_hearing_offline_case(case, settings, asr, registry, variant, seed,
+                                                        data_root, index=index,
+                                                        variant_index=variant_index,
+                                                        wake_word=settings.wake_word, log=log,
+                                                        echo_mode=echo_mode))
+                continue
             results.append(run_offline_case(case, settings, asr, registry, variant, seed, data_root,
                                             index=index, variant_index=variant_index,
-                                            wake_word=settings.wake_word, log=log, echo_mode=echo_mode,
+                                            wake_word=settings.wake_word, log=log,
+                                            echo_mode=echo_mode or "off",
                                             wake_mode=wake_mode))
     return results, _offline_block(results, variants, seed, data_root, model,
                                    time.perf_counter() - started)
@@ -687,7 +803,8 @@ def offline_main(argv: list[str] | None = None) -> int:
     parser.add_argument("--data-root", default=str(DEFAULT_DATA_ROOT))
     parser.add_argument("--model", default="", help="faster-whisper model (default: Voxa's)")
     parser.add_argument("--limit", type=int, default=None)
-    parser.add_argument("--echo-mode", choices=("voxa", "webrtc", "off"), default="off")
+    parser.add_argument("--echo-mode", choices=("voxa", "webrtc", "off"), default=None,
+                        help="echo stages: voxa for the hearing cases (she is speaking), off for the rest")
     parser.add_argument("--wake-mode", choices=WAKE_MODES, default=DEFAULT_WAKE_MODE,
                         help="separate: \"Voxa.\" then the question; single: the one-breath prompt the live harness speaks")
     parser.add_argument("--json-report", default=None)

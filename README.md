@@ -289,6 +289,32 @@ section above; reply grading is skipped and marked n/a, because nothing is spoke
 It measures the pipeline and the router. It cannot measure the room: the microphone, the speakers,
 Voxa's own voice as echo and the desktop side effects stay in the live suite.
 
+### The hearing suite: turn-taking while Voxa is speaking
+
+`voxatest/data/test_cases_hearing.json` (68 cases, `voxatest/hearing.py`) measures the cells of the
+full-duplex matrix: barge-ins at the onset, the first syllable, the middle, the last word and immediately
+after a cancellation; short answers to her questions; the user repeating her exact words; "stop" said while
+she is saying "stop"; deliberate pauses of 0.5 to 1.5 s; a complete command followed by an added clause;
+quiet speech down to `-15 dB`; back-channels that must not stop her; and replies she must get through
+alone. Each case names the decision it tests (`expect: yield | keep | answer`), and the run reports
+`interrupt_recall`, `keep_accuracy`, `stop_latency_p50_ms`, `stop_latency_p95_ms`, `premature_rate`,
+`self_interrupt_count` and `request_word_retention`, each with its counts and split by cell, by overlap
+and by expectation:
+
+```bash
+.venv/bin/python -m voxatest run --offline-audio --cases voxatest/data/test_cases_hearing.json \
+    --json-report .voxa-bench/vt-hear.json
+.venv/bin/python -m voxatest check .voxa-bench/vt-hear.json "request_word_retention>=0.9" "self_interrupt_count<=0"
+```
+
+Offline, the overlap is BUILT: her reply and the user's words are rendered, the room is applied, the echo
+is mixed with the bench's own delay and RT60, and the result goes through the same pipeline the hearing
+bench runs. Voxa is speaking in every one of these cases, so the echo stages that run are the product's
+own (`--echo-mode voxa`, the default here); `--echo-mode off` measures the same cells with the speaker path
+uncancelled. Live, the harness makes her read the reply, watches the microphone level, and speaks the
+barge-in at the moment measured from the start of her reply; live stop latency is read acoustically and
+labelled `"measured": "live"`, because the harness has no tap of her output stream.
+
 ## Keyboard shortcuts
 
 | Shortcut | Action |
