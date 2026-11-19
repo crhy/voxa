@@ -263,6 +263,10 @@ class RenderTimeline:
         self._order: deque[str] = deque(maxlen=64)
         self._next_playable: float | None = None
         self._foreign: set[str] = set()
+        # Roadmap task 2: when set, every render tap also registers a GStreamer webrtcechoprobe under
+        # this name on Voxa's own playback branch, so a GStreamer webrtcdsp can use her own render as
+        # its reference without ever listening to the speakers. None = no probe (the default).
+        self.echo_probe_name: str | None = None
 
     # ------------------------------------------------------------------ identity
 
@@ -614,6 +618,10 @@ def attach_render_tap(pipeline: Any, timeline: RenderTimeline, generation: str, 
             made["error"] = "could not connect the tap branch"
             return made
 
+        probe_branch = _attach_echo_probe(pipeline, tee, timeline, gst)
+        if probe_branch:
+            made["echo_probe"] = probe_branch
+
         upstream.unlink(sink_pad)
         if not upstream.link(tee.get_static_pad("sink")):
             _relink(upstream, sink_pad)
@@ -632,6 +640,48 @@ def attach_render_tap(pipeline: Any, timeline: RenderTimeline, generation: str, 
     except Exception as exc:  # noqa: BLE001 - multimedia boundary
         made["error"] = str(exc)
         return made
+
+
+def _attach_echo_probe(pipeline: Any, tee: Any, timeline: RenderTimeline, gst: Any) -> dict[str, Any] | None:
+    """Feed a ``webrtcechoprobe`` from the same tee, on Voxa's own playback branch (roadmap task 2).
+
+    GStreamer documents the probe as belonging on the PLAYBACK path; Voxa's tap sits immediately in
+    front of the sink, which is exactly that path, and it carries only her own render - never another
+    application's sound. The probe registers itself under ``timeline.echo_probe_name`` and a
+    ``webrtcdsp`` in the capture pipeline names it, so the GStreamer canceller's reference is the
+    samples her sink was handed. Nothing here may break the sound: when the probe branch cannot be
+    connected the tap keeps working and the failure is only reported.
+    """
+    name = getattr(timeline, "echo_probe_name", None)
+    if not name:
+        return None
+    make = gst.ElementFactory.make
+    probe = make("webrtcechoprobe")
+    probe_sink = make("fakesink")
+    convert = make("audioconvert")
+    resample = make("audioresample")
+    capsfilter = make("capsfilter")
+    queue = make("queue")
+    if not all((probe, probe_sink, convert, resample, capsfilter, queue)):
+        return {"attached": False, "error": "webrtcechoprobe elements unavailable"}
+    queue.set_property("async", False)
+    queue.set_property("max-size-buffers", 64)
+    if queue.find_property("leaky") is not None:
+        queue.set_property("leaky", 0)
+    # The probe and the processor must agree on the format: 16 kHz mono S16LE, as verified live.
+    capsfilter.set_property("caps", gst.Caps.from_string(
+        "audio/x-raw,format=S16LE,layout=interleaved,channels=1,rate=16000"))
+    probe.set_property("name", name)
+    probe_sink.set_property("sync", False)
+    branch = (queue, convert, resample, capsfilter, probe, probe_sink)
+    for element in branch:
+        pipeline.add(element)
+    if not tee.link(queue) or not all(a.link(b) for a, b in zip(branch, branch[1:], strict=False)):
+        return {"attached": False, "error": "could not connect the echo probe branch", "name": name}
+    return {"attached": True, "name": name, "elements": {"tee": tee, "queue": queue,
+                                                         "audioconvert": convert, "audioresample": resample,
+                                                         "capsfilter": capsfilter,
+                                                         "webrtcechoprobe": probe, "fakesink": probe_sink}}
 
 
 def _relink(upstream: Any, sink_pad: Any) -> None:

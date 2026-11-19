@@ -74,7 +74,7 @@ from .agent.tools import (  # noqa: E402
 )
 from .agent.tools import briefing as briefing_tool  # noqa: E402
 from .agent.tools.web import get_session  # noqa: E402
-from .anc import EchoCanceller as AncCanceller  # noqa: E402
+from .anc import Aec3Canceller, EchoCanceller as AncCanceller, aec3_available  # noqa: E402
 from .audio import AudioCapture, AudioDevice, webrtc_available  # noqa: E402
 from .bargectl import BargeInController, HOLD, YIELD  # noqa: E402
 from .hearing import HearingDirector, HearingSample  # noqa: E402
@@ -528,7 +528,9 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _apply_echo_mode(self) -> None:
         mode = getattr(self.settings, "echo_mode", "voxa")
-        if mode == "voxa":
+        if mode == "aec3":
+            self.audio.set_echo_mode("aec3", self._choose_reference_source())
+        elif mode == "voxa":
             self.audio.set_echo_mode("voxa", self._choose_reference_source())
         elif mode == "webrtc":
             self.audio.set_echo_mode("webrtc", self._choose_reference_source())
@@ -1135,17 +1137,23 @@ class MainWindow(Adw.ApplicationWindow):
             self._echo_leftovers_checked = True
             threading.Thread(target=remove_leftover_devices, name="echo-cleanup", daemon=True).start()
         mode = getattr(self.settings, "echo_mode", "voxa")
-        if mode == "voxa":
+        if mode in ("voxa", "aec3"):
             # Our canceller. Roadmap task 1: the reference is Voxa's own render, taken from the render
             # timeline; no stream on the speakers is in it, so the test voice cannot be cancelled and
-            # another application's music cannot corrupt the fit.
+            # another application's music cannot corrupt the fit. Task 2 only changes the backend:
+            # "aec3" is WebRTC AEC3 in this process, "voxa" is Voxa's own NLMS filter.
             if os.environ.get("VOXA_ECHO_REFERENCE", "own-render") == "monitor":
                 self.audio.reference_source = self._choose_reference_source()
                 self.audio.reference_decision = getattr(self, "_reference_decision", None)
+                self.audio.set_sink_identifier(self.audio.reference_source)
             else:
                 self.audio.use_own_reference(self.render_timeline)
             self.audio.pulse_source = None
-            self.audio.canceller = AncCanceller()
+            release = getattr(self.audio.canceller, "close", None)
+            if release is not None:
+                release()
+            self.audio.canceller = Aec3Canceller() if mode == "aec3" else AncCanceller()
+            self.audio.apply_clock_drift()
         elif mode == "webrtc":
             # One pipeline: the monitor branch feeds the probe, the mic branch runs webrtcdsp.
             self.audio.reference_source = self._choose_reference_source()
@@ -4694,9 +4702,12 @@ class MainWindow(Adw.ApplicationWindow):
 
         echo_modes = ["voxa", "off"]
         echo_labels = ["Voxa's canceller", "Off"]
+        if aec3_available():
+            echo_modes.insert(1, "aec3")
+            echo_labels.insert(1, "WebRTC AEC3 (recommended)")
         if webrtc_available():
-            echo_modes.insert(1, "webrtc")
-            echo_labels.insert(1, "WebRTC (recommended test)")
+            echo_modes.insert(len(echo_modes) - 1, "webrtc")
+            echo_labels.insert(len(echo_labels) - 1, "WebRTC (GStreamer pipeline)")
         echo_choice = getattr(self.settings, "echo_mode", "voxa")
         if echo_choice not in echo_modes:
             echo_choice = "voxa"
@@ -4927,8 +4938,10 @@ class MainWindow(Adw.ApplicationWindow):
         self.settings.strata_url = strata_row.get_text().strip()
         self.settings.auto_speak = auto_speak_row.get_active()
         echo_modes = ["voxa", "off"]
+        if aec3_available():
+            echo_modes.insert(1, "aec3")
         if webrtc_available():
-            echo_modes.insert(1, "webrtc")
+            echo_modes.insert(len(echo_modes) - 1, "webrtc")
         self.settings.echo_mode = echo_modes[min(echo_row.get_selected(), len(echo_modes) - 1)]
         self.settings.web_search = WEB_SEARCH_VALUES[min(web_search_row.get_selected(), len(WEB_SEARCH_VALUES) - 1)]
         self.settings.wake_word = wake_word_row.get_text().strip()

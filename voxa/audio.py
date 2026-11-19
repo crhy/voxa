@@ -9,7 +9,8 @@ from typing import Any
 
 import numpy as np
 
-from .anc import EchoCanceller, estimate_delay
+from .anc import (Aec3Canceller, EchoCanceller, aec3_available, claim_aec_owner, estimate_delay,
+                  release_aec_owner)
 from .timeline import CaptureClock, RenderTimeline
 
 Gst: Any = None  # Initialized lazily so importing this module needs no GStreamer or PyGObject.
@@ -92,9 +93,16 @@ def clean_chunk(mic_bytes: bytes, ref: np.ndarray, canceller) -> bytes:
     A chunk whose reference span is silence is passed through untouched (bypass): nothing of Voxa's was
     playing over that span, so there is no echo to fit and the adaptive filter is not fed a lie. Returns
     the cleaned chunk as int16 bytes. Raises if the canceller raises.
+
+    A canceller that declares ``continuous`` (AEC3, :class:`voxa.anc.Aec3Canceller`) is NOT bypassed:
+    its delay estimator, filter and suppressor keep state across frames, so it must see every frame of
+    the stream, silence and echo tail included (handoff 6.2: the canceller runs continuously).
     """
     ref = np.asarray(ref, dtype=np.float32)
-    if ref.size == 0 or float(np.mean(ref * ref)) < 1e-9:
+    if ref.size == 0:
+        return mic_bytes
+    if (not getattr(canceller, "continuous", False)
+            and float(np.mean(ref * ref)) < 1e-9):
         return mic_bytes
     mic = np.frombuffer(mic_bytes, dtype="<i2").astype(np.float32) / 32768.0
     cleaned = canceller.process(mic, ref)
@@ -154,6 +162,29 @@ def is_monitor_source(properties, display_name: str = "") -> bool:
     return "monitor of" in name
 
 
+def _device_base(identifier: str) -> str:
+    """The device a source or sink name belongs to, with profile and monitor parts removed.
+
+    ``alsa_output.pci-0000_00_1b.0.analog-stereo.monitor`` and ``alsa_input.pci-0000_00_1b.0
+    .analog-stereo`` both answer ``pci-0000_00_1b``: one sound card, one clock.
+    """
+    text = str(identifier).strip()
+    for prefix in ("alsa_output.", "alsa_input.", "auto_output.", "auto_input.", "of_output."):
+        if text.startswith(prefix):
+            text = text[len(prefix):]
+            break
+    if text.endswith(".monitor"):
+        text = text[:-len(".monitor")]
+    for suffix in (".analog-stereo", ".analog-mono", ".digital-stereo", ".digital-surround51",
+                   ".digital-surround71", ".iec958-stereo", ".mono", ".stereo"):
+        if text.endswith(suffix):
+            text = text[:-len(suffix)]
+            break
+    if ":" in text:
+        text = text.split(":", 1)[1]
+    return (text.split(".")[0] or text).strip().lower()
+
+
 class AudioCapture:
     """Native GStreamer microphone capture producing 16 kHz mono signed PCM.
 
@@ -198,6 +229,12 @@ class AudioCapture:
         self._delay_mic: list = []
         self._delay_ref: list = []
         self._start_args: tuple | None = None
+        # Roadmap task 2: the device the microphone is on and the device the sound goes out on.
+        # Different devices mean different clocks, which is what AEC3's drift handling wants to know.
+        self._mic_identifier: str | None = None
+        self._sink_identifier: str | None = None
+        # The GStreamer route: the name of the webrtcechoprobe the playback tap registers (task 2).
+        self.echo_probe_name: str | None = None
 
     def list_devices(self) -> list[AudioDevice]:
         gst = _ensure_gstreamer()
@@ -246,6 +283,8 @@ class AudioCapture:
         self._start_args = (device_id, on_audio, on_level, on_error)
         self._on_audio = on_audio
         self._on_error = on_error
+        self._mic_identifier = device_id
+        self.apply_clock_drift()
 
         selected = next((item for item in self._devices if item.identifier == device_id), None)
         # A profile saved by an older build could still point at a monitor
@@ -326,6 +365,31 @@ class AudioCapture:
         self.reference_source = None
         if self.timeline is None:
             self.timeline = timeline or RenderTimeline(sample_rate=REFERENCE_RATE)
+
+    def set_sink_identifier(self, identifier: str | None) -> None:
+        """Record the output device the sound goes to, so clock drift can be judged (task 2)."""
+        self._sink_identifier = identifier
+        self.apply_clock_drift()
+
+    def devices_differ(self) -> bool:
+        """True when the microphone and the output are known to be different physical devices.
+
+        Unknown on either side answers False: claiming drift without evidence would be a guess. A
+        monitor source names the sink it belongs to, so ``alsa_output.pci-0000_00_1b.0.analog-stereo
+        .monitor`` and that same sink count as ONE device, while a USB headset microphone and the
+        built-in output count as two.
+        """
+        mic, sink = self._mic_identifier, self._sink_identifier
+        if not mic or not sink:
+            return False
+        return _device_base(mic) != _device_base(sink)
+
+    def apply_clock_drift(self) -> None:
+        """Hand the drift state to the canceller when it can use one (AEC3, roadmap task 2)."""
+        canceller = self.canceller
+        if canceller is None or not hasattr(canceller, "set_clock_drift"):
+            return
+        canceller.set_clock_drift(self.devices_differ())
 
     def set_capture_latency(self, seconds: float | Any) -> None:
         """How long the microphone driver sits on a sample before the callback sees it.
@@ -421,11 +485,18 @@ class AudioCapture:
     def _start_webrtc(self, gst, device_id: str, on_audio, on_level) -> bool:
         """Build ONE pipeline: the monitor branch feeds the probe, the mic branch runs webrtcdsp.
 
+        With Voxa's own render as the reference (roadmap task 1) the monitor branch is NOT opened at
+        all: the probe belongs on the playback branch, where her own samples actually go (handoff 5.6:
+        "the monitor branch is not the actual TTS playback branch"). The render tap then registers a
+        ``webrtcechoprobe`` under :attr:`echo_probe_name` and the DSP here reads it, so the reference
+        the GStreamer canceller uses is Voxa's own playback and never another application's sound.
+
         Returns True when the pipeline is playing; False means the caller must fall back to the
         plain capture pipeline (never leaving the user without a microphone).
         """
         make = gst.ElementFactory.make
-        monitor_src = make("pulsesrc")
+        playback_probe = bool(self.own_reference)
+        monitor_src = None if playback_probe else make("pulsesrc")
         # The microphone is opened exactly as the plain capture pipeline opens it.
         selected = next((item for item in self._devices if item.identifier == device_id), None)
         mic_src = selected.device.create_element(None) if selected is not None else make("pulsesrc")
@@ -433,24 +504,35 @@ class AudioCapture:
         probe, probe_sink = make("webrtcechoprobe"), make("fakesink")
         convert, resample, capsfilter = make("audioconvert"), make("audioresample"), make("capsfilter")
         dsp, sink = make("webrtcdsp"), make("appsink")
-        monitor_branch = (monitor_src, convert_m, resample_m, caps_m, probe, probe_sink)
+        monitor_branch = () if playback_probe else (monitor_src, convert_m, resample_m, caps_m, probe, probe_sink)
         mic_branch = (mic_src, convert, resample, capsfilter, dsp, sink)
         if not all(monitor_branch + mic_branch):
             log.info("webrtc echo cancellation unavailable: GStreamer elements missing")
             return False
-        monitor_src.set_property("device", self.reference_source)
+        if playback_probe:
+            self.echo_probe_name = self.echo_probe_name or "voxa-echo-probe"
+            if self.timeline is not None:
+                self.timeline.echo_probe_name = self.echo_probe_name
+            dsp.set_property("probe", self.echo_probe_name)
+            log.info("webrtc echo cancellation: the probe %s rides Voxa's own playback branch; "
+                     "no monitor stream is opened", self.echo_probe_name)
+        else:
+            monitor_src.set_property("device", self.reference_source)
         for src in (monitor_src, mic_src):
+            if src is None:
+                continue
             # Default PulseAudio latency delivers huge late chunks; both branches need small ones.
             for key, value in (("latency-time", 20000), ("buffer-time", 40000)):
                 if src.find_property(key) is not None:
                     src.set_property(key, value)
         # The probe and the processor must see the same format (verified live: 16 kHz mono S16LE).
         caps = gst.Caps.from_string("audio/x-raw,format=S16LE,layout=interleaved,channels=1,rate=16000")
-        caps_m.set_property("caps", caps)
         capsfilter.set_property("caps", caps)
-        probe.set_property("name", "probe")
-        probe_sink.set_property("sync", False)
-        dsp.set_property("probe", "probe")
+        if not playback_probe:
+            caps_m.set_property("caps", caps)
+            probe.set_property("name", "probe")
+            probe_sink.set_property("sync", False)
+            dsp.set_property("probe", "probe")
         for key, value in (("echo-cancel", True), ("echo-suppression-level", 1), ("noise-suppression", False),
                            ("gain-control", False), ("high-pass-filter", False), ("voice-detection", False),
                            ("limiter", False)):
@@ -491,6 +573,8 @@ class AudioCapture:
         self._delay_ref = []
         self._ref_ring = None
         self.pipeline = pipeline
+        # One AEC owner: the GStreamer DSP owns the echo path for as long as this pipeline lives.
+        claim_aec_owner(self, "gst-webrtcdsp")
         return True
 
     def _on_ref_sample(self, sink, _on_level):
@@ -609,8 +693,12 @@ class AudioCapture:
             return
         self._delay_done = True
         delay = estimate_delay(np.concatenate(self._delay_mic), np.concatenate(self._delay_ref))
-        if delay > 0:
+        if delay > 0 and not getattr(self.canceller, "delay_managed_internally", False):
+            # AEC3 estimates the delay itself and does not report one; only the NLMS filter is
+            # rebuilt from this measurement (roadmap task 3 makes the estimate continuous).
+            release_aec_owner(self.canceller)
             self.canceller = EchoCanceller(delay=delay)
+            self.apply_clock_drift()
             log.info("echo delay estimated at %d samples (%.3f s)", delay, delay / REFERENCE_RATE)
 
     @staticmethod
@@ -669,22 +757,31 @@ class AudioCapture:
         ref_pipeline, self._ref_pipeline = self._ref_pipeline, None
         if pipeline is not None:
             pipeline.set_state(gst.State.NULL)
+            # The GStreamer DSP route owned the echo path while that pipeline lived.
+            release_aec_owner(self)
         if ref_pipeline is not None:
             ref_pipeline.set_state(gst.State.NULL)
 
     def set_echo_mode(self, mode: str | bool = "voxa", reference_source: str | None = None) -> None:
-        """Switch echo cancellation mode ("voxa", "webrtc" or "off"), applying immediately if capture is running.
+        """Switch echo cancellation mode ("voxa", "aec3", "webrtc" or "off"), applying immediately if capture is running.
 
         A boolean is accepted for the old call style: ``True`` maps to "voxa", ``False`` to "off".
+        "aec3" is WebRTC AEC3 in this process (roadmap task 2); without the binding it falls back to
+        Voxa's own NLMS canceller and says so, exactly as "webrtc" falls back to "off".
         """
         if isinstance(mode, bool):
             mode = "voxa" if mode else "off"
+        if mode == "aec3" and not aec3_available():
+            log.info("AEC3 echo cancellation unavailable (pywebrtc-audio not installed): "
+                     "using Voxa's own canceller")
+            mode = "voxa"
         if mode == "webrtc" and not webrtc_available():
             log.info("webrtc echo cancellation unavailable: running with echo off")
             mode = "off"
         if mode == "webrtc":
             self.pulse_source = None
             self.reference_source = reference_source
+            release_aec_owner(self.canceller)
             self.canceller = None
             self._canceller_enabled = False
             self._canceller_logged = False
@@ -702,7 +799,7 @@ class AudioCapture:
                 self.stop()
                 self.start(device_id, on_audio, on_level, on_error)
             return
-        if mode != "voxa":
+        if mode not in ("voxa", "aec3"):
             self.pulse_source = None
             self.reference_source = None
             self.canceller = None
@@ -719,10 +816,14 @@ class AudioCapture:
             return
         self.pulse_source = None
         self.reference_source = reference_source
-        if self.canceller is None:
-            self.canceller = EchoCanceller()
+        wanted = Aec3Canceller if mode == "aec3" else EchoCanceller
+        if not isinstance(self.canceller, wanted):
+            # Exactly one canceller owns the echo path: give the old one up before the new one claims it.
+            release_aec_owner(self.canceller)
+            self.canceller = wanted()
         self._canceller_enabled = True
         self._canceller_logged = False
+        self.apply_clock_drift()
         if not self.is_active:
             self._delay_done = False
             self._delay_mic = []

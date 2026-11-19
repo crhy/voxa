@@ -43,7 +43,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ..anc import MIN_REFERENCE_POWER, EchoCanceller, estimate_delay
+from ..anc import MIN_REFERENCE_POWER, Aec3Canceller, EchoCanceller, aec3_available, estimate_delay
 from ..audio import AudioCapture, ReferenceRing, mix_chunk, webrtc_available
 from ..bargectl import BargeInController
 from ..onset import dbfs
@@ -193,6 +193,9 @@ class ClipRunner:
         self.degraded: str | None = None
         self._mic_counter = 0
         self._delay_done = True
+        # CPU seconds spent inside the echo stages (canceller + mask) for this clip: roadmap task 2's
+        # "<= 10 % of one core" is about the canceller, and cpu_core_share measures the ASR stage.
+        self._echo_cpu = 0.0
         self._delay_mic: list[np.ndarray] = []
         self._delay_ref: list[np.ndarray] = []
         self._delay_samples = 0
@@ -251,9 +254,14 @@ class ClipRunner:
     # --- echo stages ------------------------------------------------------------
 
     def _prepare_echo_stages(self) -> None:
-        if self.echo_mode == "voxa":
+        if self.echo_mode == "aec3" and not aec3_available():
+            # Same rule as the live app (voxa/audio.py:set_echo_mode): say so instead of pretending
+            # the cancellation happened, and keep the mode name honest for the report.
+            self.degraded = "aec3 unavailable (pywebrtc-audio not importable): running Voxa's NLMS"
+            self.echo_mode = "voxa"
+        if self.echo_mode in ("voxa", "aec3"):
             self.ref_ring = ReferenceRing(REFERENCE_SECONDS * SR)
-            self.canceller = EchoCanceller()
+            self.canceller = Aec3Canceller() if self.echo_mode == "aec3" else EchoCanceller()
             self._delay_done = False
         elif self.echo_mode == "webrtc":
             if not webrtc_available():
@@ -265,6 +273,9 @@ class ClipRunner:
             else:
                 self.mask = ReferenceMask()
         if self.echo_mode == "voxa":
+            # The per-band reference mask is Voxa's own residual suppressor, tuned against her own
+            # NLMS canceller. Roadmap task 4 puts a mask on AEC3's output; until then the aec3 mode
+            # measures the canceller alone, which is what task 2's gate is about.
             self.mask = ReferenceMask()
 
     def _estimate_delay(self, mic: np.ndarray, ref: np.ndarray) -> None:
@@ -280,7 +291,7 @@ class ClipRunner:
             return
         self._delay_done = True
         delay = int(estimate_delay(np.concatenate(self._delay_mic), np.concatenate(self._delay_ref)))
-        if delay > 0:
+        if delay > 0 and not getattr(self.canceller, "delay_managed_internally", False):
             self.canceller = EchoCanceller(delay=delay)
         self._delay_samples = delay
         self._delay_mic, self._delay_ref = [], []
@@ -295,6 +306,7 @@ class ClipRunner:
         see audio.py:411); the microphone travels as the int16 bytes the pipeline moves.
         """
         gain_db = 0.0
+        cpu_at = time.process_time()
         mic = np.frombuffer(mic_bytes, dtype="<i2").astype(np.float32)
         mic_db = level_db(mic)
         if self.canceller is not None and self.ref_ring is not None:
@@ -332,6 +344,7 @@ class ClipRunner:
                 gain = float(np.mean(np.abs(masked))) / max(float(np.mean(np.abs(cleaned))), 1e-9)
                 gain_db = 20.0 * float(np.log10(max(gain, 1e-9)))
                 mic_bytes = pcm16(masked)
+        self._echo_cpu += time.process_time() - cpu_at
         self._clean_stream.append(mic_bytes)
         return mic_bytes, erle, gain_db, mic_db, level_db(np.frombuffer(mic_bytes, dtype="<i2"))
 
@@ -367,6 +380,7 @@ class ClipRunner:
             residual_margin_db=margin,
             vad_prob=prob,
             alignment_healthy=bool(self._delay_samples > 0
+                                   or getattr(self.canceller, "delay_managed_internally", False)
                                    or max(self._ref_recent) <= MIN_REFERENCE_POWER),
             mic_level=float(level01),
             own_level=float(self.barge.gate.baseline),
@@ -689,6 +703,11 @@ class ClipRunner:
                 self._finish_utterance(completed, frame)
         if self.speaking:
             self._speak_finished()
+        # Give the echo-path claim back before the next clip builds its own canceller: exactly one
+        # AEC owner at a time, and the bench runs one ClipRunner per clip.
+        release = getattr(self.canceller, "close", None)
+        if release is not None:
+            release()
         pending = self.segmenter.pending()
         if pending:
             self._finish_utterance(pending, self._frame)
@@ -716,6 +735,7 @@ class ClipRunner:
             "wall_seconds": round(wall, 3),
             "realtime_factor": round(audio_seconds / wall, 3) if wall > 0 else None,
             "echo_mode": self.echo_mode,
+            "echo_processing_seconds": round(self._echo_cpu, 4),
             "degraded": self.degraded,
             "delay_estimated_samples": self._delay_samples,
             "erle_median_db": _median(erle_values),
@@ -841,9 +861,9 @@ def run(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-gates", action="store_true", help="skip the gates.toml checks (roadmap B5)")
     parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args(argv)
-    if args.echo_mode == "aec3":
-        print("echo mode aec3 is roadmap task 2 (an AEC3 backend in voxa/anc.py); it does not exist yet.",
-              file=sys.stderr)
+    if args.echo_mode == "aec3" and not aec3_available():
+        print("echo mode aec3 needs pywebrtc-audio in this interpreter; "
+              "pip install pywebrtc-audio or use --echo-mode voxa.", file=sys.stderr)
         return 2
     report = run_clips(args.suite, args.seed, args.echo_mode, args.data_root, args.limit,
                        args.model, args.quiet)
@@ -920,8 +940,16 @@ def run_clips(suite: str, seed: int, echo_mode: str, data_root: Path, limit: int
             print(f"ran {index + 1}/{len(clip_dirs)} {summary['id']} {summary['seconds']:6.2f}s audio "
                   f"{summary['wall_seconds']:6.2f}s wall turns {len(summary['requests'])} "
                   f"barge {summary['counts']['barge_in']}", flush=True)
-    return build_report(suite, seed, echo_mode, results, facts, audio_seconds,
-                        time.perf_counter() - started, model)
+    report = build_report(suite, seed, echo_mode, results, facts, audio_seconds,
+                          time.perf_counter() - started, model)
+    # Roadmap task 2's CPU gate is about the echo stages, not the recogniser: cpu_core_share divides
+    # ASR seconds by wall seconds and can never show what a canceller costs. This is the number the
+    # "<= 10 % of one core" gate is actually about, measured on the same clips.
+    echo_cpu = sum(float(item.get("echo_processing_seconds") or 0.0) for item in results)
+    wall = float(report["run"].get("wall_seconds") or 0.0)
+    report["run"]["echo_cpu_seconds"] = round(echo_cpu, 3)
+    report["run"]["echo_cpu_core_share"] = round(echo_cpu / wall, 5) if wall > 0 else None
+    return report
 
 
 if __name__ == "__main__":
