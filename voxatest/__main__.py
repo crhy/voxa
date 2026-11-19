@@ -60,6 +60,22 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         type=int,
         help="Stop the run after this many consecutive cases with no reply (0 disables).",
     )
+    run.add_argument(
+        "--offline-audio",
+        action="store_true",
+        help="No speakers and no microphone: render each prompt with the test voice, push the audio "
+             "through the hearing bench's pipeline and Voxa's command router, and score comprehension.",
+    )
+    run.add_argument("--variants", default="clean",
+                     help="offline audio: clean,quiet,noisy,music,fast,slow,voice2 (comma separated)")
+    run.add_argument("--seed", type=int, default=0, help="offline audio: the noise seed (deterministic)")
+    run.add_argument("--bench-data", default=None,
+                     help="offline audio: the bench data root (default /home/rhy/voxa-bench-data)")
+    run.add_argument("--echo-mode", choices=("off", "voxa", "webrtc"), default="off",
+                     help="offline audio: which echo stages the pipeline runs (Voxa is silent, so off)")
+    run.add_argument("--wake-mode", choices=("separate", "single"), default="separate",
+                     help="offline audio: \"Voxa.\" in its own breath, then the question (separate), "
+                          "or the one-breath prompt the live harness speaks today (single)")
 
     commands = subparsers.add_parser("commands", help="Bench the voice-command router in milliseconds, without audio.")
     commands.add_argument("--cases", default=str(DEFAULT_COMMAND_CASES_PATH))
@@ -188,6 +204,74 @@ def _run_case_safely(case, settings, client, whisper, capture, speech, log) -> R
     except Exception as exc:  # noqa: BLE001 - one broken case must never abort the run
         grade = GradeResult(0, False, "Harness error.", "error")
         return RunResult(case.id, case.category, case.prompt, "", grade, str(exc))
+
+
+def _run_offline(settings, args: argparse.Namespace) -> int:
+    """``voxatest run --offline-audio``: comprehension with no speakers and no microphone.
+
+    The exit code says the measurement ran. It is not the verdict on the numbers: the cases' own
+    pass/fail is a comprehension measurement, not a gate, and thresholds are asserted with
+    ``voxatest check REPORT "hearing_word_accuracy>=0.9"`` exactly like ``voxa.bench check``.
+    """
+    from . import offline
+
+    try:
+        variants = offline.parse_variants(args.variants)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr, flush=True)
+        return 2
+    try:
+        cases = offline.load_offline_cases(Path(args.cases))
+    except (OSError, ValueError) as exc:
+        print(f"Cannot read {args.cases}: {exc}", file=sys.stderr, flush=True)
+        return 2
+    start_at = max(1, int(args.start_at or 1))
+    if start_at > 1:
+        cases = cases[start_at - 1 :]
+    if args.limit:
+        cases = cases[: args.limit]
+    if not cases:
+        print(f"No test cases found in {args.cases}.", file=sys.stderr, flush=True)
+        return 1
+
+    data_root = Path(args.bench_data or offline.DEFAULT_DATA_ROOT)
+    total = len(cases) * len(variants)
+    print(
+        f'Offline audio: {len(cases)} cases x {len(variants)} variant(s) [{", ".join(v.name for v in variants)}] '
+        f'seed {args.seed}, wake word "{settings.wake_word}", test voice {settings.tts_voice}, '
+        f'bench data {data_root}',
+        flush=True,
+    )
+    results, block = offline.run_offline(
+        cases, settings, variants, args.seed, data_root,
+        model=settings.whisper_model, echo_mode=args.echo_mode, wake_mode=args.wake_mode,
+    )
+
+    reports = Path(args.reports or settings.reports_dir)
+    json_path, text_path = report_paths(
+        reports,
+        json_path=Path(args.json_report) if args.json_report else None,
+        text_path=Path(args.text_report) if args.text_report else None,
+    )
+    failure_path = Path(args.failure_report or str(settings.failure_report_path))
+    paths = write_reports(
+        results, reports, json_path=json_path, text_path=text_path, failure_path=failure_path,
+        complete=True, wake_word=settings.wake_word, extra={"offline": block},
+    )
+    for index, result in enumerate(results, start=1):
+        emit_event(
+            "case_result", index=index, total=total, id=result.case_id, category=result.category,
+            prompt=result.prompt, status="PASS" if result.grade.passed else "FAIL",
+            reply="", heard=result.heard, layer=score_case(result.to_dict(), settings.wake_word)["layer"],
+            notes=result.grade.notes, seconds=round(result.duration_seconds, 2),
+        )
+    print(format_results(results, complete=True, wake_word=settings.wake_word, offline=block), flush=True)
+    print(f"JSON report: {paths['json_path']}", flush=True)
+    print(f"Text report: {paths['text_path']}", flush=True)
+    print(f"Failure report: {paths['failure_path']}", flush=True)
+    if not results:
+        return 1
+    return 0
 
 
 def _run(
@@ -481,6 +565,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "run":
+        if getattr(args, "offline_audio", False):
+            return _run_offline(settings, args)
         cases = load_cases(Path(args.cases))
         start_at = max(1, args.start_at)
         if start_at > 1:

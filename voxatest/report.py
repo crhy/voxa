@@ -76,7 +76,8 @@ def summarize(results: list[Any]) -> dict[str, Any]:
     }
 
 
-def format_results(results: list[Any], *, complete: bool = True, wake_word: str | None = None) -> str:
+def format_results(results: list[Any], *, complete: bool = True, wake_word: str | None = None,
+                   offline: dict[str, Any] | None = None) -> str:
     if not results:
         return "No test cases were run."
 
@@ -108,6 +109,13 @@ def format_results(results: list[Any], *, complete: bool = True, wake_word: str 
         if heard:
             lines.append(f"  Voxa heard: {heard}")
         lines.append(f"  {comprehension.case_line(row, wake_word)}")
+        block = getattr(result, "offline", None)
+        if isinstance(block, dict):
+            lines.append(
+                f"  offline: variant {block.get('variant')} engine {block.get('engine')}"
+                f" rate {block.get('rate')} noise {block.get('noise_kind')}"
+                f" wall {block.get('wall_seconds')} s (reply grading n/a)"
+            )
         if result.grade.notes:
             lines.append(f"  notes: {result.grade.notes}")
         if result.error:
@@ -118,6 +126,11 @@ def format_results(results: list[Any], *, complete: bool = True, wake_word: str 
 
     lines.append("")
     lines.extend(comprehension.format_comprehension(comprehension.score_run(rows, wake_word)))
+    if offline:
+        lines.append("")
+        from . import offline as offline_module
+
+        lines.extend(offline_module.format_offline(offline, comprehension.score_run(rows, wake_word)))
 
     return "\n".join(lines)
 
@@ -235,6 +248,7 @@ def write_reports(
     failure_path: Path | None = None,
     complete: bool = True,
     wake_word: str | None = None,
+    extra: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     json_path, text_path = report_paths(reports_dir, json_path=json_path, text_path=text_path)
 
@@ -245,8 +259,13 @@ def write_reports(
         "comprehension": comprehension.score_run(_result_dicts(results), wake_word),
         "results": [result.to_dict() for result in results],
     }
+    payload.update(extra or {})
     _atomic_write_text(json_path, json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
-    _atomic_write_text(text_path, format_results(results, complete=complete, wake_word=wake_word) + "\n")
+    _atomic_write_text(
+        text_path,
+        format_results(results, complete=complete, wake_word=wake_word,
+                       offline=(extra or {}).get("offline")) + "\n",
+    )
     if failure_path is not None:
         failure_path = write_failure_report(results, failure_path, complete=complete, wake_word=wake_word)
 

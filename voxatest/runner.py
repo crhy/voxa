@@ -67,6 +67,9 @@ class RunResult:
     # What she heard, one entry per action-log record: the joined ``heard`` above is scored as it
     # stands, the separate records only explain it (voxatest/comprehension.py).
     heard_records: list[str] = field(default_factory=list)
+    # ``voxatest run --offline-audio`` (voxatest/offline.py): how this case's audio was made and what
+    # the pipeline cost. None for a spoken run, which has no offline block to report.
+    offline: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -85,6 +88,7 @@ class RunResult:
             "capability": self.capability,
             "observed_tools": list(self.observed_tools),
             "heard_records": list(self.heard_records),
+            "offline": dict(self.offline) if isinstance(self.offline, dict) else None,
             "action_record": self.action_record,
         }
 

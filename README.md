@@ -257,6 +257,38 @@ Re-score a report that is already written, and assert conditions on it, with no 
 
 `check` exits `1` when any condition fails, is missing, or is null, exactly like `voxa.bench check`.
 
+### Offline audio: measuring comprehension without speakers or a microphone
+
+`voxatest run --offline-audio` measures the same two numbers with no sound at all, so the hearing
+pipeline can be measured on any machine, including one with no microphone and no network:
+
+```bash
+.venv/bin/python -m voxatest run --offline-audio --cases voxatest/data/test_cases_smoke.json \
+    --json-report .voxa-bench/vt-smoke.json
+.venv/bin/python -m voxatest check .voxa-bench/vt-smoke.json "hearing_word_accuracy>=0.9"
+```
+
+Each prompt is rendered to 16 kHz audio through Voxa's own TTS chain (Edge TTS, then Voxa's Google
+voice fallback, then eSpeak NG - the engine that produced each case is recorded in the report),
+cached under `/home/rhy/voxa-bench-data/voxatest/`, and pushed through the same hearing pipeline the
+hearing bench runs (`voxa/bench/runner.py`: canceller, reference mask, Silero detector, the
+conversation controller, barge-in, own-speech, segmentation and endpoint, faster-whisper pinned the
+bench's way) and then through Voxa's deterministic command router. No LLM, no speakers, no
+microphone. `heard` and the routed tool are filled from that run and scored by the Comprehension
+section above; reply grading is skipped and marked n/a, because nothing is spoken.
+
+* `--variants clean,quiet,noisy,music,fast,slow,voice2` - level `-15 dB`, babble (real speech from
+  the bench's user-voice cache) or music at `10 dB` SNR, speaking rate `0.85`/`1.2`, a second TTS
+  voice. `--seed N` makes the noise byte-identical between runs.
+* `--wake-mode separate` (the default) says "Voxa." in one breath and asks in the next, the flow the
+  conversation controller is built around; `--wake-mode single` measures the one-breath prompt the
+  live harness speaks today, wake word included.
+* The exit code says the measurement ran. The verdict on the numbers is `voxatest check`, exactly as
+  `voxa.bench check` is the verdict on a bench run.
+
+It measures the pipeline and the router. It cannot measure the room: the microphone, the speakers,
+Voxa's own voice as echo and the desktop side effects stay in the live suite.
+
 ## Keyboard shortcuts
 
 | Shortcut | Action |
