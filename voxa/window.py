@@ -35,6 +35,7 @@ from .agent.claims import claims_action, first_sentences  # noqa: E402
 from .agent.host import host_command  # noqa: E402
 from .agent.host import spawn as host_spawn  # noqa: E402
 from .agent.player import active_player  # noqa: E402
+from .agent.player import attach_render_timeline as attach_media_render_timeline  # noqa: E402
 from .agent.progress import working_caption  # noqa: E402
 from .agent.registry import ToolError  # noqa: E402
 from .agent.reminders import ReminderStore, focus_phrase, reminder_phrase, timer_phrase  # noqa: E402
@@ -113,6 +114,7 @@ from .server import SERVER_FAILED, SERVER_STARTING, SERVER_UNAVAILABLE, AiServer
 from .speakstream import SentenceFeeder, looks_like_reasoning  # noqa: E402
 from .speech import SpeechService  # noqa: E402
 from .theme import host_theme_is_dark, initial_size  # noqa: E402
+from .timeline import RenderTimeline  # noqa: E402
 from .transcription import WhisperService  # noqa: E402
 from .ui import clipboard  # noqa: E402
 from .ui.avatars import character_choices, describe_characters, find_character, get_avatar  # noqa: E402
@@ -341,7 +343,15 @@ class MainWindow(Adw.ApplicationWindow):
         self.whisper = WhisperService()
         self.wake_whisper = WhisperService()
         self.audio = AudioCapture()
+        # Roadmap task 1: one render timeline for the app. The playback paths submit the PCM they hand
+        # the speakers (voxa/speech.py attaches a tee immediately before each sink); the capture path
+        # answers "what was audible when this microphone chunk was sampled" from it. The whole-sink
+        # monitor remains selectable (VOXA_ECHO_REFERENCE=monitor) for a machine where the tap cannot
+        # attach; it is not the default, because it contains every application's audio.
+        self.render_timeline = RenderTimeline()
         self.speech = SpeechService()
+        self.speech.attach_render_timeline(self.render_timeline)
+        attach_media_render_timeline(self.render_timeline)
         self.dictation: DictationController | None = None
         self.listening = False
         self.conversation: ConversationController | None = None
@@ -1126,9 +1136,14 @@ class MainWindow(Adw.ApplicationWindow):
             threading.Thread(target=remove_leftover_devices, name="echo-cleanup", daemon=True).start()
         mode = getattr(self.settings, "echo_mode", "voxa")
         if mode == "voxa":
-            # Our canceller: record the narrowest reference (Voxa's own playback) and clean the mic against it.
-            self.audio.reference_source = self._choose_reference_source()
-            self.audio.reference_decision = getattr(self, "_reference_decision", None)
+            # Our canceller. Roadmap task 1: the reference is Voxa's own render, taken from the render
+            # timeline; no stream on the speakers is in it, so the test voice cannot be cancelled and
+            # another application's music cannot corrupt the fit.
+            if os.environ.get("VOXA_ECHO_REFERENCE", "own-render") == "monitor":
+                self.audio.reference_source = self._choose_reference_source()
+                self.audio.reference_decision = getattr(self, "_reference_decision", None)
+            else:
+                self.audio.use_own_reference(self.render_timeline)
             self.audio.pulse_source = None
             self.audio.canceller = AncCanceller()
         elif mode == "webrtc":

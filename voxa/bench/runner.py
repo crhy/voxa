@@ -791,15 +791,17 @@ def read_wav_int16(path: Path) -> np.ndarray:
 
 
 def load_clip(clip_dir: Path) -> dict:
-    """Read one rendered clip: truth plus the microphone (int16) and reference (float) streams."""
+    """Read one rendered clip: truth plus the microphone (int16), the reference (float) and, for
+    roadmap task 1's render-timeline instrument, the three components the renderer mixed."""
     truth_path = clip_dir / "truth.json"
     if not truth_path.exists():
         raise FileNotFoundError(f"{truth_path} missing: render the suite first")
-    return {
-        "truth": json.loads(truth_path.read_text()),
-        "mic": read_wav_int16(clip_dir / "mic.wav"),
-        "ref": read_wav(clip_dir / "ref.wav"),
-    }
+    arrays = {"mic": read_wav_int16(clip_dir / "mic.wav"), "ref": read_wav(clip_dir / "ref.wav")}
+    for name in ("s", "d", "n"):
+        path = clip_dir / f"{name}.wav"
+        if path.exists():
+            arrays[name] = read_wav(path)
+    return {"truth": json.loads(truth_path.read_text()), **arrays}
 
 
 def build_report(suite: str, seed: int, echo_mode: str, results: list[dict],
@@ -864,6 +866,27 @@ def run(argv: list[str] | None = None) -> int:
     return 0
 
 
+def render_timeline_measure(loaded: dict, echo_mode: str) -> dict:
+    """Roadmap task 1: the same clip through the simulated output sink (``voxa/bench/sinksim``).
+
+    The frozen B1 clips have no output sink, no capture latency and no second application, which are
+    exactly the things the render timeline exists to get right, so the instrument wraps the clip's
+    own components around a sink of known latency and jitter and measures the product's
+    :class:`voxa.timeline.RenderTimeline` against it. It runs in the modes that use Voxa's own
+    canceller; in ``off`` there is no canceller to align, and the metrics say so instead of reporting
+    a number they cannot defend.
+    """
+    if echo_mode != "voxa":
+        return {"measurable": False,
+                "reason": f"echo mode {echo_mode} does not run Voxa's own canceller to align"}
+    try:
+        from . import sinksim
+
+        return sinksim.measure_clip(loaded, loaded["truth"])
+    except Exception as exc:  # noqa: BLE001 - the instrument must never lose the clip's own result
+        return {"measurable": False, "reason": f"render instrument failed: {exc}"}
+
+
 def run_clips(suite: str, seed: int, echo_mode: str, data_root: Path, limit: int | None,
               model: str, quiet: bool = False) -> dict:
     """Run every clip of a suite, write the per-clip events, and return the report."""
@@ -884,6 +907,7 @@ def run_clips(suite: str, seed: int, echo_mode: str, data_root: Path, limit: int
         loaded = load_clip(clip_dir)
         runner = ClipRunner(asr=asr, echo_mode=echo_mode, wake_word=wake_word)
         summary = runner.run(loaded["mic"], loaded["ref"], loaded["truth"])
+        summary["render"] = render_timeline_measure(loaded, echo_mode)
         clip_out = events_root / summary["id"]
         clip_out.mkdir(parents=True, exist_ok=True)
         (clip_out / "events.jsonl").write_text(

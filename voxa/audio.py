@@ -10,6 +10,7 @@ from typing import Any
 import numpy as np
 
 from .anc import EchoCanceller, estimate_delay
+from .timeline import CaptureClock, RenderTimeline
 
 Gst: Any = None  # Initialized lazily so importing this module needs no GStreamer or PyGObject.
 
@@ -85,6 +86,22 @@ class ReferenceRing:
         return self._total
 
 
+def clean_chunk(mic_bytes: bytes, ref: np.ndarray, canceller) -> bytes:
+    """Clean one microphone chunk against an ALREADY ALIGNED reference window.
+
+    A chunk whose reference span is silence is passed through untouched (bypass): nothing of Voxa's was
+    playing over that span, so there is no echo to fit and the adaptive filter is not fed a lie. Returns
+    the cleaned chunk as int16 bytes. Raises if the canceller raises.
+    """
+    ref = np.asarray(ref, dtype=np.float32)
+    if ref.size == 0 or float(np.mean(ref * ref)) < 1e-9:
+        return mic_bytes
+    mic = np.frombuffer(mic_bytes, dtype="<i2").astype(np.float32) / 32768.0
+    cleaned = canceller.process(mic, ref)
+    cleaned = np.clip(np.rint(np.asarray(cleaned, dtype=np.float32) * 32767.0), -32768, 32767)
+    return cleaned.astype("<i2").tobytes()
+
+
 def mix_chunk(mic_bytes: bytes, ref_ring: ReferenceRing, counter: int, canceller,
               ref_offset: int = 0) -> bytes:
     """Clean one microphone chunk against the reference samples covering the same span.
@@ -92,17 +109,11 @@ def mix_chunk(mic_bytes: bytes, ref_ring: ReferenceRing, counter: int, canceller
     ``counter`` is the global sample position where this microphone chunk begins; ``ref_offset``
     is the microphone position that corresponds to the reference stream's position 0, so the
     reference samples for the same wall-clock span start at ``counter - ref_offset`` (zero-padded
-    when the reference has not produced enough yet). An idle monitor delivers nothing, so a chunk
-    whose reference span is silence is passed through untouched (bypass). Returns the cleaned
-    chunk as int16 bytes. Raises if the canceller raises.
+    when the reference has not produced enough yet). Returns the cleaned chunk as int16 bytes.
     """
-    mic = np.frombuffer(mic_bytes, dtype="<i2").astype(np.float32) / 32768.0
-    ref = ref_ring.window(counter - ref_offset, mic.size)
-    if float(np.mean(ref * ref)) < 1e-9:
-        return mic_bytes
-    cleaned = canceller.process(mic, ref)
-    cleaned = np.clip(np.rint(np.asarray(cleaned, dtype=np.float32) * 32767.0), -32768, 32767)
-    return cleaned.astype("<i2").tobytes()
+    mic_samples = len(mic_bytes) // 2
+    ref = ref_ring.window(counter - ref_offset, mic_samples)
+    return clean_chunk(mic_bytes, ref, canceller)
 
 
 @dataclass(slots=True)
@@ -164,6 +175,12 @@ class AudioCapture:
         self.reference_decision: Any | None = None
         # True when the reference is Voxa's own rendered samples: no stream on the speakers is in it.
         self.own_reference: bool = False
+        # Roadmap task 1: the render timeline (voxa/timeline.py) that owns the own-render reference.
+        self.timeline: RenderTimeline | None = None
+        # Stamps a capture buffer with the moment its samples left the microphone.
+        self.capture_clock = CaptureClock(rate=REFERENCE_RATE)
+        # Monotonic time the last capture buffer was delivered, or None before the first one.
+        self._last_arrival: float | None = None
         # The canceller in voxa/anc.py that cleans the microphone, or None when inactive.
         self.canceller: EchoCanceller | None = None
         self._on_audio = None
@@ -297,22 +314,62 @@ class AudioCapture:
         elif self.own_reference:
             log.info("echo reference: Voxa's own rendered samples; the test voice cannot enter it")
 
-    def use_own_reference(self) -> None:
+    def use_own_reference(self, timeline: RenderTimeline | None = None) -> None:
         """Take the reference from Voxa's own render instead of from any monitor (roadmap task 1).
 
         Nothing that reaches the speakers can enter this reference, so the test voice VoxaTest plays is
-        excluded by construction: her canceller can never cancel the test user (handoff 8.2).
+        excluded by construction: her canceller can never cancel the test user (handoff 8.2). The
+        timeline is the single authoritative map of what her sinks played and when (voxa/timeline.py);
+        the playback paths submit to it, the capture path reads windows out of it.
         """
         self.own_reference = True
         self.reference_source = None
+        if self.timeline is None:
+            self.timeline = timeline or RenderTimeline(sample_rate=REFERENCE_RATE)
 
-    def feed_reference(self, samples) -> int:
-        """Hand Voxa's own rendered samples to the reference ring; returns the reference length.
+    def set_capture_latency(self, seconds: float | Any) -> None:
+        """How long the microphone driver sits on a sample before the callback sees it.
 
-        This is the tap the TTS render timeline feeds (roadmap task 1). It is the only writer of the
-        reference in own-reference mode, which is why a stream playing on the speakers - VoxaTest's
-        test voice included - can never appear in it.
+        A capture buffer is delivered late; without subtracting that, the reference window is served
+        for the wrong span by exactly the capture latency. ``seconds`` may be a number or a callable
+        that asks the live source (a driver whose latency changes with a Bluetooth profile must not
+        freeze the alignment). Unknown or unanswered means 0: no correction, the old behaviour.
         """
+        self.capture_clock.latency = seconds
+
+    def reference_mode(self) -> str:
+        """``own-render`` / ``monitor`` / ``none``: what the canceller is being fed right now."""
+        if self.own_reference:
+            return "own-render"
+        if self._ref_ring is not None or self.reference_source:
+            return "monitor"
+        return "none"
+
+    def reference_via(self) -> str:
+        """``timeline`` when the render timeline answers, ``ring`` when the plain ring does.
+
+        A tap that never attached leaves the timeline empty; the capture path then keeps serving the
+        ring it was always fed, so a missing tap costs the clock, not the reference.
+        """
+        if self.timeline is not None and self._last_arrival is not None and self.timeline.total > 0:
+            return "timeline"
+        if self._ref_ring is not None or self.timeline is not None:
+            return "ring"
+        return "none"
+
+    def feed_reference(self, samples, *, generation: str | None = None, path: str = "tts-file",
+                       sink: Any = None) -> int:
+        """Hand Voxa's own rendered samples to the reference; returns the reference length.
+
+        With a render timeline (roadmap task 1) the samples go to it with their generation id and the
+        sink they were submitted to, so the timeline can say when each of them was audible. Without
+        one they fall back to the plain ring, which has no clock and is aligned by the anchor trick.
+        This is the only writer of the reference in own-reference mode, which is why a stream playing
+        on the speakers - VoxaTest's test voice included - can never appear in it.
+        """
+        if self.timeline is not None and generation is not None:
+            self.timeline.submit(samples, generation=generation, path=path, sink=sink)
+            return self.timeline.total
         if self._ref_ring is None:
             self._ref_ring = ReferenceRing(REFERENCE_SECONDS * REFERENCE_RATE)
         self._ref_ring.append(samples)
@@ -471,6 +528,9 @@ class AudioCapture:
             pcm = bytes(mapped.data)
         finally:
             buffer.unmap(mapped)
+        # The moment this buffer reached us: the capture clock turns it into the moment the
+        # microphone sampled the first of these samples (roadmap task 1).
+        self._last_arrival = time.monotonic()
 
         if self.canceller is not None and self._canceller_enabled:
             self._maybe_estimate_delay(pcm)
@@ -490,14 +550,37 @@ class AudioCapture:
             return gst.FlowReturn.ERROR
         return gst.FlowReturn.OK
 
+    def _reference_window(self, samples: int) -> np.ndarray | None:
+        """The reference samples the microphone chunk of ``samples`` could be hearing.
+
+        With a render timeline (roadmap task 1) the answer comes from the clock: the buffer's arrival
+        time minus the capture latency is the moment its first sample was captured, and the timeline
+        says which of her own rendered samples were audible then. Without one the ring is used, aligned
+        by the anchor the monitor's first sample happened to land on.
+        """
+        if (self.timeline is not None and self._last_arrival is not None
+                and self.timeline.total > 0):
+            mic_start, _end = self.capture_clock.stamp(self._last_arrival, samples)
+            return self.timeline.reference_window(mic_start=mic_start, length=samples)
+        if self._ref_ring is None:
+            return None
+        return self._ref_ring.window(self._mic_counter - (self._ref_anchor or 0), samples)
+
     def _mix_or_passthrough(self, pcm: bytes) -> bytes:
         """Clean ``pcm`` against the reference when a canceller is active; never break recording."""
-        if self.canceller is None or not self._canceller_enabled or self._ref_ring is None:
+        if self.canceller is None or not self._canceller_enabled:
+            self._mic_counter += len(pcm) // 2
+            return pcm
+        window = self._reference_window(len(pcm) // 2)
+        if window is None:
             self._mic_counter += len(pcm) // 2
             return pcm
         try:
-            cleaned = mix_chunk(pcm, self._ref_ring, self._mic_counter, self.canceller,
-                                self._ref_anchor or 0)
+            if self.reference_via() == "timeline":
+                cleaned = clean_chunk(pcm, window, self.canceller)
+            else:
+                cleaned = mix_chunk(pcm, self._ref_ring, self._mic_counter, self.canceller,
+                                    self._ref_anchor or 0)
         except Exception as exc:  # noqa: BLE001 - recording must never break
             if not self._canceller_logged:
                 log.warning("echo canceller failed; using raw microphone: %s", exc)
@@ -510,10 +593,13 @@ class AudioCapture:
 
     def _maybe_estimate_delay(self, pcm: bytes) -> None:
         """During the first loud-enough 3 seconds, measure the echo delay once and rebuild the canceller."""
-        if self._delay_done or self._ref_ring is None:
+        if self._delay_done:
+            return
+        window = self._reference_window(len(pcm) // 2)
+        if window is None:
             return
         mic = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
-        ref = self._ref_ring.window(self._mic_counter - (self._ref_anchor or 0), mic.size)
+        ref = np.asarray(window, dtype=np.float32)
         if float(np.mean(ref * ref)) < 1e-6:
             return  # the reference is not loud enough yet
         self._delay_mic.append(mic)
@@ -557,10 +643,10 @@ class AudioCapture:
         first stream. The window is the canceller's own block size scale, so a reply that stopped
         a moment ago still counts while its echo is in flight.
         """
-        if self._ref_ring is None:
+        window = self._reference_window(max(1, int(samples)))
+        if window is None:
             return 0.0
-        window = self._ref_ring.window(self._mic_counter - max(1, int(samples)), max(1, int(samples)))
-        return float(np.mean(window * window)) if window.size else 0.0
+        return float(np.mean(np.asarray(window, dtype=np.float64) ** 2)) if len(window) else 0.0
 
     def echo_measurements(self) -> tuple[float, float | None, float | None]:
         """(reference_power, echo_explained_db, residual_db) of the last block the canceller fitted.
@@ -568,7 +654,7 @@ class AudioCapture:
         ``None`` for the two dB fields means this path has no echo model to measure with (echo off,
         or no reference sink): the attribution decision then says so instead of guessing.
         """
-        if self.canceller is None or not self._canceller_enabled or self._ref_ring is None:
+        if self.canceller is None or not self._canceller_enabled:
             return self.reference_power(), None, None
         return self.reference_power(), self.canceller.echo_explained_db, self.canceller.residual_power_db
 
