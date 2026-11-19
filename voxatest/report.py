@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from . import comprehension
+
 PROGRESS_RE = re.compile(r"^\[(\d+)/(\d+)\] (PASS|FAIL|ERROR)\b")
 
 
@@ -42,6 +44,11 @@ def parse_progress_line(line: str) -> tuple[int, int, str] | None:
     return int(match.group(1)), int(match.group(2)), match.group(3)
 
 
+def _result_dicts(results: list[Any]) -> list[dict[str, Any]]:
+    """Run results as plain dictionaries, whether they are ``RunResult`` objects or report rows."""
+    return [item.to_dict() if hasattr(item, "to_dict") else dict(item) for item in results]
+
+
 def summarize(results: list[Any]) -> dict[str, Any]:
     total = len(results)
     passed = sum(1 for result in results if result.grade.passed)
@@ -69,11 +76,12 @@ def summarize(results: list[Any]) -> dict[str, Any]:
     }
 
 
-def format_results(results: list[Any], *, complete: bool = True) -> str:
+def format_results(results: list[Any], *, complete: bool = True, wake_word: str | None = None) -> str:
     if not results:
         return "No test cases were run."
 
     summary = summarize(results)
+    rows = _result_dicts(results)
     lines = []
     if not complete:
         lines.append("PARTIAL RUN (interrupted or still running)")
@@ -88,7 +96,7 @@ def format_results(results: list[Any], *, complete: bool = True) -> str:
         ]
     )
 
-    for result in results:
+    for result, row in zip(results, rows, strict=True):
         status = "PASS" if result.grade.passed else "FAIL"
         transcript = result.transcript or "no transcript"
         duration = getattr(result, "duration_seconds", 0)
@@ -99,6 +107,7 @@ def format_results(results: list[Any], *, complete: bool = True) -> str:
         heard = getattr(result, "heard", "")
         if heard:
             lines.append(f"  Voxa heard: {heard}")
+        lines.append(f"  {comprehension.case_line(row, wake_word)}")
         if result.grade.notes:
             lines.append(f"  notes: {result.grade.notes}")
         if result.error:
@@ -107,12 +116,16 @@ def format_results(results: list[Any], *, complete: bool = True) -> str:
         if action_record is not None:
             lines.append(f"  action: {json.dumps(action_record, ensure_ascii=False, sort_keys=True)}")
 
+    lines.append("")
+    lines.extend(comprehension.format_comprehension(comprehension.score_run(rows, wake_word)))
+
     return "\n".join(lines)
 
 
-def format_failure_report(results: list[Any], *, complete: bool = True) -> str:
+def format_failure_report(results: list[Any], *, complete: bool = True, wake_word: str | None = None) -> str:
     """Return a deterministic Markdown snapshot containing only failed cases."""
     summary = summarize(results)
+    rows = _result_dicts(results)
     failures = [result for result in results if not result.grade.passed]
     lines = [
         "# VoxaTest Failure Report",
@@ -131,6 +144,9 @@ def format_failure_report(results: list[Any], *, complete: bool = True) -> str:
             "",
         ]
     )
+
+    lines.extend(comprehension.format_comprehension_markdown(comprehension.score_run(rows, wake_word)))
+    lines.append("")
 
     if not failures:
         lines.append("No failures were reported in the latest run.")
@@ -168,9 +184,9 @@ def format_failure_report(results: list[Any], *, complete: bool = True) -> str:
     return "\n".join(lines).rstrip()
 
 
-def write_failure_report(results: list[Any], path: Path, *, complete: bool = True) -> Path:
+def write_failure_report(results: list[Any], path: Path, *, complete: bool = True, wake_word: str | None = None) -> Path:
     """Atomically replace the Git-friendly latest-failures snapshot."""
-    return _atomic_write_text(Path(path), format_failure_report(results, complete=complete) + "\n")
+    return _atomic_write_text(Path(path), format_failure_report(results, complete=complete, wake_word=wake_word) + "\n")
 
 
 def _markdown_quote(value: Any) -> str:
@@ -218,6 +234,7 @@ def write_reports(
     text_path: Path | None = None,
     failure_path: Path | None = None,
     complete: bool = True,
+    wake_word: str | None = None,
 ) -> dict[str, Any]:
     json_path, text_path = report_paths(reports_dir, json_path=json_path, text_path=text_path)
 
@@ -225,12 +242,13 @@ def write_reports(
         "timestamp": datetime.now().isoformat(),
         "complete": complete,
         "summary": summarize(results),
+        "comprehension": comprehension.score_run(_result_dicts(results), wake_word),
         "results": [result.to_dict() for result in results],
     }
     _atomic_write_text(json_path, json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
-    _atomic_write_text(text_path, format_results(results, complete=complete) + "\n")
+    _atomic_write_text(text_path, format_results(results, complete=complete, wake_word=wake_word) + "\n")
     if failure_path is not None:
-        failure_path = write_failure_report(results, failure_path, complete=complete)
+        failure_path = write_failure_report(results, failure_path, complete=complete, wake_word=wake_word)
 
     return {
         "json_path": json_path,

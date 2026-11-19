@@ -19,6 +19,8 @@ from .commands import (
     run_commands,
     summarize,
 )
+from .comprehension import check as check_comprehension
+from .comprehension import comprehension_main, score_case
 from .config import DEFAULT_DATA_PATH, DEFAULT_FAILURE_REPORT_PATH, DEFAULT_REPORTS_DIR, load_settings
 from .generate_cases import generate_cases
 from .grader import GradeResult
@@ -94,6 +96,22 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         help="Action log path (default: the Voxa action log).",
     )
     latency.add_argument("--last", type=int, help="Only consider the last N records.")
+
+    # Both take their own options, so the whole tail is handed to them untouched.
+    comprehension = subparsers.add_parser(
+        "comprehension", help="Score what Voxa heard against what was said in a written run report.",
+    )
+    comprehension.add_argument("--report", required=True, help="the run report JSON written by `voxatest run`")
+    comprehension.add_argument("--out", help="write the re-scored report here")
+    comprehension.add_argument("--wake-word", default=None, help="wake word to strip from both sides")
+    comprehension.add_argument("--top", type=int, default=None, help="how many confusion rows to keep")
+    comprehension.add_argument("--json", action="store_true", help="print the comprehension block as JSON")
+
+    check = subparsers.add_parser(
+        "check", help="Assert comprehension conditions on a run report (exits 1 on any failure).",
+    )
+    check.add_argument("report", help="the run report JSON written by `voxatest run`")
+    check.add_argument("conditions", nargs="+", help='conditions like hearing_word_accuracy>=0.9')
 
     return parser.parse_args(argv)
 
@@ -294,12 +312,14 @@ def _run(
                 text_path=text_path,
                 failure_path=failure_path,
                 complete=False,
+                wake_word=settings.wake_word,
             )
             status = "ERROR" if result.error else ("PASS" if result.grade.passed else "FAIL")
+            layer = score_case(result.to_dict(), settings.wake_word)["layer"]
             emit_event("case_result", index=first_index + index - 1, total=first_index + total - 1,
                        id=case.id, category=case.category, prompt=case.prompt, status=status,
-                       reply=result.transcript, heard=result.heard, notes=result.grade.notes,
-                       seconds=round(result.duration_seconds, 1))
+                       reply=result.transcript, heard=result.heard, layer=layer,
+                       notes=result.grade.notes, seconds=round(result.duration_seconds, 1))
             log(
                 f"[{first_index + index - 1}/{first_index + total - 1}] "
                 f"{status} {result.case_id} score {result.grade.score} ({result.duration_seconds:.1f}s)"
@@ -335,8 +355,9 @@ def _run(
         text_path=text_path,
         failure_path=failure_path,
         complete=complete,
+        wake_word=settings.wake_word,
     )
-    print(format_results(results, complete=complete), flush=True)
+    print(format_results(results, complete=complete, wake_word=settings.wake_word), flush=True)
     print(f"JSON report: {paths['json_path']}", flush=True)
     print(f"Text report: {paths['text_path']}", flush=True)
     print(f"Failure report: {paths['failure_path']}", flush=True)
@@ -506,6 +527,21 @@ def main(argv: list[str] | None = None) -> int:
         report = latency_report(load_records(Path(args.action_log), args.last))
         print(format_latency(report))
         return 0
+
+    if args.command == "comprehension":
+        argv = ["--report", args.report]
+        if args.out:
+            argv += ["--out", args.out]
+        if args.wake_word is not None:
+            argv += ["--wake-word", args.wake_word]
+        if args.top is not None:
+            argv += ["--top", str(args.top)]
+        if args.json:
+            argv.append("--json")
+        return comprehension_main(argv)
+
+    if args.command == "check":
+        return check_comprehension([args.report, *args.conditions])
 
     return 1
 

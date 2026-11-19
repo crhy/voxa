@@ -234,6 +234,29 @@ git add VOXATEST_FAILURES.md
 
 The snapshot defaults to `VOXATEST_FAILURES.md` in the working directory. Use `--failure-report path/to/file.md` or the `VOXATEST_FAILURE_REPORT` environment variable to choose another location. A successful run replaces the snapshot with a clear zero-failures result, while the full JSON and text reports remain available for diagnostics.
 
+### Comprehension: what Voxa heard, and which layer failed
+
+Every spoken case already records what Voxa heard from her own action log, and every run report now
+scores it in a `Comprehension` section of the text, Markdown and JSON reports:
+
+* `hearing_word_accuracy` - `1 - WER(what was said, what Voxa heard)`, on the hearing bench's own
+  text normalisation (lower-case, punctuation dropped, numbers spelled out), with the wake word
+  removed from both sides, because VoxaTest is the one that speaks it;
+* `routed_tool_accuracy` - the share of the cases naming an expected tool in which that tool ran;
+* `layer_counts` - how many cases failed at `not_heard` (no action-log record), `misheard` (a word
+  missed), `misrouted` (heard right, wrong tool) or `misanswered` (routed right, the reply failed),
+  and how many were `ok`;
+* `confusions` - the top 30 said-word to heard-word pairs of the run: the words Voxa's ear swaps.
+
+Re-score a report that is already written, and assert conditions on it, with no microphone involved:
+
+```bash
+.venv/bin/python -m voxatest comprehension --report ~/.local/state/voxatest/reports/run_....json
+.venv/bin/python -m voxatest check run_....json "hearing_word_accuracy>=0.95" "layer_counts.misheard<=2"
+```
+
+`check` exits `1` when any condition fails, is missing, or is null, exactly like `voxa.bench check`.
+
 ## Keyboard shortcuts
 
 | Shortcut | Action |

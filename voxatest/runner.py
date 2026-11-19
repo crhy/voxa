@@ -5,7 +5,7 @@ import queue
 import threading
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -61,6 +61,12 @@ class RunResult:
     expected_tool: str = ""
     heard: str = ""
     capability: int = 0
+    # Every tool Voxa's action log says ran while this case was live, in the order it was logged:
+    # voxatest/comprehension.py scores routing against it (a case can run the wrong tool, or two).
+    observed_tools: list[str] = field(default_factory=list)
+    # What she heard, one entry per action-log record: the joined ``heard`` above is scored as it
+    # stands, the separate records only explain it (voxatest/comprehension.py).
+    heard_records: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -77,6 +83,8 @@ class RunResult:
             "expected_tool": self.expected_tool,
             "heard": self.heard,
             "capability": self.capability,
+            "observed_tools": list(self.observed_tools),
+            "heard_records": list(self.heard_records),
             "action_record": self.action_record,
         }
 
@@ -209,14 +217,21 @@ def run_case(
     action_record = None
     new_records = action_log.read()[action_offset:]
     heard = " / ".join(str(record.get("heard", "")) for record in new_records if record.get("heard"))
+    heard_records = [str(record.get("heard", "")) for record in new_records if record.get("heard")]
     if case.expected_tool:
         grade, action_record = _require_action(case, grade, new_records, transcript)
     if grade.passed and case.verify:
         grade = verify_outcome(case, grade, settings, whisper, capture, log)
     error = capture_errors[-1] if capture_errors else ""
+    observed_tools: list[str] = []
+    for record in new_records:
+        name = str(record.get("tool", ""))
+        if name and name not in observed_tools:
+            observed_tools.append(name)
     return RunResult(
         case.id, case.category, case.prompt, transcript, grade, error,
         time.monotonic() - started, action_record, case.expected_tool, heard, case.capability,
+        observed_tools, heard_records,
     )
 
 
