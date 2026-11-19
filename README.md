@@ -315,6 +315,48 @@ uncancelled. Live, the harness makes her read the reply, watches the microphone 
 barge-in at the moment measured from the start of her reply; live stop latency is read acoustically and
 labelled `"measured": "live"`, because the harness has no tap of her output stream.
 
+### The soak: hours of her own voice, and every self-trigger counted
+
+`voxatest soak` (live: it speaks through the speakers, rhY runs it) plays a long, varied stream of Voxa
+replies with nobody talking - including her wake word, "stop", "cancel", "offline", "wait" and quoted user
+commands - and counts every self-trigger from Voxa's own logs: a command created out of her voice from
+the action log, and every yield, interrupt, duck or stop of her own playback from her barge-in trace.
+It reports events per hour with the **one-sided 95% Poisson upper bound**, so a clean run states what it
+proves: zero events in 100 hours is an upper bound of 0.03 events/hour, not proof of zero risk forever.
+
+```bash
+.venv/bin/python -m voxatest soak --hours 100 --plan      # the plan and the bound a clean run proves, no sound
+.venv/bin/python -m voxatest soak --hours 100 --yes       # the live run (tell rhY first: it plays sound for hours)
+.venv/bin/python -m voxatest check REPORT.json "self_event_count<=0"
+```
+
+`--plan` and the bare command make no sound at all: the live run needs `--yes`, and it refuses to start
+when `voxatest doctor` reports a FAIL. The counting rules are the hearing bench's own (`tts-stop`,
+`yield`, `INTERRUPT`, `offline-interrupt`, `duck`; a microphone `pause` event is not a self-pause), and
+the bound is computed in pure Python by bisection on the Poisson CDF.
+
+### Before a live run: `voxatest doctor`
+
+```bash
+.venv/bin/python -m voxatest doctor            # probes the sound server: PASS / WARN / FAIL lines
+.venv/bin/python -m voxatest doctor --dry-run  # asks nothing of the hardware: the config and the plan
+```
+
+It checks the wake word, Voxa's echo mode, the fixture isolation, the reference mode (is the test voice
+out of Voxa's echo reference?), the microphone/output pair, a drift estimate for this speaker/microphone
+pair from Voxa's saved hearing profile, the action log, and the soak plan. A WARN means the run is valid
+and its numbers must be read with that in mind; a FAIL (a monitor chosen as the microphone, the test
+voice inside the reference) makes the command exit 1 and the soak refuse to start.
+
+### Fixture isolation: the test voice is never Voxa's echo
+
+VoxaTest's playback carries `application.name=voxatest` and `media.role=voxatest` (`voxatest/isolation.py`,
+set through `SpeechService(stream_tag=...)`), and `voxa/reference.py` picks the narrowest echo reference
+the machine offers: Voxa's own rendered samples, else the per-stream monitor of her own playback stream
+(`alsa_output...input<N>.monitor`, which skips every foreign stream), else the whole-sink monitor - and
+when the test voice is on that sink and cannot be excluded, it logs a WARNING and says the run's hearing
+numbers are not valid. Voxa's own playback is never tagged: it is exactly what the reference must contain.
+
 ## Keyboard shortcuts
 
 | Shortcut | Action |

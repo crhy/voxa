@@ -160,6 +160,10 @@ class AudioCapture:
         self.pulse_source: str | None = None
         # Loopback monitor to record the computer's own playback from, or None.
         self.reference_source: str | None = None
+        # The reference policy that chose it (voxa/reference.ReferenceDecision), or None when unjudged.
+        self.reference_decision: Any | None = None
+        # True when the reference is Voxa's own rendered samples: no stream on the speakers is in it.
+        self.own_reference: bool = False
         # The canceller in voxa/anc.py that cleans the microphone, or None when inactive.
         self.canceller: EchoCanceller | None = None
         self._on_audio = None
@@ -286,12 +290,51 @@ class AudioCapture:
         self._delay_done = self.canceller is None
         self._delay_mic = []
         self._delay_ref = []
-        self._ref_ring = ReferenceRing(REFERENCE_SECONDS * REFERENCE_RATE) if self.reference_source else None
+        self._ref_ring = (ReferenceRing(REFERENCE_SECONDS * REFERENCE_RATE)
+                           if (self.reference_source or self.own_reference) else None)
         if self.reference_source:
             self._start_reference(gst)
+        elif self.own_reference:
+            log.info("echo reference: Voxa's own rendered samples; the test voice cannot enter it")
+
+    def use_own_reference(self) -> None:
+        """Take the reference from Voxa's own render instead of from any monitor (roadmap task 1).
+
+        Nothing that reaches the speakers can enter this reference, so the test voice VoxaTest plays is
+        excluded by construction: her canceller can never cancel the test user (handoff 8.2).
+        """
+        self.own_reference = True
+        self.reference_source = None
+
+    def feed_reference(self, samples) -> int:
+        """Hand Voxa's own rendered samples to the reference ring; returns the reference length.
+
+        This is the tap the TTS render timeline feeds (roadmap task 1). It is the only writer of the
+        reference in own-reference mode, which is why a stream playing on the speakers - VoxaTest's
+        test voice included - can never appear in it.
+        """
+        if self._ref_ring is None:
+            self._ref_ring = ReferenceRing(REFERENCE_SECONDS * REFERENCE_RATE)
+        self._ref_ring.append(samples)
+        return self._ref_ring.total
+
+    @property
+    def reference_ring(self) -> ReferenceRing | None:
+        return self._ref_ring
 
     def _start_reference(self, gst) -> None:
         """Open the second pipeline that records the computer's own playback into the ring buffer."""
+        if self.own_reference:
+            log.info("echo reference: Voxa's own rendered samples; no monitor pipeline is opened")
+            return
+        decision = self.reference_decision
+        if decision is not None:
+            from .reference import log_reference
+
+            log_reference(decision)
+            if decision.source and decision.source != self.reference_source:
+                log.info("echo reference moved to the narrowest source offered: %s", decision.source)
+                self.reference_source = decision.source
         src = gst.ElementFactory.make("pulsesrc")
         convert = gst.ElementFactory.make("audioconvert")
         resample = gst.ElementFactory.make("audioresample")

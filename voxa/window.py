@@ -519,9 +519,9 @@ class MainWindow(Adw.ApplicationWindow):
     def _apply_echo_mode(self) -> None:
         mode = getattr(self.settings, "echo_mode", "voxa")
         if mode == "voxa":
-            self.audio.set_echo_mode("voxa", default_monitor_source())
+            self.audio.set_echo_mode("voxa", self._choose_reference_source())
         elif mode == "webrtc":
-            self.audio.set_echo_mode("webrtc", default_monitor_source())
+            self.audio.set_echo_mode("webrtc", self._choose_reference_source())
         else:
             self.audio.set_echo_mode("off")
 
@@ -1104,6 +1104,21 @@ class MainWindow(Adw.ApplicationWindow):
             face_quality.set_mode("prerendered")
         self._apply_face_mode()
 
+    def _choose_reference_source(self) -> str | None:
+        """The narrowest echo reference this machine offers, with VoxaTest's test voice kept out of it.
+
+        The whole-sink monitor contains every stream on the output, so a test voice played through the
+        speakers would be cancelled as if it were Voxa's own echo (handoff 8.2). :mod:`voxa.reference`
+        prefers the per-stream monitor of Voxa's own playback and says in a WARNING when the test voice
+        cannot be excluded. Two pactl queries, no more: this runs on the path that starts the microphone.
+        """
+        from .reference import decide, log_reference
+
+        decision = decide(default_monitor_source(), check_sources=False, resolve_sinks=False)
+        log_reference(decision)
+        self._reference_decision = decision
+        return decision.source
+
     def _prepare_microphone(self) -> None:
         """Before listening: choose how the computer's own sound is removed from the microphone."""
         if not getattr(self, "_echo_leftovers_checked", False):
@@ -1111,13 +1126,15 @@ class MainWindow(Adw.ApplicationWindow):
             threading.Thread(target=remove_leftover_devices, name="echo-cleanup", daemon=True).start()
         mode = getattr(self.settings, "echo_mode", "voxa")
         if mode == "voxa":
-            # Our canceller: record the loopback monitor as the reference and clean the mic against it.
-            self.audio.reference_source = default_monitor_source()
+            # Our canceller: record the narrowest reference (Voxa's own playback) and clean the mic against it.
+            self.audio.reference_source = self._choose_reference_source()
+            self.audio.reference_decision = getattr(self, "_reference_decision", None)
             self.audio.pulse_source = None
             self.audio.canceller = AncCanceller()
         elif mode == "webrtc":
             # One pipeline: the monitor branch feeds the probe, the mic branch runs webrtcdsp.
-            self.audio.reference_source = default_monitor_source()
+            self.audio.reference_source = self._choose_reference_source()
+            self.audio.reference_decision = getattr(self, "_reference_decision", None)
             self.audio.pulse_source = None
             self.audio.canceller = None
         else:

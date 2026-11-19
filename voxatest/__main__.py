@@ -8,9 +8,11 @@ import sys
 import threading
 import time
 from pathlib import Path
+from typing import Any
 
 from voxa.agent.actionlog import default_path
 
+from . import isolation
 from .cases import load_cases, save_cases
 from .commands import (
     DEFAULT_COMMAND_CASES_PATH,
@@ -129,6 +131,33 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     )
     check.add_argument("report", help="the run report JSON written by `voxatest run`")
     check.add_argument("conditions", nargs="+", help='conditions like hearing_word_accuracy>=0.9')
+
+    soak = subparsers.add_parser(
+        "soak",
+        help="Live soak: VoxaTest speaks long varied replies for hours with nobody talking, and counts "
+             "every self-command and self-pause from Voxa's action log and barge-in events.",
+    )
+    soak.add_argument("--hours", type=float, default=1.0, help="how long to run (default 1 hour)")
+    soak.add_argument("--seed", type=int, default=0, help="the plan seed: the same seed replays the same replies")
+    soak.add_argument("--gap", type=float, default=2.5, help="seconds of silence between replies")
+    soak.add_argument("--voices", default="en-US-GuyNeural,en-US-JennyNeural",
+                      help="comma separated TTS voices to rotate through")
+    soak.add_argument("--action-log", help="Voxa's action log to count from (default: the one Voxa writes)")
+    soak.add_argument("--json-report")
+    soak.add_argument("--text-report")
+    soak.add_argument("--plan", action="store_true", help="print the plan and stop: plays no sound")
+    soak.add_argument("--yes", action="store_true",
+                      help="start the live run. It speaks through the speakers: rhY must know first")
+
+    doctor = subparsers.add_parser(
+        "doctor", help="Check the setup before a live hearing run (PASS / WARN / FAIL lines).",
+    )
+    doctor.add_argument("--dry-run", action="store_true",
+                        help="ask nothing of the sound server or the microphone")
+    doctor.add_argument("--hours", type=float, default=1.0, help="the soak length to plan for")
+    doctor.add_argument("--seed", type=int, default=0, help="the soak seed to plan for")
+    doctor.add_argument("--gap", type=float, default=2.5, help="seconds of silence between replies")
+    doctor.add_argument("--json", action="store_true", help="print the checks as JSON")
 
     return parser.parse_args(argv)
 
@@ -366,6 +395,7 @@ def _run(
         speech = SpeechService(
             allow_online_fallback=False,
             allow_offline_fallback=False,
+            stream_tag=isolation.APPLICATION_NAME,
         )
         started = time.monotonic()
         total = len(cases)
@@ -452,6 +482,138 @@ def _run(
     if aborted:
         return 3
     return 0 if paths["summary"]["failed"] == 0 else 1
+
+
+def _soak_voices(raw: str) -> list[str]:
+    voices = [item.strip() for item in (raw or "").split(",") if item.strip()]
+    return voices or [DEFAULT_TTS_VOICE]
+
+
+def _format_soak_text(result: dict) -> str:
+    """The soak's text report: the headline bound, the plan, and every self-trigger named."""
+    from . import soak as soak_mod
+
+    lines = ["Voxa soak: her own voice, nobody talking, every self-trigger counted.", ""]
+    lines.append(soak_mod.format_bound(result))
+    lines.append("")
+    plan = result.get("plan", {})
+    lines.append(
+        f"Replies spoken: {result.get('replies_spoken', 0)} of {plan.get('replies', 0)} planned "
+        f"({plan.get('trigger_replies', 0)} carrying trigger words)."
+    )
+    lines.append(f"Isolation: {isolation.describe()}")
+    for check in result.get("checks", []):
+        lines.append(f"  {check.get('status', ''):4} {check.get('name', '')}: {check.get('detail', '')}")
+    commands = result.get("self_commands", [])
+    pauses = result.get("self_pauses", [])
+    lines.append("")
+    lines.append(f"Self-commands ({len(commands)}):")
+    for record in commands[:40]:
+        lines.append(f"  {record.get('time', '')} heard={record.get('heard', '')!r} tool={record.get('tool', '')}")
+    if not commands:
+        lines.append("  none")
+    lines.append(f"Self-pauses ({len(pauses)}):")
+    for event in pauses[:40]:
+        fields = " ".join(f"{key}={value}" for key, value in event.items() if key != "event")
+        lines.append(f"  {event.get('event', '')} {fields}")
+    if not pauses:
+        lines.append("  none")
+    return "\n".join(lines)
+
+
+def _run_soak(settings, args: argparse.Namespace) -> int:
+    """``voxatest soak``: the live self-trigger soak.
+
+    It speaks through the speakers, so it needs two things before it makes a sound: ``--yes`` (the run
+    is rhY's, who must know the room is about to be used) and a doctor pass with no FAIL. The
+    microphone is never opened here: Voxa owns it, and a soak is about what she does with nobody talking.
+    """
+    from . import soak as soak_mod
+    from .doctor import format_checks, run_checks
+
+    try:
+        plan = soak_mod.soak_plan(args.hours, seed=args.seed, gap_seconds=args.gap,
+                                  voices=_soak_voices(args.voices), wake_word=settings.wake_word)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr, flush=True)
+        return 2
+    summary = soak_mod.plan_summary(plan, args.gap)
+    if args.plan:
+        print(soak_mod.format_plan(plan, summary), flush=True)
+        print("A clean run of this length proves:", flush=True)
+        print(soak_mod.format_bound(soak_mod.count_self_events([], [], args.hours, len(plan))), flush=True)
+        return 0
+    if not args.yes:
+        print("A soak speaks through the speakers for hours. Tell rhY first "
+              "(docs/notes/voxa-tell-before-live-audio-tests.md), then add --yes.", flush=True)
+        print("The plan, with no sound:", flush=True)
+        print(soak_mod.format_plan(plan, summary), flush=True)
+        return 0
+
+    checks = run_checks(settings, hours=args.hours, seed=args.seed, gap_seconds=args.gap)
+    print(format_checks(checks), flush=True)
+    if any(check.status == "FAIL" for check in checks):
+        print("Not starting: the FAIL lines above say the run would measure nothing.", file=sys.stderr, flush=True)
+        return 2
+
+    try:
+        from voxa.speech import SpeechService
+    except ImportError as exc:  # noqa: BLE001 - the speech stack is a hard requirement of a live soak
+        print(f"Cannot import Voxa's speech module: {exc}", file=sys.stderr, flush=True)
+        return 1
+
+    main_loop, main_loop_thread = _start_glib_main_loop()
+    speech = SpeechService(allow_online_fallback=False, allow_offline_fallback=False,
+                           stream_tag=isolation.APPLICATION_NAME)
+    errors: list[str] = []
+    previous_sigterm = signal.getsignal(signal.SIGTERM)
+
+    def _stop_on_sigterm(_signum: int, _frame: object) -> None:
+        raise KeyboardInterrupt
+
+    signal.signal(signal.SIGTERM, _stop_on_sigterm)
+
+    def speak(reply) -> None:
+        done = threading.Event()
+        speech.speak(reply.text, settings.tts_rate, reply.voice,
+                     on_started=lambda: None, on_done=done.set,
+                     on_error=lambda message: (errors.append(message), done.set()))
+        if not done.wait(settings.speak_timeout_seconds):
+            errors.append(f"TTS timed out on reply {reply.index}")
+
+    action_log = Path(args.action_log) if args.action_log else Path(settings.action_log_path)
+    logs = soak_mod.SoakLogs(action_log=action_log, barge_log=soak_mod.barge_log_path(action_log))
+    print(f"Counting self-triggers from {logs.action_log} and {logs.barge_log}", flush=True)
+
+    result: dict[str, Any] = {}
+    try:
+        result = soak_mod.run_soak(
+            plan, logs, hours=args.hours, speak=speak, gap_seconds=args.gap,
+            on_event=lambda payload: emit_event("soak", **payload),
+        )
+    finally:
+        speech.stop()
+        main_loop.quit()
+        main_loop_thread.join(timeout=2.0)
+        signal.signal(signal.SIGTERM, previous_sigterm)
+
+    result["isolation"] = isolation.playback_properties()
+    result["checks"] = [check.as_dict() for check in checks]
+    result["errors"] = errors[-5:]
+    numbers = {key: value for key, value in result.items()
+               if isinstance(value, (int, float)) and not isinstance(value, bool)}
+    payload = {"soak": result, "comprehension": numbers}
+    json_path = Path(args.json_report) if args.json_report else (
+        Path(settings.reports_dir) / f"soak_{time.strftime('%Y%m%d_%H%M%S')}.json")
+    json_path.parent.mkdir(parents=True, exist_ok=True)
+    json_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    text = _format_soak_text(result)
+    if args.text_report:
+        Path(args.text_report).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.text_report).write_text(text + "\n", encoding="utf-8")
+    print(text, flush=True)
+    print(f"JSON report: {json_path}", flush=True)
+    return 130 if result.get("interrupted") else 0
 
 
 def _command_result_dict(result) -> dict:
@@ -629,6 +791,19 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "check":
         return check_comprehension([args.report, *args.conditions])
+
+    if args.command == "soak":
+        return _run_soak(settings, args)
+
+    if args.command == "doctor":
+        from .doctor import doctor_main
+
+        argv = ["--hours", str(args.hours), "--seed", str(args.seed), "--gap", str(args.gap)]
+        if args.dry_run:
+            argv.append("--dry-run")
+        if args.json:
+            argv.append("--json")
+        return doctor_main(argv)
 
     return 1
 

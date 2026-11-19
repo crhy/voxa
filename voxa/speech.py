@@ -170,9 +170,14 @@ class SpeechService:
         *,
         allow_online_fallback: bool = True,
         allow_offline_fallback: bool = True,
+        stream_tag: str | None = None,
     ) -> None:
         self.allow_online_fallback = allow_online_fallback
         self.allow_offline_fallback = allow_offline_fallback
+        #: Marks this player's stream in the sound server. Voxa leaves it None; VoxaTest passes
+        #: "voxatest" so Voxa's echo reference can exclude the test voice (voxa/reference.py).
+        self.stream_tag = stream_tag or None
+        self.stream_tag_applied: dict[str, bool] = {}
         self.pipeline: Any | None = None
         self.appsrc: Any | None = None
         self.temp_path: str | None = None
@@ -424,12 +429,13 @@ class SpeechService:
         pipeline = Gst.parse_launch(
             "appsrc name=source format=bytes block=true max-bytes=1048576 ! "
             "queue max-size-bytes=2097152 ! "
-            "decodebin ! audioconvert ! audioresample ! autoaudiosink"
+            "decodebin ! audioconvert ! audioresample ! autoaudiosink name=sink"
         )
         appsrc = pipeline.get_by_name("source")
         if appsrc is None:
             pipeline.set_state(Gst.State.NULL)
             raise RuntimeError("GStreamer appsrc is unavailable.")
+        self._tag_stream(pipeline.get_by_name("sink"))
 
         bus = pipeline.get_bus()
         bus.add_signal_watch()
@@ -692,6 +698,7 @@ class SpeechService:
             self._emit_error_for("GStreamer playback is unavailable.", cancel_event)
             return False
         pipeline.set_property("uri", Path(path).as_uri())
+        self._tag_stream(pipeline)
         bus = pipeline.get_bus()
         bus.add_signal_watch()
         bus.connect("message::eos", self._on_eos, cancel_event)
@@ -703,6 +710,24 @@ class SpeechService:
 
     def _is_current(self, cancel_event: threading.Event) -> bool:
         return cancel_event is self.cancel_event and not cancel_event.is_set()
+
+    def _tag_stream(self, element: Any, gst: Any = None) -> None:
+        """Mark this playback as the test voice in the sound server, when the caller asked for it.
+
+        Voxa's own playback is never tagged: it is what her echo reference must contain. VoxaTest
+        passes ``stream_tag="voxatest"``, and :mod:`voxa.reference` then keeps that stream out of the
+        reference (or says in a WARNING that it cannot).
+        """
+        if not self.stream_tag or element is None:
+            return
+        from .reference import TEST_STREAM_TAG, apply_stream_tag
+
+        if self.stream_tag != TEST_STREAM_TAG:
+            return
+        try:
+            self.stream_tag_applied = apply_stream_tag(element, gst if gst is not None else Gst)
+        except Exception:  # noqa: BLE001 - tagging is never a reason for speech to fail
+            self.stream_tag_applied = {}
 
     def _emit_started_for(self, cancel_event: threading.Event) -> bool:
         if not self._is_current(cancel_event) or self._started_emitted or self._finished:
