@@ -22,6 +22,7 @@
   answers it. Questions that do not refer to the screen read nothing at all, and web phrasing such as "on this page"
   still goes to the browser.
 - **Find files by the words inside them.** "Search my documents for lease", "Find files containing invoice", "Which files mention Portland" — Voxa reads the text inside the files in the folder you name and says back the line it found. It never moves, renames or deletes anything while searching, and says so when a folder takes too long to search.
+- Saying "download the latest Spaced ISO" finds the newest Spaced Linux release, checks there is room on disk before fetching anything, saves the image, and says plainly when the release publishes no checksum to verify it against.
 
 ### Fixed
 

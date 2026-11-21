@@ -1236,6 +1236,26 @@ _CHECK_VERSION = re.compile(
     r"|is spaced(?: linux)? up to date",
     re.IGNORECASE,
 )
+_ISO_ARCH_WORD = r"(?:amd64|x86_?64|arm64|aarch64|i386|(?:32|64)[-_ ]?bit)"
+_DOWNLOAD_ISO = re.compile(
+    r"(?:download|fetch|get|save|grab) (?:the |a |my )?(?:latest |newest |most recent )?"
+    r"(?:spaced(?: linux)? |linux )?"
+    r"(?:(?P<arch>" + _ISO_ARCH_WORD + r") )?"
+    r"(?:spaced(?: linux)? )?"
+    r"(iso|iso image|disk image|boot image|linux image|image)"
+    r"(?: (?:for|of) (?P<arch2>" + _ISO_ARCH_WORD + r"))?"
+    r"(?: (?:to|in|into|for) (?P<folder>.+))?",
+    re.IGNORECASE,
+)
+_ISO_ARCH_NAMES = {
+    "amd64": "amd64",
+    "x8664": "amd64",
+    "64bit": "amd64",
+    "arm64": "arm64",
+    "aarch64": "arm64",
+    "i386": "i386",
+    "32bit": "i386",
+}
 
 ROUTED_TOOLS = frozenset(
     {
@@ -1299,6 +1319,7 @@ ROUTED_TOOLS = frozenset(
         "minimize_app",
         "update_system",
         "check_system_version",
+        "download_iso",
         "maximize_app",
         "restore_app",
         "minimize_all",
@@ -1590,17 +1611,46 @@ _FACT_CHECK = re.compile(
 )
 
 
+def _iso_arch(spoken: str) -> str:
+    """The architecture name Spaced uses for a spoken arch word ("" when unknown)."""
+    key = re.sub(r"[^a-z0-9]", "", spoken.casefold())
+    return _ISO_ARCH_NAMES.get(key, key)
+
+
+def _route_iso_download(s: str) -> ToolCall | None:
+    """download_iso for an ISO request, tried only after every other rule has failed.
+
+    The request must name an ISO, Spaced, Linux or an architecture, so "download the
+    image" is left to the model instead of fetching a multi-gigabyte file.
+    """
+    match = _DOWNLOAD_ISO.fullmatch(s)
+    if match is None:
+        return None
+    folded = s.casefold()
+    if not re.search(r"(?:iso|spaced|linux)", folded) and not re.search(_ISO_ARCH_WORD, folded):
+        return None
+    arch = _iso_arch(match.group("arch") or match.group("arch2") or "") or "amd64"
+    args = {"arch": arch}
+    folder = (match.group("folder") or "").strip()
+    if folder:
+        args["folder"] = folder
+    return ToolCall("download_iso", args)
+
+
 def route(text: str) -> ToolCall | None:
     """Map a spoken command to a tool call, or None when no rule matches."""
     call = _route_command(text)
     if call is not None:
         return call
+    s = _prepare(normalize(text))
+    iso_call = _route_iso_download(s)
+    if iso_call is not None:
+        return iso_call
     # Tried only when the whole text matched nothing, so a command that already
     # routed can never change meaning by having a greeting cut off its first word.
-    s = _prepare(normalize(text))
     glued = _GLUED_LEADING.sub("", s, count=1).strip(" .,!?").strip()
     if glued and glued != s:
-        return _route_command(glued)
+        return _route_command(glued) or _route_iso_download(glued)
     return None
 
 

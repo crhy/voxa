@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from voxa.agent.isoimage import iso_tools
 from voxa.agent.registry import ToolRegistry
 from voxa.agent.tools.anc import anc_tools
 from voxa.agent.tools.applications import application_tools
@@ -127,6 +128,7 @@ def default_registry() -> ToolRegistry:
         *hidden_files_tools(),
         *system_tools(),
         *sysupdate_tools(),
+        *iso_tools(),
         *appstore_tools(),
         *uicontrol_tools(),
         *anc_tools(),
