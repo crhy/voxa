@@ -248,6 +248,31 @@
             ]
         },
         {
+            "name": "python3-pywebrtc-audio",
+            "buildsystem": "simple",
+            "build-commands": [
+                "pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"pywebrtc-audio>=0.2,<0.3\" --no-build-isolation"
+            ],
+            "sources": [
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/4b/43/5df4cd966ce6c3e5fd2c556cbcbde4d91404433e27d1a470c41b46aed51e/pywebrtc_audio-0.2.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+                    "sha256": "4b02aa10312378a9c8bec5d6f25586b3464c29dd1cc6961716a7f18f4350828e",
+                    "only-arches": [
+                        "x86_64"
+                    ]
+                },
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/3f/72/78715f87dff9b2e3868d565f106e2209e0cdd57b070ee9593cc5be033e05/pywebrtc_audio-0.2.0-cp313-cp313-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl",
+                    "sha256": "a1c56938aa82346511a749d8c95fa522061b1d4da26878a5bfd38dc8fea4352d",
+                    "only-arches": [
+                        "aarch64"
+                    ]
+                }
+            ]
+        },
+        {
             "name": "python3-edge-tts",
             "buildsystem": "simple",
             "build-commands": [
