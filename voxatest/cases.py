@@ -59,6 +59,12 @@ class TestCase:
     # "cell": the declared test cell. "normal" is the declared normal-use range; the difficult
     # cells ("quiet", "far", "loud") are reported apart, never averaged into the headline.
     cell: str = ""
+    # --- paused-mode suite (voxatest/paused.py, issue 136).
+    # "paused": the case is spoken while Voxa is PAUSED; only the wake word may reach her.
+    paused: bool = False
+    # "wake": this paused case really addresses Voxa (it starts with the wake word), so she
+    # must respond to it; a paused case without it is background speech she must ignore.
+    wake: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -83,6 +89,8 @@ class TestCase:
             "pause_s": self.pause_s,
             "expect": self.expect,
             "cell": self.cell,
+            "paused": self.paused,
+            "wake": self.wake,
         }
 
     @classmethod
@@ -152,6 +160,8 @@ class TestCase:
             pause_s=_number("pause_s"),
             expect=str(raw.get("expect", "")).strip(),
             cell=str(raw.get("cell", "")).strip(),
+            paused=bool(raw.get("paused", False)),
+            wake=bool(raw.get("wake", False)),
         )
 
 

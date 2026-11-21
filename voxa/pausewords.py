@@ -33,6 +33,12 @@ def _wake_aliases(wake_word: str) -> tuple[str, ...]:
     return tuple(sorted(dict.fromkeys(aliases), key=len, reverse=True))
 
 
+def wake_aliases(wake_word: str) -> tuple[str, ...]:
+    """The wake word plus the misspellings the app accepts, longest first (public for callers
+    that need the same spellings: voxa/pausepolicy.py checks the wake word's punctuation)."""
+    return _wake_aliases(wake_word)
+
+
 def is_pause_request(text: str, media_playing: bool) -> bool:
     """True when the sentence asks the assistant to pause its listening.
 

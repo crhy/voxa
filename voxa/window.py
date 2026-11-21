@@ -130,7 +130,9 @@ from .llamacpp import LlamaCppClient, StrataClient  # noqa: E402
 from .modelwait import wait_for_models  # noqa: E402
 from .ollama import OllamaClient, OllamaError, strip_reasoning  # noqa: E402
 from .ownspeech import OwnSpeech  # noqa: E402
-from .pausewords import is_pause_request, resume_request  # noqa: E402
+from .pausepolicy import exit_action as paused_exit_action  # noqa: E402
+from .pausepolicy import may_speak, reminder_action, wake_allowed  # noqa: E402
+from .pausewords import is_pause_request  # noqa: E402
 from .replylang import LANGUAGES, is_only_a_language_request, requested_language  # noqa: E402
 from .server import SERVER_FAILED, SERVER_STARTING, SERVER_UNAVAILABLE, AiServerManager  # noqa: E402
 from .speakstream import SentenceFeeder, looks_like_reasoning  # noqa: E402
@@ -769,8 +771,14 @@ class MainWindow(Adw.ApplicationWindow):
         """Pause: drop the answer in progress and stop talking, but keep listening for the wake word."""
         self.query_cancel.set()          # a reply still being written must not be spoken after the pause
         self._early = None
+        self._follow_up_token = None    # a follow-up window must not survive the pause either
         if self.conversation is not None:
-            self.conversation.unmute()   # speech may have muted the microphone: the wake word must get through
+            self.conversation.unmute()  # speech may have muted the microphone: the wake word must get through
+            # An open follow-up/dictation window would let the next sentence through
+            # without the wake word (issue 136). Paused, only the wake word counts.
+            self.conversation.release_prompt()
+            self.conversation.open_followup(0)
+        self.own_speech.finished()      # the reply she was cut off saying stays remembered: its echo must not wake her
         self._hearing.reply_ended()
         self.assistant.pause()
         self._set_status(f"Paused — say “{self.settings.wake_word}” to continue")
@@ -1423,7 +1431,9 @@ class MainWindow(Adw.ApplicationWindow):
             else:
                 phrase = reminder_phrase(item.text)
             self._toast(phrase)
-            if self.assistant.is_active:
+            if self.assistant.is_active and reminder_action(self.assistant.is_paused) == "speak":
+                # A timer that goes off while paused must not make a sound (issue 136):
+                # the toast shows it, speaking would take the floor from the pause.
                 self._conversation_speak(phrase)
         self._run_due_routines(now)
         return True
@@ -2768,8 +2778,28 @@ class MainWindow(Adw.ApplicationWindow):
         self._toast(f"Microphone error: {error}")
         return False
 
+    def _paused_own_share(self) -> float:
+        """How much of the last utterance was her own voice (voxa/ownspeech.py's feature)."""
+        conversation = self.conversation
+        if conversation is None:
+            return 0.0
+        try:
+            return float((getattr(conversation, "last_filter_features", None) or {}).get("share") or 0.0)
+        except (TypeError, ValueError):
+            return 0.0
+
     def _on_conversation_woken(self) -> bool:
         if self.assistant.is_paused:
+            # Paused, the wake word is the ONLY thing that ends a pause. The conversation
+            # controller's own matcher accepts anything within 0.65 of "voxa" so a one-breath
+            # command survives Whisper ("voxel", "Roxa"); that fuzzy match must not wake a
+            # paused assistant (issue 136), and neither may an echo of her last reply, which
+            # keeps its protected "Voxa" even after the echo filter strips her words.
+            heard = self.conversation.last_heard if self.conversation is not None else ""
+            allowed, _rest, _why = wake_allowed(heard, self.settings.wake_word, self._paused_own_share())
+            if not allowed:
+                self._barge_trace("pause-reject", heard=heard[:160], why=_why)
+                return False
             # The wake word was heard: that is exactly what ends a pause. Resume, then carry on as for any
             # wake word, so a request spoken in the same breath is captured normally.
             self.assistant.resume()
@@ -2789,9 +2819,10 @@ class MainWindow(Adw.ApplicationWindow):
         # Test builds: every accepted request, as heard and as passed on (see _trace_ignored).
         self._barge_trace("request", heard=heard[:160], text=text[:160])
         if self.assistant.is_paused:
-            resumed, rest = resume_request(heard, self.settings.wake_word)
-            if not resumed:
+            allowed, rest, why = wake_allowed(heard, self.settings.wake_word, self._paused_own_share())
+            if not allowed:
                 # Stay paused: the sentence is neither a resume nor a request.
+                self._barge_trace("pause-reject", heard=heard[:160], why=why)
                 return False
             self.assistant.resume()
             self._toast("I'm back.")
@@ -2829,6 +2860,14 @@ class MainWindow(Adw.ApplicationWindow):
         # The user ended the exchange by voice: cancel any in-flight request,
         # make the mic available again, and either drop back to listening for
         # the wake word ("cancel") or leave conversation mode ("goodbye").
+        if self.assistant.is_paused:
+            # While paused an exit phrase is ordinary background speech: "cancel",
+            # "never mind", "done" and "see you" end nothing (issue 136). Only a
+            # sentence that names Voxa acts ("Voxa, go offline").
+            heard = self.conversation.last_heard if self.conversation is not None else ""
+            if paused_exit_action(heard, self.settings.wake_word) is None:
+                self._barge_trace("pause-reject", heard=heard[:160], why=f"exit {kind}")
+                return False
         self.query_cancel.set()
         self._query_generation += 1
         if self._pending_user_generation is not None:
@@ -3237,6 +3276,12 @@ class MainWindow(Adw.ApplicationWindow):
         threading.Thread(target=work, daemon=True).start()
 
     def _conversation_speak(self, text: str) -> None:
+        if not may_speak(self.assistant.is_paused):
+            # Paused: she stays silent (issue 136). A late tool reply, a coaching
+            # suggestion or a file being read aloud must not break the pause - and
+            # speaking now is how her own reply came back as an echo that woke her.
+            self._toast(text)
+            return
         typing.LAST_REPLY = text
         self._hearing.reply_started(text)
         self.own_speech.started(text)

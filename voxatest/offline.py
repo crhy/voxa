@@ -724,9 +724,12 @@ def run_offline(cases: list[TestCase], settings: Any, variants: list[Variant], s
     """Every case through every variant, on one Whisper model loaded once.
 
     Hearing cases (the ones that name a turn decision) go through :func:`run_hearing_offline_case`,
-    which builds the overlap with the bench renderer; every other case goes through V2's path.
+    which builds the overlap with the bench renderer; paused cases (issue 136) go through
+    :func:`voxatest.paused.run_paused_offline_case`, which judges what the pipeline delivered by
+    Voxa's own pause policy; every other case goes through V2's path.
     """
     from . import hearing
+    from . import paused as paused_module
 
     if registry is None:
         from voxa.agent.tools import default_registry
@@ -759,6 +762,12 @@ def run_offline(cases: list[TestCase], settings: Any, variants: list[Variant], s
                                                         variant_index=variant_index,
                                                         wake_word=settings.wake_word, log=log,
                                                         echo_mode=echo_mode))
+                continue
+            if paused_module.is_paused_case(case):
+                results.append(paused_module.run_paused_offline_case(
+                    case, settings, asr, registry, variant, seed, data_root, index=index,
+                    variant_index=variant_index, wake_word=settings.wake_word, log=log,
+                    echo_mode=echo_mode or "off"))
                 continue
             results.append(run_offline_case(case, settings, asr, registry, variant, seed, data_root,
                                             index=index, variant_index=variant_index,
