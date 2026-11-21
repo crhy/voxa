@@ -316,6 +316,17 @@ class ResidualMask(ReferenceMask):
         self._erle_db = 0.0
         self._analysed = 0
         self._last_ref_frame = -(10 ** 9)
+        # Roadmap task 5: the mask can say how far this frame's input stood above the residual
+        # it predicted. Evidence for the joint double-talk gate: a frame that leaves >> the
+        # predicted residual holds a second source, and only this class knows its own
+        # prediction (EchoPathBaseline's floor would poison the same measurement elsewhere).
+        self.residual_margin_db = float("-inf")
+
+    def reset(self) -> None:
+        super().reset()
+        self._analysed = 0
+        self._last_ref_frame = -(10 ** 9)
+        self.residual_margin_db = float("-inf")
 
     def set_running_erle(self, erle_db: float) -> None:
         """The canceller's most recent ERLE (dB): low values deepen the suppression."""
@@ -337,6 +348,14 @@ class ResidualMask(ReferenceMask):
         return share, user_med, user_hi
 
     def _update_ratio_gate(self, out_b: np.ndarray, echo_b: np.ndarray) -> None:
+        # Roadmap task 5: how far this frame's input stands above the residual this mask
+        # predicted, per the mask's OWN prediction (EchoPathBaseline's -120 dB floor would
+        # poison the same measurement elsewhere). Evidence for the joint double-talk gate.
+        out_total_margin = float(out_b.sum())
+        echo_total_margin = float(echo_b.sum())
+        self.residual_margin_db = (
+            float(10.0 * np.log10(out_total_margin / echo_total_margin))
+            if out_total_margin > 0.0 and echo_total_margin > 0.0 else float("-inf"))
         # One decision per frame: which bands are near-end, and whether the near end holds the
         # whole frame. A band the margin rule protects is near-end speech: its inflated
         # output-vs-reference ratio must NOT teach the echo model, or every later frame of her

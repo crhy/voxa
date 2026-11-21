@@ -62,6 +62,10 @@ WAKE_CUE_WITHOUT_AUDIO = 0.25
 # The microphone standing well above her own voice is audio evidence, scaled by how unlike her
 # sentence the words are (a misheard echo towers too).
 LEVEL_LIFT = 0.45
+# The joint double-talk gate (voxa.voicedetect.DoubleTalkGate) has ALREADY combined the three
+# audio streams and held them together for a span before firing; when it fires its word is worth
+# more than any single stream, but it is still one supporter: the words keep their cap.
+JOINT_LIFT = 0.8
 GATE_RATIO = 2.0
 # A score inside this band is not a decision.
 UNCERTAIN_BAND = 0.25
@@ -89,6 +93,12 @@ class SourceEvidence:
     echo_explained_db: float | None = None   # dB of the microphone the delayed reference accounts for
     residual_db: float | None = None         # dB of the microphone left over after the echo-path fit
     residual_margin_db: float | None = None  # that residual above the echo path's recent baseline
+    # The residual mask's OWN output against its OWN predicted residual (roadmap task 5): the
+    # honest margin, measured where the prediction lives instead of by EchoPathBaseline.
+    residual_over_prediction_db: float | None = None
+    # The joint double-talk gate's voice-only verdict for this moment
+    # (voxa.voicedetect.DoubleTalkGate): True only when all three audio streams held together.
+    joint_suspect: bool | None = None
     vad_prob: float | None = None    # speech probability in the CLEANED signal (None = not measured)
     alignment_healthy: bool = True           # delay known, fresh, within tolerance
     mic_level: float = 0.0                   # 0..1, the scale BargeInGate uses
@@ -206,7 +216,10 @@ def attribute(ev: SourceEvidence, baseline_db: float | None = None) -> SourceDec
             reasons.append(f"microphone holds {explained:+.1f} dB beyond the reference")
 
     # 2. Independent speech: the residual over what this echo path usually leaves, and the VAD.
-    margin = ev.residual_margin_db if ev.residual_margin_db is not None else baseline_db
+    # Roadmap task 5: the mask's own margin (output over ITS predicted residual) outranks the
+    # EchoPathBaseline margin - the baseline rings a floor it can never measure honestly.
+    margin = (ev.residual_over_prediction_db if ev.residual_over_prediction_db is not None
+              else ev.residual_margin_db if ev.residual_margin_db is not None else baseline_db)
     if margin is not None:
         if margin >= USER_RESIDUAL_DB:
             add("residual", 0.5)
@@ -214,6 +227,9 @@ def attribute(ev: SourceEvidence, baseline_db: float | None = None) -> SourceDec
         elif margin <= 0.0:
             add("residual", -0.3)
             reasons.append(f"residual {margin:+.1f} dB at or under the echo path's baseline")
+    if ev.joint_suspect:
+        add("joint", JOINT_LIFT)
+        reasons.append("joint double-talk gate: speech, margin and echo-inconsistency held together")
     if ev.vad_prob is not None:
         if ev.vad_prob >= VAD_SPEECH:
             add("vad", 0.3)
@@ -243,7 +259,8 @@ def attribute(ev: SourceEvidence, baseline_db: float | None = None) -> SourceDec
     # path cannot explain, and what the words are not, count as evidence of a second source.
     # 3. Conversation evidence: weighted, capped, and never a length rule. Without an echo model
     #    the words carry more, and the decision says so.
-    audio_streams = sum(1 for value in (ev.echo_explained_db, ev.residual_margin_db)
+    audio_streams = sum(1 for value in (ev.echo_explained_db, ev.residual_margin_db,
+                                        ev.residual_over_prediction_db)
                         if value is not None)
     weight = TEXT_WEIGHT if audio_streams else TEXT_ONLY_WEIGHT
     text_value = -text_score(ev.text_overlap, ev.text_sound, weight)
