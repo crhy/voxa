@@ -34,6 +34,31 @@ class TestCase:
     setup: list[dict[str, Any]] = field(default_factory=list)
     # True when the case can only run in the test VM (needs a real desktop, xdotool, a GUI editor).
     vm_only: bool = False
+    # --- V3 hearing suite (voxatest/hearing.py). Empty/None on every ordinary case.
+    # "reply": the words Voxa is reading out while the user speaks. The hearing cells are defined
+    # by what she is saying, so a case that expects a turn decision names it here.
+    reply: str = ""
+    # "barge_at": where the user starts. A number below 1 is a FRACTION of Voxa's reply, a number
+    # of 1 or more is ABSOLUTE SECONDS from the start of her reply, and a name is one of the
+    # handoff 8.2 overlap positions: onset, first_syllable, middle, last_word, after_cancel,
+    # after_reply. Empty means "the user speaks on her own, with nothing playing".
+    barge_at: Any = None
+    # "level_db": the user's level AT THE MICROPHONE relative to Voxa's echo (a ratio in dB, not a
+    # volume slider). None is the suite default (+5 dB).
+    level_db: float | None = None
+    # "voice": the test user's TTS voice for this case (empty = the harness test voice).
+    voice: str = ""
+    # "pause_at" / "pause_s": a deliberate mid-sentence pause - the fraction of the user's
+    # utterance it falls at, and how long it lasts (handoff 8.2 "User pacing").
+    pause_at: float | None = None
+    pause_s: float | None = None
+    # "expect": the turn decision the case asks for - "yield" (she must stop for the user),
+    # "keep" (she must keep speaking: a back-channel, her own reply with nobody talking),
+    # "answer" (the user's words must reach her whole). Empty = not a hearing case.
+    expect: str = ""
+    # "cell": the declared test cell. "normal" is the declared normal-use range; the difficult
+    # cells ("quiet", "far", "loud") are reported apart, never averaged into the headline.
+    cell: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -50,6 +75,14 @@ class TestCase:
             "capability": self.capability,
             "setup": [dict(step) for step in self.setup],
             "vm_only": self.vm_only,
+            "reply": self.reply,
+            "barge_at": self.barge_at,
+            "level_db": self.level_db,
+            "voice": self.voice,
+            "pause_at": self.pause_at,
+            "pause_s": self.pause_s,
+            "expect": self.expect,
+            "cell": self.cell,
         }
 
     @classmethod
@@ -58,7 +91,9 @@ class TestCase:
             raise ValueError("Test case must be an object.")
 
         prompt = str(raw.get("prompt", "")).strip()
-        if not prompt:
+        # A Voxa-only hearing cell (``expect: "keep"``, nobody talking) has no prompt by design:
+        # the whole case is the reply she must get through without stopping.
+        if not prompt and not str(raw.get("expect", "")).strip():
             raise ValueError("Test case prompt is empty.")
 
         expected_contains = _string_list(raw.get("expected_contains"))
@@ -74,6 +109,27 @@ class TestCase:
         raw_setup = raw.get("setup") or []
         setup = [dict(step) for step in raw_setup if isinstance(step, dict)] if isinstance(raw_setup, list) else []
 
+        def _number(key: str) -> float | None:
+            value = raw.get(key)
+            if value is None or value == "":
+                return None
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                # Kept as it came: voxatest/hearing.py is the one that tells the author why it is bad.
+                return value
+
+        raw_barge_at = raw.get("barge_at")
+        if raw_barge_at is None or (isinstance(raw_barge_at, str) and not raw_barge_at.strip()):
+            raw_barge_at = None
+        elif isinstance(raw_barge_at, str) and not raw_barge_at.strip().isdigit():
+            pass  # a named overlap position, validated by voxatest/hearing.py
+        else:
+            try:
+                raw_barge_at = float(raw_barge_at)
+            except (TypeError, ValueError):
+                raw_barge_at = str(raw_barge_at).strip()
+
         return cls(
             id=case_id,
             category=category,
@@ -88,6 +144,14 @@ class TestCase:
             capability=int(raw.get("capability") or 0) if str(raw.get("capability") or "0").isdigit() else 0,
             setup=setup,
             vm_only=bool(raw.get("vm_only", False)),
+            reply=str(raw.get("reply", "")).strip(),
+            barge_at=raw_barge_at,
+            level_db=_number("level_db"),
+            voice=str(raw.get("voice", "")).strip(),
+            pause_at=_number("pause_at"),
+            pause_s=_number("pause_s"),
+            expect=str(raw.get("expect", "")).strip(),
+            cell=str(raw.get("cell", "")).strip(),
         )
 
 

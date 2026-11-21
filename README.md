@@ -234,6 +234,129 @@ git add VOXATEST_FAILURES.md
 
 The snapshot defaults to `VOXATEST_FAILURES.md` in the working directory. Use `--failure-report path/to/file.md` or the `VOXATEST_FAILURE_REPORT` environment variable to choose another location. A successful run replaces the snapshot with a clear zero-failures result, while the full JSON and text reports remain available for diagnostics.
 
+### Comprehension: what Voxa heard, and which layer failed
+
+Every spoken case already records what Voxa heard from her own action log, and every run report now
+scores it in a `Comprehension` section of the text, Markdown and JSON reports:
+
+* `hearing_word_accuracy` - `1 - WER(what was said, what Voxa heard)`, on the hearing bench's own
+  text normalisation (lower-case, punctuation dropped, numbers spelled out), with the wake word
+  removed from both sides, because VoxaTest is the one that speaks it;
+* `routed_tool_accuracy` - the share of the cases naming an expected tool in which that tool ran;
+* `layer_counts` - how many cases failed at `not_heard` (no action-log record), `misheard` (a word
+  missed), `misrouted` (heard right, wrong tool) or `misanswered` (routed right, the reply failed),
+  and how many were `ok`;
+* `confusions` - the top 30 said-word to heard-word pairs of the run: the words Voxa's ear swaps.
+
+Re-score a report that is already written, and assert conditions on it, with no microphone involved:
+
+```bash
+.venv/bin/python -m voxatest comprehension --report ~/.local/state/voxatest/reports/run_....json
+.venv/bin/python -m voxatest check run_....json "hearing_word_accuracy>=0.95" "layer_counts.misheard<=2"
+```
+
+`check` exits `1` when any condition fails, is missing, or is null, exactly like `voxa.bench check`.
+
+### Offline audio: measuring comprehension without speakers or a microphone
+
+`voxatest run --offline-audio` measures the same two numbers with no sound at all, so the hearing
+pipeline can be measured on any machine, including one with no microphone and no network:
+
+```bash
+.venv/bin/python -m voxatest run --offline-audio --cases voxatest/data/test_cases_smoke.json \
+    --json-report .voxa-bench/vt-smoke.json
+.venv/bin/python -m voxatest check .voxa-bench/vt-smoke.json "hearing_word_accuracy>=0.9"
+```
+
+Each prompt is rendered to 16 kHz audio through Voxa's own TTS chain (Edge TTS, then Voxa's Google
+voice fallback, then eSpeak NG - the engine that produced each case is recorded in the report),
+cached under `/home/rhy/voxa-bench-data/voxatest/`, and pushed through the same hearing pipeline the
+hearing bench runs (`voxa/bench/runner.py`: canceller, reference mask, Silero detector, the
+conversation controller, barge-in, own-speech, segmentation and endpoint, faster-whisper pinned the
+bench's way) and then through Voxa's deterministic command router. No LLM, no speakers, no
+microphone. `heard` and the routed tool are filled from that run and scored by the Comprehension
+section above; reply grading is skipped and marked n/a, because nothing is spoken.
+
+* `--variants clean,quiet,noisy,music,fast,slow,voice2` - level `-15 dB`, babble (real speech from
+  the bench's user-voice cache) or music at `10 dB` SNR, speaking rate `0.85`/`1.2`, a second TTS
+  voice. `--seed N` makes the noise byte-identical between runs.
+* `--wake-mode separate` (the default) says "Voxa." in one breath and asks in the next, the flow the
+  conversation controller is built around; `--wake-mode single` measures the one-breath prompt the
+  live harness speaks today, wake word included.
+* The exit code says the measurement ran. The verdict on the numbers is `voxatest check`, exactly as
+  `voxa.bench check` is the verdict on a bench run.
+
+It measures the pipeline and the router. It cannot measure the room: the microphone, the speakers,
+Voxa's own voice as echo and the desktop side effects stay in the live suite.
+
+### The hearing suite: turn-taking while Voxa is speaking
+
+`voxatest/data/test_cases_hearing.json` (68 cases, `voxatest/hearing.py`) measures the cells of the
+full-duplex matrix: barge-ins at the onset, the first syllable, the middle, the last word and immediately
+after a cancellation; short answers to her questions; the user repeating her exact words; "stop" said while
+she is saying "stop"; deliberate pauses of 0.5 to 1.5 s; a complete command followed by an added clause;
+quiet speech down to `-15 dB`; back-channels that must not stop her; and replies she must get through
+alone. Each case names the decision it tests (`expect: yield | keep | answer`), and the run reports
+`interrupt_recall`, `keep_accuracy`, `stop_latency_p50_ms`, `stop_latency_p95_ms`, `premature_rate`,
+`self_interrupt_count` and `request_word_retention`, each with its counts and split by cell, by overlap
+and by expectation:
+
+```bash
+.venv/bin/python -m voxatest run --offline-audio --cases voxatest/data/test_cases_hearing.json \
+    --json-report .voxa-bench/vt-hear.json
+.venv/bin/python -m voxatest check .voxa-bench/vt-hear.json "request_word_retention>=0.9" "self_interrupt_count<=0"
+```
+
+Offline, the overlap is BUILT: her reply and the user's words are rendered, the room is applied, the echo
+is mixed with the bench's own delay and RT60, and the result goes through the same pipeline the hearing
+bench runs. Voxa is speaking in every one of these cases, so the echo stages that run are the product's
+own (`--echo-mode voxa`, the default here); `--echo-mode off` measures the same cells with the speaker path
+uncancelled. Live, the harness makes her read the reply, watches the microphone level, and speaks the
+barge-in at the moment measured from the start of her reply; live stop latency is read acoustically and
+labelled `"measured": "live"`, because the harness has no tap of her output stream.
+
+### The soak: hours of her own voice, and every self-trigger counted
+
+`voxatest soak` (live: it speaks through the speakers, rhY runs it) plays a long, varied stream of Voxa
+replies with nobody talking - including her wake word, "stop", "cancel", "offline", "wait" and quoted user
+commands - and counts every self-trigger from Voxa's own logs: a command created out of her voice from
+the action log, and every yield, interrupt, duck or stop of her own playback from her barge-in trace.
+It reports events per hour with the **one-sided 95% Poisson upper bound**, so a clean run states what it
+proves: zero events in 100 hours is an upper bound of 0.03 events/hour, not proof of zero risk forever.
+
+```bash
+.venv/bin/python -m voxatest soak --hours 100 --plan      # the plan and the bound a clean run proves, no sound
+.venv/bin/python -m voxatest soak --hours 100 --yes       # the live run (tell rhY first: it plays sound for hours)
+.venv/bin/python -m voxatest check REPORT.json "self_event_count<=0"
+```
+
+`--plan` and the bare command make no sound at all: the live run needs `--yes`, and it refuses to start
+when `voxatest doctor` reports a FAIL. The counting rules are the hearing bench's own (`tts-stop`,
+`yield`, `INTERRUPT`, `offline-interrupt`, `duck`; a microphone `pause` event is not a self-pause), and
+the bound is computed in pure Python by bisection on the Poisson CDF.
+
+### Before a live run: `voxatest doctor`
+
+```bash
+.venv/bin/python -m voxatest doctor            # probes the sound server: PASS / WARN / FAIL lines
+.venv/bin/python -m voxatest doctor --dry-run  # asks nothing of the hardware: the config and the plan
+```
+
+It checks the wake word, Voxa's echo mode, the fixture isolation, the reference mode (is the test voice
+out of Voxa's echo reference?), the microphone/output pair, a drift estimate for this speaker/microphone
+pair from Voxa's saved hearing profile, the action log, and the soak plan. A WARN means the run is valid
+and its numbers must be read with that in mind; a FAIL (a monitor chosen as the microphone, the test
+voice inside the reference) makes the command exit 1 and the soak refuse to start.
+
+### Fixture isolation: the test voice is never Voxa's echo
+
+VoxaTest's playback carries `application.name=voxatest` and `media.role=voxatest` (`voxatest/isolation.py`,
+set through `SpeechService(stream_tag=...)`), and `voxa/reference.py` picks the narrowest echo reference
+the machine offers: Voxa's own rendered samples, else the per-stream monitor of her own playback stream
+(`alsa_output...input<N>.monitor`, which skips every foreign stream), else the whole-sink monitor - and
+when the test voice is on that sink and cannot be excluded, it logs a WARNING and says the run's hearing
+numbers are not valid. Voxa's own playback is never tagged: it is exactly what the reference must contain.
+
 ## Keyboard shortcuts
 
 | Shortcut | Action |

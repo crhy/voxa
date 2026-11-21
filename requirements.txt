@@ -6,3 +6,7 @@ PyOpenGL>=3.1,<4
 pygltflib>=1.16,<2
 yt-dlp
 yt-dlp-ejs==0.8.0
+# WebRTC AEC3 echo canceller (roadmap hearing task 2). Imported lazily by voxa/anc.py: without it
+# Voxa falls back to her own NLMS canceller and says so. Apache-2.0, prebuilt wheels for Linux
+# x86_64/aarch64; it statically links WebRTC AEC3 (verified by symbol table, see voxa/anc.py).
+pywebrtc-audio>=0.2,<0.3
