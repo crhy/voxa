@@ -1,6 +1,13 @@
 from __future__ import annotations
 
+from datetime import date, timedelta
+
 import pytest
+
+_MONTHS = (
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+)
 
 from voxa.agent import orders as ledger_module
 from voxa.agent.intents import ToolCall, route
@@ -114,6 +121,10 @@ def test_text_without_a_tracking_number_fails(ledger) -> None:
 def test_the_questions_read_only_the_ledger(ledger, monkeypatch) -> None:
     store, _opened = ledger
     monkeypatch.setattr(orders_tools, "fetch", lambda url: pytest.fail("the questions must not fetch"))
+    # Dates relative to today: a hard-coded date goes past and the "this month"
+    # question starts answering "nothing is due" (time bomb, strata/f160).
+    due = date.today() + timedelta(days=5)
+    last_seen = due - timedelta(days=2)
     store["content"] = ledger_module.render(
         [
             {
@@ -121,19 +132,20 @@ def test_the_questions_read_only_the_ledger(ledger, monkeypatch) -> None:
                 "carrier": "UPS",
                 "note": "Filament",
                 "status": "out for delivery",
-                "expected date": "2026-11-18",
-                "last seen": "2026-11-16",
+                "expected date": due.isoformat(),
+                "last seen": last_seen.isoformat(),
             }
         ]
     )
+    spoken_due = f"{_MONTHS[due.month - 1]} {due.day}"
 
     assert orders_tools.order_status({"note": "filament"}).speech == (
-        "Your filament order, tracking 1Z999AA10123456784 with UPS is out for delivery, due November 18."
+        f"Your filament order, tracking 1Z999AA10123456784 with UPS is out for delivery, due {spoken_due}."
     )
     assert orders_tools.orders_arriving({"when": "this month"}).speech.startswith("One order is due this month:")
     assert orders_tools.order_status({"note": "cat"}).speech == "I have no cat order on your order list."
     assert orders_tools.order_status({}).speech == (
-        "Your filament order, tracking 1Z999AA10123456784 with UPS is out for delivery, due November 18."
+        f"Your filament order, tracking 1Z999AA10123456784 with UPS is out for delivery, due {spoken_due}."
     )
 
 
