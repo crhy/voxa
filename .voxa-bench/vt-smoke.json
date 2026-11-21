@@ -1,0 +1,1992 @@
+{
+  "timestamp": "2026-11-21T00:42:19.491988",
+  "complete": true,
+  "summary": {
+    "total": 20,
+    "passed": 19,
+    "failed": 1,
+    "errors": 0,
+    "average_score": 99.3,
+    "by_category": {
+      "general": {
+        "total": 5,
+        "passed": 5,
+        "failed": 0
+      },
+      "math": {
+        "total": 7,
+        "passed": 7,
+        "failed": 0
+      },
+      "memory": {
+        "total": 2,
+        "passed": 1,
+        "failed": 1
+      },
+      "instructions": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0
+      },
+      "reasoning": {
+        "total": 2,
+        "passed": 2,
+        "failed": 0
+      },
+      "science": {
+        "total": 2,
+        "passed": 2,
+        "failed": 0
+      },
+      "time": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0
+      }
+    }
+  },
+  "comprehension": {
+    "hearing_word_accuracy": 0.9929,
+    "routed_tool_accuracy": null,
+    "layer_counts": {
+      "not_heard": 0,
+      "misheard": 1,
+      "misrouted": 0,
+      "misanswered": 0,
+      "ok": 19
+    },
+    "confusions": [
+      {
+        "said": "mittens",
+        "heard": "middens",
+        "count": 1
+      }
+    ],
+    "cases_scored": 20,
+    "routed_cases": 0,
+    "wake_word": "voxa",
+    "by_category": {
+      "general": {
+        "cases": 5,
+        "hearing_word_accuracy": 1.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 0,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 5
+        }
+      },
+      "instructions": {
+        "cases": 1,
+        "hearing_word_accuracy": 1.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 0,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 1
+        }
+      },
+      "math": {
+        "cases": 7,
+        "hearing_word_accuracy": 1.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 0,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 7
+        }
+      },
+      "memory": {
+        "cases": 2,
+        "hearing_word_accuracy": 0.9285,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 1,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 1
+        }
+      },
+      "reasoning": {
+        "cases": 2,
+        "hearing_word_accuracy": 1.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 0,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 2
+        }
+      },
+      "science": {
+        "cases": 2,
+        "hearing_word_accuracy": 1.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 0,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 2
+        }
+      },
+      "time": {
+        "cases": 1,
+        "hearing_word_accuracy": 1.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 0,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 1
+        }
+      }
+    },
+    "cases": [
+      {
+        "case_id": "1",
+        "category": "general",
+        "prompt": "What is the capital of France?",
+        "heard": "What is the capital of France?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "2",
+        "category": "general",
+        "prompt": "Who was the first president of the United States?",
+        "heard": "Who was the first president of the United States?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "3",
+        "category": "general",
+        "prompt": "How do you make lemonade?",
+        "heard": "How do you make lemonade?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "4",
+        "category": "general",
+        "prompt": "What is the tallest mountain in the world?",
+        "heard": "What is the tallest mountain in the world?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "5",
+        "category": "general",
+        "prompt": "Who wrote the play Hamlet?",
+        "heard": "Who wrote the play Hamlet?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "6",
+        "category": "math",
+        "prompt": "What is 5 times 4?",
+        "heard": "What is 5 times 4?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [
+          "calculate"
+        ],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "7",
+        "category": "memory",
+        "prompt": "Remember that my cat is named Mittens.",
+        "heard": "Remember that my cat is named Middens.",
+        "hearing_word_accuracy": 0.8571,
+        "hearing_word_accuracy_best_record": 0.8571,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [
+          "remember_fact"
+        ],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "mittens",
+            "middens"
+          ]
+        ]
+      },
+      {
+        "case_id": "8",
+        "category": "instructions",
+        "prompt": "Set a timer for 10 minutes.",
+        "heard": "Set a timer for 10 minutes.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [
+          "set_timer"
+        ],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "9",
+        "category": "reasoning",
+        "prompt": "If all dogs are mammals, are poodles mammals?",
+        "heard": "If all dogs are mammals, are poodles mammals?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "10",
+        "category": "science",
+        "prompt": "What is the chemical symbol for water?",
+        "heard": "What is the chemical symbol for water?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "1",
+        "category": "math",
+        "prompt": "What is the square root of 144?",
+        "heard": "What is the square root of 144?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [
+          "calculate"
+        ],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "2",
+        "category": "math",
+        "prompt": "Multiply 7 by 8.",
+        "heard": "Multiply 7 by 8.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [
+          "calculate"
+        ],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "3",
+        "category": "math",
+        "prompt": "Divide 100 by 4.",
+        "heard": "Divide 100 by 4.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [
+          "calculate"
+        ],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "4",
+        "category": "math",
+        "prompt": "Add 15 and 20.",
+        "heard": "Add 15 and 20",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [
+          "calculate"
+        ],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "5",
+        "category": "math",
+        "prompt": "Subtract 10 from 50.",
+        "heard": "Subtract 10 from 50",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [
+          "calculate"
+        ],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "7",
+        "category": "time",
+        "prompt": "What is the current date?",
+        "heard": "What is the current date?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "9",
+        "category": "reasoning",
+        "prompt": "If it rains, should I take an umbrella?",
+        "heard": "If it rains, should I take an umbrella?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "10",
+        "category": "science",
+        "prompt": "What gas do plants absorb?",
+        "heard": "What gas do plants absorb?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "1",
+        "category": "memory",
+        "prompt": "Remember that my favorite color is blue.",
+        "heard": "Remember that my favorite color is blue.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [
+          "remember_fact"
+        ],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "2",
+        "category": "math",
+        "prompt": "What is the sum of five and seven?",
+        "heard": "What is the sum of 5 and 7?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [
+          "calculate"
+        ],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      }
+    ]
+  },
+  "results": [
+    {
+      "case_id": "1",
+      "category": "general",
+      "prompt": "What is the capital of France?",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"What is the capital of France?\"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.19,
+      "expected_tool": "",
+      "heard": "What is the capital of France?",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "What is the capital of France?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | What is the capital of France?",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.06,
+        "wall_seconds": 1.195,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.149,
+        "requests": [
+          "What is the capital of France?"
+        ],
+        "turns": [
+          {
+            "text": "What is the capital of France?",
+            "kind": "armed",
+            "frame": 252
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": null,
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "What is the capital of France?",
+        "route": "offline-audio",
+        "tool": "",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "2",
+      "category": "general",
+      "prompt": "Who was the first president of the United States?",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Who was the first president of the United States?\"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.17,
+      "expected_tool": "",
+      "heard": "Who was the first president of the United States?",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Who was the first president of the United States?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Who was the first president of the United States?",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 7.08,
+        "wall_seconds": 1.171,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.145,
+        "requests": [
+          "Who was the first president of the United States?"
+        ],
+        "turns": [
+          {
+            "text": "Who was the first president of the United States?",
+            "kind": "armed",
+            "frame": 302
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": null,
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Who was the first president of the United States?",
+        "route": "offline-audio",
+        "tool": "",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "3",
+      "category": "general",
+      "prompt": "How do you make lemonade?",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"How do you make lemonade?\"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.16,
+      "expected_tool": "",
+      "heard": "How do you make lemonade?",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "How do you make lemonade?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | How do you make lemonade?",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.7271,
+        "peak_guard": null,
+        "audio_seconds": 5.56,
+        "wall_seconds": 1.16,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.141,
+        "requests": [
+          "How do you make lemonade?"
+        ],
+        "turns": [
+          {
+            "text": "How do you make lemonade?",
+            "kind": "armed",
+            "frame": 228
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": null,
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "How do you make lemonade?",
+        "route": "offline-audio",
+        "tool": "",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "4",
+      "category": "general",
+      "prompt": "What is the tallest mountain in the world?",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"What is the tallest mountain in the world?\"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.14,
+      "expected_tool": "",
+      "heard": "What is the tallest mountain in the world?",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "What is the tallest mountain in the world?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | What is the tallest mountain in the world?",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.38,
+        "wall_seconds": 1.139,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.116,
+        "requests": [
+          "What is the tallest mountain in the world?"
+        ],
+        "turns": [
+          {
+            "text": "What is the tallest mountain in the world?",
+            "kind": "armed",
+            "frame": 268
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": null,
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "What is the tallest mountain in the world?",
+        "route": "offline-audio",
+        "tool": "",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "5",
+      "category": "general",
+      "prompt": "Who wrote the play Hamlet?",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Who wrote the play Hamlet?\"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.18,
+      "expected_tool": "",
+      "heard": "Who wrote the play Hamlet?",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Who wrote the play Hamlet?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Who wrote the play Hamlet?",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.62,
+        "wall_seconds": 1.18,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.161,
+        "requests": [
+          "Who wrote the play Hamlet?"
+        ],
+        "turns": [
+          {
+            "text": "Who wrote the play Hamlet?",
+            "kind": "armed",
+            "frame": 229
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": null,
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Who wrote the play Hamlet?",
+        "route": "offline-audio",
+        "tool": "",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "6",
+      "category": "math",
+      "prompt": "What is 5 times 4?",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"What is 5 times 4?\"; router did calculate. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.16,
+      "expected_tool": "",
+      "heard": "What is 5 times 4?",
+      "capability": 0,
+      "observed_tools": [
+        "calculate"
+      ],
+      "heard_records": [
+        "What is 5 times 4?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | What is 5 times 4?",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.74,
+        "wall_seconds": 1.158,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.14,
+        "requests": [
+          "What is 5 times 4?"
+        ],
+        "turns": [
+          {
+            "text": "What is 5 times 4?",
+            "kind": "armed",
+            "frame": 218
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "calculate",
+        "routed_args": {
+          "expression": "What is 5 times 4"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "What is 5 times 4?",
+        "route": "offline-audio",
+        "tool": "calculate",
+        "args": {
+          "expression": "What is 5 times 4"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "7",
+      "category": "memory",
+      "prompt": "Remember that my cat is named Mittens.",
+      "transcript": "",
+      "score": 86,
+      "passed": false,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Remember that my cat is named Middens.\"; router did remember_fact. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.11,
+      "expected_tool": "",
+      "heard": "Remember that my cat is named Middens.",
+      "capability": 0,
+      "observed_tools": [
+        "remember_fact"
+      ],
+      "heard_records": [
+        "Remember that my cat is named Middens."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Remember that my cat is named Mittens.",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.7,
+        "wall_seconds": 1.109,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.085,
+        "requests": [
+          "Remember that my cat is named Middens."
+        ],
+        "turns": [
+          {
+            "text": "Remember that my cat is named Middens.",
+            "kind": "armed",
+            "frame": 265
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "remember_fact",
+        "routed_args": {
+          "fact": "my cat is named Middens"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 0.8571,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Remember that my cat is named Middens.",
+        "route": "offline-audio",
+        "tool": "remember_fact",
+        "args": {
+          "fact": "my cat is named Middens"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "8",
+      "category": "instructions",
+      "prompt": "Set a timer for 10 minutes.",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Set a timer for 10 minutes.\"; router did set_timer. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.13,
+      "expected_tool": "",
+      "heard": "Set a timer for 10 minutes.",
+      "capability": 0,
+      "observed_tools": [
+        "set_timer"
+      ],
+      "heard_records": [
+        "Set a timer for 10 minutes."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Set a timer for 10 minutes.",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.22,
+        "wall_seconds": 1.135,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.115,
+        "requests": [
+          "Set a timer for 10 minutes."
+        ],
+        "turns": [
+          {
+            "text": "Set a timer for 10 minutes.",
+            "kind": "armed",
+            "frame": 241
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "set_timer",
+        "routed_args": {
+          "duration": "10 minutes"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Set a timer for 10 minutes.",
+        "route": "offline-audio",
+        "tool": "set_timer",
+        "args": {
+          "duration": "10 minutes"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "9",
+      "category": "reasoning",
+      "prompt": "If all dogs are mammals, are poodles mammals?",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"If all dogs are mammals, are poodles mammals?\"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.13,
+      "expected_tool": "",
+      "heard": "If all dogs are mammals, are poodles mammals?",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "If all dogs are mammals, are poodles mammals?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | If all dogs are mammals, are poodles mammals?",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 7.32,
+        "wall_seconds": 1.129,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.103,
+        "requests": [
+          "If all dogs are mammals, are poodles mammals?"
+        ],
+        "turns": [
+          {
+            "text": "If all dogs are mammals, are poodles mammals?",
+            "kind": "armed",
+            "frame": 315
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": null,
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "If all dogs are mammals, are poodles mammals?",
+        "route": "offline-audio",
+        "tool": "",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "10",
+      "category": "science",
+      "prompt": "What is the chemical symbol for water?",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"What is the chemical symbol for water?\"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.17,
+      "expected_tool": "",
+      "heard": "What is the chemical symbol for water?",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "What is the chemical symbol for water?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | What is the chemical symbol for water?",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.48,
+        "wall_seconds": 1.167,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.144,
+        "requests": [
+          "What is the chemical symbol for water?"
+        ],
+        "turns": [
+          {
+            "text": "What is the chemical symbol for water?",
+            "kind": "armed",
+            "frame": 272
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": null,
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "What is the chemical symbol for water?",
+        "route": "offline-audio",
+        "tool": "",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "1",
+      "category": "math",
+      "prompt": "What is the square root of 144?",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"What is the square root of 144?\"; router did calculate. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.13,
+      "expected_tool": "",
+      "heard": "What is the square root of 144?",
+      "capability": 0,
+      "observed_tools": [
+        "calculate"
+      ],
+      "heard_records": [
+        "What is the square root of 144?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | What is the square root of 144?",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.96,
+        "wall_seconds": 1.131,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.106,
+        "requests": [
+          "What is the square root of 144?"
+        ],
+        "turns": [
+          {
+            "text": "What is the square root of 144?",
+            "kind": "armed",
+            "frame": 300
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "calculate",
+        "routed_args": {
+          "expression": "What is the square root of 144"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "What is the square root of 144?",
+        "route": "offline-audio",
+        "tool": "calculate",
+        "args": {
+          "expression": "What is the square root of 144"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "2",
+      "category": "math",
+      "prompt": "Multiply 7 by 8.",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Multiply 7 by 8.\"; router did calculate. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.11,
+      "expected_tool": "",
+      "heard": "Multiply 7 by 8.",
+      "capability": 0,
+      "observed_tools": [
+        "calculate"
+      ],
+      "heard_records": [
+        "Multiply 7 by 8."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Multiply 7 by 8.",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.7941,
+        "peak_guard": null,
+        "audio_seconds": 5.8,
+        "wall_seconds": 1.106,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.086,
+        "requests": [
+          "Multiply 7 by 8."
+        ],
+        "turns": [
+          {
+            "text": "Multiply 7 by 8.",
+            "kind": "armed",
+            "frame": 227
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "calculate",
+        "routed_args": {
+          "expression": "Multiply 7 by 8"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Multiply 7 by 8.",
+        "route": "offline-audio",
+        "tool": "calculate",
+        "args": {
+          "expression": "Multiply 7 by 8"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "3",
+      "category": "math",
+      "prompt": "Divide 100 by 4.",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Divide 100 by 4.\"; router did calculate. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.15,
+      "expected_tool": "",
+      "heard": "Divide 100 by 4.",
+      "capability": 0,
+      "observed_tools": [
+        "calculate"
+      ],
+      "heard_records": [
+        "Divide 100 by 4."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Divide 100 by 4.",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.12,
+        "wall_seconds": 1.152,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.133,
+        "requests": [
+          "Divide 100 by 4."
+        ],
+        "turns": [
+          {
+            "text": "Divide 100 by 4.",
+            "kind": "armed",
+            "frame": 237
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "calculate",
+        "routed_args": {
+          "expression": "Divide 100 by 4"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Divide 100 by 4.",
+        "route": "offline-audio",
+        "tool": "calculate",
+        "args": {
+          "expression": "Divide 100 by 4"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "4",
+      "category": "math",
+      "prompt": "Add 15 and 20.",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Add 15 and 20\"; router did calculate. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.12,
+      "expected_tool": "",
+      "heard": "Add 15 and 20",
+      "capability": 0,
+      "observed_tools": [
+        "calculate"
+      ],
+      "heard_records": [
+        "Add 15 and 20"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Add 15 and 20.",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.58,
+        "wall_seconds": 1.121,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.103,
+        "requests": [
+          "Add 15 and 20"
+        ],
+        "turns": [
+          {
+            "text": "Add 15 and 20",
+            "kind": "armed",
+            "frame": 239
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "calculate",
+        "routed_args": {
+          "expression": "Add 15 and 20"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Add 15 and 20",
+        "route": "offline-audio",
+        "tool": "calculate",
+        "args": {
+          "expression": "Add 15 and 20"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "5",
+      "category": "math",
+      "prompt": "Subtract 10 from 50.",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Subtract 10 from 50\"; router did calculate. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.18,
+      "expected_tool": "",
+      "heard": "Subtract 10 from 50",
+      "capability": 0,
+      "observed_tools": [
+        "calculate"
+      ],
+      "heard_records": [
+        "Subtract 10 from 50"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Subtract 10 from 50.",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6976,
+        "peak_guard": null,
+        "audio_seconds": 6.0,
+        "wall_seconds": 1.185,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.166,
+        "requests": [
+          "Subtract 10 from 50"
+        ],
+        "turns": [
+          {
+            "text": "Subtract 10 from 50",
+            "kind": "armed",
+            "frame": 241
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "calculate",
+        "routed_args": {
+          "expression": "Subtract 10 from 50"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Subtract 10 from 50",
+        "route": "offline-audio",
+        "tool": "calculate",
+        "args": {
+          "expression": "Subtract 10 from 50"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "7",
+      "category": "time",
+      "prompt": "What is the current date?",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"What is the current date?\"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.27,
+      "expected_tool": "",
+      "heard": "What is the current date?",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "What is the current date?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | What is the current date?",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.42,
+        "wall_seconds": 1.273,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.255,
+        "requests": [
+          "What is the current date?"
+        ],
+        "turns": [
+          {
+            "text": "What is the current date?",
+            "kind": "armed",
+            "frame": 223
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": null,
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "What is the current date?",
+        "route": "offline-audio",
+        "tool": "",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "9",
+      "category": "reasoning",
+      "prompt": "If it rains, should I take an umbrella?",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"If it rains, should I take an umbrella?\"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.16,
+      "expected_tool": "",
+      "heard": "If it rains, should I take an umbrella?",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "If it rains, should I take an umbrella?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | If it rains, should I take an umbrella?",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.5,
+        "wall_seconds": 1.163,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.14,
+        "requests": [
+          "If it rains, should I take an umbrella?"
+        ],
+        "turns": [
+          {
+            "text": "If it rains, should I take an umbrella?",
+            "kind": "armed",
+            "frame": 276
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": null,
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "If it rains, should I take an umbrella?",
+        "route": "offline-audio",
+        "tool": "",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "10",
+      "category": "science",
+      "prompt": "What gas do plants absorb?",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"What gas do plants absorb?\"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.19,
+      "expected_tool": "",
+      "heard": "What gas do plants absorb?",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "What gas do plants absorb?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | What gas do plants absorb?",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.04,
+        "wall_seconds": 1.193,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.173,
+        "requests": [
+          "What gas do plants absorb?"
+        ],
+        "turns": [
+          {
+            "text": "What gas do plants absorb?",
+            "kind": "armed",
+            "frame": 250
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": null,
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "What gas do plants absorb?",
+        "route": "offline-audio",
+        "tool": "",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "1",
+      "category": "memory",
+      "prompt": "Remember that my favorite color is blue.",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Remember that my favorite color is blue.\"; router did remember_fact. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.16,
+      "expected_tool": "",
+      "heard": "Remember that my favorite color is blue.",
+      "capability": 0,
+      "observed_tools": [
+        "remember_fact"
+      ],
+      "heard_records": [
+        "Remember that my favorite color is blue."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Remember that my favorite color is blue.",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.7,
+        "wall_seconds": 1.155,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.132,
+        "requests": [
+          "Remember that my favorite color is blue."
+        ],
+        "turns": [
+          {
+            "text": "Remember that my favorite color is blue.",
+            "kind": "armed",
+            "frame": 267
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "remember_fact",
+        "routed_args": {
+          "fact": "my favorite color is blue"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Remember that my favorite color is blue.",
+        "route": "offline-audio",
+        "tool": "remember_fact",
+        "args": {
+          "fact": "my favorite color is blue"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "2",
+      "category": "math",
+      "prompt": "What is the sum of five and seven?",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"What is the sum of 5 and 7?\"; router did calculate. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.11,
+      "expected_tool": "",
+      "heard": "What is the sum of 5 and 7?",
+      "capability": 0,
+      "observed_tools": [
+        "calculate"
+      ],
+      "heard_records": [
+        "What is the sum of 5 and 7?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | What is the sum of five and seven?",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.22,
+        "wall_seconds": 1.109,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.087,
+        "requests": [
+          "What is the sum of 5 and 7?"
+        ],
+        "turns": [
+          {
+            "text": "What is the sum of 5 and 7?",
+            "kind": "armed",
+            "frame": 263
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "calculate",
+        "routed_args": {
+          "expression": "What is the sum of 5 and 7"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "What is the sum of 5 and 7?",
+        "route": "offline-audio",
+        "tool": "calculate",
+        "args": {
+          "expression": "What is the sum of 5 and 7"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    }
+  ],
+  "offline": {
+    "mode": "offline-audio",
+    "seed": 0,
+    "variants": [
+      "clean"
+    ],
+    "wake_mode": "separate",
+    "data_root": "/home/rhy/voxa-bench-data",
+    "whisper_model": "base",
+    "engines": [
+      "google-tts"
+    ],
+    "cases": 20,
+    "wall_seconds": 23.133,
+    "wall_seconds_per_case": {
+      "median": 1.157,
+      "p95": 1.199,
+      "max": 1.273
+    },
+    "audio_seconds": 124.5,
+    "realtime_factor": 5.382,
+    "reply_grading": "n/a",
+    "not_measured": [
+      "microphone and speakers (no audio device was touched)",
+      "the reply she would have spoken (no model was called)",
+      "Voxa's own voice as echo (she never speaks in this mode)"
+    ]
+  }
+}

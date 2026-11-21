@@ -1,0 +1,484 @@
+{
+  "timestamp": "2026-11-21T00:15:42.009367",
+  "complete": true,
+  "summary": {
+    "total": 4,
+    "passed": 3,
+    "failed": 1,
+    "errors": 0,
+    "average_score": 85.0,
+    "by_category": {
+      "general": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0
+      },
+      "math": {
+        "total": 2,
+        "passed": 1,
+        "failed": 1
+      },
+      "instructions": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0
+      }
+    }
+  },
+  "comprehension": {
+    "hearing_word_accuracy": 0.85,
+    "routed_tool_accuracy": null,
+    "layer_counts": {
+      "not_heard": 0,
+      "misheard": 1,
+      "misrouted": 0,
+      "misanswered": 0,
+      "ok": 3
+    },
+    "confusions": [
+      {
+        "said": "eight",
+        "heard": "7x8",
+        "count": 1
+      }
+    ],
+    "cases_scored": 4,
+    "routed_cases": 0,
+    "wake_word": "voxa",
+    "by_category": {
+      "general": {
+        "cases": 1,
+        "hearing_word_accuracy": 1.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 0,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 1
+        }
+      },
+      "instructions": {
+        "cases": 1,
+        "hearing_word_accuracy": 1.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 0,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 1
+        }
+      },
+      "math": {
+        "cases": 2,
+        "hearing_word_accuracy": 0.7,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 1,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 1
+        }
+      }
+    },
+    "cases": [
+      {
+        "case_id": "voice-1",
+        "category": "general",
+        "prompt": "Give me one quick fact about honey.",
+        "heard": "Give me one quick fact about honey.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "voice-2",
+        "category": "math",
+        "prompt": "What is 12 times 3?",
+        "heard": "What is 12 times 3?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [
+          "calculate"
+        ],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "test_1",
+        "category": "math",
+        "prompt": "What is seven times eight?",
+        "heard": "What is 7x8?",
+        "hearing_word_accuracy": 0.4,
+        "hearing_word_accuracy_best_record": 0.4,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [
+          "calculate"
+        ],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "eight",
+            "7x8"
+          ]
+        ]
+      },
+      {
+        "case_id": "test_2",
+        "category": "instructions",
+        "prompt": "Repeat the phrase blue moon once.",
+        "heard": "Repeat the phrase blue moon once.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      }
+    ]
+  },
+  "results": [
+    {
+      "case_id": "voice-1",
+      "category": "general",
+      "prompt": "Give me one quick fact about honey.",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Give me one quick fact about honey.\"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 2.47,
+      "expected_tool": "",
+      "heard": "Give me one quick fact about honey.",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Give me one quick fact about honey."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Give me one quick fact about honey.",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.7716,
+        "peak_guard": null,
+        "audio_seconds": 6.4,
+        "wall_seconds": 2.474,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.217,
+        "requests": [
+          "Give me one quick fact about honey."
+        ],
+        "turns": [
+          {
+            "text": "Give me one quick fact about honey.",
+            "kind": "armed",
+            "frame": 271
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": null,
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Give me one quick fact about honey.",
+        "route": "offline-audio",
+        "tool": "",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "voice-2",
+      "category": "math",
+      "prompt": "What is 12 times 3?",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"What is 12 times 3?\"; router did calculate. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 2.09,
+      "expected_tool": "",
+      "heard": "What is 12 times 3?",
+      "capability": 0,
+      "observed_tools": [
+        "calculate"
+      ],
+      "heard_records": [
+        "What is 12 times 3?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | What is 12 times 3?",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.8,
+        "wall_seconds": 2.093,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.109,
+        "requests": [
+          "What is 12 times 3?"
+        ],
+        "turns": [
+          {
+            "text": "What is 12 times 3?",
+            "kind": "armed",
+            "frame": 223
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "calculate",
+        "routed_args": {
+          "expression": "What is 12 times 3"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "What is 12 times 3?",
+        "route": "offline-audio",
+        "tool": "calculate",
+        "args": {
+          "expression": "What is 12 times 3"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "test_1",
+      "category": "math",
+      "prompt": "What is seven times eight?",
+      "transcript": "",
+      "score": 40,
+      "passed": false,
+      "notes": "Offline audio (google-tts, variant clean): heard \"What is 7x8?\"; router did calculate. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.12,
+      "expected_tool": "",
+      "heard": "What is 7x8?",
+      "capability": 0,
+      "observed_tools": [
+        "calculate"
+      ],
+      "heard_records": [
+        "What is 7x8?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | What is seven times eight?",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.54,
+        "wall_seconds": 1.117,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.099,
+        "requests": [
+          "What is 7x8?"
+        ],
+        "turns": [
+          {
+            "text": "What is 7x8?",
+            "kind": "armed",
+            "frame": 211
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "calculate",
+        "routed_args": {
+          "expression": "What is 7x8"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 0.4,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "What is 7x8?",
+        "route": "offline-audio",
+        "tool": "calculate",
+        "args": {
+          "expression": "What is 7x8"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "test_2",
+      "category": "instructions",
+      "prompt": "Repeat the phrase blue moon once.",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Repeat the phrase blue moon once.\"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 2.24,
+      "expected_tool": "",
+      "heard": "Repeat the phrase blue moon once.",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Repeat the phrase blue moon once."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Repeat the phrase blue moon once.",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.5,
+        "wall_seconds": 2.243,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.207,
+        "requests": [
+          "Repeat the phrase blue moon once."
+        ],
+        "turns": [
+          {
+            "text": "Repeat the phrase blue moon once.",
+            "kind": "armed",
+            "frame": 274
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": null,
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Repeat the phrase blue moon once.",
+        "route": "offline-audio",
+        "tool": "",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    }
+  ],
+  "offline": {
+    "mode": "offline-audio",
+    "seed": 0,
+    "variants": [
+      "clean"
+    ],
+    "wake_mode": "separate",
+    "data_root": "/home/rhy/voxa-bench-data",
+    "whisper_model": "base",
+    "engines": [
+      "google-tts"
+    ],
+    "cases": 4,
+    "wall_seconds": 7.927,
+    "wall_seconds_per_case": {
+      "median": 2.168,
+      "p95": 2.44,
+      "max": 2.474
+    },
+    "audio_seconds": 24.24,
+    "realtime_factor": 3.058,
+    "reply_grading": "n/a",
+    "not_measured": [
+      "microphone and speakers (no audio device was touched)",
+      "the reply she would have spoken (no model was called)",
+      "Voxa's own voice as echo (she never speaks in this mode)"
+    ]
+  }
+}

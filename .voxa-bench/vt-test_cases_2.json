@@ -1,0 +1,4231 @@
+{
+  "timestamp": "2026-11-21T00:13:48.397798",
+  "complete": true,
+  "summary": {
+    "total": 44,
+    "passed": 39,
+    "failed": 5,
+    "errors": 0,
+    "average_score": 97.93,
+    "by_category": {
+      "desktop_apps": {
+        "total": 5,
+        "passed": 5,
+        "failed": 0
+      },
+      "web_and_maps": {
+        "total": 7,
+        "passed": 7,
+        "failed": 0
+      },
+      "system_status": {
+        "total": 5,
+        "passed": 5,
+        "failed": 0
+      },
+      "files_and_productivity": {
+        "total": 21,
+        "passed": 18,
+        "failed": 3
+      },
+      "software_help_and_knowledge": {
+        "total": 6,
+        "passed": 4,
+        "failed": 2
+      }
+    }
+  },
+  "comprehension": {
+    "hearing_word_accuracy": 0.9794,
+    "routed_tool_accuracy": 0.9302,
+    "layer_counts": {
+      "not_heard": 0,
+      "misheard": 5,
+      "misrouted": 0,
+      "misanswered": 0,
+      "ok": 39
+    },
+    "confusions": [
+      {
+        "said": "note",
+        "heard": "node",
+        "count": 2
+      },
+      {
+        "said": "hey",
+        "heard": "he",
+        "count": 1
+      },
+      {
+        "said": "kilometers",
+        "heard": "km",
+        "count": 1
+      }
+    ],
+    "cases_scored": 44,
+    "routed_cases": 43,
+    "wake_word": "voxa",
+    "by_category": {
+      "desktop_apps": {
+        "cases": 5,
+        "hearing_word_accuracy": 1.0,
+        "routed_tool_accuracy": 1.0,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 0,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 5
+        }
+      },
+      "files_and_productivity": {
+        "cases": 21,
+        "hearing_word_accuracy": 0.9726,
+        "routed_tool_accuracy": 0.8571,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 3,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 18
+        }
+      },
+      "software_help_and_knowledge": {
+        "cases": 6,
+        "hearing_word_accuracy": 0.9444,
+        "routed_tool_accuracy": 1.0,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 2,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 4
+        }
+      },
+      "system_status": {
+        "cases": 5,
+        "hearing_word_accuracy": 1.0,
+        "routed_tool_accuracy": 1.0,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 0,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 5
+        }
+      },
+      "web_and_maps": {
+        "cases": 7,
+        "hearing_word_accuracy": 1.0,
+        "routed_tool_accuracy": 1.0,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 0,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 7
+        }
+      }
+    },
+    "cases": [
+      {
+        "case_id": "desktop2-01",
+        "category": "desktop_apps",
+        "prompt": "Launch the text editor",
+        "heard": "Launch the text editor.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "open_app",
+        "tools_ran": [
+          "open_app"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "desktop2-02",
+        "category": "desktop_apps",
+        "prompt": "Start the calculator",
+        "heard": "Start the calculator.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "open_app",
+        "tools_ran": [
+          "open_app"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "desktop2-03",
+        "category": "desktop_apps",
+        "prompt": "Close the calculator",
+        "heard": "Close the calculator.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "close_app",
+        "tools_ran": [
+          "close_app"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "desktop2-04",
+        "category": "desktop_apps",
+        "prompt": "Open the control center",
+        "heard": "Open the Control Center.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "open_app",
+        "tools_ran": [
+          "open_app"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "desktop2-05",
+        "category": "desktop_apps",
+        "prompt": "What's open",
+        "heard": "What's open?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "list_open_windows",
+        "tools_ran": [
+          "list_open_windows"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "web2-01",
+        "category": "web_and_maps",
+        "prompt": "Open YouTube",
+        "heard": "Open YouTube.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "open_site",
+        "tools_ran": [
+          "open_site"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "web2-02",
+        "category": "web_and_maps",
+        "prompt": "Open Wikipedia",
+        "heard": "Open Wikipedia",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "open_site",
+        "tools_ran": [
+          "open_site"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "web2-03",
+        "category": "web_and_maps",
+        "prompt": "Find the nearest coffee shop",
+        "heard": "Find the nearest coffee shop.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "find_nearby",
+        "tools_ran": [
+          "find_nearby"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "web2-04",
+        "category": "web_and_maps",
+        "prompt": "Get walking directions to the park",
+        "heard": "Get walking directions to the park.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "directions",
+        "tools_ran": [
+          "directions"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "web2-04-p1",
+        "category": "web_and_maps",
+        "prompt": "can you show me the way to the park",
+        "heard": "Can you show me the way to the park?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "directions",
+        "tools_ran": [
+          "directions"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "web2-04-p2",
+        "category": "web_and_maps",
+        "prompt": "hey can you give me walking directions to the park",
+        "heard": "Hey can you give me walking directions to the park?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "directions",
+        "tools_ran": [
+          "directions"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "web2-05",
+        "category": "web_and_maps",
+        "prompt": "Show me pictures of golden retrievers",
+        "heard": "Show me pictures of golden retrievers.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "image_search",
+        "tools_ran": [
+          "image_search"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "system2-01",
+        "category": "system_status",
+        "prompt": "What day is it",
+        "heard": "What day is it?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "tell_date",
+        "tools_ran": [
+          "tell_date"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "system2-02",
+        "category": "system_status",
+        "prompt": "Tell me the time",
+        "heard": "Tell me the time.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "tell_time",
+        "tools_ran": [
+          "tell_time"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "system2-03",
+        "category": "system_status",
+        "prompt": "How much battery is left",
+        "heard": "How much battery is left?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "battery_level",
+        "tools_ran": [
+          "battery_level"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "system2-04",
+        "category": "system_status",
+        "prompt": "How much storage space do I have",
+        "heard": "How much storage space do I have?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "disk_space",
+        "tools_ran": [
+          "disk_space"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "system2-05",
+        "category": "system_status",
+        "prompt": "What version of Spaced Linux is this",
+        "heard": "What version of spaced Linux is this?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "check_system_version",
+        "tools_ran": [
+          "check_system_version"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "files2-01",
+        "category": "files_and_productivity",
+        "prompt": "Remind me to stretch in two hours",
+        "heard": "Remind me to stretch in two hours.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "set_reminder",
+        "tools_ran": [
+          "set_reminder"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "files2-01-p1",
+        "category": "files_and_productivity",
+        "prompt": "hey remind me to stretch in two hours",
+        "heard": "He remind me to stretch in two hours.",
+        "hearing_word_accuracy": 0.875,
+        "hearing_word_accuracy_best_record": 0.875,
+        "layer": "misheard",
+        "expected_tool": "set_reminder",
+        "tools_ran": [],
+        "routed": false,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "hey",
+            "he"
+          ]
+        ]
+      },
+      {
+        "case_id": "files2-01-p2",
+        "category": "files_and_productivity",
+        "prompt": "can you remind me to stretch in two hours",
+        "heard": "Can you remind me to stretch in two hours?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "set_reminder",
+        "tools_ran": [
+          "set_reminder"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "files2-02",
+        "category": "files_and_productivity",
+        "prompt": "What are my reminders",
+        "heard": "What are my reminders?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "list_reminders",
+        "tools_ran": [
+          "list_reminders"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "files2-02-p1",
+        "category": "files_and_productivity",
+        "prompt": "hey what are my reminders",
+        "heard": "Hey, what are my reminders?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "list_reminders",
+        "tools_ran": [
+          "list_reminders"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "files2-02-p2",
+        "category": "files_and_productivity",
+        "prompt": "show me my reminders",
+        "heard": "Show me my reminders.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "list_reminders",
+        "tools_ran": [
+          "list_reminders"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "files2-03",
+        "category": "files_and_productivity",
+        "prompt": "Cancel my reminders",
+        "heard": "Cancel my reminders.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "cancel_reminders",
+        "tools_ran": [
+          "cancel_reminders"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "files2-03-p1",
+        "category": "files_and_productivity",
+        "prompt": "hey cancel my reminders",
+        "heard": "Hey Cancel my Reminders",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "cancel_reminders",
+        "tools_ran": [
+          "cancel_reminders"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "files2-03-p2",
+        "category": "files_and_productivity",
+        "prompt": "cancel all reminders",
+        "heard": "Cancel all reminders.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "cancel_reminders",
+        "tools_ran": [
+          "cancel_reminders"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "files2-04",
+        "category": "files_and_productivity",
+        "prompt": "Take a note to call the vet",
+        "heard": "Take a note to call the vet.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "take_note",
+        "tools_ran": [
+          "take_note"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "files2-04-p1",
+        "category": "files_and_productivity",
+        "prompt": "hey take a note to call the vet",
+        "heard": "Hey, take a note to call the vet.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "take_note",
+        "tools_ran": [
+          "take_note"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "files2-04-p2",
+        "category": "files_and_productivity",
+        "prompt": "can you make a note to call the vet",
+        "heard": "Can you make a note to call the vet?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "take_note",
+        "tools_ran": [
+          "take_note"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "files2-05",
+        "category": "files_and_productivity",
+        "prompt": "Read my notes",
+        "heard": "Read my notes.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "read_notes",
+        "tools_ran": [
+          "read_notes"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "files2-05-p1",
+        "category": "files_and_productivity",
+        "prompt": "hey read my notes",
+        "heard": "Hey read my notes.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "read_notes",
+        "tools_ran": [
+          "read_notes"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "files2-05-p2",
+        "category": "files_and_productivity",
+        "prompt": "can you show me my notes",
+        "heard": "Can you show me my notes?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "read_notes",
+        "tools_ran": [
+          "read_notes"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "files2-06",
+        "category": "files_and_productivity",
+        "prompt": "Delete my last note",
+        "heard": "Delete my last node.",
+        "hearing_word_accuracy": 0.75,
+        "hearing_word_accuracy_best_record": 0.75,
+        "layer": "misheard",
+        "expected_tool": "delete_last_note",
+        "tools_ran": [],
+        "routed": false,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "note",
+            "node"
+          ]
+        ]
+      },
+      {
+        "case_id": "files2-06-p1",
+        "category": "files_and_productivity",
+        "prompt": "hey delete my last note",
+        "heard": "Hey delete my last note.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "delete_last_note",
+        "tools_ran": [
+          "delete_last_note"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "files2-06-p2",
+        "category": "files_and_productivity",
+        "prompt": "please remove my last note",
+        "heard": "Please remove my last node",
+        "hearing_word_accuracy": 0.8,
+        "hearing_word_accuracy_best_record": 0.8,
+        "layer": "misheard",
+        "expected_tool": "delete_last_note",
+        "tools_ran": [],
+        "routed": false,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "note",
+            "node"
+          ]
+        ]
+      },
+      {
+        "case_id": "files2-07",
+        "category": "files_and_productivity",
+        "prompt": "Open my Pictures folder",
+        "heard": "Open my pictures folder.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "open_folder",
+        "tools_ran": [
+          "open_folder"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "files2-08",
+        "category": "files_and_productivity",
+        "prompt": "What is in my Documents folder",
+        "heard": "What is in my documents folder?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "list_folder",
+        "tools_ran": [
+          "list_folder"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "files2-09",
+        "category": "files_and_productivity",
+        "prompt": "Hide hidden files",
+        "heard": "Hide hidden files.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "hidden_files",
+        "tools_ran": [
+          "hidden_files"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "help2-01",
+        "category": "software_help_and_knowledge",
+        "prompt": "What is 15 percent of 80",
+        "heard": "What is 15% of 80?",
+        "hearing_word_accuracy": 0.8333,
+        "hearing_word_accuracy_best_record": 0.8333,
+        "layer": "misheard",
+        "expected_tool": "calculate",
+        "tools_ran": [
+          "calculate"
+        ],
+        "routed": true,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "help2-02",
+        "category": "software_help_and_knowledge",
+        "prompt": "What is 144 divided by 12",
+        "heard": "What is 144 divided by 12?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "calculate",
+        "tools_ran": [
+          "calculate"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "help2-03",
+        "category": "software_help_and_knowledge",
+        "prompt": "Convert 100 kilometers to miles",
+        "heard": "Convert 100 km to miles",
+        "hearing_word_accuracy": 0.8333,
+        "hearing_word_accuracy_best_record": 0.8333,
+        "layer": "misheard",
+        "expected_tool": "calculate",
+        "tools_ran": [
+          "calculate"
+        ],
+        "routed": true,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "kilometers",
+            "km"
+          ]
+        ]
+      },
+      {
+        "case_id": "help2-04",
+        "category": "software_help_and_knowledge",
+        "prompt": "What is the square root of 81",
+        "heard": "What is the square root of 81?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "calculate",
+        "tools_ran": [
+          "calculate"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "help2-05",
+        "category": "software_help_and_knowledge",
+        "prompt": "Help with reminders",
+        "heard": "Help with reminders",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "voxa_help",
+        "tools_ran": [
+          "voxa_help"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "help2-06",
+        "category": "software_help_and_knowledge",
+        "prompt": "What is the largest planet in the solar system",
+        "heard": "What is the largest planet in the solar system?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      }
+    ]
+  },
+  "results": [
+    {
+      "case_id": "desktop2-01",
+      "category": "desktop_apps",
+      "prompt": "Launch the text editor",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Launch the text editor.\"; router did open_app. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.24,
+      "expected_tool": "open_app",
+      "heard": "Launch the text editor.",
+      "capability": 81,
+      "observed_tools": [
+        "open_app"
+      ],
+      "heard_records": [
+        "Launch the text editor."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Launch the text editor",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.52,
+        "wall_seconds": 1.239,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.194,
+        "requests": [
+          "Launch the text editor."
+        ],
+        "turns": [
+          {
+            "text": "Launch the text editor.",
+            "kind": "armed",
+            "frame": 217
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "open_app",
+        "routed_args": {
+          "name": "text editor"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Launch the text editor.",
+        "route": "offline-audio",
+        "tool": "open_app",
+        "args": {
+          "name": "text editor"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "desktop2-02",
+      "category": "desktop_apps",
+      "prompt": "Start the calculator",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Start the calculator.\"; router did open_app. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.18,
+      "expected_tool": "open_app",
+      "heard": "Start the calculator.",
+      "capability": 81,
+      "observed_tools": [
+        "open_app"
+      ],
+      "heard_records": [
+        "Start the calculator."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Start the calculator",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6558,
+        "peak_guard": null,
+        "audio_seconds": 5.44,
+        "wall_seconds": 1.183,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.164,
+        "requests": [
+          "Start the calculator."
+        ],
+        "turns": [
+          {
+            "text": "Start the calculator.",
+            "kind": "armed",
+            "frame": 213
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "open_app",
+        "routed_args": {
+          "name": "calculator"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Start the calculator.",
+        "route": "offline-audio",
+        "tool": "open_app",
+        "args": {
+          "name": "calculator"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "desktop2-03",
+      "category": "desktop_apps",
+      "prompt": "Close the calculator",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Close the calculator.\"; router did close_app. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.17,
+      "expected_tool": "close_app",
+      "heard": "Close the calculator.",
+      "capability": 81,
+      "observed_tools": [
+        "close_app"
+      ],
+      "heard_records": [
+        "Close the calculator."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Close the calculator",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.42,
+        "wall_seconds": 1.17,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.15,
+        "requests": [
+          "Close the calculator."
+        ],
+        "turns": [
+          {
+            "text": "Close the calculator.",
+            "kind": "armed",
+            "frame": 211
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "close_app",
+        "routed_args": {
+          "name": "calculator"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Close the calculator.",
+        "route": "offline-audio",
+        "tool": "close_app",
+        "args": {
+          "name": "calculator"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "desktop2-04",
+      "category": "desktop_apps",
+      "prompt": "Open the control center",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Open the Control Center.\"; router did open_app. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.15,
+      "expected_tool": "open_app",
+      "heard": "Open the Control Center.",
+      "capability": 81,
+      "observed_tools": [
+        "open_app"
+      ],
+      "heard_records": [
+        "Open the Control Center."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Open the control center",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.7694,
+        "peak_guard": null,
+        "audio_seconds": 5.54,
+        "wall_seconds": 1.148,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.128,
+        "requests": [
+          "Open the Control Center."
+        ],
+        "turns": [
+          {
+            "text": "Open the Control Center.",
+            "kind": "armed",
+            "frame": 218
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "open_app",
+        "routed_args": {
+          "name": "Control Center"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Open the Control Center.",
+        "route": "offline-audio",
+        "tool": "open_app",
+        "args": {
+          "name": "Control Center"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "desktop2-05",
+      "category": "desktop_apps",
+      "prompt": "What's open",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"What's open?\"; router did list_open_windows. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.04,
+      "expected_tool": "list_open_windows",
+      "heard": "What's open?",
+      "capability": 82,
+      "observed_tools": [
+        "list_open_windows"
+      ],
+      "heard_records": [
+        "What's open?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | What's open",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 4.8,
+        "wall_seconds": 1.042,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.027,
+        "requests": [
+          "What's open?"
+        ],
+        "turns": [
+          {
+            "text": "What's open?",
+            "kind": "armed",
+            "frame": 183
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "list_open_windows",
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "What's open?",
+        "route": "offline-audio",
+        "tool": "list_open_windows",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "web2-01",
+      "category": "web_and_maps",
+      "prompt": "Open YouTube",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Open YouTube.\"; router did open_site. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.16,
+      "expected_tool": "open_site",
+      "heard": "Open YouTube.",
+      "capability": 88,
+      "observed_tools": [
+        "open_site"
+      ],
+      "heard_records": [
+        "Open YouTube."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Open YouTube",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.775,
+        "peak_guard": null,
+        "audio_seconds": 5.08,
+        "wall_seconds": 1.16,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.144,
+        "requests": [
+          "Open YouTube."
+        ],
+        "turns": [
+          {
+            "text": "Open YouTube.",
+            "kind": "armed",
+            "frame": 195
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "open_site",
+        "routed_args": {
+          "name": "YouTube"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Open YouTube.",
+        "route": "offline-audio",
+        "tool": "open_site",
+        "args": {
+          "name": "YouTube"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "web2-02",
+      "category": "web_and_maps",
+      "prompt": "Open Wikipedia",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Open Wikipedia\"; router did open_site. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.11,
+      "expected_tool": "open_site",
+      "heard": "Open Wikipedia",
+      "capability": 88,
+      "observed_tools": [
+        "open_site"
+      ],
+      "heard_records": [
+        "Open Wikipedia"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Open Wikipedia",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.7343,
+        "peak_guard": null,
+        "audio_seconds": 5.22,
+        "wall_seconds": 1.115,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.097,
+        "requests": [
+          "Open Wikipedia"
+        ],
+        "turns": [
+          {
+            "text": "Open Wikipedia",
+            "kind": "armed",
+            "frame": 205
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "open_site",
+        "routed_args": {
+          "name": "Wikipedia"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Open Wikipedia",
+        "route": "offline-audio",
+        "tool": "open_site",
+        "args": {
+          "name": "Wikipedia"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "web2-03",
+      "category": "web_and_maps",
+      "prompt": "Find the nearest coffee shop",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Find the nearest coffee shop.\"; router did find_nearby. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.08,
+      "expected_tool": "find_nearby",
+      "heard": "Find the nearest coffee shop.",
+      "capability": 47,
+      "observed_tools": [
+        "find_nearby"
+      ],
+      "heard_records": [
+        "Find the nearest coffee shop."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Find the nearest coffee shop",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.9,
+        "wall_seconds": 1.077,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.058,
+        "requests": [
+          "Find the nearest coffee shop."
+        ],
+        "turns": [
+          {
+            "text": "Find the nearest coffee shop.",
+            "kind": "armed",
+            "frame": 227
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "find_nearby",
+        "routed_args": {
+          "what": "coffee shop"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Find the nearest coffee shop.",
+        "route": "offline-audio",
+        "tool": "find_nearby",
+        "args": {
+          "what": "coffee shop"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "web2-04",
+      "category": "web_and_maps",
+      "prompt": "Get walking directions to the park",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Get walking directions to the park.\"; router did directions. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.16,
+      "expected_tool": "directions",
+      "heard": "Get walking directions to the park.",
+      "capability": 48,
+      "observed_tools": [
+        "directions"
+      ],
+      "heard_records": [
+        "Get walking directions to the park."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Get walking directions to the park",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.7155,
+        "peak_guard": null,
+        "audio_seconds": 6.24,
+        "wall_seconds": 1.156,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.135,
+        "requests": [
+          "Get walking directions to the park."
+        ],
+        "turns": [
+          {
+            "text": "Get walking directions to the park.",
+            "kind": "armed",
+            "frame": 242
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "directions",
+        "routed_args": {
+          "destination": "the park",
+          "mode": "walking"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Get walking directions to the park.",
+        "route": "offline-audio",
+        "tool": "directions",
+        "args": {
+          "destination": "the park",
+          "mode": "walking"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "web2-04-p1",
+      "category": "web_and_maps",
+      "prompt": "can you show me the way to the park",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Can you show me the way to the park?\"; router did directions. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.15,
+      "expected_tool": "directions",
+      "heard": "Can you show me the way to the park?",
+      "capability": 48,
+      "observed_tools": [
+        "directions"
+      ],
+      "heard_records": [
+        "Can you show me the way to the park?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | can you show me the way to the park",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.02,
+        "wall_seconds": 1.153,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.132,
+        "requests": [
+          "Can you show me the way to the park?"
+        ],
+        "turns": [
+          {
+            "text": "Can you show me the way to the park?",
+            "kind": "armed",
+            "frame": 231
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "directions",
+        "routed_args": {
+          "destination": "park"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Can you show me the way to the park?",
+        "route": "offline-audio",
+        "tool": "directions",
+        "args": {
+          "destination": "park"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "web2-04-p2",
+      "category": "web_and_maps",
+      "prompt": "hey can you give me walking directions to the park",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Hey can you give me walking directions to the park?\"; router did directions. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.16,
+      "expected_tool": "directions",
+      "heard": "Hey can you give me walking directions to the park?",
+      "capability": 48,
+      "observed_tools": [
+        "directions"
+      ],
+      "heard_records": [
+        "Hey can you give me walking directions to the park?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | hey can you give me walking directions to the park",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.94,
+        "wall_seconds": 1.159,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.135,
+        "requests": [
+          "Hey can you give me walking directions to the park?"
+        ],
+        "turns": [
+          {
+            "text": "Hey can you give me walking directions to the park?",
+            "kind": "armed",
+            "frame": 277
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "directions",
+        "routed_args": {
+          "destination": "the park",
+          "mode": "walking"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Hey can you give me walking directions to the park?",
+        "route": "offline-audio",
+        "tool": "directions",
+        "args": {
+          "destination": "the park",
+          "mode": "walking"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "web2-05",
+      "category": "web_and_maps",
+      "prompt": "Show me pictures of golden retrievers",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Show me pictures of golden retrievers.\"; router did image_search. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.23,
+      "expected_tool": "image_search",
+      "heard": "Show me pictures of golden retrievers.",
+      "capability": 88,
+      "observed_tools": [
+        "image_search"
+      ],
+      "heard_records": [
+        "Show me pictures of golden retrievers."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Show me pictures of golden retrievers",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.6,
+        "wall_seconds": 1.227,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.203,
+        "requests": [
+          "Show me pictures of golden retrievers."
+        ],
+        "turns": [
+          {
+            "text": "Show me pictures of golden retrievers.",
+            "kind": "armed",
+            "frame": 264
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "image_search",
+        "routed_args": {
+          "query": "golden retrievers"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Show me pictures of golden retrievers.",
+        "route": "offline-audio",
+        "tool": "image_search",
+        "args": {
+          "query": "golden retrievers"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "system2-01",
+      "category": "system_status",
+      "prompt": "What day is it",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"What day is it?\"; router did tell_date. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.12,
+      "expected_tool": "tell_date",
+      "heard": "What day is it?",
+      "capability": 82,
+      "observed_tools": [
+        "tell_date"
+      ],
+      "heard_records": [
+        "What day is it?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | What day is it",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 4.9,
+        "wall_seconds": 1.123,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.108,
+        "requests": [
+          "What day is it?"
+        ],
+        "turns": [
+          {
+            "text": "What day is it?",
+            "kind": "armed",
+            "frame": 186
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "tell_date",
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "What day is it?",
+        "route": "offline-audio",
+        "tool": "tell_date",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "system2-02",
+      "category": "system_status",
+      "prompt": "Tell me the time",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Tell me the time.\"; router did tell_time. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.18,
+      "expected_tool": "tell_time",
+      "heard": "Tell me the time.",
+      "capability": 82,
+      "observed_tools": [
+        "tell_time"
+      ],
+      "heard_records": [
+        "Tell me the time."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Tell me the time",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.06,
+        "wall_seconds": 1.183,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.166,
+        "requests": [
+          "Tell me the time."
+        ],
+        "turns": [
+          {
+            "text": "Tell me the time.",
+            "kind": "armed",
+            "frame": 196
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "tell_time",
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Tell me the time.",
+        "route": "offline-audio",
+        "tool": "tell_time",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "system2-03",
+      "category": "system_status",
+      "prompt": "How much battery is left",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"How much battery is left?\"; router did battery_level. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.14,
+      "expected_tool": "battery_level",
+      "heard": "How much battery is left?",
+      "capability": 86,
+      "observed_tools": [
+        "battery_level"
+      ],
+      "heard_records": [
+        "How much battery is left?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | How much battery is left",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6574,
+        "peak_guard": null,
+        "audio_seconds": 5.78,
+        "wall_seconds": 1.137,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.118,
+        "requests": [
+          "How much battery is left?"
+        ],
+        "turns": [
+          {
+            "text": "How much battery is left?",
+            "kind": "armed",
+            "frame": 225
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "battery_level",
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "How much battery is left?",
+        "route": "offline-audio",
+        "tool": "battery_level",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "system2-04",
+      "category": "system_status",
+      "prompt": "How much storage space do I have",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"How much storage space do I have?\"; router did disk_space. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.12,
+      "expected_tool": "disk_space",
+      "heard": "How much storage space do I have?",
+      "capability": 86,
+      "observed_tools": [
+        "disk_space"
+      ],
+      "heard_records": [
+        "How much storage space do I have?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | How much storage space do I have",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.16,
+        "wall_seconds": 1.122,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.099,
+        "requests": [
+          "How much storage space do I have?"
+        ],
+        "turns": [
+          {
+            "text": "How much storage space do I have?",
+            "kind": "armed",
+            "frame": 242
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "disk_space",
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "How much storage space do I have?",
+        "route": "offline-audio",
+        "tool": "disk_space",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "system2-05",
+      "category": "system_status",
+      "prompt": "What version of Spaced Linux is this",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"What version of spaced Linux is this?\"; router did check_system_version. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.16,
+      "expected_tool": "check_system_version",
+      "heard": "What version of spaced Linux is this?",
+      "capability": 84,
+      "observed_tools": [
+        "check_system_version"
+      ],
+      "heard_records": [
+        "What version of spaced Linux is this?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | What version of Spaced Linux is this",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.64,
+        "wall_seconds": 1.156,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.132,
+        "requests": [
+          "What version of spaced Linux is this?"
+        ],
+        "turns": [
+          {
+            "text": "What version of spaced Linux is this?",
+            "kind": "armed",
+            "frame": 264
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "check_system_version",
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "What version of spaced Linux is this?",
+        "route": "offline-audio",
+        "tool": "check_system_version",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "files2-01",
+      "category": "files_and_productivity",
+      "prompt": "Remind me to stretch in two hours",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Remind me to stretch in two hours.\"; router did set_reminder. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.23,
+      "expected_tool": "set_reminder",
+      "heard": "Remind me to stretch in two hours.",
+      "capability": 24,
+      "observed_tools": [
+        "set_reminder"
+      ],
+      "heard_records": [
+        "Remind me to stretch in two hours."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Remind me to stretch in two hours",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.4,
+        "wall_seconds": 1.231,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.208,
+        "requests": [
+          "Remind me to stretch in two hours."
+        ],
+        "turns": [
+          {
+            "text": "Remind me to stretch in two hours.",
+            "kind": "armed",
+            "frame": 254
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "set_reminder",
+        "routed_args": {
+          "when": "two hours",
+          "text": "stretch"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Remind me to stretch in two hours.",
+        "route": "offline-audio",
+        "tool": "set_reminder",
+        "args": {
+          "when": "two hours",
+          "text": "stretch"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "files2-01-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey remind me to stretch in two hours",
+      "transcript": "",
+      "score": 88,
+      "passed": false,
+      "notes": "Offline audio (google-tts, variant clean): heard \"He remind me to stretch in two hours.\"; router did nothing (expected set_reminder, got nothing). Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.26,
+      "expected_tool": "set_reminder",
+      "heard": "He remind me to stretch in two hours.",
+      "capability": 24,
+      "observed_tools": [],
+      "heard_records": [
+        "He remind me to stretch in two hours."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | hey remind me to stretch in two hours",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.66,
+        "wall_seconds": 1.263,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.239,
+        "requests": [
+          "He remind me to stretch in two hours."
+        ],
+        "turns": [
+          {
+            "text": "He remind me to stretch in two hours.",
+            "kind": "armed",
+            "frame": 267
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": null,
+        "routed_args": {},
+        "routing_problem": "expected set_reminder, got nothing",
+        "hearing_word_accuracy": 0.875,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "He remind me to stretch in two hours.",
+        "route": "offline-audio",
+        "tool": "",
+        "args": {},
+        "ok": false,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "files2-01-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you remind me to stretch in two hours",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Can you remind me to stretch in two hours?\"; router did set_reminder. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.23,
+      "expected_tool": "set_reminder",
+      "heard": "Can you remind me to stretch in two hours?",
+      "capability": 24,
+      "observed_tools": [
+        "set_reminder"
+      ],
+      "heard_records": [
+        "Can you remind me to stretch in two hours?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | can you remind me to stretch in two hours",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.72,
+        "wall_seconds": 1.227,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.204,
+        "requests": [
+          "Can you remind me to stretch in two hours?"
+        ],
+        "turns": [
+          {
+            "text": "Can you remind me to stretch in two hours?",
+            "kind": "armed",
+            "frame": 271
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "set_reminder",
+        "routed_args": {
+          "when": "two hours",
+          "text": "stretch"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Can you remind me to stretch in two hours?",
+        "route": "offline-audio",
+        "tool": "set_reminder",
+        "args": {
+          "when": "two hours",
+          "text": "stretch"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "files2-02",
+      "category": "files_and_productivity",
+      "prompt": "What are my reminders",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"What are my reminders?\"; router did list_reminders. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.26,
+      "expected_tool": "list_reminders",
+      "heard": "What are my reminders?",
+      "capability": 24,
+      "observed_tools": [
+        "list_reminders"
+      ],
+      "heard_records": [
+        "What are my reminders?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | What are my reminders",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.4,
+        "wall_seconds": 1.258,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.241,
+        "requests": [
+          "What are my reminders?"
+        ],
+        "turns": [
+          {
+            "text": "What are my reminders?",
+            "kind": "armed",
+            "frame": 211
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "list_reminders",
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "What are my reminders?",
+        "route": "offline-audio",
+        "tool": "list_reminders",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "files2-02-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey what are my reminders",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Hey, what are my reminders?\"; router did list_reminders. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.24,
+      "expected_tool": "list_reminders",
+      "heard": "Hey, what are my reminders?",
+      "capability": 24,
+      "observed_tools": [
+        "list_reminders"
+      ],
+      "heard_records": [
+        "Hey, what are my reminders?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | hey what are my reminders",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.78,
+        "wall_seconds": 1.244,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.225,
+        "requests": [
+          "Hey, what are my reminders?"
+        ],
+        "turns": [
+          {
+            "text": "Hey, what are my reminders?",
+            "kind": "armed",
+            "frame": 223
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "list_reminders",
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Hey, what are my reminders?",
+        "route": "offline-audio",
+        "tool": "list_reminders",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "files2-02-p2",
+      "category": "files_and_productivity",
+      "prompt": "show me my reminders",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Show me my reminders.\"; router did list_reminders. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.2,
+      "expected_tool": "list_reminders",
+      "heard": "Show me my reminders.",
+      "capability": 24,
+      "observed_tools": [
+        "list_reminders"
+      ],
+      "heard_records": [
+        "Show me my reminders."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | show me my reminders",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.56,
+        "wall_seconds": 1.202,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.184,
+        "requests": [
+          "Show me my reminders."
+        ],
+        "turns": [
+          {
+            "text": "Show me my reminders.",
+            "kind": "armed",
+            "frame": 221
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "list_reminders",
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Show me my reminders.",
+        "route": "offline-audio",
+        "tool": "list_reminders",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "files2-03",
+      "category": "files_and_productivity",
+      "prompt": "Cancel my reminders",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Cancel my reminders.\"; router did cancel_reminders. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.21,
+      "expected_tool": "cancel_reminders",
+      "heard": "Cancel my reminders.",
+      "capability": 24,
+      "observed_tools": [
+        "cancel_reminders"
+      ],
+      "heard_records": [
+        "Cancel my reminders."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Cancel my reminders",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.58,
+        "wall_seconds": 1.215,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.196,
+        "requests": [
+          "Cancel my reminders."
+        ],
+        "turns": [
+          {
+            "text": "Cancel my reminders.",
+            "kind": "armed",
+            "frame": 221
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "cancel_reminders",
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Cancel my reminders.",
+        "route": "offline-audio",
+        "tool": "cancel_reminders",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "files2-03-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey cancel my reminders",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Hey Cancel my Reminders\"; router did cancel_reminders. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.24,
+      "expected_tool": "cancel_reminders",
+      "heard": "Hey Cancel my Reminders",
+      "capability": 24,
+      "observed_tools": [
+        "cancel_reminders"
+      ],
+      "heard_records": [
+        "Hey Cancel my Reminders"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | hey cancel my reminders",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6852,
+        "peak_guard": null,
+        "audio_seconds": 5.82,
+        "wall_seconds": 1.236,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.218,
+        "requests": [
+          "Hey Cancel my Reminders"
+        ],
+        "turns": [
+          {
+            "text": "Hey Cancel my Reminders",
+            "kind": "armed",
+            "frame": 233
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "cancel_reminders",
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Hey Cancel my Reminders",
+        "route": "offline-audio",
+        "tool": "cancel_reminders",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "files2-03-p2",
+      "category": "files_and_productivity",
+      "prompt": "cancel all reminders",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Cancel all reminders.\"; router did cancel_reminders. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.15,
+      "expected_tool": "cancel_reminders",
+      "heard": "Cancel all reminders.",
+      "capability": 24,
+      "observed_tools": [
+        "cancel_reminders"
+      ],
+      "heard_records": [
+        "Cancel all reminders."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | cancel all reminders",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.62,
+        "wall_seconds": 1.15,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.132,
+        "requests": [
+          "Cancel all reminders."
+        ],
+        "turns": [
+          {
+            "text": "Cancel all reminders.",
+            "kind": "armed",
+            "frame": 223
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "cancel_reminders",
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Cancel all reminders.",
+        "route": "offline-audio",
+        "tool": "cancel_reminders",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "files2-04",
+      "category": "files_and_productivity",
+      "prompt": "Take a note to call the vet",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Take a note to call the vet.\"; router did take_note. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 2.21,
+      "expected_tool": "take_note",
+      "heard": "Take a note to call the vet.",
+      "capability": 30,
+      "observed_tools": [
+        "take_note"
+      ],
+      "heard_records": [
+        "Take a note to call the vet."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Take a note to call the vet",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.62,
+        "wall_seconds": 2.208,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.141,
+        "requests": [
+          "Take a note to call the vet."
+        ],
+        "turns": [
+          {
+            "text": "Take a note to call the vet.",
+            "kind": "armed",
+            "frame": 215
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "take_note",
+        "routed_args": {
+          "text": "call the vet"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Take a note to call the vet.",
+        "route": "offline-audio",
+        "tool": "take_note",
+        "args": {
+          "text": "call the vet"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "files2-04-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey take a note to call the vet",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Hey, take a note to call the vet.\"; router did take_note. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 2.38,
+      "expected_tool": "take_note",
+      "heard": "Hey, take a note to call the vet.",
+      "capability": 30,
+      "observed_tools": [
+        "take_note"
+      ],
+      "heard_records": [
+        "Hey, take a note to call the vet."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | hey take a note to call the vet",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.92,
+        "wall_seconds": 2.38,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.179,
+        "requests": [
+          "Hey, take a note to call the vet."
+        ],
+        "turns": [
+          {
+            "text": "Hey, take a note to call the vet.",
+            "kind": "armed",
+            "frame": 233
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "take_note",
+        "routed_args": {
+          "text": "call the vet"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Hey, take a note to call the vet.",
+        "route": "offline-audio",
+        "tool": "take_note",
+        "args": {
+          "text": "call the vet"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "files2-04-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you make a note to call the vet",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Can you make a note to call the vet?\"; router did take_note. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 2.16,
+      "expected_tool": "take_note",
+      "heard": "Can you make a note to call the vet?",
+      "capability": 30,
+      "observed_tools": [
+        "take_note"
+      ],
+      "heard_records": [
+        "Can you make a note to call the vet?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | can you make a note to call the vet",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.92,
+        "wall_seconds": 2.161,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.172,
+        "requests": [
+          "Can you make a note to call the vet?"
+        ],
+        "turns": [
+          {
+            "text": "Can you make a note to call the vet?",
+            "kind": "armed",
+            "frame": 231
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "take_note",
+        "routed_args": {
+          "text": "call the vet"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Can you make a note to call the vet?",
+        "route": "offline-audio",
+        "tool": "take_note",
+        "args": {
+          "text": "call the vet"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "files2-05",
+      "category": "files_and_productivity",
+      "prompt": "Read my notes",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Read my notes.\"; router did read_notes. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 2.19,
+      "expected_tool": "read_notes",
+      "heard": "Read my notes.",
+      "capability": 30,
+      "observed_tools": [
+        "read_notes"
+      ],
+      "heard_records": [
+        "Read my notes."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Read my notes",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.14,
+        "wall_seconds": 2.187,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.198,
+        "requests": [
+          "Read my notes."
+        ],
+        "turns": [
+          {
+            "text": "Read my notes.",
+            "kind": "armed",
+            "frame": 198
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "read_notes",
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Read my notes.",
+        "route": "offline-audio",
+        "tool": "read_notes",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "files2-05-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey read my notes",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Hey read my notes.\"; router did read_notes. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 2.26,
+      "expected_tool": "read_notes",
+      "heard": "Hey read my notes.",
+      "capability": 30,
+      "observed_tools": [
+        "read_notes"
+      ],
+      "heard_records": [
+        "Hey read my notes."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | hey read my notes",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.32,
+        "wall_seconds": 2.263,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.217,
+        "requests": [
+          "Hey read my notes."
+        ],
+        "turns": [
+          {
+            "text": "Hey read my notes.",
+            "kind": "armed",
+            "frame": 227
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "read_notes",
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Hey read my notes.",
+        "route": "offline-audio",
+        "tool": "read_notes",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "files2-05-p2",
+      "category": "files_and_productivity",
+      "prompt": "can you show me my notes",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Can you show me my notes?\"; router did read_notes. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 2.22,
+      "expected_tool": "read_notes",
+      "heard": "Can you show me my notes?",
+      "capability": 30,
+      "observed_tools": [
+        "read_notes"
+      ],
+      "heard_records": [
+        "Can you show me my notes?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | can you show me my notes",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.76,
+        "wall_seconds": 2.221,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.219,
+        "requests": [
+          "Can you show me my notes?"
+        ],
+        "turns": [
+          {
+            "text": "Can you show me my notes?",
+            "kind": "armed",
+            "frame": 223
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "read_notes",
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Can you show me my notes?",
+        "route": "offline-audio",
+        "tool": "read_notes",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "files2-06",
+      "category": "files_and_productivity",
+      "prompt": "Delete my last note",
+      "transcript": "",
+      "score": 75,
+      "passed": false,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Delete my last node.\"; router did nothing (expected delete_last_note, got nothing). Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 2.11,
+      "expected_tool": "delete_last_note",
+      "heard": "Delete my last node.",
+      "capability": 30,
+      "observed_tools": [],
+      "heard_records": [
+        "Delete my last node."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Delete my last note",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.38,
+        "wall_seconds": 2.112,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.112,
+        "requests": [
+          "Delete my last node."
+        ],
+        "turns": [
+          {
+            "text": "Delete my last node.",
+            "kind": "armed",
+            "frame": 232
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": null,
+        "routed_args": {},
+        "routing_problem": "expected delete_last_note, got nothing",
+        "hearing_word_accuracy": 0.75,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Delete my last node.",
+        "route": "offline-audio",
+        "tool": "",
+        "args": {},
+        "ok": false,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "files2-06-p1",
+      "category": "files_and_productivity",
+      "prompt": "hey delete my last note",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Hey delete my last note.\"; router did delete_last_note. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 2.23,
+      "expected_tool": "delete_last_note",
+      "heard": "Hey delete my last note.",
+      "capability": 30,
+      "observed_tools": [
+        "delete_last_note"
+      ],
+      "heard_records": [
+        "Hey delete my last note."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | hey delete my last note",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.76,
+        "wall_seconds": 2.231,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.198,
+        "requests": [
+          "Hey delete my last note."
+        ],
+        "turns": [
+          {
+            "text": "Hey delete my last note.",
+            "kind": "armed",
+            "frame": 221
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "delete_last_note",
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Hey delete my last note.",
+        "route": "offline-audio",
+        "tool": "delete_last_note",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "files2-06-p2",
+      "category": "files_and_productivity",
+      "prompt": "please remove my last note",
+      "transcript": "",
+      "score": 80,
+      "passed": false,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Please remove my last node\"; router did nothing (expected delete_last_note, got nothing). Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 2.28,
+      "expected_tool": "delete_last_note",
+      "heard": "Please remove my last node",
+      "capability": 30,
+      "observed_tools": [],
+      "heard_records": [
+        "Please remove my last node"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | please remove my last note",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.7478,
+        "peak_guard": null,
+        "audio_seconds": 5.82,
+        "wall_seconds": 2.28,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.259,
+        "requests": [
+          "Please remove my last node"
+        ],
+        "turns": [
+          {
+            "text": "Please remove my last node",
+            "kind": "armed",
+            "frame": 225
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": null,
+        "routed_args": {},
+        "routing_problem": "expected delete_last_note, got nothing",
+        "hearing_word_accuracy": 0.8,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Please remove my last node",
+        "route": "offline-audio",
+        "tool": "",
+        "args": {},
+        "ok": false,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "files2-07",
+      "category": "files_and_productivity",
+      "prompt": "Open my Pictures folder",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Open my pictures folder.\"; router did open_folder. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 2.21,
+      "expected_tool": "open_folder",
+      "heard": "Open my pictures folder.",
+      "capability": 83,
+      "observed_tools": [
+        "open_folder"
+      ],
+      "heard_records": [
+        "Open my pictures folder."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Open my Pictures folder",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.7888,
+        "peak_guard": null,
+        "audio_seconds": 5.66,
+        "wall_seconds": 2.213,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.193,
+        "requests": [
+          "Open my pictures folder."
+        ],
+        "turns": [
+          {
+            "text": "Open my pictures folder.",
+            "kind": "armed",
+            "frame": 223
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "open_folder",
+        "routed_args": {
+          "folder": "pictures"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Open my pictures folder.",
+        "route": "offline-audio",
+        "tool": "open_folder",
+        "args": {
+          "folder": "pictures"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "files2-08",
+      "category": "files_and_productivity",
+      "prompt": "What is in my Documents folder",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"What is in my documents folder?\"; router did list_folder. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 2.28,
+      "expected_tool": "list_folder",
+      "heard": "What is in my documents folder?",
+      "capability": 83,
+      "observed_tools": [
+        "list_folder"
+      ],
+      "heard_records": [
+        "What is in my documents folder?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | What is in my Documents folder",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6747,
+        "peak_guard": null,
+        "audio_seconds": 6.14,
+        "wall_seconds": 2.28,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.26,
+        "requests": [
+          "What is in my documents folder?"
+        ],
+        "turns": [
+          {
+            "text": "What is in my documents folder?",
+            "kind": "armed",
+            "frame": 242
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "list_folder",
+        "routed_args": {
+          "folder": "documents"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "What is in my documents folder?",
+        "route": "offline-audio",
+        "tool": "list_folder",
+        "args": {
+          "folder": "documents"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "files2-09",
+      "category": "files_and_productivity",
+      "prompt": "Hide hidden files",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Hide hidden files.\"; router did hidden_files. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 2.09,
+      "expected_tool": "hidden_files",
+      "heard": "Hide hidden files.",
+      "capability": 83,
+      "observed_tools": [
+        "hidden_files"
+      ],
+      "heard_records": [
+        "Hide hidden files."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Hide hidden files",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.682,
+        "peak_guard": null,
+        "audio_seconds": 5.46,
+        "wall_seconds": 2.089,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.129,
+        "requests": [
+          "Hide hidden files."
+        ],
+        "turns": [
+          {
+            "text": "Hide hidden files.",
+            "kind": "armed",
+            "frame": 213
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "hidden_files",
+        "routed_args": {
+          "show": "off"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Hide hidden files.",
+        "route": "offline-audio",
+        "tool": "hidden_files",
+        "args": {
+          "show": "off"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "help2-01",
+      "category": "software_help_and_knowledge",
+      "prompt": "What is 15 percent of 80",
+      "transcript": "",
+      "score": 83,
+      "passed": false,
+      "notes": "Offline audio (google-tts, variant clean): heard \"What is 15% of 80?\"; router did calculate. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 2.21,
+      "expected_tool": "calculate",
+      "heard": "What is 15% of 80?",
+      "capability": 32,
+      "observed_tools": [
+        "calculate"
+      ],
+      "heard_records": [
+        "What is 15% of 80?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | What is 15 percent of 80",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.06,
+        "wall_seconds": 2.207,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.17,
+        "requests": [
+          "What is 15% of 80?"
+        ],
+        "turns": [
+          {
+            "text": "What is 15% of 80?",
+            "kind": "armed",
+            "frame": 259
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "calculate",
+        "routed_args": {
+          "expression": "What is 15% of 80"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 0.8333,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "What is 15% of 80?",
+        "route": "offline-audio",
+        "tool": "calculate",
+        "args": {
+          "expression": "What is 15% of 80"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "help2-02",
+      "category": "software_help_and_knowledge",
+      "prompt": "What is 144 divided by 12",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"What is 144 divided by 12?\"; router did calculate. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 2.2,
+      "expected_tool": "calculate",
+      "heard": "What is 144 divided by 12?",
+      "capability": 32,
+      "observed_tools": [
+        "calculate"
+      ],
+      "heard_records": [
+        "What is 144 divided by 12?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | What is 144 divided by 12",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6745,
+        "peak_guard": null,
+        "audio_seconds": 7.06,
+        "wall_seconds": 2.196,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.173,
+        "requests": [
+          "What is 144 divided by 12?"
+        ],
+        "turns": [
+          {
+            "text": "What is 144 divided by 12?",
+            "kind": "armed",
+            "frame": 287
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "calculate",
+        "routed_args": {
+          "expression": "What is 144 divided by 12"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "What is 144 divided by 12?",
+        "route": "offline-audio",
+        "tool": "calculate",
+        "args": {
+          "expression": "What is 144 divided by 12"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "help2-03",
+      "category": "software_help_and_knowledge",
+      "prompt": "Convert 100 kilometers to miles",
+      "transcript": "",
+      "score": 83,
+      "passed": false,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Convert 100 km to miles\"; router did calculate. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 2.18,
+      "expected_tool": "calculate",
+      "heard": "Convert 100 km to miles",
+      "capability": 32,
+      "observed_tools": [
+        "calculate"
+      ],
+      "heard_records": [
+        "Convert 100 km to miles"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Convert 100 kilometers to miles",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.84,
+        "wall_seconds": 2.184,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.155,
+        "requests": [
+          "Convert 100 km to miles"
+        ],
+        "turns": [
+          {
+            "text": "Convert 100 km to miles",
+            "kind": "armed",
+            "frame": 275
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "calculate",
+        "routed_args": {
+          "expression": "Convert 100 km to miles"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 0.8333,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Convert 100 km to miles",
+        "route": "offline-audio",
+        "tool": "calculate",
+        "args": {
+          "expression": "Convert 100 km to miles"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "help2-04",
+      "category": "software_help_and_knowledge",
+      "prompt": "What is the square root of 81",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"What is the square root of 81?\"; router did calculate. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 2.18,
+      "expected_tool": "calculate",
+      "heard": "What is the square root of 81?",
+      "capability": 32,
+      "observed_tools": [
+        "calculate"
+      ],
+      "heard_records": [
+        "What is the square root of 81?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | What is the square root of 81",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.24,
+        "wall_seconds": 2.179,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.152,
+        "requests": [
+          "What is the square root of 81?"
+        ],
+        "turns": [
+          {
+            "text": "What is the square root of 81?",
+            "kind": "armed",
+            "frame": 268
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "calculate",
+        "routed_args": {
+          "expression": "What is the square root of 81"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "What is the square root of 81?",
+        "route": "offline-audio",
+        "tool": "calculate",
+        "args": {
+          "expression": "What is the square root of 81"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "help2-05",
+      "category": "software_help_and_knowledge",
+      "prompt": "Help with reminders",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Help with reminders\"; router did voxa_help. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 2.09,
+      "expected_tool": "voxa_help",
+      "heard": "Help with reminders",
+      "capability": 82,
+      "observed_tools": [
+        "voxa_help"
+      ],
+      "heard_records": [
+        "Help with reminders"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Help with reminders",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.7244,
+        "peak_guard": null,
+        "audio_seconds": 5.44,
+        "wall_seconds": 2.087,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.11,
+        "requests": [
+          "Help with reminders"
+        ],
+        "turns": [
+          {
+            "text": "Help with reminders",
+            "kind": "armed",
+            "frame": 213
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "voxa_help",
+        "routed_args": {
+          "topic": "reminders"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Help with reminders",
+        "route": "offline-audio",
+        "tool": "voxa_help",
+        "args": {
+          "topic": "reminders"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "help2-06",
+      "category": "software_help_and_knowledge",
+      "prompt": "What is the largest planet in the solar system",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"What is the largest planet in the solar system?\"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 2.19,
+      "expected_tool": "",
+      "heard": "What is the largest planet in the solar system?",
+      "capability": 32,
+      "observed_tools": [],
+      "heard_records": [
+        "What is the largest planet in the solar system?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | What is the largest planet in the solar system",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.94,
+        "wall_seconds": 2.193,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.172,
+        "requests": [
+          "What is the largest planet in the solar system?"
+        ],
+        "turns": [
+          {
+            "text": "What is the largest planet in the solar system?",
+            "kind": "armed",
+            "frame": 303
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": null,
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "What is the largest planet in the solar system?",
+        "route": "offline-audio",
+        "tool": "",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    }
+  ],
+  "offline": {
+    "mode": "offline-audio",
+    "seed": 0,
+    "variants": [
+      "clean"
+    ],
+    "wake_mode": "separate",
+    "data_root": "/home/rhy/voxa-bench-data",
+    "whisper_model": "base",
+    "engines": [
+      "google-tts"
+    ],
+    "cases": 44,
+    "wall_seconds": 70.249,
+    "wall_seconds_per_case": {
+      "median": 1.238,
+      "p95": 2.277,
+      "max": 2.38
+    },
+    "audio_seconds": 257.28,
+    "realtime_factor": 3.662,
+    "reply_grading": "n/a",
+    "not_measured": [
+      "microphone and speakers (no audio device was touched)",
+      "the reply she would have spoken (no model was called)",
+      "Voxa's own voice as echo (she never speaks in this mode)"
+    ]
+  }
+}

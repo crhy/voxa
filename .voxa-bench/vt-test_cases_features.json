@@ -1,0 +1,1302 @@
+{
+  "timestamp": "2026-11-21T00:32:37.419344",
+  "complete": true,
+  "summary": {
+    "total": 13,
+    "passed": 12,
+    "failed": 1,
+    "errors": 0,
+    "average_score": 100.0,
+    "by_category": {
+      "web_and_maps": {
+        "total": 7,
+        "passed": 7,
+        "failed": 0
+      },
+      "media_controls": {
+        "total": 6,
+        "passed": 5,
+        "failed": 1
+      }
+    }
+  },
+  "comprehension": {
+    "hearing_word_accuracy": 1.0,
+    "routed_tool_accuracy": 0.9231,
+    "layer_counts": {
+      "not_heard": 0,
+      "misheard": 0,
+      "misrouted": 1,
+      "misanswered": 0,
+      "ok": 12
+    },
+    "confusions": [],
+    "cases_scored": 13,
+    "routed_cases": 13,
+    "wake_word": "voxa",
+    "by_category": {
+      "media_controls": {
+        "cases": 6,
+        "hearing_word_accuracy": 1.0,
+        "routed_tool_accuracy": 0.8333,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 0,
+          "misrouted": 1,
+          "misanswered": 0,
+          "ok": 5
+        }
+      },
+      "web_and_maps": {
+        "cases": 7,
+        "hearing_word_accuracy": 1.0,
+        "routed_tool_accuracy": 1.0,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 0,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 7
+        }
+      }
+    },
+    "cases": [
+      {
+        "case_id": "feat-directions-01",
+        "category": "web_and_maps",
+        "prompt": "Give me directions from Portland to Seattle",
+        "heard": "Give me directions from Portland to Seattle.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "directions",
+        "tools_ran": [
+          "directions"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "feat-directions-02",
+        "category": "web_and_maps",
+        "prompt": "Show me the way to the airport",
+        "heard": "Show me the way to the airport.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "directions",
+        "tools_ran": [
+          "directions"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "feat-directions-03",
+        "category": "web_and_maps",
+        "prompt": "Route to Denver",
+        "heard": "Route to Denver.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "directions",
+        "tools_ran": [
+          "directions"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "feat-local-01",
+        "category": "web_and_maps",
+        "prompt": "Show the local weather",
+        "heard": "Show the local weather.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "local_weather",
+        "tools_ran": [
+          "local_weather"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "feat-local-02",
+        "category": "web_and_maps",
+        "prompt": "What's the weather in Tokyo",
+        "heard": "What's the weather in Tokyo?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "local_weather",
+        "tools_ran": [
+          "local_weather"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "feat-local-03",
+        "category": "web_and_maps",
+        "prompt": "Play the local news",
+        "heard": "Play the local news.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "local_news",
+        "tools_ran": [
+          "local_news"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "feat-local-04",
+        "category": "web_and_maps",
+        "prompt": "Live music tonight in my area",
+        "heard": "Live music tonight in my area.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "local_events",
+        "tools_ran": [
+          "local_events"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "feat-tv-01",
+        "category": "media_controls",
+        "prompt": "Open live TV",
+        "heard": "Open Live TV.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "play_tv",
+        "tools_ran": [
+          "play_tv"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "feat-tv-02",
+        "category": "media_controls",
+        "prompt": "Put on France 24",
+        "heard": "Put on France 24",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "play_tv",
+        "tools_ran": [
+          "play_tv"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "feat-tv-03",
+        "category": "media_controls",
+        "prompt": "Play DW News",
+        "heard": "Play DW News",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "play_tv",
+        "tools_ran": [
+          "play_tv"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "feat-radio-01",
+        "category": "media_controls",
+        "prompt": "Play Illinois Street Lounge",
+        "heard": "Play Illinois Street Lounge",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "play_radio",
+        "tools_ran": [
+          "play_radio"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "feat-radio-02",
+        "category": "media_controls",
+        "prompt": "What radio stations do you have",
+        "heard": "What radio stations do you have?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "list_radio",
+        "tools_ran": [
+          "list_radio"
+        ],
+        "routed": true,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "feat-radio-03",
+        "category": "media_controls",
+        "prompt": "Number two",
+        "heard": "Number 2",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "misrouted",
+        "expected_tool": "play_radio",
+        "tools_ran": [],
+        "routed": false,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      }
+    ]
+  },
+  "results": [
+    {
+      "case_id": "feat-directions-01",
+      "category": "web_and_maps",
+      "prompt": "Give me directions from Portland to Seattle",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Give me directions from Portland to Seattle.\"; router did directions. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.26,
+      "expected_tool": "directions",
+      "heard": "Give me directions from Portland to Seattle.",
+      "capability": 48,
+      "observed_tools": [
+        "directions"
+      ],
+      "heard_records": [
+        "Give me directions from Portland to Seattle."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Give me directions from Portland to Seattle",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.72,
+        "wall_seconds": 1.261,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.213,
+        "requests": [
+          "Give me directions from Portland to Seattle."
+        ],
+        "turns": [
+          {
+            "text": "Give me directions from Portland to Seattle.",
+            "kind": "armed",
+            "frame": 271
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "directions",
+        "routed_args": {
+          "origin": "Portland",
+          "destination": "Seattle"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Give me directions from Portland to Seattle.",
+        "route": "offline-audio",
+        "tool": "directions",
+        "args": {
+          "origin": "Portland",
+          "destination": "Seattle"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "feat-directions-02",
+      "category": "web_and_maps",
+      "prompt": "Show me the way to the airport",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Show me the way to the airport.\"; router did directions. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.19,
+      "expected_tool": "directions",
+      "heard": "Show me the way to the airport.",
+      "capability": 48,
+      "observed_tools": [
+        "directions"
+      ],
+      "heard_records": [
+        "Show me the way to the airport."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Show me the way to the airport",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.82,
+        "wall_seconds": 1.186,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.166,
+        "requests": [
+          "Show me the way to the airport."
+        ],
+        "turns": [
+          {
+            "text": "Show me the way to the airport.",
+            "kind": "armed",
+            "frame": 229
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "directions",
+        "routed_args": {
+          "destination": "airport"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Show me the way to the airport.",
+        "route": "offline-audio",
+        "tool": "directions",
+        "args": {
+          "destination": "airport"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "feat-directions-03",
+      "category": "web_and_maps",
+      "prompt": "Route to Denver",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Route to Denver.\"; router did directions. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.13,
+      "expected_tool": "directions",
+      "heard": "Route to Denver.",
+      "capability": 48,
+      "observed_tools": [
+        "directions"
+      ],
+      "heard_records": [
+        "Route to Denver."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Route to Denver",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6687,
+        "peak_guard": null,
+        "audio_seconds": 5.14,
+        "wall_seconds": 1.134,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.118,
+        "requests": [
+          "Route to Denver."
+        ],
+        "turns": [
+          {
+            "text": "Route to Denver.",
+            "kind": "armed",
+            "frame": 197
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "directions",
+        "routed_args": {
+          "destination": "Denver"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Route to Denver.",
+        "route": "offline-audio",
+        "tool": "directions",
+        "args": {
+          "destination": "Denver"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "feat-local-01",
+      "category": "web_and_maps",
+      "prompt": "Show the local weather",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Show the local weather.\"; router did local_weather. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.2,
+      "expected_tool": "local_weather",
+      "heard": "Show the local weather.",
+      "capability": 93,
+      "observed_tools": [
+        "local_weather"
+      ],
+      "heard_records": [
+        "Show the local weather."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Show the local weather",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.4,
+        "wall_seconds": 1.202,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.183,
+        "requests": [
+          "Show the local weather."
+        ],
+        "turns": [
+          {
+            "text": "Show the local weather.",
+            "kind": "armed",
+            "frame": 209
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "local_weather",
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Show the local weather.",
+        "route": "offline-audio",
+        "tool": "local_weather",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "feat-local-02",
+      "category": "web_and_maps",
+      "prompt": "What's the weather in Tokyo",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"What's the weather in Tokyo?\"; router did local_weather. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.2,
+      "expected_tool": "local_weather",
+      "heard": "What's the weather in Tokyo?",
+      "capability": 93,
+      "observed_tools": [
+        "local_weather"
+      ],
+      "heard_records": [
+        "What's the weather in Tokyo?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | What's the weather in Tokyo",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.86,
+        "wall_seconds": 1.201,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.181,
+        "requests": [
+          "What's the weather in Tokyo?"
+        ],
+        "turns": [
+          {
+            "text": "What's the weather in Tokyo?",
+            "kind": "armed",
+            "frame": 229
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "local_weather",
+        "routed_args": {
+          "place": "Tokyo"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "What's the weather in Tokyo?",
+        "route": "offline-audio",
+        "tool": "local_weather",
+        "args": {
+          "place": "Tokyo"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "feat-local-03",
+      "category": "web_and_maps",
+      "prompt": "Play the local news",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Play the local news.\"; router did local_news. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.17,
+      "expected_tool": "local_news",
+      "heard": "Play the local news.",
+      "capability": 33,
+      "observed_tools": [
+        "local_news"
+      ],
+      "heard_records": [
+        "Play the local news."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Play the local news",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.42,
+        "wall_seconds": 1.173,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.154,
+        "requests": [
+          "Play the local news."
+        ],
+        "turns": [
+          {
+            "text": "Play the local news.",
+            "kind": "armed",
+            "frame": 213
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "local_news",
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Play the local news.",
+        "route": "offline-audio",
+        "tool": "local_news",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "feat-local-04",
+      "category": "web_and_maps",
+      "prompt": "Live music tonight in my area",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Live music tonight in my area.\"; router did local_events. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.14,
+      "expected_tool": "local_events",
+      "heard": "Live music tonight in my area.",
+      "capability": 47,
+      "observed_tools": [
+        "local_events"
+      ],
+      "heard_records": [
+        "Live music tonight in my area."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Live music tonight in my area",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.677,
+        "peak_guard": null,
+        "audio_seconds": 6.12,
+        "wall_seconds": 1.136,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.115,
+        "requests": [
+          "Live music tonight in my area."
+        ],
+        "turns": [
+          {
+            "text": "Live music tonight in my area.",
+            "kind": "armed",
+            "frame": 244
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "local_events",
+        "routed_args": {
+          "what": "live music",
+          "when": "tonight"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Live music tonight in my area.",
+        "route": "offline-audio",
+        "tool": "local_events",
+        "args": {
+          "what": "live music",
+          "when": "tonight"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "feat-tv-01",
+      "category": "media_controls",
+      "prompt": "Open live TV",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Open Live TV.\"; router did play_tv. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.19,
+      "expected_tool": "play_tv",
+      "heard": "Open Live TV.",
+      "capability": 82,
+      "observed_tools": [
+        "play_tv"
+      ],
+      "heard_records": [
+        "Open Live TV."
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Open live TV",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.7926,
+        "peak_guard": null,
+        "audio_seconds": 5.32,
+        "wall_seconds": 1.191,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.173,
+        "requests": [
+          "Open Live TV."
+        ],
+        "turns": [
+          {
+            "text": "Open Live TV.",
+            "kind": "armed",
+            "frame": 229
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "play_tv",
+        "routed_args": {
+          "name": ""
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Open Live TV.",
+        "route": "offline-audio",
+        "tool": "play_tv",
+        "args": {
+          "name": ""
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "feat-tv-02",
+      "category": "media_controls",
+      "prompt": "Put on France 24",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Put on France 24\"; router did play_tv. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.18,
+      "expected_tool": "play_tv",
+      "heard": "Put on France 24",
+      "capability": 82,
+      "observed_tools": [
+        "play_tv"
+      ],
+      "heard_records": [
+        "Put on France 24"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Put on France 24",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6891,
+        "peak_guard": null,
+        "audio_seconds": 5.82,
+        "wall_seconds": 1.18,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.161,
+        "requests": [
+          "Put on France 24"
+        ],
+        "turns": [
+          {
+            "text": "Put on France 24",
+            "kind": "armed",
+            "frame": 227
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "play_tv",
+        "routed_args": {
+          "name": "France 24"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Put on France 24",
+        "route": "offline-audio",
+        "tool": "play_tv",
+        "args": {
+          "name": "France 24"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "feat-tv-03",
+      "category": "media_controls",
+      "prompt": "Play DW News",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Play DW News\"; router did play_tv. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.18,
+      "expected_tool": "play_tv",
+      "heard": "Play DW News",
+      "capability": 82,
+      "observed_tools": [
+        "play_tv"
+      ],
+      "heard_records": [
+        "Play DW News"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Play DW News",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6614,
+        "peak_guard": null,
+        "audio_seconds": 5.56,
+        "wall_seconds": 1.175,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.156,
+        "requests": [
+          "Play DW News"
+        ],
+        "turns": [
+          {
+            "text": "Play DW News",
+            "kind": "armed",
+            "frame": 221
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "play_tv",
+        "routed_args": {
+          "name": "DW News"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Play DW News",
+        "route": "offline-audio",
+        "tool": "play_tv",
+        "args": {
+          "name": "DW News"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "feat-radio-01",
+      "category": "media_controls",
+      "prompt": "Play Illinois Street Lounge",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Play Illinois Street Lounge\"; router did play_radio. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.19,
+      "expected_tool": "play_radio",
+      "heard": "Play Illinois Street Lounge",
+      "capability": 82,
+      "observed_tools": [
+        "play_radio"
+      ],
+      "heard_records": [
+        "Play Illinois Street Lounge"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Play Illinois Street Lounge",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 5.82,
+        "wall_seconds": 1.187,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.162,
+        "requests": [
+          "Play Illinois Street Lounge"
+        ],
+        "turns": [
+          {
+            "text": "Play Illinois Street Lounge",
+            "kind": "armed",
+            "frame": 235
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "play_radio",
+        "routed_args": {
+          "name": "illinois street lounge"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Play Illinois Street Lounge",
+        "route": "offline-audio",
+        "tool": "play_radio",
+        "args": {
+          "name": "illinois street lounge"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "feat-radio-02",
+      "category": "media_controls",
+      "prompt": "What radio stations do you have",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Offline audio (google-tts, variant clean): heard \"What radio stations do you have?\"; router did list_radio. Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.16,
+      "expected_tool": "list_radio",
+      "heard": "What radio stations do you have?",
+      "capability": 82,
+      "observed_tools": [
+        "list_radio"
+      ],
+      "heard_records": [
+        "What radio stations do you have?"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | What radio stations do you have",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 6.06,
+        "wall_seconds": 1.16,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.137,
+        "requests": [
+          "What radio stations do you have?"
+        ],
+        "turns": [
+          {
+            "text": "What radio stations do you have?",
+            "kind": "armed",
+            "frame": 238
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "list_radio",
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "What radio stations do you have?",
+        "route": "offline-audio",
+        "tool": "list_radio",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "feat-radio-03",
+      "category": "media_controls",
+      "prompt": "Number two",
+      "transcript": "",
+      "score": 100,
+      "passed": false,
+      "notes": "Offline audio (google-tts, variant clean): heard \"Number 2\"; router did nothing (expected play_radio, got nothing). Reply grading skipped (n/a): nothing is spoken offline.",
+      "method": "offline",
+      "error": "",
+      "duration_seconds": 1.14,
+      "expected_tool": "play_radio",
+      "heard": "Number 2",
+      "capability": 82,
+      "observed_tools": [],
+      "heard_records": [
+        "Number 2"
+      ],
+      "offline": {
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "separate",
+        "spoken": "voxa. | Number two",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": 0.6555,
+        "peak_guard": null,
+        "audio_seconds": 4.9,
+        "wall_seconds": 1.136,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.119,
+        "requests": [
+          "Number 2"
+        ],
+        "turns": [
+          {
+            "text": "Number 2",
+            "kind": "armed",
+            "frame": 207
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": null,
+        "routed_args": {},
+        "routing_problem": "expected play_radio, got nothing",
+        "hearing_word_accuracy": 1.0,
+        "echo_mode": "off"
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Number 2",
+        "route": "offline-audio",
+        "tool": "",
+        "args": {},
+        "ok": false,
+        "variant": "clean"
+      }
+    }
+  ],
+  "offline": {
+    "mode": "offline-audio",
+    "seed": 0,
+    "variants": [
+      "clean"
+    ],
+    "wake_mode": "separate",
+    "data_root": "/home/rhy/voxa-bench-data",
+    "whisper_model": "base",
+    "engines": [
+      "google-tts"
+    ],
+    "cases": 13,
+    "wall_seconds": 15.321,
+    "wall_seconds_per_case": {
+      "median": 1.18,
+      "p95": 1.226,
+      "max": 1.261
+    },
+    "audio_seconds": 73.96,
+    "realtime_factor": 4.827,
+    "reply_grading": "n/a",
+    "not_measured": [
+      "microphone and speakers (no audio device was touched)",
+      "the reply she would have spoken (no model was called)",
+      "Voxa's own voice as echo (she never speaks in this mode)"
+    ]
+  }
+}

@@ -1,0 +1,8055 @@
+{
+  "by_scenario": {
+    "cold": {
+      "clips": 3,
+      "metrics": {
+        "align_err_p90_ms": {
+          "ci": [
+            0.019658,
+            0.021273
+          ],
+          "samples": 270,
+          "value": 0.020514
+        },
+        "backchannel_resume_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "cpu_core_share": {
+          "ci": [
+            0.046193,
+            0.096237
+          ],
+          "samples": 3,
+          "value": 0.067756
+        },
+        "delay_est_err_ms": {
+          "ci": [
+            0.043149,
+            0.04774
+          ],
+          "samples": 270,
+          "value": 0.045792
+        },
+        "drift_erle_loss_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "dt_wer_penalty_pts": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 3,
+          "value": null
+        },
+        "duck_latency_p50_ms": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "duck_latency_p90_ms": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "echo_leak_word_rate": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 15,
+          "value": 0.0
+        },
+        "ep50_ms": {
+          "ci": [
+            148.902602,
+            733.206026
+          ],
+          "samples": 3,
+          "value": 507.409386
+        },
+        "ep90_ms": {
+          "ci": [
+            148.902602,
+            733.206026
+          ],
+          "samples": 3,
+          "value": 688.046698
+        },
+        "erle_fst_median_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "erle_fst_p10_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "erle_music_loss_db": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 3,
+          "value": 0.0
+        },
+        "false_bargein_per_hour": {
+          "ci": [
+            0.0,
+            962.116657
+          ],
+          "samples": 3,
+          "value": 502.013282
+        },
+        "first_word_trunc_bargein": {
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "samples": 2,
+          "value": 1.0
+        },
+        "first_word_trunc_cold": {
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "samples": 3,
+          "value": 1.0
+        },
+        "fst_transcript_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "interrupt_stop_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "missed_bargein_rate": {
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "samples": 3,
+          "value": 1.0
+        },
+        "nearend_atten_dt_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 3,
+          "value": null
+        },
+        "pair_accuracy": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "premature_cutoff_rate": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 3,
+          "value": 0.0
+        },
+        "protected_word_keep_rate": {
+          "ci": [
+            0.2,
+            1.0
+          ],
+          "samples": 5,
+          "value": 0.6
+        },
+        "reconverge_s": {
+          "ci": [
+            0.02,
+            0.02
+          ],
+          "samples": 2,
+          "value": 0.02
+        },
+        "self_command_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "self_pause_per_hour": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "stop_latency_p50_ms": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "stop_latency_p95_ms": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "transport_drop_count": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "turn_retention_rate": {
+          "ci": [
+            0.0,
+            1.0
+          ],
+          "samples": 2,
+          "value": 0.5
+        },
+        "user_recall_nst": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "user_word_deletion_rate": {
+          "ci": [
+            0.0,
+            0.5
+          ],
+          "samples": 10,
+          "value": 0.2
+        }
+      }
+    },
+    "dt_echo_tail": {
+      "clips": 2,
+      "metrics": {
+        "align_err_p90_ms": {
+          "ci": [
+            0.001138,
+            0.002044
+          ],
+          "samples": 185,
+          "value": 0.001325
+        },
+        "backchannel_resume_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "cpu_core_share": {
+          "ci": [
+            0.032661,
+            0.055657
+          ],
+          "samples": 2,
+          "value": 0.044159
+        },
+        "delay_est_err_ms": {
+          "ci": [
+            0.005802,
+            0.009415
+          ],
+          "samples": 185,
+          "value": 0.008852
+        },
+        "drift_erle_loss_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "dt_wer_penalty_pts": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 2,
+          "value": null
+        },
+        "duck_latency_p50_ms": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "duck_latency_p90_ms": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "echo_leak_word_rate": {
+          "ci": [
+            0.0,
+            0.272727
+          ],
+          "samples": 11,
+          "value": 0.090909
+        },
+        "ep50_ms": {
+          "ci": [
+            896.907729,
+            981.315065
+          ],
+          "samples": 2,
+          "value": 939.111397
+        },
+        "ep90_ms": {
+          "ci": [
+            896.907729,
+            981.315065
+          ],
+          "samples": 2,
+          "value": 972.874332
+        },
+        "erle_fst_median_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "erle_fst_p10_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "erle_music_loss_db": {
+          "ci": [
+            0.0,
+            0.171
+          ],
+          "samples": 2,
+          "value": 0.0855
+        },
+        "false_bargein_per_hour": {
+          "ci": [
+            0.0,
+            962.116657
+          ],
+          "samples": 2,
+          "value": 695.820246
+        },
+        "first_word_trunc_bargein": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 1,
+          "value": 0.0
+        },
+        "first_word_trunc_cold": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "fst_transcript_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "interrupt_stop_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "missed_bargein_rate": {
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "samples": 2,
+          "value": 1.0
+        },
+        "nearend_atten_dt_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "pair_accuracy": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "premature_cutoff_rate": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 2,
+          "value": 0.0
+        },
+        "protected_word_keep_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "reconverge_s": {
+          "ci": [
+            0.02,
+            0.02
+          ],
+          "samples": 2,
+          "value": 0.02
+        },
+        "self_command_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "self_pause_per_hour": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "stop_latency_p50_ms": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "stop_latency_p95_ms": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "transport_drop_count": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "turn_retention_rate": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 1,
+          "value": 0.0
+        },
+        "user_recall_nst": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "user_word_deletion_rate": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 30,
+          "value": 0.0
+        }
+      }
+    },
+    "dt_first_syllable": {
+      "clips": 2,
+      "metrics": {
+        "align_err_p90_ms": {
+          "ci": [
+            0.028847,
+            0.041774
+          ],
+          "samples": 246,
+          "value": 0.03683
+        },
+        "backchannel_resume_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "cpu_core_share": {
+          "ci": [
+            0.065091,
+            0.096314
+          ],
+          "samples": 2,
+          "value": 0.080702
+        },
+        "delay_est_err_ms": {
+          "ci": [
+            0.059225,
+            0.065131
+          ],
+          "samples": 246,
+          "value": 0.06305
+        },
+        "drift_erle_loss_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "dt_wer_penalty_pts": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 2,
+          "value": null
+        },
+        "duck_latency_p50_ms": {
+          "ci": [
+            1661.115045,
+            3081.990188
+          ],
+          "samples": 2,
+          "value": 2371.552617
+        },
+        "duck_latency_p90_ms": {
+          "ci": [
+            1661.115045,
+            3081.990188
+          ],
+          "samples": 2,
+          "value": 2939.902674
+        },
+        "echo_leak_word_rate": {
+          "ci": [
+            0.0,
+            0.214286
+          ],
+          "samples": 14,
+          "value": 0.071429
+        },
+        "ep50_ms": {
+          "ci": [
+            -1918.884955,
+            841.115045
+          ],
+          "samples": 3,
+          "value": 801.990188
+        },
+        "ep90_ms": {
+          "ci": [
+            -1918.884955,
+            841.115045
+          ],
+          "samples": 3,
+          "value": 833.290074
+        },
+        "erle_fst_median_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "erle_fst_p10_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "erle_music_loss_db": {
+          "ci": [
+            0.0,
+            0.986
+          ],
+          "samples": 2,
+          "value": 0.493
+        },
+        "false_bargein_per_hour": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 2,
+          "value": 0.0
+        },
+        "first_word_trunc_bargein": {
+          "ci": [
+            0.0,
+            1.0
+          ],
+          "samples": 2,
+          "value": 0.5
+        },
+        "first_word_trunc_cold": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "fst_transcript_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "interrupt_stop_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "missed_bargein_rate": {
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "samples": 2,
+          "value": 1.0
+        },
+        "nearend_atten_dt_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 2,
+          "value": null
+        },
+        "pair_accuracy": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "premature_cutoff_rate": {
+          "ci": [
+            0.0,
+            1.0
+          ],
+          "samples": 3,
+          "value": 0.333333
+        },
+        "protected_word_keep_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "reconverge_s": {
+          "ci": [
+            0.02,
+            0.02
+          ],
+          "samples": 1,
+          "value": 0.02
+        },
+        "self_command_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "self_pause_per_hour": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "stop_latency_p50_ms": {
+          "ci": [
+            1661.115045,
+            3081.990188
+          ],
+          "samples": 2,
+          "value": 2371.552617
+        },
+        "stop_latency_p95_ms": {
+          "ci": [
+            1661.115045,
+            3081.990188
+          ],
+          "samples": 2,
+          "value": 3010.946431
+        },
+        "transport_drop_count": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "turn_retention_rate": {
+          "ci": [
+            0.0,
+            1.0
+          ],
+          "samples": 2,
+          "value": 0.5
+        },
+        "user_recall_nst": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "user_word_deletion_rate": {
+          "ci": [
+            0.342105,
+            0.657895
+          ],
+          "samples": 38,
+          "value": 0.5
+        }
+      }
+    },
+    "dt_last_word": {
+      "clips": 2,
+      "metrics": {
+        "align_err_p90_ms": {
+          "ci": [
+            0.00212,
+            0.003076
+          ],
+          "samples": 167,
+          "value": 0.002412
+        },
+        "backchannel_resume_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "cpu_core_share": {
+          "ci": [
+            0.058621,
+            0.071763
+          ],
+          "samples": 2,
+          "value": 0.065192
+        },
+        "delay_est_err_ms": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 167,
+          "value": 0.0
+        },
+        "drift_erle_loss_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "dt_wer_penalty_pts": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 2,
+          "value": null
+        },
+        "duck_latency_p50_ms": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "duck_latency_p90_ms": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "echo_leak_word_rate": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 9,
+          "value": 0.0
+        },
+        "ep50_ms": {
+          "ci": [
+            761.457466,
+            841.724514
+          ],
+          "samples": 2,
+          "value": 801.59099
+        },
+        "ep90_ms": {
+          "ci": [
+            761.457466,
+            841.724514
+          ],
+          "samples": 2,
+          "value": 833.697809
+        },
+        "erle_fst_median_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "erle_fst_p10_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "erle_music_loss_db": {
+          "ci": [
+            0.0,
+            0.684
+          ],
+          "samples": 2,
+          "value": 0.342
+        },
+        "false_bargein_per_hour": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 2,
+          "value": 0.0
+        },
+        "first_word_trunc_bargein": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "first_word_trunc_cold": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "fst_transcript_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "interrupt_stop_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "missed_bargein_rate": {
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "samples": 2,
+          "value": 1.0
+        },
+        "nearend_atten_dt_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 2,
+          "value": null
+        },
+        "pair_accuracy": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "premature_cutoff_rate": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 2,
+          "value": 0.0
+        },
+        "protected_word_keep_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "reconverge_s": {
+          "ci": [
+            0.02,
+            0.02
+          ],
+          "samples": 2,
+          "value": 0.02
+        },
+        "self_command_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "self_pause_per_hour": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "stop_latency_p50_ms": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "stop_latency_p95_ms": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "transport_drop_count": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "turn_retention_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "user_recall_nst": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "user_word_deletion_rate": {
+          "ci": [
+            0.0,
+            0.263158
+          ],
+          "samples": 19,
+          "value": 0.105263
+        }
+      }
+    },
+    "dt_middle": {
+      "clips": 3,
+      "metrics": {
+        "align_err_p90_ms": {
+          "ci": [
+            0.015284,
+            0.019661
+          ],
+          "samples": 207,
+          "value": 0.0175
+        },
+        "backchannel_resume_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "cpu_core_share": {
+          "ci": [
+            0.047106,
+            0.085213
+          ],
+          "samples": 3,
+          "value": 0.061669
+        },
+        "delay_est_err_ms": {
+          "ci": [
+            0.033187,
+            43.312497
+          ],
+          "samples": 207,
+          "value": 0.036941
+        },
+        "drift_erle_loss_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "dt_wer_penalty_pts": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 3,
+          "value": null
+        },
+        "duck_latency_p50_ms": {
+          "ci": [
+            32.930731,
+            179.576082
+          ],
+          "samples": 2,
+          "value": 106.253407
+        },
+        "duck_latency_p90_ms": {
+          "ci": [
+            32.930731,
+            179.576082
+          ],
+          "samples": 2,
+          "value": 164.911547
+        },
+        "echo_leak_word_rate": {
+          "ci": [
+            0.0,
+            0.357143
+          ],
+          "samples": 14,
+          "value": 0.142857
+        },
+        "ep50_ms": {
+          "ci": [
+            836.593815,
+            1012.930731
+          ],
+          "samples": 3,
+          "value": 899.576082
+        },
+        "ep90_ms": {
+          "ci": [
+            836.593815,
+            1012.930731
+          ],
+          "samples": 3,
+          "value": 990.259801
+        },
+        "erle_fst_median_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "erle_fst_p10_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "erle_music_loss_db": {
+          "ci": [
+            0.0,
+            0.162
+          ],
+          "samples": 3,
+          "value": 0.054333
+        },
+        "false_bargein_per_hour": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 3,
+          "value": 0.0
+        },
+        "first_word_trunc_bargein": {
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "samples": 2,
+          "value": 1.0
+        },
+        "first_word_trunc_cold": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "fst_transcript_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "interrupt_stop_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "missed_bargein_rate": {
+          "ci": [
+            0.0,
+            1.0
+          ],
+          "samples": 3,
+          "value": 0.333333
+        },
+        "nearend_atten_dt_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 3,
+          "value": null
+        },
+        "pair_accuracy": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "premature_cutoff_rate": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 3,
+          "value": 0.0
+        },
+        "protected_word_keep_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "reconverge_s": {
+          "ci": [
+            0.04,
+            0.04
+          ],
+          "samples": 1,
+          "value": 0.04
+        },
+        "self_command_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "self_pause_per_hour": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "stop_latency_p50_ms": {
+          "ci": [
+            32.930731,
+            179.576082
+          ],
+          "samples": 2,
+          "value": 106.253407
+        },
+        "stop_latency_p95_ms": {
+          "ci": [
+            32.930731,
+            179.576082
+          ],
+          "samples": 2,
+          "value": 172.243815
+        },
+        "transport_drop_count": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "turn_retention_rate": {
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "samples": 2,
+          "value": 1.0
+        },
+        "user_recall_nst": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "user_word_deletion_rate": {
+          "ci": [
+            0.04,
+            0.32
+          ],
+          "samples": 25,
+          "value": 0.16
+        }
+      }
+    },
+    "dt_onset": {
+      "clips": 3,
+      "metrics": {
+        "align_err_p90_ms": {
+          "ci": [
+            0.015204,
+            0.017647
+          ],
+          "samples": 197,
+          "value": 0.015889
+        },
+        "backchannel_resume_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "cpu_core_share": {
+          "ci": [
+            0.051008,
+            0.054543
+          ],
+          "samples": 3,
+          "value": 0.05324
+        },
+        "delay_est_err_ms": {
+          "ci": [
+            0.039454,
+            274.625
+          ],
+          "samples": 197,
+          "value": 0.043667
+        },
+        "drift_erle_loss_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "dt_wer_penalty_pts": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 3,
+          "value": null
+        },
+        "duck_latency_p50_ms": {
+          "ci": [
+            1280.0,
+            1611.387694
+          ],
+          "samples": 2,
+          "value": 1445.693847
+        },
+        "duck_latency_p90_ms": {
+          "ci": [
+            1280.0,
+            1611.387694
+          ],
+          "samples": 2,
+          "value": 1578.248924
+        },
+        "echo_leak_word_rate": {
+          "ci": [
+            0.0,
+            0.1875
+          ],
+          "samples": 16,
+          "value": 0.0625
+        },
+        "ep50_ms": {
+          "ci": [
+            880.0,
+            911.387694
+          ],
+          "samples": 3,
+          "value": 900.0
+        },
+        "ep90_ms": {
+          "ci": [
+            880.0,
+            911.387694
+          ],
+          "samples": 3,
+          "value": 909.110155
+        },
+        "erle_fst_median_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "erle_fst_p10_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "erle_music_loss_db": {
+          "ci": [
+            0.0,
+            0.189
+          ],
+          "samples": 3,
+          "value": 0.063
+        },
+        "false_bargein_per_hour": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 3,
+          "value": 0.0
+        },
+        "first_word_trunc_bargein": {
+          "ci": [
+            0.0,
+            1.0
+          ],
+          "samples": 2,
+          "value": 0.5
+        },
+        "first_word_trunc_cold": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "fst_transcript_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "interrupt_stop_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "missed_bargein_rate": {
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "samples": 3,
+          "value": 1.0
+        },
+        "nearend_atten_dt_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 3,
+          "value": null
+        },
+        "pair_accuracy": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "premature_cutoff_rate": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 3,
+          "value": 0.0
+        },
+        "protected_word_keep_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "reconverge_s": {
+          "ci": [
+            0.02,
+            1.02
+          ],
+          "samples": 3,
+          "value": 0.5
+        },
+        "self_command_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "self_pause_per_hour": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "stop_latency_p50_ms": {
+          "ci": [
+            1280.0,
+            1611.387694
+          ],
+          "samples": 2,
+          "value": 1445.693847
+        },
+        "stop_latency_p95_ms": {
+          "ci": [
+            1280.0,
+            1611.387694
+          ],
+          "samples": 2,
+          "value": 1594.818309
+        },
+        "transport_drop_count": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "turn_retention_rate": {
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "samples": 2,
+          "value": 1.0
+        },
+        "user_recall_nst": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "user_word_deletion_rate": {
+          "ci": [
+            0.209302,
+            0.488372
+          ],
+          "samples": 43,
+          "value": 0.348837
+        }
+      }
+    },
+    "fst": {
+      "clips": 6,
+      "metrics": {
+        "align_err_p90_ms": {
+          "ci": [
+            0.01984,
+            0.022833
+          ],
+          "samples": 606,
+          "value": 0.021498
+        },
+        "backchannel_resume_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "cpu_core_share": {
+          "ci": [
+            0.089321,
+            0.112643
+          ],
+          "samples": 6,
+          "value": 0.101403
+        },
+        "delay_est_err_ms": {
+          "ci": [
+            0.046224,
+            71.78831
+          ],
+          "samples": 606,
+          "value": 68.183746
+        },
+        "drift_erle_loss_db": {
+          "ci": [
+            5.004151,
+            13.142373
+          ],
+          "samples": 264,
+          "value": 8.975152
+        },
+        "dt_wer_penalty_pts": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "duck_latency_p50_ms": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "duck_latency_p90_ms": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "echo_leak_word_rate": {
+          "ci": [
+            0.0,
+            0.157895
+          ],
+          "samples": 38,
+          "value": 0.078947
+        },
+        "ep50_ms": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "ep90_ms": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "erle_fst_median_db": {
+          "ci": [
+            13.1,
+            16.56
+          ],
+          "samples": 294,
+          "value": 15.1
+        },
+        "erle_fst_p10_db": {
+          "ci": [
+            -3.194025,
+            0.822
+          ],
+          "samples": 294,
+          "value": -1.106
+        },
+        "erle_music_loss_db": {
+          "ci": [
+            0.229,
+            1.786167
+          ],
+          "samples": 6,
+          "value": 0.9535
+        },
+        "false_bargein_per_hour": {
+          "ci": [
+            675.406299,
+            1602.029237
+          ],
+          "samples": 6,
+          "value": 1019.801139
+        },
+        "first_word_trunc_bargein": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "first_word_trunc_cold": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "fst_transcript_rate": {
+          "ci": [
+            0.166667,
+            0.833333
+          ],
+          "samples": 6,
+          "value": 0.5
+        },
+        "interrupt_stop_rate": {
+          "ci": [
+            0.5,
+            1.0
+          ],
+          "samples": 6,
+          "value": 0.833333
+        },
+        "missed_bargein_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "nearend_atten_dt_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "pair_accuracy": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "premature_cutoff_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "protected_word_keep_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "reconverge_s": {
+          "ci": [
+            0.02,
+            0.02
+          ],
+          "samples": 2,
+          "value": 0.02
+        },
+        "self_command_rate": {
+          "ci": [
+            0.166667,
+            0.833333
+          ],
+          "samples": 6,
+          "value": 0.5
+        },
+        "self_pause_per_hour": {
+          "ci": [
+            675.406299,
+            1602.029237
+          ],
+          "samples": 6,
+          "value": 1019.801139
+        },
+        "stop_latency_p50_ms": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "stop_latency_p95_ms": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "transport_drop_count": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "turn_retention_rate": {
+          "ci": [
+            0.0,
+            0.8
+          ],
+          "samples": 5,
+          "value": 0.4
+        },
+        "user_recall_nst": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "user_word_deletion_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        }
+      }
+    },
+    "interference": {
+      "clips": 4,
+      "metrics": {
+        "align_err_p90_ms": {
+          "ci": [
+            0.013915,
+            0.020112
+          ],
+          "samples": 346,
+          "value": 0.017663
+        },
+        "backchannel_resume_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "cpu_core_share": {
+          "ci": [
+            0.094968,
+            0.106476
+          ],
+          "samples": 4,
+          "value": 0.100722
+        },
+        "delay_est_err_ms": {
+          "ci": [
+            0.040797,
+            0.047366
+          ],
+          "samples": 346,
+          "value": 0.045178
+        },
+        "drift_erle_loss_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "dt_wer_penalty_pts": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 4,
+          "value": null
+        },
+        "duck_latency_p50_ms": {
+          "ci": [
+            108.593106,
+            654.550243
+          ],
+          "samples": 4,
+          "value": 628.826784
+        },
+        "duck_latency_p90_ms": {
+          "ci": [
+            480.160401,
+            654.550243
+          ],
+          "samples": 4,
+          "value": 650.006228
+        },
+        "echo_leak_word_rate": {
+          "ci": [
+            0.0,
+            0.136364
+          ],
+          "samples": 22,
+          "value": 0.045455
+        },
+        "ep50_ms": {
+          "ci": [
+            274.403528,
+            751.37504
+          ],
+          "samples": 4,
+          "value": 643.696674
+        },
+        "ep90_ms": {
+          "ci": [
+            569.454982,
+            751.37504
+          ],
+          "samples": 4,
+          "value": 734.73421
+        },
+        "erle_fst_median_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "erle_fst_p10_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "erle_music_loss_db": {
+          "ci": [
+            0.0,
+            1.32975
+          ],
+          "samples": 4,
+          "value": 0.5065
+        },
+        "false_bargein_per_hour": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 4,
+          "value": 0.0
+        },
+        "first_word_trunc_bargein": {
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "samples": 4,
+          "value": 1.0
+        },
+        "first_word_trunc_cold": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "fst_transcript_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "interrupt_stop_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "missed_bargein_rate": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 4,
+          "value": 0.0
+        },
+        "nearend_atten_dt_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 4,
+          "value": null
+        },
+        "pair_accuracy": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "premature_cutoff_rate": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 4,
+          "value": 0.0
+        },
+        "protected_word_keep_rate": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 7,
+          "value": 0.0
+        },
+        "reconverge_s": {
+          "ci": [
+            0.02,
+            1.58
+          ],
+          "samples": 3,
+          "value": 0.646667
+        },
+        "self_command_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "self_pause_per_hour": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "stop_latency_p50_ms": {
+          "ci": [
+            108.593106,
+            654.550243
+          ],
+          "samples": 4,
+          "value": 628.826784
+        },
+        "stop_latency_p95_ms": {
+          "ci": [
+            559.781965,
+            654.550243
+          ],
+          "samples": 4,
+          "value": 652.278236
+        },
+        "transport_drop_count": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "turn_retention_rate": {
+          "ci": [
+            0.25,
+            1.0
+          ],
+          "samples": 4,
+          "value": 0.75
+        },
+        "user_recall_nst": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "user_word_deletion_rate": {
+          "ci": [
+            0.0,
+            0.25
+          ],
+          "samples": 12,
+          "value": 0.083333
+        }
+      }
+    },
+    "nst": {
+      "clips": 6,
+      "metrics": {
+        "align_err_p90_ms": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "backchannel_resume_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "cpu_core_share": {
+          "ci": [
+            0.005134,
+            0.011197
+          ],
+          "samples": 6,
+          "value": 0.00821
+        },
+        "delay_est_err_ms": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "drift_erle_loss_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "dt_wer_penalty_pts": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "duck_latency_p50_ms": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "duck_latency_p90_ms": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "echo_leak_word_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "ep50_ms": {
+          "ci": [
+            773.323996,
+            1004.025778
+          ],
+          "samples": 7,
+          "value": 820.521547
+        },
+        "ep90_ms": {
+          "ci": [
+            826.530068,
+            1087.593074
+          ],
+          "samples": 7,
+          "value": 1037.452696
+        },
+        "erle_fst_median_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "erle_fst_p10_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "erle_music_loss_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "false_bargein_per_hour": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "first_word_trunc_bargein": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "first_word_trunc_cold": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "fst_transcript_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "interrupt_stop_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "missed_bargein_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "nearend_atten_dt_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "pair_accuracy": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "premature_cutoff_rate": {
+          "ci": [
+            0.0,
+            0.428571
+          ],
+          "samples": 7,
+          "value": 0.142857
+        },
+        "protected_word_keep_rate": {
+          "ci": [
+            0.730769,
+            1.0
+          ],
+          "samples": 26,
+          "value": 0.884615
+        },
+        "reconverge_s": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "self_command_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "self_pause_per_hour": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "stop_latency_p50_ms": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "stop_latency_p95_ms": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "transport_drop_count": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "turn_retention_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "user_recall_nst": {
+          "ci": [
+            0.909091,
+            0.990909
+          ],
+          "samples": 110,
+          "value": 0.954545
+        },
+        "user_word_deletion_rate": {
+          "ci": [
+            0.0,
+            0.045455
+          ],
+          "samples": 110,
+          "value": 0.018182
+        }
+      }
+    },
+    "pair": {
+      "clips": 6,
+      "metrics": {
+        "align_err_p90_ms": {
+          "ci": [
+            0.021779,
+            0.028589
+          ],
+          "samples": 281,
+          "value": 0.026814
+        },
+        "backchannel_resume_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "cpu_core_share": {
+          "ci": [
+            0.051501,
+            0.084022
+          ],
+          "samples": 6,
+          "value": 0.067619
+        },
+        "delay_est_err_ms": {
+          "ci": [
+            61.06238,
+            96.812309
+          ],
+          "samples": 281,
+          "value": 64.9375
+        },
+        "drift_erle_loss_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "dt_wer_penalty_pts": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 3,
+          "value": null
+        },
+        "duck_latency_p50_ms": {
+          "ci": [
+            719.646696,
+            719.646696
+          ],
+          "samples": 1,
+          "value": 719.646696
+        },
+        "duck_latency_p90_ms": {
+          "ci": [
+            719.646696,
+            719.646696
+          ],
+          "samples": 1,
+          "value": 719.646696
+        },
+        "echo_leak_word_rate": {
+          "ci": [
+            0.0,
+            0.3
+          ],
+          "samples": 20,
+          "value": 0.15
+        },
+        "ep50_ms": {
+          "ci": [
+            555.459196,
+            555.459196
+          ],
+          "samples": 1,
+          "value": 555.459196
+        },
+        "ep90_ms": {
+          "ci": [
+            555.459196,
+            555.459196
+          ],
+          "samples": 1,
+          "value": 555.459196
+        },
+        "erle_fst_median_db": {
+          "ci": [
+            14.376,
+            21.755
+          ],
+          "samples": 78,
+          "value": 18.38
+        },
+        "erle_fst_p10_db": {
+          "ci": [
+            -6.175,
+            0.439
+          ],
+          "samples": 78,
+          "value": -1.694
+        },
+        "erle_music_loss_db": {
+          "ci": [
+            0.0,
+            1.413
+          ],
+          "samples": 6,
+          "value": 0.471
+        },
+        "false_bargein_per_hour": {
+          "ci": [
+            0.0,
+            792.057424
+          ],
+          "samples": 6,
+          "value": 388.21341
+        },
+        "first_word_trunc_bargein": {
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "samples": 1,
+          "value": 1.0
+        },
+        "first_word_trunc_cold": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "fst_transcript_rate": {
+          "ci": [
+            0.0,
+            1.0
+          ],
+          "samples": 3,
+          "value": 0.333333
+        },
+        "interrupt_stop_rate": {
+          "ci": [
+            0.0,
+            1.0
+          ],
+          "samples": 3,
+          "value": 0.333333
+        },
+        "missed_bargein_rate": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 1,
+          "value": 0.0
+        },
+        "nearend_atten_dt_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 3,
+          "value": null
+        },
+        "pair_accuracy": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 3,
+          "value": 0.0
+        },
+        "premature_cutoff_rate": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 1,
+          "value": 0.0
+        },
+        "protected_word_keep_rate": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 2,
+          "value": 0.0
+        },
+        "reconverge_s": {
+          "ci": [
+            0.02,
+            0.04
+          ],
+          "samples": 3,
+          "value": 0.026667
+        },
+        "self_command_rate": {
+          "ci": [
+            0.0,
+            1.0
+          ],
+          "samples": 3,
+          "value": 0.333333
+        },
+        "self_pause_per_hour": {
+          "ci": [
+            0.0,
+            962.116657
+          ],
+          "samples": 3,
+          "value": 776.426819
+        },
+        "stop_latency_p50_ms": {
+          "ci": [
+            719.646696,
+            719.646696
+          ],
+          "samples": 1,
+          "value": 719.646696
+        },
+        "stop_latency_p95_ms": {
+          "ci": [
+            719.646696,
+            719.646696
+          ],
+          "samples": 1,
+          "value": 719.646696
+        },
+        "transport_drop_count": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "turn_retention_rate": {
+          "ci": [
+            0.0,
+            1.0
+          ],
+          "samples": 2,
+          "value": 0.5
+        },
+        "user_recall_nst": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "user_word_deletion_rate": {
+          "ci": [
+            0.2,
+            0.8
+          ],
+          "samples": 10,
+          "value": 0.5
+        }
+      }
+    },
+    "path_change": {
+      "clips": 3,
+      "metrics": {
+        "align_err_p90_ms": {
+          "ci": [
+            0.033767,
+            46.3961
+          ],
+          "samples": 130,
+          "value": 0.200406
+        },
+        "backchannel_resume_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "cpu_core_share": {
+          "ci": [
+            0.044355,
+            0.102318
+          ],
+          "samples": 3,
+          "value": 0.076396
+        },
+        "delay_est_err_ms": {
+          "ci": [
+            46.418059,
+            46.428685
+          ],
+          "samples": 130,
+          "value": 46.425838
+        },
+        "drift_erle_loss_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "dt_wer_penalty_pts": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 3,
+          "value": null
+        },
+        "duck_latency_p50_ms": {
+          "ci": [
+            97.438598,
+            334.608963
+          ],
+          "samples": 2,
+          "value": 216.023781
+        },
+        "duck_latency_p90_ms": {
+          "ci": [
+            97.438598,
+            334.608963
+          ],
+          "samples": 2,
+          "value": 310.891927
+        },
+        "echo_leak_word_rate": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 11,
+          "value": 0.0
+        },
+        "ep50_ms": {
+          "ci": [
+            107.733963,
+            1144.751098
+          ],
+          "samples": 3,
+          "value": 536.837292
+        },
+        "ep90_ms": {
+          "ci": [
+            107.733963,
+            1144.751098
+          ],
+          "samples": 3,
+          "value": 1023.168337
+        },
+        "erle_fst_median_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "erle_fst_p10_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "erle_music_loss_db": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 3,
+          "value": 0.0
+        },
+        "false_bargein_per_hour": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 3,
+          "value": 0.0
+        },
+        "first_word_trunc_bargein": {
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "samples": 1,
+          "value": 1.0
+        },
+        "first_word_trunc_cold": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "fst_transcript_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "interrupt_stop_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "missed_bargein_rate": {
+          "ci": [
+            0.0,
+            1.0
+          ],
+          "samples": 3,
+          "value": 0.333333
+        },
+        "nearend_atten_dt_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 3,
+          "value": null
+        },
+        "pair_accuracy": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "premature_cutoff_rate": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 3,
+          "value": 0.0
+        },
+        "protected_word_keep_rate": {
+          "ci": [
+            0.0,
+            0.6
+          ],
+          "samples": 5,
+          "value": 0.2
+        },
+        "reconverge_s": {
+          "ci": [
+            0.02,
+            0.02
+          ],
+          "samples": 1,
+          "value": 0.02
+        },
+        "self_command_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "self_pause_per_hour": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "stop_latency_p50_ms": {
+          "ci": [
+            97.438598,
+            334.608963
+          ],
+          "samples": 2,
+          "value": 216.023781
+        },
+        "stop_latency_p95_ms": {
+          "ci": [
+            97.438598,
+            334.608963
+          ],
+          "samples": 2,
+          "value": 322.750445
+        },
+        "transport_drop_count": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "turn_retention_rate": {
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "samples": 1,
+          "value": 1.0
+        },
+        "user_recall_nst": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "user_word_deletion_rate": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 10,
+          "value": 0.0
+        }
+      }
+    },
+    "pause": {
+      "clips": 3,
+      "metrics": {
+        "align_err_p90_ms": {
+          "ci": [
+            0.010095,
+            0.016194
+          ],
+          "samples": 290,
+          "value": 0.013504
+        },
+        "backchannel_resume_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "cpu_core_share": {
+          "ci": [
+            0.048809,
+            0.082301
+          ],
+          "samples": 3,
+          "value": 0.065885
+        },
+        "delay_est_err_ms": {
+          "ci": [
+            0.045016,
+            31.892525
+          ],
+          "samples": 290,
+          "value": 3.552475
+        },
+        "drift_erle_loss_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "dt_wer_penalty_pts": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 3,
+          "value": null
+        },
+        "duck_latency_p50_ms": {
+          "ci": [
+            454.62495,
+            1321.690261
+          ],
+          "samples": 3,
+          "value": 1238.036863
+        },
+        "duck_latency_p90_ms": {
+          "ci": [
+            454.62495,
+            1321.690261
+          ],
+          "samples": 3,
+          "value": 1304.959581
+        },
+        "echo_leak_word_rate": {
+          "ci": [
+            0.0,
+            0.166667
+          ],
+          "samples": 18,
+          "value": 0.055556
+        },
+        "ep50_ms": {
+          "ci": [
+            -2408.758047,
+            931.241953
+          ],
+          "samples": 5,
+          "value": 693.699127
+        },
+        "ep90_ms": {
+          "ci": [
+            -219.193496,
+            931.241953
+          ],
+          "samples": 5,
+          "value": 883.332199
+        },
+        "erle_fst_median_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "erle_fst_p10_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "erle_music_loss_db": {
+          "ci": [
+            0.0,
+            1.682
+          ],
+          "samples": 3,
+          "value": 0.560667
+        },
+        "false_bargein_per_hour": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 3,
+          "value": 0.0
+        },
+        "first_word_trunc_bargein": {
+          "ci": [
+            0.0,
+            1.0
+          ],
+          "samples": 3,
+          "value": 0.666667
+        },
+        "first_word_trunc_cold": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "fst_transcript_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "interrupt_stop_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "missed_bargein_rate": {
+          "ci": [
+            0.0,
+            1.0
+          ],
+          "samples": 3,
+          "value": 0.666667
+        },
+        "nearend_atten_dt_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 3,
+          "value": null
+        },
+        "pair_accuracy": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "premature_cutoff_rate": {
+          "ci": [
+            0.0,
+            0.8
+          ],
+          "samples": 5,
+          "value": 0.4
+        },
+        "protected_word_keep_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "reconverge_s": {
+          "ci": [
+            0.02,
+            0.08
+          ],
+          "samples": 2,
+          "value": 0.05
+        },
+        "self_command_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "self_pause_per_hour": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "stop_latency_p50_ms": {
+          "ci": [
+            454.62495,
+            1321.690261
+          ],
+          "samples": 3,
+          "value": 1238.036863
+        },
+        "stop_latency_p95_ms": {
+          "ci": [
+            454.62495,
+            1321.690261
+          ],
+          "samples": 3,
+          "value": 1313.324921
+        },
+        "transport_drop_count": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "turn_retention_rate": {
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "samples": 3,
+          "value": 1.0
+        },
+        "user_recall_nst": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "user_word_deletion_rate": {
+          "ci": [
+            0.029412,
+            0.235294
+          ],
+          "samples": 34,
+          "value": 0.117647
+        }
+      }
+    },
+    "quiet": {
+      "clips": 3,
+      "metrics": {
+        "align_err_p90_ms": {
+          "ci": [
+            0.022587,
+            0.027773
+          ],
+          "samples": 318,
+          "value": 0.024866
+        },
+        "backchannel_resume_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "cpu_core_share": {
+          "ci": [
+            0.031646,
+            0.119655
+          ],
+          "samples": 3,
+          "value": 0.063973
+        },
+        "delay_est_err_ms": {
+          "ci": [
+            0.051439,
+            0.067561
+          ],
+          "samples": 318,
+          "value": 0.061054
+        },
+        "drift_erle_loss_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "dt_wer_penalty_pts": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 3,
+          "value": null
+        },
+        "duck_latency_p50_ms": {
+          "ci": [
+            367.297381,
+            1471.180072
+          ],
+          "samples": 3,
+          "value": 843.023215
+        },
+        "duck_latency_p90_ms": {
+          "ci": [
+            367.297381,
+            1471.180072
+          ],
+          "samples": 3,
+          "value": 1345.5487
+        },
+        "echo_leak_word_rate": {
+          "ci": [
+            0.142857,
+            0.571429
+          ],
+          "samples": 21,
+          "value": 0.333333
+        },
+        "ep50_ms": {
+          "ci": [
+            663.023215,
+            2547.297381
+          ],
+          "samples": 3,
+          "value": 731.180072
+        },
+        "ep90_ms": {
+          "ci": [
+            663.023215,
+            2547.297381
+          ],
+          "samples": 3,
+          "value": 2184.073919
+        },
+        "erle_fst_median_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "erle_fst_p10_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "erle_music_loss_db": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 3,
+          "value": 0.0
+        },
+        "false_bargein_per_hour": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 3,
+          "value": 0.0
+        },
+        "first_word_trunc_bargein": {
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "samples": 3,
+          "value": 1.0
+        },
+        "first_word_trunc_cold": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "fst_transcript_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "interrupt_stop_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "missed_bargein_rate": {
+          "ci": [
+            0.0,
+            1.0
+          ],
+          "samples": 3,
+          "value": 0.333333
+        },
+        "nearend_atten_dt_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 3,
+          "value": null
+        },
+        "pair_accuracy": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "premature_cutoff_rate": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 3,
+          "value": 0.0
+        },
+        "protected_word_keep_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "reconverge_s": {
+          "ci": [
+            0.32,
+            0.32
+          ],
+          "samples": 1,
+          "value": 0.32
+        },
+        "self_command_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "self_pause_per_hour": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "stop_latency_p50_ms": {
+          "ci": [
+            367.297381,
+            1471.180072
+          ],
+          "samples": 3,
+          "value": 843.023215
+        },
+        "stop_latency_p95_ms": {
+          "ci": [
+            367.297381,
+            1471.180072
+          ],
+          "samples": 3,
+          "value": 1408.364386
+        },
+        "transport_drop_count": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "turn_retention_rate": {
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "samples": 3,
+          "value": 1.0
+        },
+        "user_recall_nst": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "user_word_deletion_rate": {
+          "ci": [
+            0.0,
+            0.148936
+          ],
+          "samples": 47,
+          "value": 0.06383
+        }
+      }
+    },
+    "short": {
+      "clips": 6,
+      "metrics": {
+        "align_err_p90_ms": {
+          "ci": [
+            0.01056,
+            0.013663
+          ],
+          "samples": 588,
+          "value": 0.012111
+        },
+        "backchannel_resume_rate": {
+          "ci": [
+            0.0,
+            1.0
+          ],
+          "samples": 2,
+          "value": 0.5
+        },
+        "cpu_core_share": {
+          "ci": [
+            0.094327,
+            0.10437
+          ],
+          "samples": 6,
+          "value": 0.099017
+        },
+        "delay_est_err_ms": {
+          "ci": [
+            63.556729,
+            148.4375
+          ],
+          "samples": 588,
+          "value": 148.4375
+        },
+        "drift_erle_loss_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "dt_wer_penalty_pts": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 6,
+          "value": null
+        },
+        "duck_latency_p50_ms": {
+          "ci": [
+            1112.36971,
+            1112.36971
+          ],
+          "samples": 1,
+          "value": 1112.36971
+        },
+        "duck_latency_p90_ms": {
+          "ci": [
+            1112.36971,
+            1112.36971
+          ],
+          "samples": 1,
+          "value": 1112.36971
+        },
+        "echo_leak_word_rate": {
+          "ci": [
+            0.069767,
+            0.27907
+          ],
+          "samples": 43,
+          "value": 0.162791
+        },
+        "ep50_ms": {
+          "ci": [
+            1323.405722,
+            3201.038519
+          ],
+          "samples": 4,
+          "value": 1727.721118
+        },
+        "ep90_ms": {
+          "ci": [
+            1390.99471,
+            3201.038519
+          ],
+          "samples": 4,
+          "value": 2860.061221
+        },
+        "erle_fst_median_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "erle_fst_p10_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "erle_music_loss_db": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 6,
+          "value": 0.0
+        },
+        "false_bargein_per_hour": {
+          "ci": [
+            0.0,
+            808.929371
+          ],
+          "samples": 6,
+          "value": 354.525899
+        },
+        "first_word_trunc_bargein": {
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "samples": 4,
+          "value": 1.0
+        },
+        "first_word_trunc_cold": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "fst_transcript_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "interrupt_stop_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "missed_bargein_rate": {
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "samples": 2,
+          "value": 1.0
+        },
+        "nearend_atten_dt_db": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 6,
+          "value": null
+        },
+        "pair_accuracy": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "premature_cutoff_rate": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 4,
+          "value": 0.0
+        },
+        "protected_word_keep_rate": {
+          "ci": [
+            0.0,
+            0.0
+          ],
+          "samples": 6,
+          "value": 0.0
+        },
+        "reconverge_s": {
+          "ci": [
+            0.126667,
+            0.406667
+          ],
+          "samples": 6,
+          "value": 0.266667
+        },
+        "self_command_rate": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "self_pause_per_hour": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "stop_latency_p50_ms": {
+          "ci": [
+            1112.36971,
+            1112.36971
+          ],
+          "samples": 1,
+          "value": 1112.36971
+        },
+        "stop_latency_p95_ms": {
+          "ci": [
+            1112.36971,
+            1112.36971
+          ],
+          "samples": 1,
+          "value": 1112.36971
+        },
+        "transport_drop_count": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "turn_retention_rate": {
+          "ci": [
+            0.25,
+            1.0
+          ],
+          "samples": 4,
+          "value": 0.75
+        },
+        "user_recall_nst": {
+          "ci": [
+            null,
+            null
+          ],
+          "samples": 0,
+          "value": null
+        },
+        "user_word_deletion_rate": {
+          "ci": [
+            0.0,
+            0.6
+          ],
+          "samples": 10,
+          "value": 0.3
+        }
+      }
+    }
+  },
+  "clips": [
+    {
+      "asr_audio_seconds": 8.107,
+      "asr_calls": 4,
+      "asr_processing_seconds": 1.076,
+      "barge_heard": [
+        "Say, talk to him."
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 3909,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.2802,
+      "erle_median_db": 0.0,
+      "expect": "none",
+      "frames": 191,
+      "id": "smoke-0000-fst-00",
+      "mask_gain_max_db": 18.81,
+      "overlap_position": null,
+      "pair": null,
+      "realtime_factor": 2.731,
+      "render": {
+        "align_err_max_ms": 0.9979,
+        "align_err_median_ms": 0.5363,
+        "align_err_p90_ms": 0.9008,
+        "align_samples": 191,
+        "align_xcorr_p90_ms": 47.1875,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 4235,
+        "delay_own_samples": 4245,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 9.62,
+        "erle_monitor_music_loss_db": 9.62,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": 0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 191,
+          "audible": 58570,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 61101,
+          "total_samples": 61101
+        }
+      },
+      "requests": [
+        "Say, talk to him."
+      ],
+      "scenario": "fst",
+      "seconds": 3.82,
+      "transcript_texts": [
+        "Say, talk to him."
+      ],
+      "turns": [
+        {
+          "frame": 187,
+          "kind": "armed",
+          "text": "Say, talk to him."
+        }
+      ],
+      "wall_seconds": 1.399
+    },
+    {
+      "asr_audio_seconds": 4.353,
+      "asr_calls": 3,
+      "asr_processing_seconds": 1.058,
+      "barge_heard": [
+        "Cancel."
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 0
+      },
+      "degraded": null,
+      "delay_estimated_samples": 595,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.2034,
+      "erle_median_db": 0.0,
+      "expect": "none",
+      "frames": 98,
+      "id": "smoke-0001-fst-01",
+      "mask_gain_max_db": 15.62,
+      "overlap_position": null,
+      "pair": null,
+      "realtime_factor": 1.565,
+      "render": {
+        "align_err_max_ms": 0.9998,
+        "align_err_median_ms": 0.5045,
+        "align_err_p90_ms": 0.8904,
+        "align_samples": 98,
+        "align_xcorr_p90_ms": 4.625,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 916,
+        "delay_own_samples": 928,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 3.33,
+        "erle_monitor_music_db": 10.297,
+        "erle_monitor_music_loss_db": 6.967,
+        "erle_music_loss_db": 1.374,
+        "erle_own_db": 1.924,
+        "erle_own_music_db": 0.55,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 98,
+          "audible": 29437,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 31184,
+          "total_samples": 31184
+        }
+      },
+      "requests": [],
+      "scenario": "fst",
+      "seconds": 1.96,
+      "transcript_texts": [],
+      "turns": [],
+      "wall_seconds": 1.252
+    },
+    {
+      "asr_audio_seconds": 6.824,
+      "asr_calls": 3,
+      "asr_processing_seconds": 0.661,
+      "barge_heard": [
+        ""
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 0
+      },
+      "degraded": null,
+      "delay_estimated_samples": 646,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.5293,
+      "erle_median_db": 8.505,
+      "expect": "none",
+      "frames": 223,
+      "id": "smoke-0002-fst-02",
+      "mask_gain_max_db": 15.13,
+      "overlap_position": null,
+      "pair": null,
+      "realtime_factor": 3.635,
+      "render": {
+        "align_err_max_ms": 0.999,
+        "align_err_median_ms": 0.4887,
+        "align_err_p90_ms": 0.9063,
+        "align_samples": 223,
+        "align_xcorr_p90_ms": 10.2375,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 967,
+        "delay_own_samples": 977,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 3.414,
+        "erle_monitor_music_db": 9.976,
+        "erle_monitor_music_loss_db": 6.562,
+        "erle_music_loss_db": 2.023,
+        "erle_own_db": 2.023,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 223,
+          "audible": 68611,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 71302,
+          "total_samples": 71302
+        }
+      },
+      "requests": [],
+      "scenario": "fst",
+      "seconds": 4.46,
+      "transcript_texts": [],
+      "turns": [],
+      "wall_seconds": 1.227
+    },
+    {
+      "asr_audio_seconds": 6.947,
+      "asr_calls": 4,
+      "asr_processing_seconds": 0.996,
+      "barge_heard": [
+        "like this. Follow that."
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 2740,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.2772,
+      "erle_median_db": 1.441,
+      "expect": "none",
+      "frames": 145,
+      "id": "smoke-0003-fst-03",
+      "mask_gain_max_db": 16.92,
+      "overlap_position": null,
+      "pair": null,
+      "realtime_factor": 2.276,
+      "render": {
+        "align_err_max_ms": 0.9957,
+        "align_err_median_ms": 0.4535,
+        "align_err_p90_ms": 0.8985,
+        "align_samples": 145,
+        "align_xcorr_p90_ms": 22.75,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 3062,
+        "delay_own_samples": 3334,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 10.725,
+        "erle_monitor_music_loss_db": 10.725,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": -0.0,
+        "erle_own_music_db": -0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 145,
+          "audible": 44262,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 46389,
+          "total_samples": 46389
+        }
+      },
+      "requests": [
+        "like this. Follow that."
+      ],
+      "scenario": "fst",
+      "seconds": 2.9,
+      "transcript_texts": [
+        "like this. Follow that."
+      ],
+      "turns": [
+        {
+          "frame": 144,
+          "kind": "armed",
+          "text": "like this. Follow that."
+        }
+      ],
+      "wall_seconds": 1.274
+    },
+    {
+      "asr_audio_seconds": 12.552,
+      "asr_calls": 4,
+      "asr_processing_seconds": 1.438,
+      "barge_heard": [
+        ""
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 5121,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.6994,
+      "erle_median_db": 14.352,
+      "expect": "none",
+      "frames": 348,
+      "id": "smoke-0004-fst-04",
+      "mask_gain_max_db": 18.28,
+      "overlap_position": null,
+      "pair": null,
+      "realtime_factor": 3.194,
+      "render": {
+        "align_err_max_ms": 0.9967,
+        "align_err_median_ms": 0.5579,
+        "align_err_p90_ms": 0.9142,
+        "align_samples": 348,
+        "align_xcorr_p90_ms": 348.0375,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 4526,
+        "delay_own_samples": 4539,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 11.242,
+        "erle_monitor_music_loss_db": 11.242,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": 0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 348,
+          "audible": 107347,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 111232,
+          "total_samples": 111232
+        }
+      },
+      "requests": [
+        "and then, again,"
+      ],
+      "scenario": "fst",
+      "seconds": 6.96,
+      "transcript_texts": [
+        "and then, again,"
+      ],
+      "turns": [
+        {
+          "frame": 347,
+          "kind": "armed",
+          "text": "and then, again,"
+        }
+      ],
+      "wall_seconds": 2.179
+    },
+    {
+      "asr_audio_seconds": 1.852,
+      "asr_calls": 1,
+      "asr_processing_seconds": 0.003,
+      "barge_heard": [],
+      "counts": {
+        "barge_in": 0,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 0
+      },
+      "degraded": null,
+      "delay_estimated_samples": 434,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.2191,
+      "erle_median_db": 11.233,
+      "expect": "none",
+      "frames": 94,
+      "id": "smoke-0005-fst-05",
+      "mask_gain_max_db": 0.19,
+      "overlap_position": null,
+      "pair": null,
+      "realtime_factor": 7.924,
+      "render": {
+        "align_err_max_ms": 0.9972,
+        "align_err_median_ms": 0.6026,
+        "align_err_p90_ms": 0.8844,
+        "align_samples": 94,
+        "align_xcorr_p90_ms": null,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 755,
+        "delay_own_samples": 769,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 7.712,
+        "erle_monitor_music_db": 10.735,
+        "erle_monitor_music_loss_db": 3.024,
+        "erle_music_loss_db": 2.324,
+        "erle_own_db": 5.118,
+        "erle_own_music_db": 2.794,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 94,
+          "audible": 28054,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 29822,
+          "total_samples": 29822
+        }
+      },
+      "requests": [],
+      "scenario": "fst",
+      "seconds": 1.88,
+      "transcript_texts": [],
+      "turns": [],
+      "wall_seconds": 0.237
+    },
+    {
+      "asr_audio_seconds": 11.159,
+      "asr_calls": 3,
+      "asr_processing_seconds": 0.845,
+      "barge_heard": [],
+      "counts": {
+        "barge_in": 0,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 1,
+        "own_voice": 0,
+        "suspect": 0,
+        "turns": 0
+      },
+      "degraded": null,
+      "delay_estimated_samples": 0,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.0564,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 208,
+      "id": "smoke-0006-nst-00",
+      "mask_gain_max_db": 0.0,
+      "overlap_position": null,
+      "pair": null,
+      "realtime_factor": 4.642,
+      "render": {
+        "measurable": false,
+        "reason": "the clip has no Voxa playback to tap"
+      },
+      "requests": [],
+      "scenario": "nst",
+      "seconds": 4.16,
+      "transcript_texts": [
+        "Stuffed into you, his belly countled him."
+      ],
+      "turns": [],
+      "wall_seconds": 0.896
+    },
+    {
+      "asr_audio_seconds": 19.247,
+      "asr_calls": 5,
+      "asr_processing_seconds": 1.931,
+      "barge_heard": [],
+      "counts": {
+        "barge_in": 0,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 2,
+        "own_voice": 0,
+        "suspect": 0,
+        "turns": 0
+      },
+      "degraded": null,
+      "delay_estimated_samples": 0,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.0865,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 354,
+      "id": "smoke-0007-nst-01",
+      "mask_gain_max_db": 0.0,
+      "overlap_position": null,
+      "pair": null,
+      "realtime_factor": 3.511,
+      "render": {
+        "measurable": false,
+        "reason": "the clip has no Voxa playback to tap"
+      },
+      "requests": [],
+      "scenario": "nst",
+      "seconds": 7.08,
+      "transcript_texts": [
+        "Herang.",
+        "The tiresome product of a tireless tongue."
+      ],
+      "turns": [],
+      "wall_seconds": 2.017
+    },
+    {
+      "asr_audio_seconds": 28.524,
+      "asr_calls": 4,
+      "asr_processing_seconds": 1.252,
+      "barge_heard": [],
+      "counts": {
+        "barge_in": 0,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 1,
+        "own_voice": 0,
+        "suspect": 0,
+        "turns": 0
+      },
+      "degraded": null,
+      "delay_estimated_samples": 0,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.0853,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 412,
+      "id": "smoke-0008-nst-02",
+      "mask_gain_max_db": 0.0,
+      "overlap_position": null,
+      "pair": null,
+      "realtime_factor": 6.104,
+      "render": {
+        "measurable": false,
+        "reason": "the clip has no Voxa playback to tap"
+      },
+      "requests": [],
+      "scenario": "nst",
+      "seconds": 8.24,
+      "transcript_texts": [
+        "At the foot of the mountain that separated the country of the Munchkins from the country of the Gillikins, the path divided."
+      ],
+      "turns": [],
+      "wall_seconds": 1.35
+    },
+    {
+      "asr_audio_seconds": 24.251,
+      "asr_calls": 3,
+      "asr_processing_seconds": 0.991,
+      "barge_heard": [],
+      "counts": {
+        "barge_in": 0,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 1,
+        "own_voice": 0,
+        "suspect": 0,
+        "turns": 0
+      },
+      "degraded": null,
+      "delay_estimated_samples": 0,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.0321,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 410,
+      "id": "smoke-0009-nst-03",
+      "mask_gain_max_db": 0.0,
+      "overlap_position": null,
+      "pair": null,
+      "realtime_factor": 7.559,
+      "render": {
+        "measurable": false,
+        "reason": "the clip has no Voxa playback to tap"
+      },
+      "requests": [],
+      "scenario": "nst",
+      "seconds": 8.2,
+      "transcript_texts": [
+        "The Delaware dog, he said, leaning forward and peering through the dim light to catch the expression of the other's features. Is he afraid?"
+      ],
+      "turns": [],
+      "wall_seconds": 1.085
+    },
+    {
+      "asr_audio_seconds": 32.465,
+      "asr_calls": 5,
+      "asr_processing_seconds": 2.41,
+      "barge_heard": [],
+      "counts": {
+        "barge_in": 0,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 1,
+        "own_voice": 0,
+        "suspect": 0,
+        "turns": 0
+      },
+      "degraded": null,
+      "delay_estimated_samples": 0,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.0524,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 451,
+      "id": "smoke-0010-nst-04",
+      "mask_gain_max_db": 0.0,
+      "overlap_position": null,
+      "pair": null,
+      "realtime_factor": 3.548,
+      "render": {
+        "measurable": false,
+        "reason": "the clip has no Voxa playback to tap"
+      },
+      "requests": [],
+      "scenario": "nst",
+      "seconds": 9.02,
+      "transcript_texts": [
+        "It was simple enough, sir. If you only had known, but with all your cleverness it was impossible that you could know."
+      ],
+      "turns": [],
+      "wall_seconds": 2.542
+    },
+    {
+      "asr_audio_seconds": 29.091,
+      "asr_calls": 4,
+      "asr_processing_seconds": 1.241,
+      "barge_heard": [],
+      "counts": {
+        "barge_in": 0,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 1,
+        "own_voice": 0,
+        "suspect": 0,
+        "turns": 0
+      },
+      "degraded": null,
+      "delay_estimated_samples": 0,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.0293,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 430,
+      "id": "smoke-0011-nst-05",
+      "mask_gain_max_db": 0.0,
+      "overlap_position": null,
+      "pair": null,
+      "realtime_factor": 6.385,
+      "render": {
+        "measurable": false,
+        "reason": "the clip has no Voxa playback to tap"
+      },
+      "requests": [],
+      "scenario": "nst",
+      "seconds": 8.6,
+      "transcript_texts": [
+        "And there's linen in the house, as I could well spare you, for I got lots of sheeting and tableclothing and towelings isn't made up."
+      ],
+      "turns": [],
+      "wall_seconds": 1.347
+    },
+    {
+      "asr_audio_seconds": 17.183,
+      "asr_calls": 4,
+      "asr_processing_seconds": 1.697,
+      "barge_heard": [
+        "There was something in the picture."
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 4604,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.3795,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 372,
+      "id": "smoke-0012-dt_onset-00",
+      "mask_gain_max_db": 21.27,
+      "overlap_position": "onset",
+      "pair": null,
+      "realtime_factor": 3.488,
+      "render": {
+        "align_err_max_ms": 0.9995,
+        "align_err_median_ms": 0.4873,
+        "align_err_p90_ms": 0.9293,
+        "align_samples": 372,
+        "align_xcorr_p90_ms": 29.8125,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 4924,
+        "delay_own_samples": 5160,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 4.602,
+        "erle_monitor_music_loss_db": 4.602,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": -0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 372,
+          "audible": 115083,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 118952,
+          "total_samples": 118952
+        }
+      },
+      "requests": [
+        "There was something in the picture. most unusual trimness and care for detail."
+      ],
+      "scenario": "dt_onset",
+      "seconds": 7.44,
+      "transcript_texts": [
+        "There was something in the picture. most unusual trimness and care for detail."
+      ],
+      "turns": [
+        {
+          "frame": 343,
+          "kind": "armed",
+          "text": "There was something in the picture. most unusual trimness and care for detail."
+        }
+      ],
+      "wall_seconds": 2.133
+    },
+    {
+      "asr_audio_seconds": 9.091,
+      "asr_calls": 3,
+      "asr_processing_seconds": 0.838,
+      "barge_heard": [],
+      "counts": {
+        "barge_in": 0,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 47,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.2509,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 230,
+      "id": "smoke-0013-dt_onset-01",
+      "mask_gain_max_db": 5.29,
+      "overlap_position": "onset",
+      "pair": null,
+      "realtime_factor": 4.196,
+      "render": {
+        "align_err_max_ms": 0.9929,
+        "align_err_median_ms": 0.4613,
+        "align_err_p90_ms": 0.8665,
+        "align_samples": 230,
+        "align_xcorr_p90_ms": 1.3125,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 368,
+        "delay_own_samples": 0,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 1.539,
+        "erle_monitor_music_db": 6.523,
+        "erle_monitor_music_loss_db": 4.984,
+        "erle_music_loss_db": 0.189,
+        "erle_own_db": 0.439,
+        "erle_own_music_db": 0.627,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 230,
+          "audible": 70612,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 73326,
+          "total_samples": 73326
+        }
+      },
+      "requests": [
+        "if I've kept her waiting."
+      ],
+      "scenario": "dt_onset",
+      "seconds": 4.6,
+      "transcript_texts": [
+        "if I've kept her waiting."
+      ],
+      "turns": [
+        {
+          "frame": 199,
+          "kind": "armed",
+          "text": "if I've kept her waiting."
+        }
+      ],
+      "wall_seconds": 1.096
+    },
+    {
+      "asr_audio_seconds": 12.563,
+      "asr_calls": 4,
+      "asr_processing_seconds": 1.119,
+      "barge_heard": [
+        "You are amazing."
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 2062,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.3001,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 277,
+      "id": "smoke-0014-dt_onset-02",
+      "mask_gain_max_db": 20.08,
+      "overlap_position": "onset",
+      "pair": null,
+      "realtime_factor": 3.832,
+      "render": {
+        "align_err_max_ms": 0.9941,
+        "align_err_median_ms": 0.4353,
+        "align_err_p90_ms": 0.8748,
+        "align_samples": 277,
+        "align_xcorr_p90_ms": 25.7937,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 2382,
+        "delay_own_samples": 0,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 10.607,
+        "erle_monitor_music_loss_db": 10.607,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": 0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 277,
+          "audible": 85608,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 88615,
+          "total_samples": 88615
+        }
+      },
+      "requests": [
+        "You are amazing. is so terrible that we must despair."
+      ],
+      "scenario": "dt_onset",
+      "seconds": 5.54,
+      "transcript_texts": [
+        "You are amazing. is so terrible that we must despair."
+      ],
+      "turns": [
+        {
+          "frame": 252,
+          "kind": "armed",
+          "text": "You are amazing. is so terrible that we must despair."
+        }
+      ],
+      "wall_seconds": 1.446
+    },
+    {
+      "asr_audio_seconds": 14.587,
+      "asr_calls": 6,
+      "asr_processing_seconds": 2.172,
+      "barge_heard": [
+        "You will say that a woman..."
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 1,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 875,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.4296,
+      "erle_median_db": 1.257,
+      "expect": "keep",
+      "frames": 330,
+      "id": "smoke-0015-dt_first_syllable-00",
+      "mask_gain_max_db": 16.02,
+      "overlap_position": "first_syllable",
+      "pair": null,
+      "realtime_factor": 2.504,
+      "render": {
+        "align_err_max_ms": 0.9985,
+        "align_err_median_ms": 0.5138,
+        "align_err_p90_ms": 0.9012,
+        "align_samples": 330,
+        "align_xcorr_p90_ms": 2.6875,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 1196,
+        "delay_own_samples": 0,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 6.205,
+        "erle_monitor_music_loss_db": 6.205,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": 0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 330,
+          "audible": 101991,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 105576,
+          "total_samples": 105576
+        }
+      },
+      "requests": [
+        "You will say that a woman..."
+      ],
+      "scenario": "dt_first_syllable",
+      "seconds": 6.6,
+      "transcript_texts": [
+        "You will say that a woman...",
+        "There can be no peril in it for her."
+      ],
+      "turns": [
+        {
+          "frame": 173,
+          "kind": "armed",
+          "text": "You will say that a woman..."
+        }
+      ],
+      "wall_seconds": 2.635
+    },
+    {
+      "asr_audio_seconds": 14.269,
+      "asr_calls": 5,
+      "asr_processing_seconds": 0.838,
+      "barge_heard": [
+        ""
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 2,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 683,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.5644,
+      "erle_median_db": 6.628,
+      "expect": "keep",
+      "frames": 293,
+      "id": "smoke-0016-dt_first_syllable-01",
+      "mask_gain_max_db": 16.2,
+      "overlap_position": "first_syllable",
+      "pair": null,
+      "realtime_factor": 4.184,
+      "render": {
+        "align_err_max_ms": 0.9983,
+        "align_err_median_ms": 0.4805,
+        "align_err_p90_ms": 0.9083,
+        "align_samples": 293,
+        "align_xcorr_p90_ms": 9.1312,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 1000,
+        "delay_own_samples": 1006,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 1.083,
+        "erle_monitor_music_db": 7.135,
+        "erle_monitor_music_loss_db": 6.052,
+        "erle_music_loss_db": 0.986,
+        "erle_own_db": 1.532,
+        "erle_own_music_db": 0.546,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 293,
+          "audible": 90223,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 93461,
+          "total_samples": 93461
+        }
+      },
+      "requests": [
+        "How awful the fact."
+      ],
+      "scenario": "dt_first_syllable",
+      "seconds": 5.86,
+      "transcript_texts": [
+        "How awful the fact."
+      ],
+      "turns": [
+        {
+          "frame": 270,
+          "kind": "armed",
+          "text": "How awful the fact."
+        }
+      ],
+      "wall_seconds": 1.401
+    },
+    {
+      "asr_audio_seconds": 5.546,
+      "asr_calls": 3,
+      "asr_processing_seconds": 0.686,
+      "barge_heard": [],
+      "counts": {
+        "barge_in": 0,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 427,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.2795,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 164,
+      "id": "smoke-0017-dt_middle-00",
+      "mask_gain_max_db": 6.34,
+      "overlap_position": "middle",
+      "pair": null,
+      "realtime_factor": 3.438,
+      "render": {
+        "align_err_max_ms": 0.9987,
+        "align_err_median_ms": 0.4353,
+        "align_err_p90_ms": 0.9182,
+        "align_samples": 164,
+        "align_xcorr_p90_ms": null,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 747,
+        "delay_own_samples": 0,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 1.726,
+        "erle_monitor_music_db": 7.28,
+        "erle_monitor_music_loss_db": 5.553,
+        "erle_music_loss_db": 0.162,
+        "erle_own_db": 1.475,
+        "erle_own_music_db": 1.314,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 164,
+          "audible": 50226,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 52439,
+          "total_samples": 52439
+        }
+      },
+      "requests": [
+        "at all"
+      ],
+      "scenario": "dt_middle",
+      "seconds": 3.28,
+      "transcript_texts": [
+        "at all"
+      ],
+      "turns": [
+        {
+          "frame": 143,
+          "kind": "armed",
+          "text": "at all"
+        }
+      ],
+      "wall_seconds": 0.954
+    },
+    {
+      "asr_audio_seconds": 16.462,
+      "asr_calls": 4,
+      "asr_processing_seconds": 2.604,
+      "barge_heard": [
+        "3, 2, 1"
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 2776,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.353,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 335,
+      "id": "smoke-0018-dt_middle-01",
+      "mask_gain_max_db": 15.25,
+      "overlap_position": "middle",
+      "pair": null,
+      "realtime_factor": 2.27,
+      "render": {
+        "align_err_max_ms": 0.9984,
+        "align_err_median_ms": 0.518,
+        "align_err_p90_ms": 0.9034,
+        "align_samples": 335,
+        "align_xcorr_p90_ms": 6.4313,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 3094,
+        "delay_own_samples": 3103,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 8.687,
+        "erle_monitor_music_loss_db": 8.687,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": 0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 335,
+          "audible": 103472,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 107106,
+          "total_samples": 107106
+        }
+      },
+      "requests": [
+        "3, 2, 1 greatly try me Ruth and all thy relations."
+      ],
+      "scenario": "dt_middle",
+      "seconds": 6.7,
+      "transcript_texts": [
+        "3, 2, 1 greatly try me Ruth and all thy relations."
+      ],
+      "turns": [
+        {
+          "frame": 327,
+          "kind": "armed",
+          "text": "3, 2, 1 greatly try me Ruth and all thy relations."
+        }
+      ],
+      "wall_seconds": 2.951
+    },
+    {
+      "asr_audio_seconds": 16.636,
+      "asr_calls": 4,
+      "asr_processing_seconds": 1.555,
+      "barge_heard": [
+        "but for fun, hello."
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 4886,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.3109,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 330,
+      "id": "smoke-0019-dt_middle-02",
+      "mask_gain_max_db": 17.64,
+      "overlap_position": "middle",
+      "pair": null,
+      "realtime_factor": 3.442,
+      "render": {
+        "align_err_max_ms": 0.9992,
+        "align_err_median_ms": 0.4948,
+        "align_err_p90_ms": 0.9399,
+        "align_samples": 330,
+        "align_xcorr_p90_ms": 132.7625,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 4513,
+        "delay_own_samples": 4527,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.001,
+        "erle_monitor_music_db": 8.882,
+        "erle_monitor_music_loss_db": 8.881,
+        "erle_music_loss_db": 0.001,
+        "erle_own_db": 0.001,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 330,
+          "audible": 101856,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 105400,
+          "total_samples": 105400
+        }
+      },
+      "requests": [
+        "but for fun, hello. survey deck, keeping his eye unmoved at his telescope."
+      ],
+      "scenario": "dt_middle",
+      "seconds": 6.6,
+      "transcript_texts": [
+        "but for fun, hello. survey deck, keeping his eye unmoved at his telescope."
+      ],
+      "turns": [
+        {
+          "frame": 311,
+          "kind": "armed",
+          "text": "but for fun, hello. survey deck, keeping his eye unmoved at his telescope."
+        }
+      ],
+      "wall_seconds": 1.918
+    },
+    {
+      "asr_audio_seconds": 10.326,
+      "asr_calls": 4,
+      "asr_processing_seconds": 1.44,
+      "barge_heard": [],
+      "counts": {
+        "barge_in": 0,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 2,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 1526,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.3459,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 241,
+      "id": "smoke-0020-dt_last_word-00",
+      "mask_gain_max_db": 15.06,
+      "overlap_position": "last_word",
+      "pair": null,
+      "realtime_factor": 2.695,
+      "render": {
+        "align_err_max_ms": 0.9944,
+        "align_err_median_ms": 0.5244,
+        "align_err_p90_ms": 0.9224,
+        "align_samples": 241,
+        "align_xcorr_p90_ms": 11.0,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 1846,
+        "delay_own_samples": 1854,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 4.607,
+        "erle_monitor_music_loss_db": 4.607,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": 0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 241,
+          "audible": 74140,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 77085,
+          "total_samples": 77085
+        }
+      },
+      "requests": [
+        "turn to me again, frowning."
+      ],
+      "scenario": "dt_last_word",
+      "seconds": 4.82,
+      "transcript_texts": [
+        "turn to me again, frowning."
+      ],
+      "turns": [
+        {
+          "frame": 223,
+          "kind": "armed",
+          "text": "turn to me again, frowning."
+        }
+      ],
+      "wall_seconds": 1.788
+    },
+    {
+      "asr_audio_seconds": 14.27,
+      "asr_calls": 3,
+      "asr_processing_seconds": 0.871,
+      "barge_heard": [],
+      "counts": {
+        "barge_in": 0,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 0,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 878,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.408,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 348,
+      "id": "smoke-0021-dt_last_word-01",
+      "mask_gain_max_db": 15.11,
+      "overlap_position": "last_word",
+      "pair": null,
+      "realtime_factor": 5.299,
+      "render": {
+        "align_err_max_ms": 0.9976,
+        "align_err_median_ms": 0.4983,
+        "align_err_p90_ms": 0.8815,
+        "align_samples": 348,
+        "align_xcorr_p90_ms": 36.1437,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 1198,
+        "delay_own_samples": 0,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 2.446,
+        "erle_monitor_music_db": 9.132,
+        "erle_monitor_music_loss_db": 6.686,
+        "erle_music_loss_db": 0.684,
+        "erle_own_db": 0.0,
+        "erle_own_music_db": 0.684,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 348,
+          "audible": 107361,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 111063,
+          "total_samples": 111063
+        }
+      },
+      "requests": [
+        "Don't insult me Stanley by talking again as you did this morning."
+      ],
+      "scenario": "dt_last_word",
+      "seconds": 6.96,
+      "transcript_texts": [
+        "Don't insult me Stanley by talking again as you did this morning."
+      ],
+      "turns": [
+        {
+          "frame": 313,
+          "kind": "armed",
+          "text": "Don't insult me Stanley by talking again as you did this morning."
+        }
+      ],
+      "wall_seconds": 1.314
+    },
+    {
+      "asr_audio_seconds": 18.291,
+      "asr_calls": 4,
+      "asr_processing_seconds": 1.737,
+      "barge_heard": [],
+      "counts": {
+        "barge_in": 0,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 4771,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.2136,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 327,
+      "id": "smoke-0022-dt_echo_tail-00",
+      "mask_gain_max_db": 15.59,
+      "overlap_position": "echo_tail",
+      "pair": null,
+      "realtime_factor": 3.264,
+      "render": {
+        "align_err_max_ms": 0.9999,
+        "align_err_median_ms": 0.4919,
+        "align_err_p90_ms": 0.923,
+        "align_samples": 327,
+        "align_xcorr_p90_ms": 6.0625,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 5091,
+        "delay_own_samples": 5097,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": -0.0,
+        "erle_monitor_music_db": 3.586,
+        "erle_monitor_music_loss_db": 3.586,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": -0.0,
+        "erle_own_music_db": -0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 327,
+          "audible": 100808,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 104374,
+          "total_samples": 104374
+        }
+      },
+      "requests": [
+        "Most of all Robin thought of his father. What would he counsel?"
+      ],
+      "scenario": "dt_echo_tail",
+      "seconds": 6.54,
+      "transcript_texts": [
+        "Most of all Robin thought of his father. What would he counsel?"
+      ],
+      "turns": [
+        {
+          "frame": 309,
+          "kind": "armed",
+          "text": "Most of all Robin thought of his father. What would he counsel?"
+        }
+      ],
+      "wall_seconds": 2.004
+    },
+    {
+      "asr_audio_seconds": 32.455,
+      "asr_calls": 7,
+      "asr_processing_seconds": 2.527,
+      "barge_heard": [
+        ""
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 1082,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.6267,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 563,
+      "id": "smoke-0023-dt_echo_tail-01",
+      "mask_gain_max_db": 16.15,
+      "overlap_position": "echo_tail",
+      "pair": null,
+      "realtime_factor": 3.472,
+      "render": {
+        "align_err_max_ms": 0.9983,
+        "align_err_median_ms": 0.459,
+        "align_err_p90_ms": 0.8861,
+        "align_samples": 563,
+        "align_xcorr_p90_ms": 11.0375,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 1402,
+        "delay_own_samples": 1408,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 9.679,
+        "erle_monitor_music_loss_db": 9.679,
+        "erle_music_loss_db": 0.171,
+        "erle_own_db": 0.0,
+        "erle_own_music_db": 0.171,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 512,
+          "audible": 174818,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 179947,
+          "total_samples": 179947
+        }
+      },
+      "requests": [
+        "The golden star of tinsel was still on the top of the tree and glittered in the sunshine."
+      ],
+      "scenario": "dt_echo_tail",
+      "seconds": 11.26,
+      "transcript_texts": [
+        "The golden star of tinsel was still on the top of the tree and glittered in the sunshine."
+      ],
+      "turns": [
+        {
+          "frame": 517,
+          "kind": "armed",
+          "text": "The golden star of tinsel was still on the top of the tree and glittered in the sunshine."
+        }
+      ],
+      "wall_seconds": 3.243
+    },
+    {
+      "asr_audio_seconds": 10.444,
+      "asr_calls": 5,
+      "asr_processing_seconds": 2.321,
+      "barge_heard": [
+        "and as he do his own thing, he takes the soul."
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 1,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 2,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 3378,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.3236,
+      "erle_median_db": 0.632,
+      "expect": "backchannel",
+      "frames": 159,
+      "id": "smoke-0024-short-00",
+      "mask_gain_max_db": 17.02,
+      "overlap_position": null,
+      "pair": null,
+      "realtime_factor": 1.207,
+      "render": {
+        "align_err_max_ms": 0.9842,
+        "align_err_median_ms": 0.495,
+        "align_err_p90_ms": 0.8949,
+        "align_samples": 159,
+        "align_xcorr_p90_ms": 13.25,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 3698,
+        "delay_own_samples": 3706,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": -0.0,
+        "erle_monitor_music_db": 9.477,
+        "erle_monitor_music_loss_db": 9.477,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": -0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 159,
+          "audible": 48500,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 50688,
+          "total_samples": 50688
+        }
+      },
+      "requests": [
+        "and as he do his own thing, he takes the soul."
+      ],
+      "scenario": "short",
+      "seconds": 3.18,
+      "transcript_texts": [
+        "and as he do his own thing, he takes the soul."
+      ],
+      "turns": [
+        {
+          "frame": 158,
+          "kind": "armed",
+          "text": "and as he do his own thing, he takes the soul."
+        }
+      ],
+      "wall_seconds": 2.635
+    },
+    {
+      "asr_audio_seconds": 11.205,
+      "asr_calls": 3,
+      "asr_processing_seconds": 0.859,
+      "barge_heard": [],
+      "counts": {
+        "barge_in": 0,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 4145,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.4113,
+      "erle_median_db": 0.966,
+      "expect": "backchannel",
+      "frames": 226,
+      "id": "smoke-0025-short-01",
+      "mask_gain_max_db": 15.94,
+      "overlap_position": null,
+      "pair": null,
+      "realtime_factor": 3.427,
+      "render": {
+        "align_err_max_ms": 0.9973,
+        "align_err_median_ms": 0.5378,
+        "align_err_p90_ms": 0.8981,
+        "align_samples": 226,
+        "align_xcorr_p90_ms": 15.6188,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 4466,
+        "delay_own_samples": 4477,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 8.281,
+        "erle_monitor_music_loss_db": 8.281,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": 0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 226,
+          "audible": 69420,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 72139,
+          "total_samples": 72139
+        }
+      },
+      "requests": [
+        "to make it possible to meet again my motivation."
+      ],
+      "scenario": "short",
+      "seconds": 4.52,
+      "transcript_texts": [
+        "to make it possible to meet again my motivation."
+      ],
+      "turns": [
+        {
+          "frame": 225,
+          "kind": "armed",
+          "text": "to make it possible to meet again my motivation."
+        }
+      ],
+      "wall_seconds": 1.319
+    },
+    {
+      "asr_audio_seconds": 6.692,
+      "asr_calls": 4,
+      "asr_processing_seconds": 1.78,
+      "barge_heard": [
+        "I'm gonna go and get the hell out of here."
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 5259,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.3133,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 144,
+      "id": "smoke-0026-short-02",
+      "mask_gain_max_db": 16.92,
+      "overlap_position": null,
+      "pair": null,
+      "realtime_factor": 1.36,
+      "render": {
+        "align_err_max_ms": 0.9987,
+        "align_err_median_ms": 0.5313,
+        "align_err_p90_ms": 0.9105,
+        "align_samples": 144,
+        "align_xcorr_p90_ms": 11.125,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 4802,
+        "delay_own_samples": 4989,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 8.166,
+        "erle_monitor_music_loss_db": 8.166,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": 0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 144,
+          "audible": 43655,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 45782,
+          "total_samples": 45782
+        }
+      },
+      "requests": [
+        "I'm gonna go and get the hell out of here."
+      ],
+      "scenario": "short",
+      "seconds": 2.88,
+      "transcript_texts": [
+        "I'm gonna go and get the hell out of here."
+      ],
+      "turns": [
+        {
+          "frame": 143,
+          "kind": "armed",
+          "text": "I'm gonna go and get the hell out of here."
+        }
+      ],
+      "wall_seconds": 2.117
+    },
+    {
+      "asr_audio_seconds": 6.913,
+      "asr_calls": 4,
+      "asr_processing_seconds": 0.906,
+      "barge_heard": [],
+      "counts": {
+        "barge_in": 0,
+        "exit": 0,
+        "hold": 1,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 2,
+        "turns": 0
+      },
+      "degraded": null,
+      "delay_estimated_samples": 4786,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.43,
+      "erle_median_db": 0.227,
+      "expect": "keep",
+      "frames": 208,
+      "id": "smoke-0027-short-03",
+      "mask_gain_max_db": 13.93,
+      "overlap_position": null,
+      "pair": null,
+      "realtime_factor": 3.118,
+      "render": {
+        "align_err_max_ms": 0.9963,
+        "align_err_median_ms": 0.4342,
+        "align_err_p90_ms": 0.8853,
+        "align_samples": 208,
+        "align_xcorr_p90_ms": 35.175,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 5106,
+        "delay_own_samples": 5118,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 7.649,
+        "erle_monitor_music_loss_db": 7.649,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": 0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 208,
+          "audible": 63824,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 66314,
+          "total_samples": 66314
+        }
+      },
+      "requests": [],
+      "scenario": "short",
+      "seconds": 4.16,
+      "transcript_texts": [
+        ""
+      ],
+      "turns": [],
+      "wall_seconds": 1.334
+    },
+    {
+      "asr_audio_seconds": 23.769,
+      "asr_calls": 7,
+      "asr_processing_seconds": 3.916,
+      "barge_heard": [
+        ""
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 3,
+        "turns": 0
+      },
+      "degraded": null,
+      "delay_estimated_samples": 3342,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.4305,
+      "erle_median_db": 1.87,
+      "expect": "yield",
+      "frames": 230,
+      "id": "smoke-0028-short-04",
+      "mask_gain_max_db": 17.06,
+      "overlap_position": null,
+      "pair": null,
+      "realtime_factor": 1.049,
+      "render": {
+        "align_err_max_ms": 0.9892,
+        "align_err_median_ms": 0.5187,
+        "align_err_p90_ms": 0.884,
+        "align_samples": 230,
+        "align_xcorr_p90_ms": null,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 3921,
+        "delay_own_samples": 3707,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 6.781,
+        "erle_monitor_music_loss_db": 6.781,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": 0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 230,
+          "audible": 70456,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 73286,
+          "total_samples": 73286
+        }
+      },
+      "requests": [],
+      "scenario": "short",
+      "seconds": 4.6,
+      "transcript_texts": [
+        ""
+      ],
+      "turns": [],
+      "wall_seconds": 4.385
+    },
+    {
+      "asr_audio_seconds": 8.623,
+      "asr_calls": 4,
+      "asr_processing_seconds": 1.304,
+      "barge_heard": [
+        "I hope that happens."
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 2458,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.5201,
+      "erle_median_db": 0.194,
+      "expect": "keep",
+      "frames": 272,
+      "id": "smoke-0029-short-05",
+      "mask_gain_max_db": 29.43,
+      "overlap_position": null,
+      "pair": null,
+      "realtime_factor": 2.895,
+      "render": {
+        "align_err_max_ms": 0.9959,
+        "align_err_median_ms": 0.5144,
+        "align_err_p90_ms": 0.8963,
+        "align_samples": 272,
+        "align_xcorr_p90_ms": 0.3125,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 2778,
+        "delay_own_samples": 2920,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 6.267,
+        "erle_monitor_music_loss_db": 6.267,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": 0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 272,
+          "audible": 83862,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 86953,
+          "total_samples": 86953
+        }
+      },
+      "requests": [
+        "I hope that happens."
+      ],
+      "scenario": "short",
+      "seconds": 5.44,
+      "transcript_texts": [
+        "I hope that happens."
+      ],
+      "turns": [
+        {
+          "frame": 172,
+          "kind": "armed",
+          "text": "I hope that happens."
+        }
+      ],
+      "wall_seconds": 1.879
+    },
+    {
+      "asr_audio_seconds": 2.69,
+      "asr_calls": 3,
+      "asr_processing_seconds": 0.622,
+      "barge_heard": [],
+      "counts": {
+        "barge_in": 0,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 0
+      },
+      "degraded": null,
+      "delay_estimated_samples": 2934,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.0824,
+      "erle_median_db": 0.0,
+      "expect": "none",
+      "frames": 70,
+      "id": "smoke-0030-pair-00",
+      "mask_gain_max_db": 15.39,
+      "overlap_position": null,
+      "pair": {
+        "id": "stop",
+        "side": "voxa"
+      },
+      "realtime_factor": 1.964,
+      "render": {
+        "align_err_max_ms": 0.9914,
+        "align_err_median_ms": 0.3846,
+        "align_err_p90_ms": 0.8588,
+        "align_samples": 70,
+        "align_xcorr_p90_ms": 9.1875,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 3254,
+        "delay_own_samples": 3185,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": -0.0,
+        "erle_monitor_music_db": -0.0,
+        "erle_monitor_music_loss_db": 0.0,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": -0.0,
+        "erle_own_music_db": -0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 70,
+          "audible": 20627,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 22093,
+          "total_samples": 22093
+        }
+      },
+      "requests": [],
+      "scenario": "pair",
+      "seconds": 1.4,
+      "transcript_texts": [
+        ""
+      ],
+      "turns": [],
+      "wall_seconds": 0.713
+    },
+    {
+      "asr_audio_seconds": 1.096,
+      "asr_calls": 1,
+      "asr_processing_seconds": 0.223,
+      "barge_heard": [],
+      "counts": {
+        "barge_in": 0,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 0,
+        "turns": 0
+      },
+      "degraded": null,
+      "delay_estimated_samples": 523,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.0852,
+      "erle_median_db": 0.0,
+      "expect": "yield",
+      "frames": 56,
+      "id": "smoke-0031-pair-01",
+      "mask_gain_max_db": 13.76,
+      "overlap_position": null,
+      "pair": {
+        "id": "stop",
+        "side": "user"
+      },
+      "realtime_factor": 3.535,
+      "render": {
+        "align_err_max_ms": 0.907,
+        "align_err_median_ms": 0.5701,
+        "align_err_p90_ms": 0.8004,
+        "align_samples": 56,
+        "align_xcorr_p90_ms": 159.5,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 1820,
+        "delay_own_samples": 1832,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": -0.0,
+        "erle_monitor_music_db": 0.034,
+        "erle_monitor_music_loss_db": 0.034,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": -0.0,
+        "erle_own_music_db": -0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 56,
+          "audible": 16307,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 17731,
+          "total_samples": 17731
+        }
+      },
+      "requests": [],
+      "scenario": "pair",
+      "seconds": 1.12,
+      "transcript_texts": [],
+      "turns": [],
+      "wall_seconds": 0.317
+    },
+    {
+      "asr_audio_seconds": 7.633,
+      "asr_calls": 3,
+      "asr_processing_seconds": 1.964,
+      "barge_heard": [
+        ""
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 2778,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.4279,
+      "erle_median_db": 13.907,
+      "expect": "none",
+      "frames": 213,
+      "id": "smoke-0032-pair-02",
+      "mask_gain_max_db": 16.33,
+      "overlap_position": null,
+      "pair": {
+        "id": "phrase",
+        "side": "voxa"
+      },
+      "realtime_factor": 1.744,
+      "render": {
+        "align_err_max_ms": 0.9974,
+        "align_err_median_ms": 0.4824,
+        "align_err_p90_ms": 0.9218,
+        "align_samples": 213,
+        "align_xcorr_p90_ms": 10.2625,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 3103,
+        "delay_own_samples": 3116,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": -0.0,
+        "erle_monitor_music_db": 9.078,
+        "erle_monitor_music_loss_db": 9.078,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": -0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 213,
+          "audible": 65391,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 68040,
+          "total_samples": 68040
+        }
+      },
+      "requests": [
+        "I got a f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f"
+      ],
+      "scenario": "pair",
+      "seconds": 4.26,
+      "transcript_texts": [
+        "I got a f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f"
+      ],
+      "turns": [
+        {
+          "frame": 212,
+          "kind": "armed",
+          "text": "I got a f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f***ing f"
+        }
+      ],
+      "wall_seconds": 2.442
+    },
+    {
+      "asr_audio_seconds": 10.784,
+      "asr_calls": 4,
+      "asr_processing_seconds": 1.021,
+      "barge_heard": [
+        "Live very full live."
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 3534,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.414,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 274,
+      "id": "smoke-0033-pair-03",
+      "mask_gain_max_db": 24.61,
+      "overlap_position": null,
+      "pair": {
+        "id": "phrase",
+        "side": "user"
+      },
+      "realtime_factor": 3.766,
+      "render": {
+        "align_err_max_ms": 0.9968,
+        "align_err_median_ms": 0.4979,
+        "align_err_p90_ms": 0.8662,
+        "align_samples": 274,
+        "align_xcorr_p90_ms": null,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 2815,
+        "delay_own_samples": 4150,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 7.99,
+        "erle_monitor_music_loss_db": 7.99,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": 0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 274,
+          "audible": 84519,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 87619,
+          "total_samples": 87619
+        }
+      },
+      "requests": [
+        "Live very full live. morning."
+      ],
+      "scenario": "pair",
+      "seconds": 5.48,
+      "transcript_texts": [
+        "Live very full live. morning."
+      ],
+      "turns": [
+        {
+          "frame": 265,
+          "kind": "armed",
+          "text": "Live very full live. morning."
+        }
+      ],
+      "wall_seconds": 1.455
+    },
+    {
+      "asr_audio_seconds": 1.125,
+      "asr_calls": 1,
+      "asr_processing_seconds": 0.211,
+      "barge_heard": [],
+      "counts": {
+        "barge_in": 0,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 0,
+        "turns": 0
+      },
+      "degraded": null,
+      "delay_estimated_samples": 2241,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.0703,
+      "erle_median_db": 0.0,
+      "expect": "none",
+      "frames": 57,
+      "id": "smoke-0034-pair-04",
+      "mask_gain_max_db": 7.57,
+      "overlap_position": null,
+      "pair": {
+        "id": "colour",
+        "side": "voxa"
+      },
+      "realtime_factor": 3.942,
+      "render": {
+        "align_err_max_ms": 0.9973,
+        "align_err_median_ms": 0.3966,
+        "align_err_p90_ms": 0.8757,
+        "align_samples": 57,
+        "align_xcorr_p90_ms": 25.375,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 2561,
+        "delay_own_samples": 2589,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 9.838,
+        "erle_monitor_music_db": 12.774,
+        "erle_monitor_music_loss_db": 2.935,
+        "erle_music_loss_db": 2.826,
+        "erle_own_db": 7.752,
+        "erle_own_music_db": 4.926,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 57,
+          "audible": 16789,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 18183,
+          "total_samples": 18183
+        }
+      },
+      "requests": [],
+      "scenario": "pair",
+      "seconds": 1.14,
+      "transcript_texts": [],
+      "turns": [],
+      "wall_seconds": 0.289
+    },
+    {
+      "asr_audio_seconds": 1.102,
+      "asr_calls": 1,
+      "asr_processing_seconds": 0.312,
+      "barge_heard": [],
+      "counts": {
+        "barge_in": 0,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 0,
+        "turns": 0
+      },
+      "degraded": null,
+      "delay_estimated_samples": 3591,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.0371,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 56,
+      "id": "smoke-0035-pair-05",
+      "mask_gain_max_db": 16.53,
+      "overlap_position": null,
+      "pair": {
+        "id": "colour",
+        "side": "user"
+      },
+      "realtime_factor": 3.129,
+      "render": {
+        "align_err_max_ms": 0.9956,
+        "align_err_median_ms": 0.4916,
+        "align_err_p90_ms": 0.9254,
+        "align_samples": 56,
+        "align_xcorr_p90_ms": 7.0,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 3911,
+        "delay_own_samples": 3922,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": -0.0,
+        "erle_monitor_music_db": -0.0,
+        "erle_monitor_music_loss_db": 0.0,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": -0.0,
+        "erle_own_music_db": -0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 56,
+          "audible": 16399,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 17827,
+          "total_samples": 17827
+        }
+      },
+      "requests": [],
+      "scenario": "pair",
+      "seconds": 1.12,
+      "transcript_texts": [],
+      "turns": [],
+      "wall_seconds": 0.358
+    },
+    {
+      "asr_audio_seconds": 20.743,
+      "asr_calls": 4,
+      "asr_processing_seconds": 1.875,
+      "barge_heard": [
+        "from the color."
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 830,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.3355,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 413,
+      "id": "smoke-0036-quiet-00",
+      "mask_gain_max_db": 17.42,
+      "overlap_position": null,
+      "pair": null,
+      "realtime_factor": 3.557,
+      "render": {
+        "align_err_max_ms": 0.9966,
+        "align_err_median_ms": 0.5233,
+        "align_err_p90_ms": 0.9136,
+        "align_samples": 413,
+        "align_xcorr_p90_ms": 29.875,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 1150,
+        "delay_own_samples": 0,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 7.947,
+        "erle_monitor_music_loss_db": 7.947,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": 0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 413,
+          "audible": 127765,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 132087,
+          "total_samples": 132087
+        }
+      },
+      "requests": [
+        "from the color. the honor of three is saved our country our masters and our own."
+      ],
+      "scenario": "quiet",
+      "seconds": 8.26,
+      "transcript_texts": [
+        "from the color. the honor of three is saved our country our masters and our own."
+      ],
+      "turns": [
+        {
+          "frame": 379,
+          "kind": "armed",
+          "text": "from the color. the honor of three is saved our country our masters and our own."
+        }
+      ],
+      "wall_seconds": 2.322
+    },
+    {
+      "asr_audio_seconds": 8.93,
+      "asr_calls": 4,
+      "asr_processing_seconds": 1.53,
+      "barge_heard": [
+        "I'm a little bit..."
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 4278,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.694,
+      "erle_median_db": 8.038,
+      "expect": "keep",
+      "frames": 290,
+      "id": "smoke-0037-quiet-01",
+      "mask_gain_max_db": 15.02,
+      "overlap_position": null,
+      "pair": null,
+      "realtime_factor": 2.582,
+      "render": {
+        "align_err_max_ms": 0.9932,
+        "align_err_median_ms": 0.5088,
+        "align_err_p90_ms": 0.8961,
+        "align_samples": 290,
+        "align_xcorr_p90_ms": 37.675,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 4587,
+        "delay_own_samples": 4602,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 9.174,
+        "erle_monitor_music_loss_db": 9.174,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": 0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 290,
+          "audible": 89294,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 92511,
+          "total_samples": 92511
+        }
+      },
+      "requests": [
+        "I'm a little bit..."
+      ],
+      "scenario": "quiet",
+      "seconds": 5.8,
+      "transcript_texts": [
+        "I'm a little bit..."
+      ],
+      "turns": [
+        {
+          "frame": 289,
+          "kind": "armed",
+          "text": "I'm a little bit..."
+        }
+      ],
+      "wall_seconds": 2.246
+    },
+    {
+      "asr_audio_seconds": 26.303,
+      "asr_calls": 5,
+      "asr_processing_seconds": 1.513,
+      "barge_heard": [
+        "I am the part that I'm right."
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 2999,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.2595,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 410,
+      "id": "smoke-0038-quiet-02",
+      "mask_gain_max_db": 21.87,
+      "overlap_position": null,
+      "pair": null,
+      "realtime_factor": 4.451,
+      "render": {
+        "align_err_max_ms": 0.9999,
+        "align_err_median_ms": 0.4519,
+        "align_err_p90_ms": 0.8922,
+        "align_samples": 410,
+        "align_xcorr_p90_ms": 109.0375,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 3320,
+        "delay_own_samples": 3381,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 10.54,
+        "erle_monitor_music_loss_db": 10.54,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": 0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 410,
+          "audible": 127101,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 131115,
+          "total_samples": 131115
+        }
+      },
+      "requests": [
+        "I am the part that I'm right. Great Bird turned his head and noticed for the first time the fisherman standing on the bank."
+      ],
+      "scenario": "quiet",
+      "seconds": 8.2,
+      "transcript_texts": [
+        "I am the part that I'm right. Great Bird turned his head and noticed for the first time the fisherman standing on the bank."
+      ],
+      "turns": [
+        {
+          "frame": 399,
+          "kind": "armed",
+          "text": "I am the part that I'm right. Great Bird turned his head and noticed for the first time the fisherman standing on the bank."
+        }
+      ],
+      "wall_seconds": 1.842
+    },
+    {
+      "asr_audio_seconds": 32.199,
+      "asr_calls": 8,
+      "asr_processing_seconds": 2.926,
+      "barge_heard": [
+        "But it's..."
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 1,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 4665,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.5203,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 533,
+      "id": "smoke-0039-pause-00",
+      "mask_gain_max_db": 15.14,
+      "overlap_position": null,
+      "pair": null,
+      "realtime_factor": 3.031,
+      "render": {
+        "align_err_max_ms": 0.9989,
+        "align_err_median_ms": 0.4765,
+        "align_err_p90_ms": 0.8855,
+        "align_samples": 533,
+        "align_xcorr_p90_ms": 49.0875,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 4985,
+        "delay_own_samples": 4997,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 6.057,
+        "erle_monitor_music_loss_db": 6.057,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": 0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 512,
+          "audible": 165355,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 170417,
+          "total_samples": 170417
+        }
+      },
+      "requests": [
+        "But it's... St. Albums and came so near."
+      ],
+      "scenario": "pause",
+      "seconds": 10.66,
+      "transcript_texts": [
+        "But it's... St. Albums and came so near.",
+        "Here to London as Harrow on the Hill."
+      ],
+      "turns": [
+        {
+          "frame": 345,
+          "kind": "armed",
+          "text": "But it's... St. Albums and came so near."
+        }
+      ],
+      "wall_seconds": 3.517
+    },
+    {
+      "asr_audio_seconds": 12.941,
+      "asr_calls": 5,
+      "asr_processing_seconds": 1.35,
+      "barge_heard": [
+        "I'm saying, not a good one."
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 1770,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.4757,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 289,
+      "id": "smoke-0040-pause-01",
+      "mask_gain_max_db": 14.4,
+      "overlap_position": null,
+      "pair": null,
+      "realtime_factor": 3.139,
+      "render": {
+        "align_err_max_ms": 0.9947,
+        "align_err_median_ms": 0.4742,
+        "align_err_p90_ms": 0.8853,
+        "align_samples": 289,
+        "align_xcorr_p90_ms": 13.5437,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 2090,
+        "delay_own_samples": 2100,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 9.703,
+        "erle_monitor_music_loss_db": 9.703,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": 0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 289,
+          "audible": 89209,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 92367,
+          "total_samples": 92367
+        }
+      },
+      "requests": [
+        "I'm saying, not a good one. that thing that I said."
+      ],
+      "scenario": "pause",
+      "seconds": 5.78,
+      "transcript_texts": [
+        "I'm saying, not a good one. that thing that I said."
+      ],
+      "turns": [
+        {
+          "frame": 257,
+          "kind": "armed",
+          "text": "I'm saying, not a good one. that thing that I said."
+        }
+      ],
+      "wall_seconds": 1.842
+    },
+    {
+      "asr_audio_seconds": 14.267,
+      "asr_calls": 6,
+      "asr_processing_seconds": 1.883,
+      "barge_heard": [
+        "Morning, girls!"
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 1,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 1076,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.3833,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 288,
+      "id": "smoke-0041-pause-02",
+      "mask_gain_max_db": 11.73,
+      "overlap_position": null,
+      "pair": null,
+      "realtime_factor": 2.495,
+      "render": {
+        "align_err_max_ms": 0.9947,
+        "align_err_median_ms": 0.4634,
+        "align_err_p90_ms": 0.8453,
+        "align_samples": 288,
+        "align_xcorr_p90_ms": 17.5,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 885,
+        "delay_own_samples": 894,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 2.11,
+        "erle_monitor_music_db": 7.568,
+        "erle_monitor_music_loss_db": 5.457,
+        "erle_music_loss_db": 1.682,
+        "erle_own_db": 1.832,
+        "erle_own_music_db": 0.15,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 288,
+          "audible": 89034,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 92136,
+          "total_samples": 92136
+        }
+      },
+      "requests": [
+        "Morning, girls!"
+      ],
+      "scenario": "pause",
+      "seconds": 5.76,
+      "transcript_texts": [
+        "Morning, girls!",
+        "Beepayla as well as you look."
+      ],
+      "turns": [
+        {
+          "frame": 152,
+          "kind": "armed",
+          "text": "Morning, girls!"
+        }
+      ],
+      "wall_seconds": 2.309
+    },
+    {
+      "asr_audio_seconds": 10.317,
+      "asr_calls": 4,
+      "asr_processing_seconds": 3.216,
+      "barge_heard": [
+        "From farza right"
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 1327,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.2616,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 215,
+      "id": "smoke-0042-cold-00",
+      "mask_gain_max_db": 9.08,
+      "overlap_position": "cold",
+      "pair": null,
+      "realtime_factor": 1.221,
+      "render": {
+        "align_err_max_ms": 0.9988,
+        "align_err_median_ms": 0.4995,
+        "align_err_p90_ms": 0.8983,
+        "align_samples": 215,
+        "align_xcorr_p90_ms": 19.1875,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 1649,
+        "delay_own_samples": 0,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.979,
+        "erle_monitor_music_db": 11.358,
+        "erle_monitor_music_loss_db": 10.379,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": 0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 215,
+          "audible": 65991,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 68624,
+          "total_samples": 68624
+        }
+      },
+      "requests": [
+        "From farza right Stop music."
+      ],
+      "scenario": "cold",
+      "seconds": 4.3,
+      "transcript_texts": [
+        "From farza right Stop music."
+      ],
+      "turns": [
+        {
+          "frame": 205,
+          "kind": "armed",
+          "text": "From farza right Stop music."
+        }
+      ],
+      "wall_seconds": 3.521
+    },
+    {
+      "asr_audio_seconds": 12.274,
+      "asr_calls": 4,
+      "asr_processing_seconds": 1.048,
+      "barge_heard": [
+        ""
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 1632,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.5447,
+      "erle_median_db": 1.896,
+      "expect": "keep",
+      "frames": 283,
+      "id": "smoke-0043-cold-01",
+      "mask_gain_max_db": 17.57,
+      "overlap_position": "cold",
+      "pair": null,
+      "realtime_factor": 3.536,
+      "render": {
+        "align_err_max_ms": 0.9927,
+        "align_err_median_ms": 0.4272,
+        "align_err_p90_ms": 0.8881,
+        "align_samples": 283,
+        "align_xcorr_p90_ms": 9.7688,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 1953,
+        "delay_own_samples": 1960,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 7.671,
+        "erle_monitor_music_loss_db": 7.67,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": 0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 283,
+          "audible": 87331,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 90340,
+          "total_samples": 90340
+        }
+      },
+      "requests": [
+        "dictation"
+      ],
+      "scenario": "cold",
+      "seconds": 5.66,
+      "transcript_texts": [
+        "dictation"
+      ],
+      "turns": [
+        {
+          "frame": 246,
+          "kind": "armed",
+          "text": "dictation"
+        }
+      ],
+      "wall_seconds": 1.601
+    },
+    {
+      "asr_audio_seconds": 10.86,
+      "asr_calls": 3,
+      "asr_processing_seconds": 1.248,
+      "barge_heard": [],
+      "counts": {
+        "barge_in": 0,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 0,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 4520,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.2014,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 218,
+      "id": "smoke-0044-cold-02",
+      "mask_gain_max_db": 17.13,
+      "overlap_position": "cold",
+      "pair": null,
+      "realtime_factor": 2.917,
+      "render": {
+        "align_err_max_ms": 0.9948,
+        "align_err_median_ms": 0.4988,
+        "align_err_p90_ms": 0.8941,
+        "align_samples": 218,
+        "align_xcorr_p90_ms": 0.125,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 4840,
+        "delay_own_samples": 4854,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": -0.0,
+        "erle_monitor_music_db": 7.851,
+        "erle_monitor_music_loss_db": 7.851,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": -0.0,
+        "erle_own_music_db": -0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 218,
+          "audible": 66963,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 69631,
+          "total_samples": 69631
+        }
+      },
+      "requests": [
+        "What time is it?"
+      ],
+      "scenario": "cold",
+      "seconds": 4.36,
+      "transcript_texts": [
+        "What time is it?"
+      ],
+      "turns": [
+        {
+          "frame": 202,
+          "kind": "armed",
+          "text": "What time is it?"
+        }
+      ],
+      "wall_seconds": 1.495
+    },
+    {
+      "asr_audio_seconds": 8.116,
+      "asr_calls": 3,
+      "asr_processing_seconds": 1.048,
+      "barge_heard": [],
+      "counts": {
+        "barge_in": 0,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 0,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 4149,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.2657,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 161,
+      "id": "smoke-0045-path_change-00",
+      "mask_gain_max_db": 16.96,
+      "overlap_position": "middle",
+      "pair": null,
+      "realtime_factor": 2.447,
+      "render": {
+        "align_err_max_ms": 0.9882,
+        "align_err_median_ms": 0.432,
+        "align_err_p90_ms": 0.8627,
+        "align_samples": 161,
+        "align_xcorr_p90_ms": 36.1875,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 3219,
+        "delay_own_samples": 3228,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 8.916,
+        "erle_monitor_music_loss_db": 8.916,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": 0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 161,
+          "audible": 49170,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 51332,
+          "total_samples": 51332
+        }
+      },
+      "requests": [
+        "How to start your music."
+      ],
+      "scenario": "path_change",
+      "seconds": 3.22,
+      "transcript_texts": [
+        "How to start your music."
+      ],
+      "turns": [
+        {
+          "frame": 157,
+          "kind": "armed",
+          "text": "How to start your music."
+        }
+      ],
+      "wall_seconds": 1.316
+    },
+    {
+      "asr_audio_seconds": 5.878,
+      "asr_calls": 4,
+      "asr_processing_seconds": 1.361,
+      "barge_heard": [
+        "Thank you. Ah."
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 3505,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.309,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 151,
+      "id": "smoke-0046-path_change-01",
+      "mask_gain_max_db": 21.88,
+      "overlap_position": "middle",
+      "pair": null,
+      "realtime_factor": 1.782,
+      "render": {
+        "align_err_max_ms": 0.9956,
+        "align_err_median_ms": 0.5571,
+        "align_err_p90_ms": 0.9194,
+        "align_samples": 151,
+        "align_xcorr_p90_ms": 9.8125,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 3076,
+        "delay_own_samples": 3767,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 4.384,
+        "erle_monitor_music_loss_db": 4.384,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": -0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 151,
+          "audible": 45893,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 48157,
+          "total_samples": 48157
+        }
+      },
+      "requests": [
+        "Thank you. Ah."
+      ],
+      "scenario": "path_change",
+      "seconds": 3.02,
+      "transcript_texts": [
+        "Thank you. Ah."
+      ],
+      "turns": [
+        {
+          "frame": 121,
+          "kind": "armed",
+          "text": "Thank you. Ah."
+        }
+      ],
+      "wall_seconds": 1.695
+    },
+    {
+      "asr_audio_seconds": 8.851,
+      "asr_calls": 3,
+      "asr_processing_seconds": 0.828,
+      "barge_heard": [],
+      "counts": {
+        "barge_in": 0,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 3725,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.1925,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 217,
+      "id": "smoke-0047-path_change-02",
+      "mask_gain_max_db": 15.05,
+      "overlap_position": "middle",
+      "pair": null,
+      "realtime_factor": 4.177,
+      "render": {
+        "align_err_max_ms": 0.9996,
+        "align_err_median_ms": 0.5041,
+        "align_err_p90_ms": 0.8687,
+        "align_samples": 217,
+        "align_xcorr_p90_ms": 32.0,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 4045,
+        "delay_own_samples": 4489,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 8.02,
+        "erle_monitor_music_loss_db": 8.02,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": 0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 217,
+          "audible": 66516,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 69166,
+          "total_samples": 69166
+        }
+      },
+      "requests": [
+        "but what time is it?"
+      ],
+      "scenario": "path_change",
+      "seconds": 4.34,
+      "transcript_texts": [
+        "but what time is it?"
+      ],
+      "turns": [
+        {
+          "frame": 187,
+          "kind": "armed",
+          "text": "but what time is it?"
+        }
+      ],
+      "wall_seconds": 1.039
+    },
+    {
+      "asr_audio_seconds": 7.996,
+      "asr_calls": 4,
+      "asr_processing_seconds": 1.296,
+      "barge_heard": [
+        "So, thank you."
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 2434,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.3821,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 196,
+      "id": "smoke-0048-interference-00",
+      "mask_gain_max_db": 12.51,
+      "overlap_position": "middle",
+      "pair": null,
+      "realtime_factor": 2.283,
+      "render": {
+        "align_err_max_ms": 0.9956,
+        "align_err_median_ms": 0.439,
+        "align_err_p90_ms": 0.8843,
+        "align_samples": 196,
+        "align_xcorr_p90_ms": 48.375,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 2757,
+        "delay_own_samples": 2766,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 8.68,
+        "erle_monitor_music_loss_db": 8.68,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": 0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 196,
+          "audible": 60159,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 62620,
+          "total_samples": 62620
+        }
+      },
+      "requests": [
+        "So, thank you."
+      ],
+      "scenario": "interference",
+      "seconds": 3.92,
+      "transcript_texts": [
+        "So, thank you."
+      ],
+      "turns": [
+        {
+          "frame": 195,
+          "kind": "armed",
+          "text": "So, thank you."
+        }
+      ],
+      "wall_seconds": 1.717
+    },
+    {
+      "asr_audio_seconds": 7.013,
+      "asr_calls": 4,
+      "asr_processing_seconds": 1.826,
+      "barge_heard": [
+        "and start."
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 1471,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.3154,
+      "erle_median_db": 0.027,
+      "expect": "keep",
+      "frames": 152,
+      "id": "smoke-0049-interference-01",
+      "mask_gain_max_db": 13.73,
+      "overlap_position": "middle",
+      "pair": null,
+      "realtime_factor": 1.391,
+      "render": {
+        "align_err_max_ms": 0.9902,
+        "align_err_median_ms": 0.4379,
+        "align_err_p90_ms": 0.8893,
+        "align_samples": 152,
+        "align_xcorr_p90_ms": 13.125,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 1791,
+        "delay_own_samples": 1796,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.393,
+        "erle_monitor_music_db": 8.181,
+        "erle_monitor_music_loss_db": 7.788,
+        "erle_music_loss_db": 0.253,
+        "erle_own_db": 0.253,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 152,
+          "audible": 46438,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 48521,
+          "total_samples": 48521
+        }
+      },
+      "requests": [
+        "and start."
+      ],
+      "scenario": "interference",
+      "seconds": 3.04,
+      "transcript_texts": [
+        "and start."
+      ],
+      "turns": [
+        {
+          "frame": 151,
+          "kind": "armed",
+          "text": "and start."
+        }
+      ],
+      "wall_seconds": 2.186
+    },
+    {
+      "asr_audio_seconds": 9.559,
+      "asr_calls": 4,
+      "asr_processing_seconds": 1.4,
+      "barge_heard": [
+        "Thanks for watching. See you next time."
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 0,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 1
+      },
+      "degraded": null,
+      "delay_estimated_samples": 719,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.3643,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 197,
+      "id": "smoke-0050-interference-02",
+      "mask_gain_max_db": 23.34,
+      "overlap_position": "middle",
+      "pair": null,
+      "realtime_factor": 2.209,
+      "render": {
+        "align_err_max_ms": 0.9995,
+        "align_err_median_ms": 0.4689,
+        "align_err_p90_ms": 0.8847,
+        "align_samples": 197,
+        "align_xcorr_p90_ms": 40.8125,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 1039,
+        "delay_own_samples": 1046,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 2.794,
+        "erle_monitor_music_db": 7.466,
+        "erle_monitor_music_loss_db": 4.672,
+        "erle_music_loss_db": 1.773,
+        "erle_own_db": 2.829,
+        "erle_own_music_db": 1.056,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 197,
+          "audible": 60489,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 62888,
+          "total_samples": 62888
+        }
+      },
+      "requests": [
+        "Thanks for watching. See you next time. is it?"
+      ],
+      "scenario": "interference",
+      "seconds": 3.94,
+      "transcript_texts": [
+        "Thanks for watching. See you next time. is it?"
+      ],
+      "turns": [
+        {
+          "frame": 195,
+          "kind": "armed",
+          "text": "Thanks for watching. See you next time. is it?"
+        }
+      ],
+      "wall_seconds": 1.783
+    },
+    {
+      "asr_audio_seconds": 5.795,
+      "asr_calls": 4,
+      "asr_processing_seconds": 0.902,
+      "barge_heard": [
+        "Bye."
+      ],
+      "counts": {
+        "barge_in": 1,
+        "exit": 1,
+        "hold": 0,
+        "ignored": 0,
+        "own_voice": 0,
+        "suspect": 1,
+        "turns": 0
+      },
+      "degraded": null,
+      "delay_estimated_samples": 1708,
+      "echo_mode": "voxa",
+      "echo_processing_seconds": 0.3145,
+      "erle_median_db": 0.0,
+      "expect": "keep",
+      "frames": 144,
+      "id": "smoke-0051-interference-03",
+      "mask_gain_max_db": 10.78,
+      "overlap_position": "middle",
+      "pair": null,
+      "realtime_factor": 2.372,
+      "render": {
+        "align_err_max_ms": 0.9993,
+        "align_err_median_ms": 0.5335,
+        "align_err_p90_ms": 0.8915,
+        "align_samples": 144,
+        "align_xcorr_p90_ms": 42.3125,
+        "capture_latency_ms": 20.0,
+        "delay_monitor_samples": 2028,
+        "delay_own_samples": 0,
+        "echo_travel_ms": 20.0,
+        "erle_monitor_db": 0.0,
+        "erle_monitor_music_db": 6.431,
+        "erle_monitor_music_loss_db": 6.43,
+        "erle_music_loss_db": 0.0,
+        "erle_own_db": 0.0,
+        "erle_own_music_db": 0.0,
+        "measurable": true,
+        "music_db": 0.0,
+        "reference_mode": "own-render",
+        "sink_jitter_ms": 1.0,
+        "sink_latency_ms": 40.0,
+        "sink_queried": true,
+        "timeline": {
+          "anchors": 144,
+          "audible": 43743,
+          "cancelled": 0,
+          "channels": 1,
+          "epoch": 0,
+          "generated": 0,
+          "generations": 1,
+          "sample_rate": 16000,
+          "submitted": 45868,
+          "total_samples": 45868
+        }
+      },
+      "requests": [],
+      "scenario": "interference",
+      "seconds": 2.88,
+      "transcript_texts": [
+        "Bye."
+      ],
+      "turns": [],
+      "wall_seconds": 1.214
+    }
+  ],
+  "echo_mode": "voxa",
+  "metrics": {
+    "align_err_p90_ms": {
+      "ci": [
+        0.019661,
+        0.021
+      ],
+      "direction": "<=",
+      "pass": true,
+      "samples": 3831,
+      "threshold": 2.0,
+      "threshold_op": "<=",
+      "unit": "ms",
+      "value": 0.020223
+    },
+    "backchannel_resume_rate": {
+      "ci": [
+        0.0,
+        1.0
+      ],
+      "direction": ">=",
+      "pass": false,
+      "samples": 2,
+      "threshold": 1.0,
+      "threshold_op": ">=",
+      "unit": "fraction",
+      "value": 0.5
+    },
+    "cpu_core_share": {
+      "ci": [
+        0.060285,
+        0.077762
+      ],
+      "direction": "<=",
+      "pass": true,
+      "samples": 52,
+      "threshold": 0.775161,
+      "threshold_op": "<=",
+      "unit": "cores",
+      "value": 0.06937
+    },
+    "delay_est_err_ms": {
+      "ci": [
+        0.385588,
+        63.5568
+      ],
+      "direction": "<=",
+      "pass": false,
+      "samples": 3831,
+      "threshold": 17.357955,
+      "threshold_op": "<=",
+      "unit": "ms",
+      "value": 46.419482
+    },
+    "drift_erle_loss_db": {
+      "ci": [
+        -1.20609,
+        4.733784
+      ],
+      "direction": "<=",
+      "pass": false,
+      "samples": 264,
+      "threshold": 0.153642,
+      "threshold_op": "<=",
+      "unit": "dB",
+      "value": 1.71617
+    },
+    "dt_wer_penalty_pts": {
+      "ci": [
+        61.102561,
+        223.733177
+      ],
+      "direction": "<=",
+      "pass": true,
+      "samples": 37,
+      "threshold": 352.447512,
+      "threshold_op": "<=",
+      "unit": "points",
+      "value": 136.702432
+    },
+    "duck_latency_p50_ms": {
+      "ci": [
+        410.961166,
+        1259.018431
+      ],
+      "direction": "<=",
+      "pass": true,
+      "samples": 20,
+      "threshold": null,
+      "unit": "ms",
+      "value": 687.09847
+    },
+    "duck_latency_p90_ms": {
+      "ci": [
+        1275.371946,
+        3081.990188
+      ],
+      "direction": "<=",
+      "pass": true,
+      "samples": 20,
+      "threshold": null,
+      "unit": "ms",
+      "value": 1616.360429
+    },
+    "echo_leak_word_rate": {
+      "ci": [
+        0.071429,
+        0.146825
+      ],
+      "direction": "<=",
+      "pass": true,
+      "samples": 252,
+      "threshold": 0.213043,
+      "threshold_op": "<=",
+      "unit": "fraction",
+      "value": 0.107143
+    },
+    "ep50_ms": {
+      "ci": [
+        733.206026,
+        880.0
+      ],
+      "direction": "<=",
+      "pass": true,
+      "samples": 43,
+      "threshold": 1021.414664,
+      "threshold_op": "<=",
+      "unit": "ms",
+      "value": 811.467569
+    },
+    "ep90_ms": {
+      "ci": [
+        981.0647,
+        2450.72741
+      ],
+      "direction": "<=",
+      "pass": true,
+      "samples": 43,
+      "threshold": 1318.920546,
+      "threshold_op": "<=",
+      "unit": "ms",
+      "value": 1287.674797
+    },
+    "erle_fst_median_db": {
+      "ci": [
+        14.13925,
+        16.780625
+      ],
+      "direction": ">=",
+      "pass": true,
+      "samples": 372,
+      "threshold": 0.0,
+      "threshold_op": ">=",
+      "unit": "dB",
+      "value": 15.865
+    },
+    "erle_fst_p10_db": {
+      "ci": [
+        -2.85,
+        0.16
+      ],
+      "direction": ">=",
+      "pass": false,
+      "samples": 372,
+      "threshold": -0.08,
+      "threshold_op": ">=",
+      "unit": "dB",
+      "value": -1.262
+    },
+    "erle_music_loss_db": {
+      "ci": [
+        0.128405,
+        0.523468
+      ],
+      "direction": "<=",
+      "pass": true,
+      "samples": 46,
+      "threshold": 1.0,
+      "threshold_op": "<=",
+      "unit": "dB",
+      "value": 0.314087
+    },
+    "false_bargein_per_hour": {
+      "ci": [
+        152.285167,
+        467.570365
+      ],
+      "direction": "<=",
+      "pass": false,
+      "samples": 46,
+      "threshold": 0.0,
+      "threshold_op": "<=",
+      "unit": "events/hour",
+      "value": 304.531331
+    },
+    "first_word_trunc_bargein": {
+      "ci": [
+        0.68,
+        0.96
+      ],
+      "direction": "<=",
+      "pass": true,
+      "samples": 25,
+      "threshold": null,
+      "unit": "fraction",
+      "value": 0.84
+    },
+    "first_word_trunc_cold": {
+      "ci": [
+        1.0,
+        1.0
+      ],
+      "direction": "<=",
+      "pass": true,
+      "samples": 3,
+      "threshold": 1.0,
+      "threshold_op": "<=",
+      "unit": "fraction",
+      "value": 1.0
+    },
+    "fst_transcript_rate": {
+      "ci": [
+        0.111111,
+        0.777778
+      ],
+      "direction": "<=",
+      "pass": false,
+      "samples": 9,
+      "threshold": 0.0,
+      "threshold_op": "<=",
+      "unit": "fraction",
+      "value": 0.444444
+    },
+    "interrupt_stop_rate": {
+      "ci": [
+        0.333333,
+        1.0
+      ],
+      "direction": "<=",
+      "pass": false,
+      "samples": 9,
+      "threshold": 0.0,
+      "threshold_op": "<=",
+      "unit": "fraction",
+      "value": 0.666667
+    },
+    "missed_bargein_rate": {
+      "ci": [
+        0.451613,
+        0.774194
+      ],
+      "direction": "<=",
+      "pass": true,
+      "samples": 31,
+      "threshold": 1.0,
+      "threshold_op": "<=",
+      "unit": "fraction",
+      "value": 0.612903
+    },
+    "nearend_atten_dt_db": {
+      "ci": [
+        4.415509,
+        9.664529
+      ],
+      "direction": "<=",
+      "pass": true,
+      "samples": 35,
+      "threshold": 11.77651,
+      "threshold_op": "<=",
+      "unit": "dB",
+      "value": 6.75395
+    },
+    "pair_accuracy": {
+      "ci": [
+        0.0,
+        0.0
+      ],
+      "direction": ">=",
+      "pass": true,
+      "samples": 3,
+      "threshold": 0.0,
+      "threshold_op": ">=",
+      "unit": "fraction",
+      "value": 0.0
+    },
+    "premature_cutoff_rate": {
+      "ci": [
+        0.023256,
+        0.186047
+      ],
+      "direction": "<=",
+      "pass": true,
+      "samples": 43,
+      "threshold": 0.178571,
+      "threshold_op": "<=",
+      "unit": "fraction",
+      "value": 0.093023
+    },
+    "protected_word_keep_rate": {
+      "ci": [
+        0.392157,
+        0.666667
+      ],
+      "direction": ">=",
+      "pass": true,
+      "samples": 51,
+      "threshold": 0.113636,
+      "threshold_op": ">=",
+      "unit": "fraction",
+      "value": 0.529412
+    },
+    "reconverge_s": {
+      "ci": [
+        0.091724,
+        0.333845
+      ],
+      "direction": "<=",
+      "pass": true,
+      "samples": 29,
+      "threshold": null,
+      "unit": "s",
+      "value": 0.19931
+    },
+    "self_command_rate": {
+      "ci": [
+        0.111111,
+        0.777778
+      ],
+      "direction": "<=",
+      "pass": false,
+      "samples": 9,
+      "threshold": 0.0,
+      "threshold_op": "<=",
+      "unit": "fraction",
+      "value": 0.444444
+    },
+    "self_pause_per_hour": {
+      "ci": [
+        667.807399,
+        1390.305772
+      ],
+      "direction": "<=",
+      "pass": false,
+      "samples": 9,
+      "threshold": 0.0,
+      "threshold_op": "<=",
+      "unit": "events/hour",
+      "value": 969.16942
+    },
+    "stop_latency_p50_ms": {
+      "ci": [
+        410.961166,
+        1259.018431
+      ],
+      "direction": "<=",
+      "pass": true,
+      "samples": 20,
+      "threshold": null,
+      "unit": "ms",
+      "value": 687.09847
+    },
+    "stop_latency_p95_ms": {
+      "ci": [
+        1329.164751,
+        3081.990188
+      ],
+      "direction": "<=",
+      "pass": true,
+      "samples": 20,
+      "threshold": null,
+      "unit": "ms",
+      "value": 1732.158802
+    },
+    "transport_drop_count": {
+      "ci": [
+        null,
+        null
+      ],
+      "direction": "<=",
+      "pass": true,
+      "reason": "the offline runner has no queue to drop; the live appsinks are task A4",
+      "samples": 0,
+      "threshold": null,
+      "unit": "count",
+      "value": null
+    },
+    "turn_retention_rate": {
+      "ci": [
+        0.548387,
+        0.839516
+      ],
+      "direction": ">=",
+      "pass": true,
+      "samples": 31,
+      "threshold": null,
+      "unit": "fraction",
+      "value": 0.709677
+    },
+    "user_recall_nst": {
+      "ci": [
+        0.909091,
+        0.990909
+      ],
+      "direction": ">=",
+      "pass": true,
+      "samples": 110,
+      "threshold": 0.509091,
+      "threshold_op": ">=",
+      "unit": "fraction",
+      "value": 0.954545
+    },
+    "user_word_deletion_rate": {
+      "ci": [
+        0.11809,
+        0.188442
+      ],
+      "direction": "<=",
+      "pass": true,
+      "samples": 398,
+      "threshold": 0.360104,
+      "threshold_op": "<=",
+      "unit": "fraction",
+      "value": 0.150754
+    }
+  },
+  "pass": false,
+  "run": {
+    "asr_audio_seconds": 661.169,
+    "asr_calls": 203,
+    "asr_processing_seconds": 72.675,
+    "audio_seconds": 265.92,
+    "barge_ins": 31,
+    "chunk_ms": 20,
+    "clips": 52,
+    "degraded": [],
+    "delay_estimated": 46,
+    "echo_cpu_core_share": 0.10539,
+    "echo_cpu_seconds": 16.378,
+    "exit_phrases": 1,
+    "ignored_utterances": 10,
+    "model": "base",
+    "own_voice_rejections": 0,
+    "realtime_factor": 0.5844,
+    "reconverge_unrecovered": 17,
+    "render_timeline": {
+      "align_err_max_ms": 0.9999,
+      "capture_latency_ms": 20.0,
+      "clips_measured": 46,
+      "echo_travel_ms": 20.0,
+      "erle_monitor_median_db": 0.0,
+      "erle_monitor_music_loss_db": 7.6595,
+      "erle_monitor_music_median_db": 8.093,
+      "erle_own_median_db": 0.0,
+      "erle_own_music_median_db": 0.0,
+      "music_db": 0.0,
+      "reference_mode": "own-render",
+      "sink_jitter_ms": 1.0,
+      "sink_latency_ms": 40.0
+    },
+    "suspects": 46,
+    "target_realtime_factor": 0.5,
+    "turns": 36,
+    "unmeasured": [
+      "transport_drop_count"
+    ],
+    "wall_seconds": 155.4
+  },
+  "seed": 0,
+  "suite": "smoke"
+}
