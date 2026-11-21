@@ -49,6 +49,8 @@ adaptive noise cancellation.
 | A short reply | She starts speaking while the answer is still being written | ✅ |
 | “What can you do?” / “What can you do with files?” | A short spoken list, with phrases to try | 🧪 |
 | “How do I say where is the station in Japanese?” | Translates and says it in that language's voice | 🧪 |
+| “Interpreter mode English and Spanish” | Two languages alternate: each turn is heard in one and answered in the other's voice | 🧪 |
+| “Switch languages”, “What languages am I interpreting” | Flips which side speaks next, and says which pair is open | 🧪 |
 | “Good morning” / “brief me” | Date, weather and today's reminders in one short summary | 🧪 |
 | Change the wake word in Preferences | Every hint and tip names your word instead of “Voxa” | 🧪 |
 
