@@ -76,6 +76,10 @@
 - The improvement loop that turns logged disagreements into VoxaTest cases and periodic reports.
 - **The High face download can arrive from more than one place.** When a release publishes a torrent, a file your machine already has is reused if it matches the published checksum, and the release's web seeds are tried alongside the GitHub download. The published checksums are checked either way, so another machine can only ever make the download faster, never different; when nothing else has the file, the plain GitHub download is used at full speed. (#117)
 
+### New
+
+- **A product search reads itself back.** "Read back the products", "what are the best rated", "compare the prices" or "tell me the top three" opens the search in the browser Voxa controls and says the top three products aloud, cheapest first, with price and rating — and the shop when the page names one. Nothing is bought and no spend rule is involved; when a page will not parse, she says what she opened and leaves it to your eyes.
+
 ### Fixed
 
 - **Installing Ollama no longer runs unreviewed web content as root.** Voxa hashes the installer it downloads from ollama.com and only hands it to the password prompt when that hash is on its reviewed list; otherwise it says so plainly and gives the terminal command to run yourself (#132).

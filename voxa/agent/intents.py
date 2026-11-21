@@ -1641,6 +1641,7 @@ ROUTED_TOOLS = frozenset(
         "home_scene",
         "home_status",
         "find_deal",
+        "product_results",
         "set_location",
         "tell_time",
         "transcribe_file",
@@ -1840,6 +1841,21 @@ _FACT_CHECK = re.compile(
     r"fact check (?:that )?(?P<claim>.+)"
     r"|is it true that (?P<claim2>.+)"
     r"|verify (?:that )?(?P<claim3>.+)",
+    re.IGNORECASE,
+)
+
+# Reading a product search back aloud instead of only opening it (crhy/voxa#51).
+# The whole phrase has to end at the price noun, so "compare prices for a PS5"
+# still goes to compare_prices and "best price on a 4070 Ti Super" to find_deal.
+_PRODUCT_NOUN = r"(?:products?|prices?|deals?|ones?|rated|results?|options?|choices?)"
+_PRODUCT_COUNT = r"(?:top|best|first|cheapest|three|two|few|several|\d+)"
+_PRODUCT_READ = re.compile(
+    r"(?:read|recite|say|tell)(?:\s+back)?\s+(?:me\s+)?(?:the\s+|these\s+|those\s+)?"
+    rf"(?:{_PRODUCT_COUNT}\s+)*(?:{_PRODUCT_NOUN}|{_PRODUCT_COUNT}|them|these|those)\b"
+    rf"|(?:what|how|who|where)\w*\b\s+(?:are|is)\s+(?:the\s+|these\s+|those\s+|their\s+)?"
+    rf"(?:{_PRODUCT_COUNT}\s+)*(?:{_PRODUCT_NOUN}|{_PRODUCT_COUNT})\b"
+    rf"|(?:compare|rank)\s+(?:the\s+|these\s+|those\s+|their\s+)?"
+    rf"(?:{_PRODUCT_COUNT}\s+)*(?:{_PRODUCT_NOUN}|{_PRODUCT_COUNT}|them|these|those)\b",
     re.IGNORECASE,
 )
 
@@ -2527,6 +2543,8 @@ def _route_command(text: str) -> ToolCall | None:
                          or bitcoin_buy_match.group("amount2") or "")
         value = parse_amount(spoken_amount)
         return call("bitcoin_buy", amount=(f"{value:g}" if value is not None else ""))
+    if _PRODUCT_READ.fullmatch(s):
+        return call("product_results", request=s)
 
     if parse_request(s, date.today()):
         return call("find_deal", request=s)

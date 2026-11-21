@@ -376,6 +376,7 @@ def test_registry_lists_all_tools():
             "presentation_make",
             "press_button",
             "press_key",
+            "product_results",
             "project_status",
             "project_steps",
             "radio_genre",
