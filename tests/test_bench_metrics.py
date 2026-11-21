@@ -407,6 +407,7 @@ def toy_facts() -> list[dict]:
 
 
 def test_the_report_carries_every_metric_name_the_brief_fixes(tmp_path=None) -> None:
+    from voxa.bench import gates
     from voxa.bench.report import build_report
 
     results = [{"id": "toy-0000-fst-00", "scenario": "fst", "counts": {"barge_in": 0, "suspect": 0,
@@ -418,22 +419,36 @@ def test_the_report_carries_every_metric_name_the_brief_fixes(tmp_path=None) -> 
     report = build_report("smoke", 0, "voxa", results, toy_facts(), 9.6, 2.0, "base")
     assert sorted(report["metrics"]) == sorted(METRIC_NAMES)
     assert len(METRIC_NAMES) == 33
-    for _name, row in report["metrics"].items():
+    limits = gates.thresholds()  # roadmap B5 records the ratchet in gates.toml
+    for name, row in report["metrics"].items():
         assert set(row) >= {"value", "ci", "threshold", "pass"}
-        assert row["pass"] is True  # B3 sets no thresholds yet
-        assert row["threshold"] is None
-    assert report["pass"] is True
+        if name not in limits:
+            assert row["threshold"] is None and row["pass"] is True
+        else:
+            operator, limit = limits[name]
+            assert row["threshold"] == limit
+            assert row["pass"] is (row["value"] is None
+                                   or gates.compare(row["value"], operator, limit))
+    assert report["pass"] is all(bool(row["pass"]) for row in report["metrics"].values())
     assert report["by_scenario"]["nst"]["clips"] == 1
     assert report["by_scenario"]["nst"]["metrics"]["user_recall_nst"]["value"] == 1.0
     assert report["run"]["clips"] == 1
 
 
-def test_gates_toml_lists_every_metric_with_no_threshold_yet() -> None:
+def test_gates_toml_lists_every_metric_and_b5_ratchets_every_measurable_one() -> None:
     from voxa.bench import gates
 
-    assert gates.thresholds() == {}  # B3: every metric listed, none limited yet
+    limits = gates.thresholds()
+    assert len(limits) == 23  # B5: every metric the default-mode smoke baseline could sample
     listed = gates._load(gates.GATES_PATH).get("metric", [])
     assert sorted(entry["name"] for entry in listed) == sorted(METRIC_NAMES)
+    unmeasurable_in_default_mode = {
+        "align_err_p90_ms", "erle_music_loss_db", "transport_drop_count",        # never measurable yet
+        "duck_latency_p50_ms", "duck_latency_p90_ms", "stop_latency_p50_ms",
+        "stop_latency_p95_ms", "first_word_trunc_bargein", "turn_retention_rate",
+        "reconverge_s",  # null in echo mode voxa: that mode has no duck, stop, span or recovery
+    }
+    assert sorted(set(METRIC_NAMES) - set(limits)) == sorted(unmeasurable_in_default_mode)
     assert gates.evaluate(gates.GATES_PATH, {"metrics": compute(toy_facts(), seed=0)}) == []
 
 

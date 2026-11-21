@@ -1,0 +1,2389 @@
+{
+  "default_echo_mode": "voxa",
+  "modes": {
+    "off": {
+      "full": {
+        "metrics": {
+          "align_err_p90_ms": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "the live reference-to-echo alignment (audio.py's probe) is roadmap task 1",
+            "samples": 0,
+            "unit": "ms",
+            "value": null
+          },
+          "backchannel_resume_rate": {
+            "ci": [
+              0.44875,
+              0.85
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 20,
+            "unit": "fraction",
+            "value": 0.65
+          },
+          "cpu_core_share": {
+            "ci": [
+              0.976887,
+              0.978745
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 480,
+            "unit": "cores",
+            "value": 0.977801
+          },
+          "delay_est_err_ms": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 0,
+            "unit": "ms",
+            "value": null
+          },
+          "drift_erle_loss_db": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 3268,
+            "unit": "dB",
+            "value": 0.0
+          },
+          "dt_wer_penalty_pts": {
+            "ci": [
+              62.18065,
+              72.258466
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 330,
+            "unit": "points",
+            "value": 67.311824
+          },
+          "duck_latency_p50_ms": {
+            "ci": [
+              1276.236872,
+              1694.484886
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 76,
+            "unit": "ms",
+            "value": 1504.101395
+          },
+          "duck_latency_p90_ms": {
+            "ci": [
+              1782.292063,
+              3666.507446
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 76,
+            "unit": "ms",
+            "value": 2335.18544
+          },
+          "echo_leak_word_rate": {
+            "ci": [
+              0.532138,
+              0.562307
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 4014,
+            "unit": "fraction",
+            "value": 0.547334
+          },
+          "ep50_ms": {
+            "ci": [
+              820.487403,
+              870.867433
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 231,
+            "unit": "ms",
+            "value": 848.970967
+          },
+          "ep90_ms": {
+            "ci": [
+              987.082812,
+              1053.490551
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 231,
+            "unit": "ms",
+            "value": 1028.850636
+          },
+          "erle_fst_median_db": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 3720,
+            "unit": "dB",
+            "value": 0.0
+          },
+          "erle_fst_p10_db": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 3720,
+            "unit": "dB",
+            "value": 0.0
+          },
+          "erle_music_loss_db": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": ">=",
+            "reason": "the frozen B1 clip set has no music playback, only Voxa's own replies",
+            "samples": 0,
+            "unit": "dB",
+            "value": null
+          },
+          "false_bargein_per_hour": {
+            "ci": [
+              93.108442,
+              149.839121
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 420,
+            "unit": "events/hour",
+            "value": 122.078707
+          },
+          "first_word_trunc_bargein": {
+            "ci": [
+              0.912409,
+              0.978102
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 137,
+            "unit": "fraction",
+            "value": 0.948905
+          },
+          "first_word_trunc_cold": {
+            "ci": [
+              0.9,
+              1.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 30,
+            "unit": "fraction",
+            "value": 0.966667
+          },
+          "fst_transcript_rate": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 90,
+            "unit": "fraction",
+            "value": 0.0
+          },
+          "interrupt_stop_rate": {
+            "ci": [
+              0.1,
+              0.255556
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 90,
+            "unit": "fraction",
+            "value": 0.177778
+          },
+          "missed_bargein_rate": {
+            "ci": [
+              0.903704,
+              0.959352
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 270,
+            "unit": "fraction",
+            "value": 0.933333
+          },
+          "nearend_atten_dt_db": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 285,
+            "unit": "dB",
+            "value": 0.0
+          },
+          "pair_accuracy": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 3,
+            "unit": "fraction",
+            "value": 0.0
+          },
+          "premature_cutoff_rate": {
+            "ci": [
+              0.008658,
+              0.047619
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 231,
+            "unit": "fraction",
+            "value": 0.025974
+          },
+          "protected_word_keep_rate": {
+            "ci": [
+              0.313769,
+              0.412308
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 325,
+            "unit": "fraction",
+            "value": 0.36
+          },
+          "reconverge_s": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 0,
+            "unit": "s",
+            "value": null
+          },
+          "self_command_rate": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 90,
+            "unit": "fraction",
+            "value": 0.0
+          },
+          "self_pause_per_hour": {
+            "ci": [
+              170.299452,
+              415.067992
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 90,
+            "unit": "events/hour",
+            "value": 290.750826
+          },
+          "stop_latency_p50_ms": {
+            "ci": [
+              1276.236872,
+              1694.484886
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 76,
+            "unit": "ms",
+            "value": 1504.101395
+          },
+          "stop_latency_p95_ms": {
+            "ci": [
+              2042.319266,
+              5381.920209
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 76,
+            "unit": "ms",
+            "value": 3528.778268
+          },
+          "transport_drop_count": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "the offline runner has no queue to drop; the live appsinks are task A4",
+            "samples": 0,
+            "unit": "count",
+            "value": null
+          },
+          "turn_retention_rate": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 171,
+            "unit": "fraction",
+            "value": 0.0
+          },
+          "user_recall_nst": {
+            "ci": [
+              0.935096,
+              0.965144
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 832,
+            "unit": "fraction",
+            "value": 0.950721
+          },
+          "user_word_deletion_rate": {
+            "ci": [
+              0.427916,
+              0.459421
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 3524,
+            "unit": "fraction",
+            "value": 0.442963
+          }
+        },
+        "run": {
+          "asr_audio_seconds": 5830.608,
+          "asr_calls": 1750,
+          "asr_processing_seconds": 363.034,
+          "audio_seconds": 2963.38,
+          "barge_ins": 171,
+          "clips": 480,
+          "degraded": [],
+          "delay_estimated": 0,
+          "realtime_factor": 0.1256,
+          "reconverge_unrecovered": 0,
+          "suspects": 771,
+          "turns": 159,
+          "unmeasured": [
+            "align_err_p90_ms",
+            "delay_est_err_ms",
+            "erle_music_loss_db",
+            "reconverge_s",
+            "transport_drop_count"
+          ],
+          "wall_seconds": 372.211
+        }
+      },
+      "smoke": {
+        "metrics": {
+          "align_err_p90_ms": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "the live reference-to-echo alignment (audio.py's probe) is roadmap task 1",
+            "samples": 0,
+            "unit": "ms",
+            "value": null
+          },
+          "backchannel_resume_rate": {
+            "ci": [
+              0.0,
+              1.0
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 2,
+            "unit": "fraction",
+            "value": 0.5
+          },
+          "cpu_core_share": {
+            "ci": [
+              0.979204,
+              0.984634
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 48,
+            "unit": "cores",
+            "value": 0.981975
+          },
+          "delay_est_err_ms": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 0,
+            "unit": "ms",
+            "value": null
+          },
+          "drift_erle_loss_db": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 264,
+            "unit": "dB",
+            "value": 0.0
+          },
+          "dt_wer_penalty_pts": {
+            "ci": [
+              39.259184,
+              68.520417
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 33,
+            "unit": "points",
+            "value": 54.486227
+          },
+          "duck_latency_p50_ms": {
+            "ci": [
+              538.036863,
+              1667.297381
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 11,
+            "unit": "ms",
+            "value": 1212.36971
+          },
+          "duck_latency_p90_ms": {
+            "ci": [
+              1301.690261,
+              2040.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 11,
+            "unit": "ms",
+            "value": 1681.115045
+          },
+          "echo_leak_word_rate": {
+            "ci": [
+              0.334783,
+              0.46087
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 230,
+            "unit": "fraction",
+            "value": 0.395652
+          },
+          "ep50_ms": {
+            "ci": [
+              767.2424,
+              880.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 30,
+            "unit": "ms",
+            "value": 828.032198
+          },
+          "ep90_ms": {
+            "ci": [
+              911.363066,
+              1020.396965
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 30,
+            "unit": "ms",
+            "value": 983.586137
+          },
+          "erle_fst_median_db": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 372,
+            "unit": "dB",
+            "value": 0.0
+          },
+          "erle_fst_p10_db": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 372,
+            "unit": "dB",
+            "value": 0.0
+          },
+          "erle_music_loss_db": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": ">=",
+            "reason": "the frozen B1 clip set has no music playback, only Voxa's own replies",
+            "samples": 0,
+            "unit": "dB",
+            "value": null
+          },
+          "false_bargein_per_hour": {
+            "ci": [
+              0.0,
+              296.155232
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 42,
+            "unit": "events/hour",
+            "value": 132.778017
+          },
+          "first_word_trunc_bargein": {
+            "ci": [
+              1.0,
+              1.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 14,
+            "unit": "fraction",
+            "value": 1.0
+          },
+          "first_word_trunc_cold": {
+            "ci": [
+              1.0,
+              1.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 3,
+            "unit": "fraction",
+            "value": 1.0
+          },
+          "fst_transcript_rate": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 9,
+            "unit": "fraction",
+            "value": 0.0
+          },
+          "interrupt_stop_rate": {
+            "ci": [
+              0.0,
+              0.555556
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 9,
+            "unit": "fraction",
+            "value": 0.222222
+          },
+          "missed_bargein_rate": {
+            "ci": [
+              0.62963,
+              0.962963
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 27,
+            "unit": "fraction",
+            "value": 0.814815
+          },
+          "nearend_atten_dt_db": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 31,
+            "unit": "dB",
+            "value": 0.0
+          },
+          "pair_accuracy": {
+            "ci": [
+              0.0,
+              1.0
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 3,
+            "unit": "fraction",
+            "value": 0.333333
+          },
+          "premature_cutoff_rate": {
+            "ci": [
+              0.0,
+              0.166667
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 30,
+            "unit": "fraction",
+            "value": 0.066667
+          },
+          "protected_word_keep_rate": {
+            "ci": [
+              0.409091,
+              0.681818
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 44,
+            "unit": "fraction",
+            "value": 0.545455
+          },
+          "reconverge_s": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 0,
+            "unit": "s",
+            "value": null
+          },
+          "self_command_rate": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 9,
+            "unit": "fraction",
+            "value": 0.0
+          },
+          "self_pause_per_hour": {
+            "ci": [
+              0.0,
+              891.334147
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 9,
+            "unit": "events/hour",
+            "value": 484.58471
+          },
+          "stop_latency_p50_ms": {
+            "ci": [
+              538.036863,
+              1667.297381
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 11,
+            "unit": "ms",
+            "value": 1212.36971
+          },
+          "stop_latency_p95_ms": {
+            "ci": [
+              1491.402653,
+              2040.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 11,
+            "unit": "ms",
+            "value": 1860.557523
+          },
+          "transport_drop_count": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "the offline runner has no queue to drop; the live appsinks are task A4",
+            "samples": 0,
+            "unit": "count",
+            "value": null
+          },
+          "turn_retention_rate": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 17,
+            "unit": "fraction",
+            "value": 0.0
+          },
+          "user_recall_nst": {
+            "ci": [
+              0.9,
+              0.981818
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 110,
+            "unit": "fraction",
+            "value": 0.945455
+          },
+          "user_word_deletion_rate": {
+            "ci": [
+              0.251295,
+              0.339378
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 386,
+            "unit": "fraction",
+            "value": 0.295337
+          }
+        },
+        "run": {
+          "asr_audio_seconds": 558.05,
+          "asr_calls": 162,
+          "asr_processing_seconds": 51.906,
+          "audio_seconds": 252.14,
+          "barge_ins": 17,
+          "clips": 48,
+          "degraded": [],
+          "delay_estimated": 0,
+          "realtime_factor": 0.2102,
+          "reconverge_unrecovered": 0,
+          "suspects": 47,
+          "turns": 22,
+          "unmeasured": [
+            "align_err_p90_ms",
+            "delay_est_err_ms",
+            "erle_music_loss_db",
+            "reconverge_s",
+            "transport_drop_count"
+          ],
+          "wall_seconds": 52.988
+        }
+      }
+    },
+    "voxa": {
+      "full": {
+        "metrics": {
+          "align_err_p90_ms": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "the live reference-to-echo alignment (audio.py's probe) is roadmap task 1",
+            "samples": 0,
+            "unit": "ms",
+            "value": null
+          },
+          "backchannel_resume_rate": {
+            "ci": [
+              1.0,
+              1.0
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 20,
+            "unit": "fraction",
+            "value": 1.0
+          },
+          "cpu_core_share": {
+            "ci": [
+              0.631674,
+              0.663794
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 480,
+            "unit": "cores",
+            "value": 0.648341
+          },
+          "delay_est_err_ms": {
+            "ci": [
+              3.735479,
+              9.889083
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 303,
+            "unit": "ms",
+            "value": 6.361592
+          },
+          "drift_erle_loss_db": {
+            "ci": [
+              -0.04018,
+              0.090341
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 3268,
+            "unit": "dB",
+            "value": 0.026471
+          },
+          "dt_wer_penalty_pts": {
+            "ci": [
+              19.664558,
+              265.519355
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 330,
+            "unit": "points",
+            "value": 116.4305
+          },
+          "duck_latency_p50_ms": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 0,
+            "unit": "ms",
+            "value": null
+          },
+          "duck_latency_p90_ms": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 0,
+            "unit": "ms",
+            "value": null
+          },
+          "echo_leak_word_rate": {
+            "ci": [
+              0.171892,
+              0.195566
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 4014,
+            "unit": "fraction",
+            "value": 0.183857
+          },
+          "ep50_ms": {
+            "ci": [
+              883.739107,
+              952.219352
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 208,
+            "unit": "ms",
+            "value": 913.368652
+          },
+          "ep90_ms": {
+            "ci": [
+              1147.254292,
+              1282.066513
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 208,
+            "unit": "ms",
+            "value": 1214.056692
+          },
+          "erle_fst_median_db": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 3720,
+            "unit": "dB",
+            "value": 0.0
+          },
+          "erle_fst_p10_db": {
+            "ci": [
+              -0.06,
+              -0.02
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 3720,
+            "unit": "dB",
+            "value": -0.031
+          },
+          "erle_music_loss_db": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": ">=",
+            "reason": "the frozen B1 clip set has no music playback, only Voxa's own replies",
+            "samples": 0,
+            "unit": "dB",
+            "value": null
+          },
+          "false_bargein_per_hour": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 420,
+            "unit": "events/hour",
+            "value": 0.0
+          },
+          "first_word_trunc_bargein": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 0,
+            "unit": "fraction",
+            "value": null
+          },
+          "first_word_trunc_cold": {
+            "ci": [
+              1.0,
+              1.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 30,
+            "unit": "fraction",
+            "value": 1.0
+          },
+          "fst_transcript_rate": {
+            "ci": [
+              0.0,
+              0.066667
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 90,
+            "unit": "fraction",
+            "value": 0.033333
+          },
+          "interrupt_stop_rate": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 90,
+            "unit": "fraction",
+            "value": 0.0
+          },
+          "missed_bargein_rate": {
+            "ci": [
+              1.0,
+              1.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 270,
+            "unit": "fraction",
+            "value": 1.0
+          },
+          "nearend_atten_dt_db": {
+            "ci": [
+              4.195185,
+              6.242104
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 285,
+            "unit": "dB",
+            "value": 5.193217
+          },
+          "pair_accuracy": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 3,
+            "unit": "fraction",
+            "value": 0.0
+          },
+          "premature_cutoff_rate": {
+            "ci": [
+              0.019231,
+              0.072115
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 208,
+            "unit": "fraction",
+            "value": 0.043269
+          },
+          "protected_word_keep_rate": {
+            "ci": [
+              0.132308,
+              0.215385
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 325,
+            "unit": "fraction",
+            "value": 0.172308
+          },
+          "reconverge_s": {
+            "ci": [
+              0.864444,
+              1.673389
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 9,
+            "unit": "s",
+            "value": 1.268889
+          },
+          "self_command_rate": {
+            "ci": [
+              0.0,
+              0.066667
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 90,
+            "unit": "fraction",
+            "value": 0.033333
+          },
+          "self_pause_per_hour": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 90,
+            "unit": "events/hour",
+            "value": 0.0
+          },
+          "stop_latency_p50_ms": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 0,
+            "unit": "ms",
+            "value": null
+          },
+          "stop_latency_p95_ms": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 0,
+            "unit": "ms",
+            "value": null
+          },
+          "transport_drop_count": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "the offline runner has no queue to drop; the live appsinks are task A4",
+            "samples": 0,
+            "unit": "count",
+            "value": null
+          },
+          "turn_retention_rate": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 0,
+            "unit": "fraction",
+            "value": null
+          },
+          "user_recall_nst": {
+            "ci": [
+              0.58774,
+              0.653846
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 832,
+            "unit": "fraction",
+            "value": 0.621394
+          },
+          "user_word_deletion_rate": {
+            "ci": [
+              0.428774,
+              0.461415
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 3524,
+            "unit": "fraction",
+            "value": 0.444098
+          }
+        },
+        "run": {
+          "asr_audio_seconds": 4937.453,
+          "asr_calls": 1264,
+          "asr_processing_seconds": 249.971,
+          "audio_seconds": 2963.38,
+          "barge_ins": 0,
+          "clips": 480,
+          "degraded": [],
+          "delay_estimated": 294,
+          "realtime_factor": 0.1279,
+          "reconverge_unrecovered": 294,
+          "suspects": 0,
+          "turns": 146,
+          "unmeasured": [
+            "align_err_p90_ms",
+            "duck_latency_p50_ms",
+            "duck_latency_p90_ms",
+            "erle_music_loss_db",
+            "first_word_trunc_bargein",
+            "stop_latency_p50_ms",
+            "stop_latency_p95_ms",
+            "transport_drop_count",
+            "turn_retention_rate"
+          ],
+          "wall_seconds": 379.001
+        }
+      },
+      "smoke": {
+        "metrics": {
+          "align_err_p90_ms": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "the live reference-to-echo alignment (audio.py's probe) is roadmap task 1",
+            "samples": 0,
+            "unit": "ms",
+            "value": null
+          },
+          "backchannel_resume_rate": {
+            "ci": [
+              1.0,
+              1.0
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 2,
+            "unit": "fraction",
+            "value": 1.0
+          },
+          "cpu_core_share": {
+            "ci": [
+              0.684016,
+              0.775161
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 48,
+            "unit": "cores",
+            "value": 0.730992
+          },
+          "delay_est_err_ms": {
+            "ci": [
+              0.011364,
+              17.357955
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 11,
+            "unit": "ms",
+            "value": 5.801136
+          },
+          "drift_erle_loss_db": {
+            "ci": [
+              0.015973,
+              0.153642
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 264,
+            "unit": "dB",
+            "value": 0.079975
+          },
+          "dt_wer_penalty_pts": {
+            "ci": [
+              27.370961,
+              352.447512
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 33,
+            "unit": "points",
+            "value": 125.236548
+          },
+          "duck_latency_p50_ms": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 0,
+            "unit": "ms",
+            "value": null
+          },
+          "duck_latency_p90_ms": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 0,
+            "unit": "ms",
+            "value": null
+          },
+          "echo_leak_word_rate": {
+            "ci": [
+              0.117391,
+              0.213043
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 230,
+            "unit": "fraction",
+            "value": 0.165217
+          },
+          "ep50_ms": {
+            "ci": [
+              855.542849,
+              1021.414664
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 28,
+            "unit": "ms",
+            "value": 913.886943
+          },
+          "ep90_ms": {
+            "ci": [
+              1081.457466,
+              1318.920546
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 28,
+            "unit": "ms",
+            "value": 1159.453339
+          },
+          "erle_fst_median_db": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 372,
+            "unit": "dB",
+            "value": 0.0
+          },
+          "erle_fst_p10_db": {
+            "ci": [
+              -0.08,
+              -0.01
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 372,
+            "unit": "dB",
+            "value": -0.038
+          },
+          "erle_music_loss_db": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": ">=",
+            "reason": "the frozen B1 clip set has no music playback, only Voxa's own replies",
+            "samples": 0,
+            "unit": "dB",
+            "value": null
+          },
+          "false_bargein_per_hour": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 42,
+            "unit": "events/hour",
+            "value": 0.0
+          },
+          "first_word_trunc_bargein": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 0,
+            "unit": "fraction",
+            "value": null
+          },
+          "first_word_trunc_cold": {
+            "ci": [
+              1.0,
+              1.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 3,
+            "unit": "fraction",
+            "value": 1.0
+          },
+          "fst_transcript_rate": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 9,
+            "unit": "fraction",
+            "value": 0.0
+          },
+          "interrupt_stop_rate": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 9,
+            "unit": "fraction",
+            "value": 0.0
+          },
+          "missed_bargein_rate": {
+            "ci": [
+              1.0,
+              1.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 27,
+            "unit": "fraction",
+            "value": 1.0
+          },
+          "nearend_atten_dt_db": {
+            "ci": [
+              5.969751,
+              11.77651
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 31,
+            "unit": "dB",
+            "value": 8.637021
+          },
+          "pair_accuracy": {
+            "ci": [
+              0.0,
+              1.0
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 3,
+            "unit": "fraction",
+            "value": 0.333333
+          },
+          "premature_cutoff_rate": {
+            "ci": [
+              0.0,
+              0.178571
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 28,
+            "unit": "fraction",
+            "value": 0.071429
+          },
+          "protected_word_keep_rate": {
+            "ci": [
+              0.113636,
+              0.363636
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 44,
+            "unit": "fraction",
+            "value": 0.227273
+          },
+          "reconverge_s": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 0,
+            "unit": "s",
+            "value": null
+          },
+          "self_command_rate": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 9,
+            "unit": "fraction",
+            "value": 0.0
+          },
+          "self_pause_per_hour": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 9,
+            "unit": "events/hour",
+            "value": 0.0
+          },
+          "stop_latency_p50_ms": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 0,
+            "unit": "ms",
+            "value": null
+          },
+          "stop_latency_p95_ms": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 0,
+            "unit": "ms",
+            "value": null
+          },
+          "transport_drop_count": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "the offline runner has no queue to drop; the live appsinks are task A4",
+            "samples": 0,
+            "unit": "count",
+            "value": null
+          },
+          "turn_retention_rate": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 0,
+            "unit": "fraction",
+            "value": null
+          },
+          "user_recall_nst": {
+            "ci": [
+              0.509091,
+              0.690909
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 110,
+            "unit": "fraction",
+            "value": 0.609091
+          },
+          "user_word_deletion_rate": {
+            "ci": [
+              0.272021,
+              0.360104
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 386,
+            "unit": "fraction",
+            "value": 0.316062
+          }
+        },
+        "run": {
+          "asr_audio_seconds": 509.016,
+          "asr_calls": 130,
+          "asr_processing_seconds": 25.901,
+          "audio_seconds": 252.14,
+          "barge_ins": 0,
+          "clips": 48,
+          "degraded": [],
+          "delay_estimated": 11,
+          "realtime_factor": 0.1351,
+          "reconverge_unrecovered": 11,
+          "suspects": 0,
+          "turns": 20,
+          "unmeasured": [
+            "align_err_p90_ms",
+            "duck_latency_p50_ms",
+            "duck_latency_p90_ms",
+            "erle_music_loss_db",
+            "first_word_trunc_bargein",
+            "reconverge_s",
+            "stop_latency_p50_ms",
+            "stop_latency_p95_ms",
+            "transport_drop_count",
+            "turn_retention_rate"
+          ],
+          "wall_seconds": 34.064
+        }
+      }
+    },
+    "webrtc": {
+      "full": {
+        "metrics": {
+          "align_err_p90_ms": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "the live reference-to-echo alignment (audio.py's probe) is roadmap task 1",
+            "samples": 0,
+            "unit": "ms",
+            "value": null
+          },
+          "backchannel_resume_rate": {
+            "ci": [
+              0.44875,
+              0.85
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 20,
+            "unit": "fraction",
+            "value": 0.65
+          },
+          "cpu_core_share": {
+            "ci": [
+              0.975188,
+              0.977279
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 480,
+            "unit": "cores",
+            "value": 0.976171
+          },
+          "delay_est_err_ms": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 0,
+            "unit": "ms",
+            "value": null
+          },
+          "drift_erle_loss_db": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 3268,
+            "unit": "dB",
+            "value": 0.0
+          },
+          "dt_wer_penalty_pts": {
+            "ci": [
+              62.18065,
+              72.258466
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 330,
+            "unit": "points",
+            "value": 67.311824
+          },
+          "duck_latency_p50_ms": {
+            "ci": [
+              1276.236872,
+              1694.484886
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 76,
+            "unit": "ms",
+            "value": 1504.101395
+          },
+          "duck_latency_p90_ms": {
+            "ci": [
+              1782.292063,
+              3666.507446
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 76,
+            "unit": "ms",
+            "value": 2335.18544
+          },
+          "echo_leak_word_rate": {
+            "ci": [
+              0.532138,
+              0.562307
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 4014,
+            "unit": "fraction",
+            "value": 0.547334
+          },
+          "ep50_ms": {
+            "ci": [
+              820.487403,
+              870.867433
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 231,
+            "unit": "ms",
+            "value": 848.970967
+          },
+          "ep90_ms": {
+            "ci": [
+              987.082812,
+              1053.490551
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 231,
+            "unit": "ms",
+            "value": 1028.850636
+          },
+          "erle_fst_median_db": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 3720,
+            "unit": "dB",
+            "value": 0.0
+          },
+          "erle_fst_p10_db": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 3720,
+            "unit": "dB",
+            "value": 0.0
+          },
+          "erle_music_loss_db": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": ">=",
+            "reason": "the frozen B1 clip set has no music playback, only Voxa's own replies",
+            "samples": 0,
+            "unit": "dB",
+            "value": null
+          },
+          "false_bargein_per_hour": {
+            "ci": [
+              93.108442,
+              149.839121
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 420,
+            "unit": "events/hour",
+            "value": 122.078707
+          },
+          "first_word_trunc_bargein": {
+            "ci": [
+              0.912409,
+              0.978102
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 137,
+            "unit": "fraction",
+            "value": 0.948905
+          },
+          "first_word_trunc_cold": {
+            "ci": [
+              0.9,
+              1.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 30,
+            "unit": "fraction",
+            "value": 0.966667
+          },
+          "fst_transcript_rate": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 90,
+            "unit": "fraction",
+            "value": 0.0
+          },
+          "interrupt_stop_rate": {
+            "ci": [
+              0.1,
+              0.255556
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 90,
+            "unit": "fraction",
+            "value": 0.177778
+          },
+          "missed_bargein_rate": {
+            "ci": [
+              0.903704,
+              0.959352
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 270,
+            "unit": "fraction",
+            "value": 0.933333
+          },
+          "nearend_atten_dt_db": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 285,
+            "unit": "dB",
+            "value": 0.0
+          },
+          "pair_accuracy": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 3,
+            "unit": "fraction",
+            "value": 0.0
+          },
+          "premature_cutoff_rate": {
+            "ci": [
+              0.008658,
+              0.047619
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 231,
+            "unit": "fraction",
+            "value": 0.025974
+          },
+          "protected_word_keep_rate": {
+            "ci": [
+              0.313769,
+              0.412308
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 325,
+            "unit": "fraction",
+            "value": 0.36
+          },
+          "reconverge_s": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 0,
+            "unit": "s",
+            "value": null
+          },
+          "self_command_rate": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 90,
+            "unit": "fraction",
+            "value": 0.0
+          },
+          "self_pause_per_hour": {
+            "ci": [
+              170.299452,
+              415.067992
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 90,
+            "unit": "events/hour",
+            "value": 290.750826
+          },
+          "stop_latency_p50_ms": {
+            "ci": [
+              1276.236872,
+              1694.484886
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 76,
+            "unit": "ms",
+            "value": 1504.101395
+          },
+          "stop_latency_p95_ms": {
+            "ci": [
+              2042.319266,
+              5381.920209
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 76,
+            "unit": "ms",
+            "value": 3528.778268
+          },
+          "transport_drop_count": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "the offline runner has no queue to drop; the live appsinks are task A4",
+            "samples": 0,
+            "unit": "count",
+            "value": null
+          },
+          "turn_retention_rate": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 171,
+            "unit": "fraction",
+            "value": 0.0
+          },
+          "user_recall_nst": {
+            "ci": [
+              0.935096,
+              0.965144
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 832,
+            "unit": "fraction",
+            "value": 0.950721
+          },
+          "user_word_deletion_rate": {
+            "ci": [
+              0.427916,
+              0.459421
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 3524,
+            "unit": "fraction",
+            "value": 0.442963
+          }
+        },
+        "run": {
+          "asr_audio_seconds": 5830.608,
+          "asr_calls": 1750,
+          "asr_processing_seconds": 314.995,
+          "audio_seconds": 2963.38,
+          "barge_ins": 171,
+          "clips": 480,
+          "degraded": [
+            "webrtc unavailable (no GStreamer runtime here): running with echo off"
+          ],
+          "delay_estimated": 0,
+          "realtime_factor": 0.1092,
+          "reconverge_unrecovered": 0,
+          "suspects": 771,
+          "turns": 159,
+          "unmeasured": [
+            "align_err_p90_ms",
+            "delay_est_err_ms",
+            "erle_music_loss_db",
+            "reconverge_s",
+            "transport_drop_count"
+          ],
+          "wall_seconds": 323.642
+        }
+      },
+      "smoke": {
+        "metrics": {
+          "align_err_p90_ms": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "the live reference-to-echo alignment (audio.py's probe) is roadmap task 1",
+            "samples": 0,
+            "unit": "ms",
+            "value": null
+          },
+          "backchannel_resume_rate": {
+            "ci": [
+              0.0,
+              1.0
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 2,
+            "unit": "fraction",
+            "value": 0.5
+          },
+          "cpu_core_share": {
+            "ci": [
+              0.973602,
+              0.980035
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 48,
+            "unit": "cores",
+            "value": 0.97695
+          },
+          "delay_est_err_ms": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 0,
+            "unit": "ms",
+            "value": null
+          },
+          "drift_erle_loss_db": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 264,
+            "unit": "dB",
+            "value": 0.0
+          },
+          "dt_wer_penalty_pts": {
+            "ci": [
+              39.259184,
+              68.520417
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 33,
+            "unit": "points",
+            "value": 54.486227
+          },
+          "duck_latency_p50_ms": {
+            "ci": [
+              538.036863,
+              1667.297381
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 11,
+            "unit": "ms",
+            "value": 1212.36971
+          },
+          "duck_latency_p90_ms": {
+            "ci": [
+              1301.690261,
+              2040.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 11,
+            "unit": "ms",
+            "value": 1681.115045
+          },
+          "echo_leak_word_rate": {
+            "ci": [
+              0.334783,
+              0.46087
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 230,
+            "unit": "fraction",
+            "value": 0.395652
+          },
+          "ep50_ms": {
+            "ci": [
+              767.2424,
+              880.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 30,
+            "unit": "ms",
+            "value": 828.032198
+          },
+          "ep90_ms": {
+            "ci": [
+              911.363066,
+              1020.396965
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 30,
+            "unit": "ms",
+            "value": 983.586137
+          },
+          "erle_fst_median_db": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 372,
+            "unit": "dB",
+            "value": 0.0
+          },
+          "erle_fst_p10_db": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 372,
+            "unit": "dB",
+            "value": 0.0
+          },
+          "erle_music_loss_db": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": ">=",
+            "reason": "the frozen B1 clip set has no music playback, only Voxa's own replies",
+            "samples": 0,
+            "unit": "dB",
+            "value": null
+          },
+          "false_bargein_per_hour": {
+            "ci": [
+              0.0,
+              296.155232
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 42,
+            "unit": "events/hour",
+            "value": 132.778017
+          },
+          "first_word_trunc_bargein": {
+            "ci": [
+              1.0,
+              1.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 14,
+            "unit": "fraction",
+            "value": 1.0
+          },
+          "first_word_trunc_cold": {
+            "ci": [
+              1.0,
+              1.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 3,
+            "unit": "fraction",
+            "value": 1.0
+          },
+          "fst_transcript_rate": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 9,
+            "unit": "fraction",
+            "value": 0.0
+          },
+          "interrupt_stop_rate": {
+            "ci": [
+              0.0,
+              0.555556
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 9,
+            "unit": "fraction",
+            "value": 0.222222
+          },
+          "missed_bargein_rate": {
+            "ci": [
+              0.62963,
+              0.962963
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 27,
+            "unit": "fraction",
+            "value": 0.814815
+          },
+          "nearend_atten_dt_db": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 31,
+            "unit": "dB",
+            "value": 0.0
+          },
+          "pair_accuracy": {
+            "ci": [
+              0.0,
+              1.0
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 3,
+            "unit": "fraction",
+            "value": 0.333333
+          },
+          "premature_cutoff_rate": {
+            "ci": [
+              0.0,
+              0.166667
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 30,
+            "unit": "fraction",
+            "value": 0.066667
+          },
+          "protected_word_keep_rate": {
+            "ci": [
+              0.409091,
+              0.681818
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 44,
+            "unit": "fraction",
+            "value": 0.545455
+          },
+          "reconverge_s": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 0,
+            "unit": "s",
+            "value": null
+          },
+          "self_command_rate": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 9,
+            "unit": "fraction",
+            "value": 0.0
+          },
+          "self_pause_per_hour": {
+            "ci": [
+              0.0,
+              891.334147
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 9,
+            "unit": "events/hour",
+            "value": 484.58471
+          },
+          "stop_latency_p50_ms": {
+            "ci": [
+              538.036863,
+              1667.297381
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 11,
+            "unit": "ms",
+            "value": 1212.36971
+          },
+          "stop_latency_p95_ms": {
+            "ci": [
+              1491.402653,
+              2040.0
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 11,
+            "unit": "ms",
+            "value": 1860.557523
+          },
+          "transport_drop_count": {
+            "ci": [
+              null,
+              null
+            ],
+            "direction": "<=",
+            "reason": "the offline runner has no queue to drop; the live appsinks are task A4",
+            "samples": 0,
+            "unit": "count",
+            "value": null
+          },
+          "turn_retention_rate": {
+            "ci": [
+              0.0,
+              0.0
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 17,
+            "unit": "fraction",
+            "value": 0.0
+          },
+          "user_recall_nst": {
+            "ci": [
+              0.9,
+              0.981818
+            ],
+            "direction": ">=",
+            "reason": "",
+            "samples": 110,
+            "unit": "fraction",
+            "value": 0.945455
+          },
+          "user_word_deletion_rate": {
+            "ci": [
+              0.251295,
+              0.339378
+            ],
+            "direction": "<=",
+            "reason": "",
+            "samples": 386,
+            "unit": "fraction",
+            "value": 0.295337
+          }
+        },
+        "run": {
+          "asr_audio_seconds": 558.05,
+          "asr_calls": 162,
+          "asr_processing_seconds": 29.745,
+          "audio_seconds": 252.14,
+          "barge_ins": 17,
+          "clips": 48,
+          "degraded": [
+            "webrtc unavailable (no GStreamer runtime here): running with echo off"
+          ],
+          "delay_estimated": 0,
+          "realtime_factor": 0.1213,
+          "reconverge_unrecovered": 0,
+          "suspects": 47,
+          "turns": 22,
+          "unmeasured": [
+            "align_err_p90_ms",
+            "delay_est_err_ms",
+            "erle_music_loss_db",
+            "reconverge_s",
+            "transport_drop_count"
+          ],
+          "wall_seconds": 30.59
+        }
+      }
+    }
+  },
+  "ratchet": {
+    "echo_mode": "voxa",
+    "rule": "smoke baseline CI bound on the bad side",
+    "suite": "smoke",
+    "thresholds": {
+      "backchannel_resume_rate": 1.0,
+      "cpu_core_share": 0.775161,
+      "delay_est_err_ms": 17.357955,
+      "drift_erle_loss_db": 0.153642,
+      "dt_wer_penalty_pts": 352.447512,
+      "echo_leak_word_rate": 0.213043,
+      "ep50_ms": 1021.414664,
+      "ep90_ms": 1318.920546,
+      "erle_fst_median_db": 0.0,
+      "erle_fst_p10_db": -0.08,
+      "false_bargein_per_hour": 0.0,
+      "first_word_trunc_cold": 1.0,
+      "fst_transcript_rate": 0.0,
+      "interrupt_stop_rate": 0.0,
+      "missed_bargein_rate": 1.0,
+      "nearend_atten_dt_db": 11.77651,
+      "pair_accuracy": 0.0,
+      "premature_cutoff_rate": 0.178571,
+      "protected_word_keep_rate": 0.113636,
+      "self_command_rate": 0.0,
+      "self_pause_per_hour": 0.0,
+      "user_recall_nst": 0.509091,
+      "user_word_deletion_rate": 0.360104
+    }
+  },
+  "seed": 0
+}
