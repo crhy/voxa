@@ -15,6 +15,7 @@ from voxa.agent.homeassistant import colour_payload
 from voxa.agent.helptext import topic_for
 from voxa.agent.mailflow import spoken_address
 from voxa.agent.meeting_notes import relative_span
+from voxa.agent.reservations import missing_details, parse_reservation
 from voxa.agent.tools import translate
 from voxa.agent.tools.browser import site_url
 from voxa.apps import clean_spoken_app_name
@@ -422,6 +423,13 @@ _NEAREST = re.compile(
     re.IGNORECASE,
 )
 _NEAR_ME = re.compile(r"(?:find\s+(?:me\s+)?|show\s+(?:me\s+)?|where(?:'s| is| are)\s+)?(?:a\s+|an\s+|the\s+)?(.+?)\s+(?:near me|nearby|around here|close to me)", re.IGNORECASE)
+# "book a table for four at Luigi's on Friday at seven": the restaurant's booking page, pre-filled.
+# A booking with everything said opens the page; a partial one is said back and asked for.
+_RESERVATION_PAGE = re.compile(
+    r"(?:(?:fill|pre[- ]?fill|open|show|load|go\s+to)\s+(?:the\s+|her\s+|a\s+|his\s+|their\s+)?)?"
+    r"(?:restaurant\s+|online\s+|booking\s+|reservation\s+)*(?:booking|reservation)\s+page",
+    re.IGNORECASE,
+)
 _IMAGE_OF = re.compile(
     r"(?:show\s+me|find|look\s+for|search\s+for|get)\s+(?:\w+\s+)?"
     r"(?:images|pictures|photos|pics)\s+of\s+(.+)",
@@ -1678,6 +1686,8 @@ ROUTED_TOOLS = frozenset(
         "product_results",
         "deal_results",
         "set_location",
+        "reservation_plan",
+        "reservation_fill",
         "tell_time",
         "transcribe_file",
         "meeting_note_actions",
@@ -2522,6 +2532,12 @@ def _route_command(text: str) -> ToolCall | None:
         return call("local_weather", place=weather_in.group(1).strip())
     if _LOCAL_WEATHER.fullmatch(s) or weather_in:
         return call("local_weather")
+
+    reservation = parse_reservation(s, date.today())
+    if reservation is not None:
+        if _RESERVATION_PAGE.search(s) or not missing_details(reservation):
+            return call("reservation_fill", request=s)
+        return call("reservation_plan", request=s)
 
     from_match = _DIRECTIONS_FROM.fullmatch(s)
     if from_match:

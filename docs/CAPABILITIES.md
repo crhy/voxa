@@ -130,6 +130,7 @@ adaptive noise cancellation.
 | “Read back the products” / “what are the best rated” / “compare the prices” / “tell me the top three” | Product search opened in the browser Voxa controls, top three said aloud cheapest first with price and rating | 🧪 |
 | “Give me directions to the San Diego Zoo” | Google Maps directions | 🧪 |
 | “Where is the nearest gas station?” | Google Maps, nearest first | 🧪 |
+| “Book a table for four at Luigi's on Friday at seven” | The restaurant's booking page opens with party size, date and time pre-filled; nothing submitted yet | 🧪 |
 | “Show me pictures of …” | Image search | ✅ |
 
 ## Browsing

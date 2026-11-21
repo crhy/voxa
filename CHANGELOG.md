@@ -119,6 +119,10 @@ Still open on #57: important email and deliveries join the briefing only once a 
 
 - The Flatpak no longer carries debug symbols. Every module that installs compiled binaries now drops its `debug` directories — about 38 MB by the owner's own measurement, and nothing is lost at run time. The three bigger size questions (CUDA as an add-on, which characters ship in the core, whether the 3D avatars stay) are still open and unchanged here.
 
+### New
+
+- **Book a restaurant table by voice.** "Book a table for four at Luigi's on Friday at seven" opens the restaurant's booking page (OpenTable, Resy, Tock or a web search) and types the party size, date, time and restaurant into the fields that page offers. Nothing is submitted: pressing Book stays a separate, confirmed step.
+
 ### Fixed
 
 - **Installing Ollama no longer runs unreviewed web content as root.** Voxa hashes the installer it downloads from ollama.com and only hands it to the password prompt when that hash is on its reviewed list; otherwise it says so plainly and gives the terminal command to run yourself (#132).
