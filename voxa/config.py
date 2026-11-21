@@ -13,13 +13,9 @@ from .hardware import parse_device_id
 
 FACE_MODES = ("live", "prerendered", "still")
 WEB_SEARCH_MODES = ("auto", "always", "never")
-<<<<<<< HEAD
-ECHO_MODES = ("voxa", "webrtc", "off")
+ECHO_MODES = ("voxa", "aec3", "webrtc", "off")
 # The exchanges voxa/agent/exchange.py knows how to talk to (issue #46).
 EXCHANGE_NAMES = ("kraken", "coinbase", "bitstamp")
-=======
-ECHO_MODES = ("voxa", "aec3", "webrtc", "off")
->>>>>>> origin/strata/f130-voxa-hear-t3-delay-drift
 DEFAULT_TTS_RATE = 230
 LEGACY_DEFAULT_TTS_RATES = (180, 225, 250)
 
