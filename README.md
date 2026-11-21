@@ -50,7 +50,7 @@ Single commands run instantly without a model; chained requests are planned by t
 | “Clean up the text” | Fixes spelling, grammar and clarity in the text or selection |
 | “Save file” | Asks “What should I save the file as?”, types the name and saves |
 | “What is Tesla's stock price?” / “What is the British pound in USD?” | Speaks the current quote or latest reference exchange rate |
-| “What is the price of Bitcoin?” | Looks it up and answers from the results, with the source |
+| “What is the price of Bitcoin?” | Speaks the price your own exchange reports, once its key is set up in Preferences |
 | “Walking directions to the library” / “Nearest pharmacy” | Opens maps for it |
 | “Open air ships dot com” / “Open my email” | Opens the website |
 | “Set a timer for five minutes” / “Remind me at three to call Bob” | Spoken when it fires |

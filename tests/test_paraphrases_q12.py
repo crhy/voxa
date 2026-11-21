@@ -9,10 +9,13 @@ def test_cap39_market_paraphrases():
 
 
 def test_cap39_bitcoin_paraphrases():
+    # Issue #46's read-only slice answers Bitcoin from the user's own exchange.
     r = route("hey how much is bitcoin")
-    assert r and r.tool == "market" and r.args["what"] == "bitcoin"
+    assert r and r.tool == "bitcoin_price"
     r = route("hey what's bitcoin at")
-    assert r and r.tool == "market" and r.args["what"] == "bitcoin"
+    assert r and r.tool == "bitcoin_price"
+    # Gold and silver keep going to the stock-market rule.
+    assert route("hey how much is gold").tool == "market"
 
 
 def test_cap40_fact_check_paraphrases():

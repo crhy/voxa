@@ -69,6 +69,7 @@ SECRET_KEY_BASES = (
     "api_key",
     "apikey",
     "api-key",
+    "exchange_key",
     "token",
     "secret",
     "password",

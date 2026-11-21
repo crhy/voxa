@@ -16,6 +16,10 @@ model and take a few seconds.
 | "search the web for the weather today" | Runs a web search for the phrase you said |
 | "compose an email" | Opens a new Gmail compose window |
 | "send it" | Sends the email you have just dictated |
+| "what's Bitcoin at?", "how much is Bitcoin in euros" | Speaks the current Bitcoin price from your exchange's public ticker (no key needed) |
+| "how much Bitcoin do I have?", "what's my Bitcoin balance" | Speaks the Bitcoin balance your exchange holds for your key |
+| "show my recent exchange orders", "show recent Bitcoin trades" | Reads out your most recent orders at the exchange |
+| "buy fifty dollars of Bitcoin" | Refused out loud: buying waits for the spending rule in issue #43, and the key in use must have withdrawals disabled |
 
 ## YouTube and media
 

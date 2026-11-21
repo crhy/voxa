@@ -14,6 +14,8 @@ from .hardware import parse_device_id
 FACE_MODES = ("live", "prerendered", "still")
 WEB_SEARCH_MODES = ("auto", "always", "never")
 ECHO_MODES = ("voxa", "webrtc", "off")
+# The exchanges voxa/agent/exchange.py knows how to talk to (issue #46).
+EXCHANGE_NAMES = ("kraken", "coinbase", "bitstamp")
 DEFAULT_TTS_RATE = 230
 LEGACY_DEFAULT_TTS_RATES = (180, 225, 250)
 
@@ -142,6 +144,14 @@ class Settings:
     mail_host: str = ""
     mail_user: str = ""
     mail_password: str = ""
+    # Bitcoin exchange for issue #46 (issue #46's read-only slice: price, balance,
+    # recent orders). The key must be restricted to trading with withdrawals
+    # disabled - see voxa/agent/exchange.py. ``exchange_secret`` is redacted in
+    # backups by backup.py SECRET_KEY_BASES ("secret"), and ``exchange_key``
+    # was added to that rule so the key itself is redacted too.
+    exchange_name: str = ""
+    exchange_key: str = ""
+    exchange_secret: str = ""
 
     def normalized(self) -> Settings:
         self.tts_rate = max(80, min(350, int(self.tts_rate)))
@@ -171,6 +181,12 @@ class Settings:
             self.face_mode = "prerendered"
         if self.web_search not in WEB_SEARCH_MODES:
             self.web_search = "auto"
+        self.exchange_name = (self.exchange_name or "").strip().casefold()
+        if self.exchange_name not in EXCHANGE_NAMES:
+            self.exchange_name = ""
+        self.exchange_key = (self.exchange_key or "").strip()
+        self.exchange_secret = (self.exchange_secret or "").strip()
+
         if self.echo_mode not in ECHO_MODES:
             self.echo_mode = "voxa"
         if not self.echo_cancel:

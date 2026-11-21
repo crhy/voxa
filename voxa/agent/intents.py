@@ -8,6 +8,7 @@ from voxa.agent import calc, dates, interpreter, livetv, lookups, radio, worldti
 from voxa.agent.calendar_local import parse_time, split_when, spoken_time
 from voxa.agent.convert import target_extension
 from voxa.agent.deals import parse_request
+from voxa.agent.expenses import parse_amount
 from voxa.agent.filematch import folder_key
 from voxa.agent.hearing import normalize
 from voxa.agent.helptext import topic_for
@@ -1548,6 +1549,10 @@ ROUTED_TOOLS = frozenset(
         "look_up",
         "market",
         "exchange_rate",
+        "bitcoin_price",
+        "bitcoin_balance",
+        "bitcoin_orders",
+        "bitcoin_buy",
         "fact_check",
         "convert_file",
         "list_done",
@@ -1763,6 +1768,39 @@ _EXCHANGE_RATE = re.compile(
     r"(?:what(?:'s| is) (?:the )?(?:price|value) of|what(?:'s| is)|how much is|convert) "
     r"(?:one |a |the )?(?P<base>.+?) (?:worth )?(?:in|to) (?P<quote>.+)"
     r"|(?:what(?:'s| is) )?(?:the )?exchange rate (?:from |for )?(?P<base2>.+?) (?:to|in) (?P<quote2>.+)",
+    re.IGNORECASE,
+)
+# Bitcoin questions go to the user's own exchange (issue #46, read-only slice). They
+# are matched before _EXCHANGE_RATE and _MARKET so "what's Bitcoin at?" never falls
+# into the stock-market rule, while gold, silver and company quotes keep going there.
+_BITCOIN_PRICE = re.compile(
+    r"what(?:'s| is) (?:the )?(?:current )?(?:price|spot price)(?: of)?(?: the)? bitcoin(?: in (?P<cur1>.+))?"
+    r"|what(?:'s| is) bitcoin(?: (?:price|at|right now|today|currently))?(?: in (?P<cur2>.+))?"
+    r"|how much is (?:a |one )?bitcoin(?: in (?P<cur3>.+))?"
+    r"|what(?:'s| is) (?:the )?(?:current )?bitcoin(?: (?:price|spot price))?(?: in (?P<cur4>.+))?"
+    r"|(?:tell me )?(?:the )?(?:current )?bitcoin (?:price|spot price)(?: in (?P<cur5>.+))?",
+    re.IGNORECASE,
+)
+_BITCOIN_BALANCE = re.compile(
+    r"how much bitcoin (?:do i have|have i got|do i hold|i (?:have|hold))"
+    r"|what(?:'s| is) my bitcoin (?:balance|holdings?|wallet)"
+    r"|(?:show|read|tell me) (?:me )?my bitcoin (?:balance|holdings?)"
+    r"|my bitcoin (?:balance|holdings?)",
+    re.IGNORECASE,
+)
+_BITCOIN_ORDERS = re.compile(
+    r"(?:show|read|list|tell me|what are) (?:me )?(?:my |the |your )?"
+    r"(?:recent|latest|last|newest) (?:bitcoin |exchange )?(?:orders?|trades?|purchases?)"
+    r"|my (?:bitcoin |exchange )?(?:recent|latest|last) (?:orders?|trades?)"
+    r"|(?:bitcoin|exchange) (?:recent |latest |last )?(?:orders?|trades?|history)",
+    re.IGNORECASE,
+)
+# Recognised so the phrase reaches the tool, which refuses it: how much may be spent
+# is the decision issue #43 records, and it is not made yet.
+_BITCOIN_BUY = re.compile(
+    r"(?:buy|spend) (?:(?P<amount1>.*?)\s+)?(?:dollars?|bucks|pounds?|euros?|yen) of bitcoin"
+    r"|buy bitcoin"
+    r"|(?:buy|spend) (?P<amount2>.+?) bitcoin",
     re.IGNORECASE,
 )
 _MARKET = re.compile(
@@ -2441,6 +2479,32 @@ def _route_command(text: str) -> ToolCall | None:
         return call("set_location", city=location_use.group(1))
     if _LOCATION_FORGET.fullmatch(s):
         return call("set_location", city="")
+
+    # Bitcoin questions go to the user's own exchange (issue #46, read-only slice). They
+    # are matched before the deal, currency and stock-market rules below, so "what's
+    # Bitcoin at?" never falls into the stock-market rule while gold, silver and company
+    # quotes keep going there.
+    bitcoin_price_match = _BITCOIN_PRICE.fullmatch(s)
+    spoken_currency = ""
+    if bitcoin_price_match:
+        spoken_currency = (bitcoin_price_match.group("cur1") or bitcoin_price_match.group("cur2")
+                           or bitcoin_price_match.group("cur3") or bitcoin_price_match.group("cur4")
+                           or bitcoin_price_match.group("cur5") or "")
+        if spoken_currency and lookups.currency_code(spoken_currency) is None:
+            bitcoin_price_match = None
+    if bitcoin_price_match:
+        return call("bitcoin_price",
+                    currency=(lookups.currency_code(spoken_currency) or ""))
+    if _BITCOIN_BALANCE.fullmatch(s):
+        return call("bitcoin_balance")
+    if _BITCOIN_ORDERS.fullmatch(s):
+        return call("bitcoin_orders")
+    bitcoin_buy_match = _BITCOIN_BUY.fullmatch(s)
+    if bitcoin_buy_match:
+        spoken_amount = (bitcoin_buy_match.group("amount1")
+                         or bitcoin_buy_match.group("amount2") or "")
+        value = parse_amount(spoken_amount)
+        return call("bitcoin_buy", amount=(f"{value:g}" if value is not None else ""))
 
     if parse_request(s, date.today()):
         return call("find_deal", request=s)

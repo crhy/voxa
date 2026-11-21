@@ -54,6 +54,9 @@
   notes" search the archive on your machine and read the decisions and action items back. (#65)
 - **A meeting's action items become appointments.** "Add the action items from the dentist call to my calendar"
   writes them on the calendar you already have. (#65)
+- Bitcoin questions come from your own exchange: "what's Bitcoin at?", "how much Bitcoin do I have?" and "show my recent exchange orders" read the price, the balance and the last orders from Kraken, Coinbase or Bitstamp (issue #46). The price needs no key; the balance and the orders use a key kept in the secrets store, which must be restricted to trading with withdrawals disabled.
+- Saying "buy fifty dollars of Bitcoin" is understood and refused out loud: buying waits for the spending rule in issue #43, and nothing in this slice trades, withdraws or sends funds.
+- Gold, silver and company quotes still come from the stock-market lookup.
 
 ### Fixed
 
