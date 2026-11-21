@@ -570,6 +570,9 @@ class ConversationController:
         normalized = " ".join(re.sub(r"[^a-z0-9'\s]", " ", text.casefold()).split())
         if normalized == self.wake_word.strip().casefold():
             self._woken_early = True
+            # The caller's pause gate reads last_heard to decide whether this wake
+            # word ends a pause: it must see THIS utterance, not the previous one.
+            self.last_heard = text
             self.on_woken()
             self._early_text = text
             return True
