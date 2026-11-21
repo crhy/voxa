@@ -57,6 +57,12 @@
 - Bitcoin questions come from your own exchange: "what's Bitcoin at?", "how much Bitcoin do I have?" and "show my recent exchange orders" read the price, the balance and the last orders from Kraken, Coinbase or Bitstamp (issue #46). The price needs no key; the balance and the orders use a key kept in the secrets store, which must be restricted to trading with withdrawals disabled.
 - Saying "buy fifty dollars of Bitcoin" is understood and refused out loud: buying waits for the spending rule in issue #43, and nothing in this slice trades, withdraws or sends funds.
 - Gold, silver and company quotes still come from the stock-market lookup.
+## Unreleased — development build after 0.1.8
+
+
+- **Desktop accessibility stays off, and Voxa puts it back after every action.** Pressing a button in another program turns the desktop accessibility bus on for that one action only, and the value that was there before is restored when the action finishes - also when the action fails. If you had accessibility on yourself, Voxa leaves it on.
+- **Voxa can operate a window it cannot reach through the accessibility bus.** When a program has not registered with the bus (the usual case for a program that started with accessibility off), Voxa takes a screenshot, finds the control by the text written on it, and sends the click or the typing to the screen itself.
+- **You are told when Voxa takes control of another program**, and the accessibility switch goes back the moment the action ends - however it ends.
 
 ### Fixed
 

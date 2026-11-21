@@ -40,6 +40,40 @@ def _no_playback_delay(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _no_real_desktop_control(monkeypatch):
+    """No test may touch the desktop's accessibility or send real input to the screen.
+
+    A test that reached the real a11y bus would switch the developer's desktop accessibility on and could leave it
+    there; a real screenshot or click would drive the desktop behind rhY's back. Both layers take their D-Bus client,
+    screenshot, OCR, window lookup and input sink from module attributes, so every test gets harmless ones.
+    """
+    import subprocess
+
+    from voxa.agent import a11y_scope, ui, visual_control
+
+    class DeadBus:
+        def is_enabled(self):
+            return False
+
+        def set_enabled(self, value):
+            return False
+
+    class RefusedSink:
+        def click(self, x, y):
+            return False
+
+        def type_text(self, text):
+            return False
+
+    monkeypatch.setattr(a11y_scope, "GdbusBus", DeadBus)
+    monkeypatch.setattr(ui, "a11y_bus", DeadBus())
+    monkeypatch.setattr(visual_control, "capture_screen", lambda: "")
+    monkeypatch.setattr(visual_control, "ocr_words", lambda path: [])
+    monkeypatch.setattr(visual_control, "window_region", lambda app, runner=subprocess.run: None)
+    monkeypatch.setattr(visual_control, "XTestSink", lambda: RefusedSink())
+
+
+@pytest.fixture(autouse=True)
 def _no_real_media_player(monkeypatch):
     """A player that happens to be running on the developer's desktop must not steer a test."""
     import sys
