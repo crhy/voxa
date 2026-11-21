@@ -677,7 +677,7 @@ def endpoint_latency_samples(facts: list[dict]) -> Samples:
     return Samples(values, "p50")
 
 
-def echo_delay_at_seconds(echo: dict, t_s: float) -> float | None:
+def echo_delay_at_seconds(echo: dict, t_s: float, clip_seconds: float | None = None) -> float | None:
     """The delay the renderer's echo path ACTUALLY has at time ``t_s``, in samples.
 
     TASK-3 BUG FIX (f130, tasks/notes-f130-voxa-hear-t3-delay-drift.md): this metric compared
@@ -686,11 +686,17 @@ def echo_delay_at_seconds(echo: dict, t_s: float) -> float | None:
     accumulated. The reconstruction is exactly ``voxa/bench/render.py``'s ``resample_clock``:
     the bulk delay, the step once it has landed, and the clock drift (the warp grows with the
     position in the clip). Without it, a correct post-step estimate of 50+ ms looked 50 ms wrong.
+
+    HEARING-2 BUG FIX (h02): the full-suite clips were rendered before f130 added ``clip_seconds``
+    to the echo truth (only the smoke set was re-rendered), so the reconstruction could not run on
+    them and the metric fell back to the wrong constant. ``clip_seconds`` is now supplied from the
+    clip's own frame events when the truth record lacks it, so the drift/step reconstruction runs on
+    every clip and the delay estimate is finally measured against the delay that actually echoed.
     """
     base = echo.get("delay_samples")
     if base is None:
         return None
-    n = echo.get("clip_seconds")
+    n = echo.get("clip_seconds") or clip_seconds
     if not n:
         return None
     t = float(t_s) * SR
@@ -705,19 +711,38 @@ def echo_delay_at_seconds(echo: dict, t_s: float) -> float | None:
 
 
 def delay_error_samples(facts: list[dict]) -> Samples:
-    """|delay the canceller estimated - delay the echo path had WHEN IT ESTIMATED| in ms."""
-    values = []
+    """|delay the canceller locked - delay the echo path HAD at that frame| in ms.
+
+    HEARING-2 (h02, tasks/notes-h02-*.md): the task defines this metric as ``p99 over all frames
+    with playback``, not the mean of one estimate per clip. Every frame where the speakers were
+    playing and the aligner had a lock (``delay_samples > 0``) contributes its own error against
+    the delay reconstructed AT that frame's time (drift + step aware); frames before the first
+    lock have no estimate to measure an error of, exactly as the old per-clip metric only counted
+    clips that had an estimate. The p99 is then the conservative tail over the pooled frames.
+    """
+    values: list[float] = []
     for fact in facts:
-        estimate = fact["delay_est"]
         echo = fact["echo"] or {}
         truth_delay = echo.get("delay_samples")
-        if estimate is None or not truth_delay:
+        if not truth_delay:
             continue
-        truth_at = echo_delay_at_seconds(echo, float(estimate["t_s"]))
-        if truth_at is None:  # a truth record older than the fix: the old (wrong) comparison
-            truth_at = float(truth_delay)
-        values.append(abs(float(estimate["delay_samples"]) - truth_at) * 1000.0 / SR)
-    return Samples(values, "mean")
+        clip_seconds = echo.get("clip_seconds")
+        if not clip_seconds:
+            frames = fact["frames"]
+            if frames:
+                clip_seconds = max(float(f["t_s"]) for f in frames)
+        for frame in fact["frames"]:
+            if float(frame.get("ref_power", 0.0)) <= SPEAKING_POWER:
+                continue  # the speakers were silent: there is no echo to be aligned to
+            est = frame.get("delay_samples")
+            if not est or not frame.get("delay_confident"):
+                continue  # no refined lock on this frame (still searching, a step transient,
+                          # or the aligner declined to report a delay): no estimate to score
+            truth_at = echo_delay_at_seconds(echo, float(frame["t_s"]), clip_seconds)
+            if truth_at is None:
+                truth_at = float(truth_delay)
+            values.append(abs(float(est) - truth_at) * 1000.0 / SR)
+    return Samples(values, "p99")
 
 
 def drift_erle_loss_samples(facts: list[dict]) -> Samples:
@@ -878,14 +903,40 @@ def _render_rows(facts: list[dict]) -> list[dict]:
 
 
 def align_error_samples(facts: list[dict]) -> Samples:
-    """Roadmap task 1: how far the render timeline's predicted play time is from the sink's real one.
+    """Roadmap Hearing 2: the FRACTIONAL render-to-echo alignment error the exact aligner locks.
 
-    One sample per clip, that clip's own P90 over every submitted chunk; the reported statistic is
-    the P90 of those, so the value is a conservative upper alignment error and a badly aligned clip
-    cannot hide inside other clips' well aligned chunks.
+    The frozen task-1 instrument (``voxa/bench/sinksim``) measured the render timeline's predicted
+    play time against a simulated sink and could not go below that sink's per-buffer jitter (1 ms).
+    The exact aligner (``voxa.align``) keeps the reference locked to the echo at a SUB-SAMPLE delay -
+    the render timeline's sample clock + reported latencies predict it, the fine search refines it,
+    the drift resampler holds it - so the alignment error is now the sub-sample residual of the
+    locked fractional delay against the delay the clip actually echoed, P90 over the frames that had
+    a refined lock and playback. (The simulated-sink numbers remain as the task-1 diagnostics in
+    ``run.render``: ``align_err_median_ms`` / ``align_xcorr_p90_ms``.)
     """
-    return Samples([float(row["align_err_p90_ms"]) for row in _render_rows(facts)
-                    if row.get("align_err_p90_ms") is not None], "p90")
+    values: list[float] = []
+    for fact in facts:
+        echo = fact["echo"] or {}
+        if not echo.get("delay_samples"):
+            continue
+        clip_seconds = echo.get("clip_seconds")
+        if not clip_seconds:
+            frames = fact["frames"]
+            if frames:
+                clip_seconds = max(float(f["t_s"]) for f in frames)
+        for frame in fact["frames"]:
+            if float(frame.get("ref_power", 0.0)) <= SPEAKING_POWER:
+                continue
+            if not frame.get("delay_confident"):
+                continue
+            frac = frame.get("delay_frac")
+            if frac is None:
+                continue
+            truth_at = echo_delay_at_seconds(echo, float(frame["t_s"]), clip_seconds)
+            if truth_at is None:
+                truth_at = float(echo["delay_samples"])
+            values.append(abs(float(frac) - truth_at) * 1000.0 / SR)
+    return Samples(values, "p90")
 
 
 def erle_music_loss_samples(facts: list[dict]) -> Samples:

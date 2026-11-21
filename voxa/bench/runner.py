@@ -43,7 +43,8 @@ from pathlib import Path
 
 import numpy as np
 
-from ..anc import (MIN_REFERENCE_POWER, Aec3Canceller, DelayTracker, EchoCanceller,
+from ..align import ExactAligner
+from ..anc import (MIN_REFERENCE_POWER, Aec3Canceller, EchoCanceller,
                    aec3_available, estimate_delay)
 from ..audio import AudioCapture, ReferenceRing, mix_chunk, webrtc_available
 from ..bargectl import BargeInController
@@ -212,7 +213,8 @@ class ClipRunner:
         self._delay_mic: list[np.ndarray] = []
         self._delay_ref: list[np.ndarray] = []
         self._delay_samples = 0
-        self._delay_tracker: DelayTracker | None = None  # task 3: continuous, mode voxa
+        self._delay_frac = 0.0  # Hearing 2: the fractional locked delay (the read offset)
+        self._aligner: ExactAligner | None = None  # Hearing 2: exact lock, mode voxa
         # The cleaned stream of the clip, kept so the runner can transcript what its pipeline
         # delivered to the ASR stage as a whole (what `voxa.bench agree` measures).
         self._clean_stream: list[bytes] = []
@@ -296,9 +298,12 @@ class ClipRunner:
                 # filter spans 256 ms (taps) and the step runs fast enough to track the +-200 ppm
                 # read-point movers inside one clip (mu).
                 self.canceller = EchoCanceller(taps=4096, mu=0.7)
-                # Roadmap task 3: delay and drift are tracked continuously through this canceller.
-                # One instance, never per sentence; the offset is re-pointed, the filter is kept.
-                self._delay_tracker = DelayTracker(sample_rate=SR)
+                # Hearing 2 (task h02): Voxa's own render timeline makes the echo delay KNOWN, so
+                # it is LOCKED, not re-estimated every 0.5 s. The ExactAligner predicts from the
+                # render clock + reported latencies, refines sub-sample only around the prediction,
+                # and holds the lock on a drift line (the fractional-delay resampler). The canceller
+                # reads its reference at the locked fractional offset; the filter is never rebuilt.
+                self._aligner = ExactAligner(sample_rate=SR)
             self._delay_done = False
         elif self.echo_mode == "webrtc":
             if not webrtc_available():
@@ -366,21 +371,27 @@ class ClipRunner:
                   collected_s=round(collected / SR, 2))
 
     def _observe_echo_delay(self, mic01: np.ndarray, ref: np.ndarray) -> None:
-        """Task 3 on the simulated clock: GCC-PHAT delay per 0.5 s of utterance, drift as the
-        slope of the estimates, abrupt jumps as explicit epochs. The canceller keeps its filter:
-        only its reference offset is re-pointed (``set_offset``), never rebuilt per sentence."""
-        if self._delay_tracker is None or self.ref_ring is None or ref.size == 0:
+        """Hearing 2 (task h02): lock the echo delay from the render timeline, refine it sub-sample
+        only around the prediction, and hold it on the drift line (the fractional-delay resampler).
+        The canceller keeps its filter: its reference is read at the locked fractional offset every
+        frame - never re-estimated per sentence, never rebuilt."""
+        if self._aligner is None or self.ref_ring is None or ref.size == 0:
             return
-        update = self._delay_tracker.observe(mic01, ref)
-        if update is None:
+        self._aligner.observe(self._now, mic01, ref)
+        locked = self._aligner.locked_delay
+        if locked is None:
             return
-        self.canceller.set_offset(update["delay_samples"], *update["anchors"])
-        self._delay_samples = int(update["delay_samples"])
-        if update["kind"] != "track":
-            self.emit("delay-estimate", delay_samples=int(update["delay_samples"]),
-                      delay_ms=round(update["delay_samples"] / SR * 1000.0, 1),
-                      kind=update["kind"], drift_ppm=round(update["drift_ppm"], 1),
-                      offset_samples=round(update["offset"], 2))
+        self._delay_frac = float(locked)
+        coarse = int(round(locked))
+        self.canceller.set_offset(coarse, 0.0, locked, 0.0, locked)
+        if self._delay_samples != coarse:
+            self._delay_samples = coarse
+            self.emit("delay-estimate", delay_samples=coarse,
+                      delay_ms=round(coarse / SR * 1000.0, 1),
+                      kind="epoch" if self._aligner.epochs else "lock",
+                      drift_ppm=round(self._aligner.drift_ppm, 1),
+                      offset_samples=round(locked, 2),
+                      confidence=round(self._aligner.confidence, 3))
 
     def _clean_frame(self, mic_bytes: bytes, ref: np.ndarray) -> tuple[bytes, float, float, float, float]:
         """Cleaned chunk for this frame, the dB the canceller removed, the mask's gain in dB, and
@@ -394,9 +405,9 @@ class ClipRunner:
         mic = np.frombuffer(mic_bytes, dtype="<i2").astype(np.float32)
         mic_db = level_db(mic)
         if self.canceller is not None and self.ref_ring is not None:
-            if self._delay_tracker is not None:
-                # Task 3: continuous GCC-PHAT tracking of delay and clock drift (the tracker
-                # works on the -1..1 scale the live capture path uses).
+            if self._aligner is not None:
+                # Hearing 2: continuous exact lock of delay + clock drift, on the -1..1 scale the
+                # live capture path uses.
                 self._observe_echo_delay(mic / 32768.0, ref)
             else:
                 self._estimate_delay(mic, ref)
@@ -831,6 +842,8 @@ class ClipRunner:
                 mic_level_db=mic_db,
                 clean_level_db=clean_db,
                 delay_samples=self._delay_samples,
+                delay_frac=round(self._delay_frac, 4),
+                delay_confident=bool(self._aligner is not None and self._aligner.refined),
                 ref_power=round(ref_power, 8),
                 echo_explained_db=(None if evidence.echo_explained_db is None
                                    else round(evidence.echo_explained_db, 2)),
