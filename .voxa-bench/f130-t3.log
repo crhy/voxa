@@ -1,0 +1,84 @@
+ran 1/48 smoke-0000-fst-00   3.82s audio   1.19s wall turns 0 barge 0
+ran 2/48 smoke-0001-fst-01   1.96s audio   0.44s wall turns 0 barge 0
+ran 3/48 smoke-0002-fst-02   4.46s audio   0.61s wall turns 0 barge 0
+ran 4/48 smoke-0003-fst-03   2.90s audio   0.57s wall turns 0 barge 0
+ran 5/48 smoke-0004-fst-04   6.96s audio   0.87s wall turns 0 barge 0
+ran 6/48 smoke-0005-fst-05   1.88s audio   0.74s wall turns 0 barge 0
+ran 7/48 smoke-0006-nst-00   4.16s audio   1.09s wall turns 0 barge 0
+ran 8/48 smoke-0007-nst-01   7.08s audio   1.29s wall turns 0 barge 0
+ran 9/48 smoke-0008-nst-02   8.24s audio   0.87s wall turns 0 barge 0
+ran 10/48 smoke-0009-nst-03   8.20s audio   0.93s wall turns 0 barge 0
+ran 11/48 smoke-0010-nst-04   9.02s audio   1.17s wall turns 0 barge 0
+ran 12/48 smoke-0011-nst-05   8.60s audio   0.93s wall turns 0 barge 0
+ran 13/48 smoke-0012-dt_onset-00   7.44s audio   1.05s wall turns 1 barge 0
+ran 14/48 smoke-0013-dt_onset-01   4.60s audio   0.99s wall turns 1 barge 0
+ran 15/48 smoke-0014-dt_onset-02   5.54s audio   0.85s wall turns 1 barge 0
+ran 16/48 smoke-0015-dt_first_syllable-00   6.60s audio   0.98s wall turns 1 barge 0
+ran 17/48 smoke-0016-dt_first_syllable-01   5.86s audio   0.84s wall turns 1 barge 0
+ran 18/48 smoke-0017-dt_middle-00   3.28s audio   0.92s wall turns 1 barge 0
+ran 19/48 smoke-0018-dt_middle-01   6.70s audio   0.89s wall turns 1 barge 0
+ran 20/48 smoke-0019-dt_middle-02   6.60s audio   1.24s wall turns 1 barge 0
+ran 21/48 smoke-0020-dt_last_word-00   4.82s audio   0.85s wall turns 1 barge 0
+ran 22/48 smoke-0021-dt_last_word-01   6.96s audio   1.33s wall turns 1 barge 0
+ran 23/48 smoke-0022-dt_echo_tail-00   6.54s audio   1.10s wall turns 1 barge 0
+ran 24/48 smoke-0023-dt_echo_tail-01  11.26s audio   1.06s wall turns 1 barge 0
+ran 25/48 smoke-0024-short-00   3.18s audio   0.43s wall turns 0 barge 0
+ran 26/48 smoke-0025-short-01   4.52s audio   0.67s wall turns 0 barge 0
+ran 27/48 smoke-0026-short-02   2.88s audio   0.42s wall turns 0 barge 0
+ran 28/48 smoke-0027-short-03   4.16s audio   0.47s wall turns 0 barge 0
+ran 29/48 smoke-0028-short-04   4.60s audio   0.65s wall turns 0 barge 0
+ran 30/48 smoke-0029-short-05   5.44s audio   0.73s wall turns 0 barge 0
+ran 31/48 smoke-0030-pair-00   1.40s audio   0.59s wall turns 0 barge 0
+ran 32/48 smoke-0031-pair-01   1.12s audio   0.26s wall turns 0 barge 0
+ran 33/48 smoke-0032-pair-02   4.26s audio   0.48s wall turns 0 barge 0
+ran 34/48 smoke-0033-pair-03   5.48s audio   1.74s wall turns 1 barge 0
+ran 35/48 smoke-0034-pair-04   1.14s audio   0.67s wall turns 0 barge 0
+ran 36/48 smoke-0035-pair-05   1.12s audio   0.23s wall turns 0 barge 0
+ran 37/48 smoke-0036-quiet-00   8.26s audio   1.16s wall turns 1 barge 0
+ran 38/48 smoke-0037-quiet-01   5.80s audio   0.71s wall turns 0 barge 0
+ran 39/48 smoke-0038-quiet-02   8.20s audio   2.02s wall turns 1 barge 0
+ran 40/48 smoke-0039-pause-00  10.66s audio   1.72s wall turns 1 barge 0
+ran 41/48 smoke-0040-pause-01   5.78s audio   0.77s wall turns 0 barge 0
+ran 42/48 smoke-0041-pause-02   5.76s audio   0.80s wall turns 1 barge 0
+ran 43/48 smoke-0042-cold-00   4.30s audio   0.87s wall turns 0 barge 0
+ran 44/48 smoke-0043-cold-01   5.66s audio   1.22s wall turns 1 barge 0
+ran 45/48 smoke-0044-cold-02   4.36s audio   0.79s wall turns 1 barge 0
+ran 46/48 smoke-0045-path_change-00   3.22s audio   0.64s wall turns 0 barge 0
+ran 47/48 smoke-0046-path_change-01   3.02s audio   0.37s wall turns 0 barge 0
+ran 48/48 smoke-0047-path_change-02   4.34s audio   0.78s wall turns 1 barge 0
+gate: erle_fst_p10_db>=-0.08: erle_fst_p10_db=-0.11
+gate: drift_erle_loss_db<=0.153642: drift_erle_loss_db=0.203249
+wrote .voxa-bench/report-t3.json: 48 clips, 252.1 s of audio in 93.5 s wall (2.70x audio time), 20 turns, 0 barge-ins
+  erle_fst_median_db               0.0000  ci [0.0000, 0.0000]          >= 0.0             ok
+  erle_fst_p10_db                 -0.1100  ci [-0.1700, -0.0600]        >= -0.08           FAILED
+  nearend_atten_dt_db              8.6370  ci [5.9698, 11.7765]         <= 11.77651        ok
+  align_err_p90_ms                 0.9223  ci [0.9131, 0.9289]          <= 2.0             ok
+  fst_transcript_rate              0.0000  ci [0.0000, 0.0000]          <= 0.0             ok
+  echo_leak_word_rate              0.1522  ci [0.1043, 0.2000]          <= 0.213043        ok
+  false_bargein_per_hour           0.0000  ci [0.0000, 0.0000]          <= 0.0             ok
+  missed_bargein_rate              1.0000  ci [1.0000, 1.0000]          <= 1.0             ok
+  duck_latency_p50_ms                null  ci null                      no threshold yet   unmeasured
+  duck_latency_p90_ms                null  ci null                      no threshold yet   unmeasured
+  interrupt_stop_rate              0.0000  ci [0.0000, 0.0000]          <= 0.0             ok
+  backchannel_resume_rate          1.0000  ci [1.0000, 1.0000]          >= 1.0             ok
+  protected_word_keep_rate         0.2273  ci [0.1136, 0.3636]          >= 0.113636        ok
+  user_recall_nst                  0.6091  ci [0.5091, 0.6909]          >= 0.509091        ok
+  dt_wer_penalty_pts             125.2365  ci [27.3710, 352.4475]       <= 352.447512      ok
+  first_word_trunc_cold            1.0000  ci [1.0000, 1.0000]          <= 1.0             ok
+  first_word_trunc_bargein           null  ci null                      no threshold yet   unmeasured
+  premature_cutoff_rate            0.0714  ci [0.0000, 0.1786]          <= 0.178571        ok
+  ep50_ms                        913.8869  ci [855.5428, 1021.4147]     <= 1021.414664     ok
+  ep90_ms                       1159.4533  ci [1081.4575, 1318.9205]    <= 1318.920546     ok
+  delay_est_err_ms                 7.1707  ci [0.0336, 14.8558]         <= 17.357955       ok
+  drift_erle_loss_db               0.2032  ci [0.0875, 0.3358]          <= 0.153642        FAILED
+  reconverge_s                       null  ci null                      no threshold yet   unmeasured
+  cpu_core_share                   0.0374  ci [0.0321, 0.0429]          <= 0.775161        ok
+  erle_music_loss_db               0.1846  ci [0.0000, 0.5537]          <= 1.0             ok
+  self_command_rate                0.0000  ci [0.0000, 0.0000]          <= 0.0             ok
+  self_pause_per_hour              0.0000  ci [0.0000, 0.0000]          <= 0.0             ok
+  turn_retention_rate                null  ci null                      no threshold yet   unmeasured
+  user_word_deletion_rate          0.3161  ci [0.2720, 0.3601]          <= 0.360104        ok
+  pair_accuracy                    0.3333  ci [0.0000, 1.0000]          >= 0.0             ok
+  stop_latency_p50_ms                null  ci null                      no threshold yet   unmeasured
+  stop_latency_p95_ms                null  ci null                      no threshold yet   unmeasured
+  transport_drop_count               null  ci null                      no threshold yet   unmeasured  (the offline runner has no queue to drop; the live appsinks are task A4)

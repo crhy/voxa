@@ -1,0 +1,5 @@
+smoke-0000-fst-00 delay 3916 rt60 0.76 drift -193
+Traceback (most recent call last):
+  File "/home/rhy/strata-fleet/repos/voxa/.voxa-bench/probe_aec3.py", line 49, in <module>
+    v=erle_pool(mic,out)
+TypeError: erle_pool() missing 1 required positional argument: 'ref'

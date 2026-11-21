@@ -1,0 +1,6 @@
+ran 1/52 smoke-0000-fst-00   3.82s audio   1.23s wall turns 1 barge 1
+ran 2/52 smoke-0001-fst-01   1.96s audio   0.44s wall turns 0 barge 0
+ran 3/52 smoke-0002-fst-02   4.46s audio   1.32s wall turns 0 barge 1
+ran 4/52 smoke-0003-fst-03   2.90s audio   1.33s wall turns 1 barge 1
+/usr/lib/python3.14/multiprocessing/resource_tracker.py:475: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown: {'/mp-jssxqbjt'}
+  warnings.warn(

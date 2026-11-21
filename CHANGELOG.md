@@ -25,6 +25,7 @@
 - Saying "download the latest Spaced ISO" finds the newest Spaced Linux release, checks there is room on disk before fetching anything, saves the image, and says plainly when the release publishes no checksum to verify it against.
 - **Move an appointment and speak the free time.** "Move my dentist to Thursday at 4", "When am I free tomorrow", "When do I have an hour free" — the appointment moves to its new slot and its reminder moves with it, and Voxa names the first gap on the day that is long enough.
 - **Put a routine on a schedule.** “Schedule the movie time routine for Friday at seven”, “Put the morning routine on Thursday at 4pm”, “Every Friday at five, send me my weekly spending” — the routine runs its steps by itself at that weekday and time, says its name once, and “unschedule the movie time routine” takes it back off.
+- llama.cpp now suggests brains sized for the machine: the hardware summary names GGUF brains instead of Ollama tags, and the brain manager marks each rung "Fits this machine" or "Too big for this machine (~N GB)" (#130).
 
 ### Fixed
 

@@ -1,0 +1,9 @@
+gate: erle_fst_p10_db>=-0.08: erle_fst_p10_db=-1.248
+gate: fst_transcript_rate<=0.0: fst_transcript_rate=0.333333
+gate: false_bargein_per_hour<=0.0: false_bargein_per_hour=199.167025
+gate: interrupt_stop_rate<=0.0: interrupt_stop_rate=0.555556
+gate: backchannel_resume_rate>=1.0: backchannel_resume_rate=0.5
+gate: ep90_ms<=1318.920546: ep90_ms=1604.904599
+gate: drift_erle_loss_db<=0.153642: drift_erle_loss_db=1.134743
+gate: self_command_rate<=0.0: self_command_rate=0.333333
+gate: self_pause_per_hour<=0.0: self_pause_per_hour=807.641183

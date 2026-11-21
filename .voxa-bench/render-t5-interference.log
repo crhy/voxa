@@ -1,0 +1,10 @@
+natural voice unavailable (403, message='Invalid response status', url='wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1); using eSpeak NG for 'Okay, I stopped the music.'
+sources: 21 Voxa replies (en-US-AriaNeural)
+sources: 24 LibriSpeech clips, 11 user phrases (en-US-GuyNeural)
+rendered 10/52
+rendered 20/52
+rendered 30/52
+rendered 40/52
+rendered 50/52
+rendered 52/52
+wrote 52 clips under /home/rhy/voxa-bench-data/smoke and .voxa-bench/manifest-smoke.json

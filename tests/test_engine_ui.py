@@ -133,7 +133,7 @@ def test_apply_ollama_models_default_picks_a_brain_for_llamacpp(monkeypatch):
     MainWindow._apply_ollama_models(win, [])
 
     assert win.ollama_models == [smallbrain.SMALL_BRAIN.label]
-    assert win.settings.llamacpp_model == str(smallbrain.path_for(smallbrain.BRAINS[0]))
+    assert win.settings.llamacpp_model == str(smallbrain.path_for(smallbrain.DEFAULT_BRAIN))
     assert win.settings.ollama_model == ""  # the Ollama setting is never touched
     assert len(saved) == 1
     assert win.shell.model_selector.status == "online"

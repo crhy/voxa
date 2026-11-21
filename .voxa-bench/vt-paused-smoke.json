@@ -1,0 +1,699 @@
+{
+  "timestamp": "2026-11-20T23:21:57.492259",
+  "complete": true,
+  "summary": {
+    "total": 4,
+    "passed": 4,
+    "failed": 0,
+    "errors": 0,
+    "average_score": 100.0,
+    "by_category": {
+      "paused_wake": {
+        "total": 4,
+        "passed": 4,
+        "failed": 0
+      }
+    }
+  },
+  "comprehension": {
+    "hearing_word_accuracy": 1.0,
+    "routed_tool_accuracy": null,
+    "layer_counts": {
+      "not_heard": 0,
+      "misheard": 0,
+      "misrouted": 0,
+      "misanswered": 0,
+      "ok": 4
+    },
+    "confusions": [],
+    "cases_scored": 4,
+    "routed_cases": 0,
+    "wake_word": "voxa",
+    "by_category": {
+      "paused_wake": {
+        "cases": 4,
+        "hearing_word_accuracy": 1.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 0,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 4
+        }
+      }
+    },
+    "cases": [
+      {
+        "case_id": "paused-wake-time",
+        "category": "paused_wake",
+        "prompt": "Voxa, what time is it?",
+        "heard": "Voxa. What time is it?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [
+          "tell_time"
+        ],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "paused-wake-open-firefox",
+        "category": "paused_wake",
+        "prompt": "Voxa, open firefox",
+        "heard": "Voxa, open Firefox.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [
+          "open_app"
+        ],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "paused-wake-timer",
+        "category": "paused_wake",
+        "prompt": "Voxa, set a timer for ten minutes",
+        "heard": "Voxa, set a timer for 10 minutes.",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [
+          "set_timer"
+        ],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "paused-wake-weather",
+        "category": "paused_wake",
+        "prompt": "Voxa, what is the weather today",
+        "heard": "Voxa, what is the weather today?",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [
+          "local_weather"
+        ],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      }
+    ],
+    "paused_cases": 4,
+    "paused_wake_cases": 4,
+    "paused_nonwake_cases": 0,
+    "paused_false_triggers": 0,
+    "paused_false_trigger_rate": null,
+    "paused_wake_recall": 1.0,
+    "paused_fuzzy_false_triggers": 0,
+    "paused_fuzzy_false_trigger_rate": null,
+    "paused_echo_cases": 0,
+    "paused_echo_rejected": 0,
+    "paused_details": [
+      {
+        "wake": true,
+        "echo_case": false,
+        "acted": true,
+        "resumed": true,
+        "echo_rejected": false,
+        "rest": "",
+        "rows": [
+          {
+            "heard": "Voxa.",
+            "acted": true,
+            "resumed": true,
+            "exit": "",
+            "why": "wake word",
+            "own_share": 0.0,
+            "acted_before": true
+          },
+          {
+            "heard": "Voxa. What time is it?",
+            "acted": true,
+            "resumed": true,
+            "exit": "",
+            "why": "wake word",
+            "own_share": 0.0,
+            "acted_before": true
+          }
+        ],
+        "acted_before": true
+      },
+      {
+        "wake": true,
+        "echo_case": false,
+        "acted": true,
+        "resumed": true,
+        "echo_rejected": false,
+        "rest": "",
+        "rows": [
+          {
+            "heard": "Voxa.",
+            "acted": true,
+            "resumed": true,
+            "exit": "",
+            "why": "wake word",
+            "own_share": 0.0,
+            "acted_before": true
+          },
+          {
+            "heard": "Voxa, open Firefox.",
+            "acted": true,
+            "resumed": true,
+            "exit": "",
+            "why": "wake word",
+            "own_share": 0.0,
+            "acted_before": true
+          }
+        ],
+        "acted_before": true
+      },
+      {
+        "wake": true,
+        "echo_case": false,
+        "acted": true,
+        "resumed": true,
+        "echo_rejected": false,
+        "rest": "",
+        "rows": [
+          {
+            "heard": "Voxa.",
+            "acted": true,
+            "resumed": true,
+            "exit": "",
+            "why": "wake word",
+            "own_share": 0.0,
+            "acted_before": true
+          },
+          {
+            "heard": "Voxa, set a timer for 10 minutes.",
+            "acted": true,
+            "resumed": true,
+            "exit": "",
+            "why": "wake word",
+            "own_share": 0.0,
+            "acted_before": true
+          }
+        ],
+        "acted_before": true
+      },
+      {
+        "wake": true,
+        "echo_case": false,
+        "acted": true,
+        "resumed": true,
+        "echo_rejected": false,
+        "rest": "",
+        "rows": [
+          {
+            "heard": "Voxa.",
+            "acted": true,
+            "resumed": true,
+            "exit": "",
+            "why": "wake word",
+            "own_share": 0.0,
+            "acted_before": true
+          },
+          {
+            "heard": "Voxa, what is the weather today?",
+            "acted": true,
+            "resumed": true,
+            "exit": "",
+            "why": "wake word",
+            "own_share": 0.0,
+            "acted_before": true
+          }
+        ],
+        "acted_before": true
+      }
+    ]
+  },
+  "results": [
+    {
+      "case_id": "paused-wake-time",
+      "category": "paused_wake",
+      "prompt": "Voxa, what time is it?",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Paused (wake): Voxa. What time is it? -> she resumed and acted; before the fix: acted.",
+      "method": "paused",
+      "error": "",
+      "duration_seconds": 1.22,
+      "expected_tool": "",
+      "heard": "Voxa. What time is it?",
+      "capability": 0,
+      "observed_tools": [
+        "tell_time"
+      ],
+      "heard_records": [
+        "Voxa.",
+        "Voxa. What time is it?"
+      ],
+      "offline": {
+        "mode": "offline-audio",
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "paused",
+        "spoken": "voxa. | Voxa, what time is it?",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": null,
+        "peak_guard": null,
+        "audio_seconds": 5.9,
+        "wall_seconds": 1.224,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.186,
+        "requests": [
+          "Voxa. What time is it?"
+        ],
+        "turns": [
+          {
+            "text": "Voxa. What time is it?",
+            "kind": "armed",
+            "frame": 225
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "tell_time",
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": null,
+        "echo_mode": "off",
+        "paused": {
+          "wake": true,
+          "echo_case": false,
+          "acted": true,
+          "resumed": true,
+          "echo_rejected": false,
+          "rest": "",
+          "rows": [
+            {
+              "heard": "Voxa.",
+              "acted": true,
+              "resumed": true,
+              "exit": "",
+              "why": "wake word",
+              "own_share": 0.0,
+              "acted_before": true
+            },
+            {
+              "heard": "Voxa. What time is it?",
+              "acted": true,
+              "resumed": true,
+              "exit": "",
+              "why": "wake word",
+              "own_share": 0.0,
+              "acted_before": true
+            }
+          ],
+          "acted_before": true
+        }
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Voxa. What time is it?",
+        "route": "paused-audio",
+        "tool": "tell_time",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "paused-wake-open-firefox",
+      "category": "paused_wake",
+      "prompt": "Voxa, open firefox",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Paused (wake): Voxa, open Firefox. -> she resumed and acted; before the fix: acted.",
+      "method": "paused",
+      "error": "",
+      "duration_seconds": 1.11,
+      "expected_tool": "",
+      "heard": "Voxa, open Firefox.",
+      "capability": 0,
+      "observed_tools": [
+        "open_app"
+      ],
+      "heard_records": [
+        "Voxa.",
+        "Voxa, open Firefox."
+      ],
+      "offline": {
+        "mode": "offline-audio",
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "paused",
+        "spoken": "voxa. | Voxa, open firefox",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": null,
+        "peak_guard": null,
+        "audio_seconds": 6.26,
+        "wall_seconds": 1.107,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.083,
+        "requests": [
+          "Voxa, open Firefox."
+        ],
+        "turns": [
+          {
+            "text": "Voxa, open Firefox.",
+            "kind": "armed",
+            "frame": 252
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "open_app",
+        "routed_args": {
+          "name": "Firefox"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": null,
+        "echo_mode": "off",
+        "paused": {
+          "wake": true,
+          "echo_case": false,
+          "acted": true,
+          "resumed": true,
+          "echo_rejected": false,
+          "rest": "",
+          "rows": [
+            {
+              "heard": "Voxa.",
+              "acted": true,
+              "resumed": true,
+              "exit": "",
+              "why": "wake word",
+              "own_share": 0.0,
+              "acted_before": true
+            },
+            {
+              "heard": "Voxa, open Firefox.",
+              "acted": true,
+              "resumed": true,
+              "exit": "",
+              "why": "wake word",
+              "own_share": 0.0,
+              "acted_before": true
+            }
+          ],
+          "acted_before": true
+        }
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Voxa, open Firefox.",
+        "route": "paused-audio",
+        "tool": "open_app",
+        "args": {
+          "name": "Firefox"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "paused-wake-timer",
+      "category": "paused_wake",
+      "prompt": "Voxa, set a timer for ten minutes",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Paused (wake): Voxa, set a timer for 10 minutes. -> she resumed and acted; before the fix: acted.",
+      "method": "paused",
+      "error": "",
+      "duration_seconds": 1.12,
+      "expected_tool": "",
+      "heard": "Voxa, set a timer for 10 minutes.",
+      "capability": 0,
+      "observed_tools": [
+        "set_timer"
+      ],
+      "heard_records": [
+        "Voxa.",
+        "Voxa, set a timer for 10 minutes."
+      ],
+      "offline": {
+        "mode": "offline-audio",
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "paused",
+        "spoken": "voxa. | Voxa, set a timer for ten minutes",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": null,
+        "peak_guard": null,
+        "audio_seconds": 6.94,
+        "wall_seconds": 1.122,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.101,
+        "requests": [
+          "Voxa, set a timer for 10 minutes."
+        ],
+        "turns": [
+          {
+            "text": "Voxa, set a timer for 10 minutes.",
+            "kind": "armed",
+            "frame": 281
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "set_timer",
+        "routed_args": {
+          "duration": "10 minutes"
+        },
+        "routing_problem": "",
+        "hearing_word_accuracy": null,
+        "echo_mode": "off",
+        "paused": {
+          "wake": true,
+          "echo_case": false,
+          "acted": true,
+          "resumed": true,
+          "echo_rejected": false,
+          "rest": "",
+          "rows": [
+            {
+              "heard": "Voxa.",
+              "acted": true,
+              "resumed": true,
+              "exit": "",
+              "why": "wake word",
+              "own_share": 0.0,
+              "acted_before": true
+            },
+            {
+              "heard": "Voxa, set a timer for 10 minutes.",
+              "acted": true,
+              "resumed": true,
+              "exit": "",
+              "why": "wake word",
+              "own_share": 0.0,
+              "acted_before": true
+            }
+          ],
+          "acted_before": true
+        }
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Voxa, set a timer for 10 minutes.",
+        "route": "paused-audio",
+        "tool": "set_timer",
+        "args": {
+          "duration": "10 minutes"
+        },
+        "ok": true,
+        "variant": "clean"
+      }
+    },
+    {
+      "case_id": "paused-wake-weather",
+      "category": "paused_wake",
+      "prompt": "Voxa, what is the weather today",
+      "transcript": "",
+      "score": 100,
+      "passed": true,
+      "notes": "Paused (wake): Voxa, what is the weather today? -> she resumed and acted; before the fix: acted.",
+      "method": "paused",
+      "error": "",
+      "duration_seconds": 2.07,
+      "expected_tool": "",
+      "heard": "Voxa, what is the weather today?",
+      "capability": 0,
+      "observed_tools": [
+        "local_weather"
+      ],
+      "heard_records": [
+        "Voxa.",
+        "Voxa, what is the weather today?"
+      ],
+      "offline": {
+        "mode": "offline-audio",
+        "variant": "clean",
+        "engine": "google-tts",
+        "voice": "en-US-GuyNeural",
+        "rate": 250,
+        "wake_mode": "paused",
+        "spoken": "voxa. | Voxa, what is the weather today",
+        "rate_scale": 1.0,
+        "level_db": 0.0,
+        "noise": "none",
+        "noise_kind": "none",
+        "snr_db": null,
+        "peak": null,
+        "peak_guard": null,
+        "audio_seconds": 6.26,
+        "wall_seconds": 2.073,
+        "asr_calls": 5,
+        "asr_processing_seconds": 1.046,
+        "requests": [
+          "Voxa, what is the weather today?"
+        ],
+        "turns": [
+          {
+            "text": "Voxa, what is the weather today?",
+            "kind": "armed",
+            "frame": 250
+          }
+        ],
+        "counts": {
+          "suspect": 0,
+          "barge_in": 0,
+          "own_voice": 0,
+          "ignored": 0,
+          "exit": 0,
+          "turns": 1,
+          "hold": 0
+        },
+        "routed_tool": "local_weather",
+        "routed_args": {},
+        "routing_problem": "",
+        "hearing_word_accuracy": null,
+        "echo_mode": "off",
+        "paused": {
+          "wake": true,
+          "echo_case": false,
+          "acted": true,
+          "resumed": true,
+          "echo_rejected": false,
+          "rest": "",
+          "rows": [
+            {
+              "heard": "Voxa.",
+              "acted": true,
+              "resumed": true,
+              "exit": "",
+              "why": "wake word",
+              "own_share": 0.0,
+              "acted_before": true
+            },
+            {
+              "heard": "Voxa, what is the weather today?",
+              "acted": true,
+              "resumed": true,
+              "exit": "",
+              "why": "wake word",
+              "own_share": 0.0,
+              "acted_before": true
+            }
+          ],
+          "acted_before": true
+        }
+      },
+      "hearing": null,
+      "action_record": {
+        "heard": "Voxa, what is the weather today?",
+        "route": "paused-audio",
+        "tool": "local_weather",
+        "args": {},
+        "ok": true,
+        "variant": "clean"
+      }
+    }
+  ],
+  "offline": {
+    "mode": "offline-audio",
+    "seed": 0,
+    "variants": [
+      "clean"
+    ],
+    "wake_mode": "separate",
+    "data_root": "/home/rhy/voxa-bench-data",
+    "whisper_model": "base",
+    "engines": [
+      "google-tts"
+    ],
+    "cases": 4,
+    "wall_seconds": 5.526,
+    "wall_seconds_per_case": {
+      "median": 1.173,
+      "p95": 1.946,
+      "max": 2.073
+    },
+    "audio_seconds": 25.36,
+    "realtime_factor": 4.589,
+    "reply_grading": "n/a",
+    "not_measured": [
+      "microphone and speakers (no audio device was touched)",
+      "the reply she would have spoken (no model was called)",
+      "Voxa's own voice as echo (she never speaks in this mode)"
+    ]
+  }
+}

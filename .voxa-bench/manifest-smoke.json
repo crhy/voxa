@@ -1,0 +1,632 @@
+{
+  "clips": [
+    {
+      "files": {
+        "d.wav": "83f8693999ace5e06ff3da6680f63142569675ef4eeca148fd8c224e8924d463",
+        "mic.wav": "3406001f0a9009aae0fc79ea949f6227b289b73ca9cb0b6a721ed6b54b60184d",
+        "n.wav": "8980433b0027344249ef4a087230d929ce3baea48ce2e0141ab8b42299e5cb76",
+        "ref.wav": "313dd64136b82dfa9844b0b367e25949c6e0739bd20771e47ca4722e03f21bd8",
+        "s.wav": "5e420660a032e0f7c6d2d26ab5b046de47b58c257567b792dc6c394f024d6eff",
+        "truth.json": "edec6b0fa7d33b87216c828ea604268a13aacc0810618fc1f625bcaee2180ba4"
+      },
+      "id": "smoke-0000-fst-00",
+      "scenario": "fst"
+    },
+    {
+      "files": {
+        "d.wav": "95d025d2e212c8b794e8c96de86ad413e6477e001356ca19c9b4ac4445eee811",
+        "mic.wav": "c391236400bf23e365c079f1e6addd05f136bc22f43f4513ec45e596f9ac05fa",
+        "n.wav": "d3add37de7d8224febe185d7d19411dc8038be081f5ada9e0fd6eca46025fbcc",
+        "ref.wav": "2fbe073e7771b7b1ffa1deea93b65f27f3101eb80c9ceb70491f29fb95a658cc",
+        "s.wav": "9fda99df92d6ad042f5cc6e74f3f6076e7b6c9ed7250ff789231ff4a418b5a02",
+        "truth.json": "d2b91e5a1f81763385e173f021207c81677456a92c1dd807c9d0276925c57bba"
+      },
+      "id": "smoke-0001-fst-01",
+      "scenario": "fst"
+    },
+    {
+      "files": {
+        "d.wav": "ecdd629c78a050e1da0e0217b55b13a60a10a491c431e19c17d1faee4602413e",
+        "mic.wav": "97317842a93d5b05aa1beb1811722f14cf70b39bfb0be4942c7e6e7d7f6b4776",
+        "n.wav": "d261de9f37416084215e5004949e0aa4af4b546ecb3080cf14896c668b9ae395",
+        "ref.wav": "ba3bea23cc2a41984e6376dacbbfb94c6bade076260ec618e727a9d1df88a1c9",
+        "s.wav": "7016aba9cf729bfae72c4b4270691daacfbdb5940e20ce8f83ef9b1ba5aa652f",
+        "truth.json": "e8ece2f950e94190593e037af53243be08a30d3a04076acf99faf530083f3c11"
+      },
+      "id": "smoke-0002-fst-02",
+      "scenario": "fst"
+    },
+    {
+      "files": {
+        "d.wav": "afad0754a59606007ba9d2c6730ec60ac3e36595739ed044b5588b3b04cb8b90",
+        "mic.wav": "5ca6b1151b0ce8ea84dab9461c7c34f2ede5df4f4f5d6a218aa60148ba040bea",
+        "n.wav": "c5de172ebbbe3e36e69c190e84be13913affe49fa00d85603eee06875b4902d3",
+        "ref.wav": "467dbeeb55f31d73291f6f2df3b58da628dc158a349ebe5f3a34ee80fcc4400d",
+        "s.wav": "262c93bdc04ddb0b498c09ef1f3adbe0adf71479dfd0d1aa98de7d8bf7675445",
+        "truth.json": "61e2fd8ba3907fa740d7dde29d9e1eb8a34e52daeb6de5133bc31d97f848f02e"
+      },
+      "id": "smoke-0003-fst-03",
+      "scenario": "fst"
+    },
+    {
+      "files": {
+        "d.wav": "6eb38425b3057bd09aea5c0e755cf4ada6f29634c8ffc648fb9797879513620c",
+        "mic.wav": "53118ca7ba15eb700d23ca05b22ef151e0bf4da90ab0540db1924a6fde74540e",
+        "n.wav": "fd59539241f2359ec35b895255d9d9befacc097d49252db2ab50c27b66286ad7",
+        "ref.wav": "3274301930a73ec46a466d30ffcaa203f774f90925be3c7a3efd72105c13fe0c",
+        "s.wav": "dc88a1b91eabb9d714801f4d9ca6c92975953e07865344be63b42a23a14ee4a0",
+        "truth.json": "aa10246b29105ff838749f95bc897850fcfb90c68d79c9f502d1af0ba6d51a41"
+      },
+      "id": "smoke-0004-fst-04",
+      "scenario": "fst"
+    },
+    {
+      "files": {
+        "d.wav": "15eec9a9e038b81728ec947ecc0e69d0ce31743e945180b8d6e92878db8b4647",
+        "mic.wav": "fc260743525000aebea3a201e38efa05a00fce036282cdac2809318ba1420f11",
+        "n.wav": "c3aee950174e3fce428ff9118cfbda4b2f96820612d6f6544e6f119ff3d725d6",
+        "ref.wav": "2e221929159068cd3cedb9104999934026b3bcb48fedbc9d566ba7966b71d40d",
+        "s.wav": "263a292aa0b7eac537866c8e5ee4d9a1b240bda29a2aad7c32f656c59207ea4c",
+        "truth.json": "b0a515dace27f97aab6f963ee038b7ef568107dd62149cdf5690fe5c96e55c48"
+      },
+      "id": "smoke-0005-fst-05",
+      "scenario": "fst"
+    },
+    {
+      "files": {
+        "d.wav": "1cf8589aee3e0224a176bfc74b017ed08ca698e4623d268ba54f5ef8ea867736",
+        "mic.wav": "23053821ef92e78490213c00fdafe4338e32a9eec49365763fd5faf2cab9ae34",
+        "n.wav": "8793190fbbdd9c398cadf419d3c2abf2e2c92d5bd8b968b0fef8572ac7673399",
+        "ref.wav": "1cf8589aee3e0224a176bfc74b017ed08ca698e4623d268ba54f5ef8ea867736",
+        "s.wav": "f413c9ac45c5e11e6fb71cab11a45d06d96b165f09b4f3fe9baab01046205bfb",
+        "truth.json": "9bd9378fc9ccfbce171b9de004d2f3334ff41202fc9d529927ec5ab7f0c092e4"
+      },
+      "id": "smoke-0006-nst-00",
+      "scenario": "nst"
+    },
+    {
+      "files": {
+        "d.wav": "e2c8c82e19b4b216be84139c1c16e2ddcb5cb641679c68b1c6cad55df7016b6d",
+        "mic.wav": "f45162623757874682012b941a4e2eedbe0e2316668f2f0ac31bbf2f0c0c4f9e",
+        "n.wav": "04fd0e9e267d699b0c6d472a71cbbb8d352a6653663e70353a3db4798dcfaa59",
+        "ref.wav": "e2c8c82e19b4b216be84139c1c16e2ddcb5cb641679c68b1c6cad55df7016b6d",
+        "s.wav": "514110e054a5a2402b544e9a1d08a2fa963f0ebe21837d0d52923158f630063c",
+        "truth.json": "6a9d5f65317fc320ddf51c2e2cea49309bf32c5b562f926d83116bd8475a627e"
+      },
+      "id": "smoke-0007-nst-01",
+      "scenario": "nst"
+    },
+    {
+      "files": {
+        "d.wav": "fc4b6fba9cde26f107cc6d71a8b02a963182f5eb7385c6f290bfd35d940ae2a2",
+        "mic.wav": "eb76eb0d6a793e03aaec8d7d499e5cb0426ec5fec0e360cdf8ba236e6dd45c40",
+        "n.wav": "16b1915e5f2eb45467d80e0efc5b8c81fbc4381b73fd0d51a9164c034d0562c4",
+        "ref.wav": "fc4b6fba9cde26f107cc6d71a8b02a963182f5eb7385c6f290bfd35d940ae2a2",
+        "s.wav": "54cc2d0efbfda187d53ffeffc1fdaa582f9fcdbe2eb8db66fcd1e6ecd672d4d8",
+        "truth.json": "f8a20316af55e0e44a93782b8a4329271ab7aefaa4c5b6dd449f12f248721a42"
+      },
+      "id": "smoke-0008-nst-02",
+      "scenario": "nst"
+    },
+    {
+      "files": {
+        "d.wav": "b49a7261169298e46d58f15629e08787a68a470cbccb67a827642df699a602e1",
+        "mic.wav": "02ae806c95f1f2ebd68c6115632ebeda13ae79e87d9507cf360f39a7f0834a5f",
+        "n.wav": "a63d61d66650dade8bc5e02e2c752ca5e3cfccf26efb2b8a259e27a429b7eee1",
+        "ref.wav": "b49a7261169298e46d58f15629e08787a68a470cbccb67a827642df699a602e1",
+        "s.wav": "253e57c2e4b3fdebc88e64cba7cf966d2133d611f5fc12a37f1cd0b5e2ad7c0b",
+        "truth.json": "b0cb9283b947cae3e06a449a3a48b487796c79da0c96c269f29d89384ab93a26"
+      },
+      "id": "smoke-0009-nst-03",
+      "scenario": "nst"
+    },
+    {
+      "files": {
+        "d.wav": "2d8272f962bf3cca52e8a8dd3150d21d01f42a1eba96cbce5ebc6b0fb5040025",
+        "mic.wav": "828f58b174ec364dd6c247722f9f30421d6505c2a60334b2af4bc6b280544531",
+        "n.wav": "2d8272f962bf3cca52e8a8dd3150d21d01f42a1eba96cbce5ebc6b0fb5040025",
+        "ref.wav": "2d8272f962bf3cca52e8a8dd3150d21d01f42a1eba96cbce5ebc6b0fb5040025",
+        "s.wav": "828f58b174ec364dd6c247722f9f30421d6505c2a60334b2af4bc6b280544531",
+        "truth.json": "7ca68d359cc60f051fb9c4ab63a8660969931e4504ebf40836554f6362828eea"
+      },
+      "id": "smoke-0010-nst-04",
+      "scenario": "nst"
+    },
+    {
+      "files": {
+        "d.wav": "ad1b99198d980d8722857ff77f622dce390da9a6807af8bef4501ba1a1527c05",
+        "mic.wav": "b66328f991a3e98883b28e3a0716db2bd451b51704c7f771812753c72db339e1",
+        "n.wav": "6cb50e4a60c84fc2ac4e9ed29e9044b16027640edfb13c060a0e20b4edc37b49",
+        "ref.wav": "ad1b99198d980d8722857ff77f622dce390da9a6807af8bef4501ba1a1527c05",
+        "s.wav": "5189688a88f23e98400422daaaf641239bea5ed9028fe949942fdd93c8b26e20",
+        "truth.json": "5e9346d900c49ac809850bb13c4b730a8f1f6ae1fa4b8516d93827242f61367f"
+      },
+      "id": "smoke-0011-nst-05",
+      "scenario": "nst"
+    },
+    {
+      "files": {
+        "d.wav": "9fd71ca2b7f607883731f29640de62ccfd1d96a8555b745183237e0647e2ac24",
+        "mic.wav": "ac38715362ec5b4b70246d7bd2b401837a1441de56cd68f4ce4c4d233da1154b",
+        "n.wav": "552382a888b130f866a55d8df58d8fc2f1a07620f8d62531bb4e52e471ac6ac7",
+        "ref.wav": "3761d819fb2f3253ecf6ad601f70ec562b49a1217aa3c0bda9f64b0b9ec2bec9",
+        "s.wav": "82913d030271f9140a6adb7b33752e1d83818594ab48927408b886b65e52e13a",
+        "truth.json": "6304c1b505d4e6f99c023e0318961e0bfb8dc01dfeda0a0cc77b7f0c4a4e68b9"
+      },
+      "id": "smoke-0012-dt_onset-00",
+      "scenario": "dt_onset"
+    },
+    {
+      "files": {
+        "d.wav": "14353b8d4209713f1176a9bad186b1bd576373c76d5e720fa0735f848eaa688d",
+        "mic.wav": "cc33e4047be3e46a845748c05044e88f6ce8db16c4aef66ffb661f684dea7ee5",
+        "n.wav": "b03a9eb3e7bd953e1671de4f3c17405d0499d2135f6e7dac3276082a6ea62a3b",
+        "ref.wav": "10daf2157a1ccaf490197028069f8c0f97366f97368a37ccfef76ae894ccd506",
+        "s.wav": "4fcbad7fe99f9fe521f0cf2e74cdb39f8af0fcd3eaf81d9632ad95cc6ffed68f",
+        "truth.json": "ed53bf03ccd7d25969433a5a2e0d24c8e03c72b20f11dd8acccc59af87f275b3"
+      },
+      "id": "smoke-0013-dt_onset-01",
+      "scenario": "dt_onset"
+    },
+    {
+      "files": {
+        "d.wav": "7a767111b96cce3384ef12d16984be2915afd9df8e008999fae7801cfdae669f",
+        "mic.wav": "1e962dc09b0c7e3bd01df6d18c5284e1fff2fd914c544a1af2bdc0014a4dccfa",
+        "n.wav": "676327310d6c4f9933fdb9e02dc1454e312f1e7801b46ea1277d927955d1fb17",
+        "ref.wav": "76014be1176be4e0957da39e5280f7ddac7c8bab0732c00025e7edfedc58c9e9",
+        "s.wav": "5e6dd8ee199c9029e4dce1a980ef553d3d49b788b83b4d90ff76f3b67b110f31",
+        "truth.json": "cd63f496bd855e662868f875bce39900656dca92fb19a66e3491a1ee4b8ccf28"
+      },
+      "id": "smoke-0014-dt_onset-02",
+      "scenario": "dt_onset"
+    },
+    {
+      "files": {
+        "d.wav": "c29ea2cef57e5c9847c90fbd28738810000f8d000866cc50dcd952a134cd5cf9",
+        "mic.wav": "4ddc6902b608c61a6fe229407fe94813c850ba85fa1b3da21c169233fd3dec6f",
+        "n.wav": "d9daca868c192e2882ffffbdd08772821e8cbd589e8113d1634f82b9260522a5",
+        "ref.wav": "544e0b33b197b5b5b08c329ec3cff28a949b03039aee8a28a57ec34e7ff2b044",
+        "s.wav": "0a293c935f5835c9b0bb973a5321a1b44f7763663bb44eac9e687e198e5bb350",
+        "truth.json": "0f907a75e26e701bb0eb2a267074181f0adb09d2a286f2f86b41c5bf09377f40"
+      },
+      "id": "smoke-0015-dt_first_syllable-00",
+      "scenario": "dt_first_syllable"
+    },
+    {
+      "files": {
+        "d.wav": "4cb8addfa1b0715dd8e44631cb746f2abe4eaf5aa53b7387ef329a88c378158d",
+        "mic.wav": "a772225ea4552235be69b9a189271a597686eacf058e721ee8b3e246c3da46be",
+        "n.wav": "bf5de771e88f127c68bc9c0619e6ce17d5465082793e0e086cd7f7fe922884a0",
+        "ref.wav": "3ce911ec6f299783b452c198b887d017a2421d35519edf67d8def43294fb5e8f",
+        "s.wav": "398e67035a9a98e6e0ba92a37f15cc0ca28448aa173a30fa53a922a1717ba45a",
+        "truth.json": "6879b6958126c2876ea6de4f47e1300c2ce4ad4966f51e4fdca690b7276d3aaa"
+      },
+      "id": "smoke-0016-dt_first_syllable-01",
+      "scenario": "dt_first_syllable"
+    },
+    {
+      "files": {
+        "d.wav": "18561d74f801310d16ade88ba0d6bb18e09d56f48bc2dc46d6e82e6d92eabf45",
+        "mic.wav": "1612de9b5141520363fe078e265f17079f7430b2ab27a6ba323631a2fbcd82b3",
+        "n.wav": "19c6f0e224043eed53725b81e8f871c2988066095123b8faad2f76303554a306",
+        "ref.wav": "6ab5e7fbd072608f0ea45a9327bfe4e22269c39a6cbe86cb48c001d88871f8f3",
+        "s.wav": "5f72f397dfe44d4707be52bcd97e66dad51ba3cf679377b8d503d7e7d161f09e",
+        "truth.json": "04a578d1e8d70c052c11319b6299663b550c5ade0ddef9607aee3f8962f55d64"
+      },
+      "id": "smoke-0017-dt_middle-00",
+      "scenario": "dt_middle"
+    },
+    {
+      "files": {
+        "d.wav": "2a6e9975c887532d59e150f028d3d2f98a8955fa94b9f6974b3b953f7686514d",
+        "mic.wav": "dd9ea20ad109c70a1da6ccd475dfc06c577ac70fcd6d3f21cc626aaed67335ed",
+        "n.wav": "c3175398bd7a328a72239c81afaeb00834444d668e350fb62c3ea09db8d9ec61",
+        "ref.wav": "9a41823ab30c34175387e4ab7f1702a2fc9e60b66fbdd9f37e640f4bc5eef987",
+        "s.wav": "7a422c5821d31f45f24da7f482459d3602470e4270b1defffd0d12f229a6f6ff",
+        "truth.json": "7caa406e5b681fa44e16900b5df09b938335c03aabfb4c540dac580efce3dc18"
+      },
+      "id": "smoke-0018-dt_middle-01",
+      "scenario": "dt_middle"
+    },
+    {
+      "files": {
+        "d.wav": "cacc85da650652ce2d16dd8aba1fe7a82b21d70033cedb51ce1390b916a39740",
+        "mic.wav": "7ec7f1bd351bfb31af4edb031ed0251b4812b4e3fbe101376472024abc4c121a",
+        "n.wav": "f173f913d2129f69372460112357c4dda59aab5800979b405ea40f089afb7a8e",
+        "ref.wav": "ee49954e66af26fec942b5557b8418ec0cb2b36320c4e4acb5789ba23fe633cf",
+        "s.wav": "ac1912b6ee9377061b74a5f6a58279e1abacce603d9ae7aae568d0f0825c6bc6",
+        "truth.json": "850f46e39ef322d2ebcbf715f0d5df0d4e793a6ad99bc07b0909413726126a52"
+      },
+      "id": "smoke-0019-dt_middle-02",
+      "scenario": "dt_middle"
+    },
+    {
+      "files": {
+        "d.wav": "4c9a33c9896c3209d972030bb3e99301be2aae987e6bec3135a84c7934a62e6c",
+        "mic.wav": "5fd7a878610c5e3375836adaecb284b1cfca750ceeba56ef31c543ea01effd80",
+        "n.wav": "9cf6e390890addb61c17fa7ae2c38fb319b6fabbe0f4628627e47eed922b3dca",
+        "ref.wav": "abb4f3a7eca5c3286d90e9cc7edd2dbfb0b9bc19e7e2b8b70a08e769e3b54257",
+        "s.wav": "bff718c643a52704b0b28d0f760ee58eb44dd84cf0c7e5a74a55aff4e3cf01c0",
+        "truth.json": "eb2a8916a5150477fd367f0801daa008597d62d366da867da82dac76991f0a6a"
+      },
+      "id": "smoke-0020-dt_last_word-00",
+      "scenario": "dt_last_word"
+    },
+    {
+      "files": {
+        "d.wav": "7145b34c2f1758db7b995cea79d381afa81e6fb23d760dddf7abd79ef5f4b70f",
+        "mic.wav": "d3b90f6089660fe31c28b80a6815ed16ed1c7dd8090cbfeb1ba11cf9c9418ddc",
+        "n.wav": "fcbbcbff250bd152a3a510213d83ba51f596e5f93cbd0812a9515ff185ddbfdf",
+        "ref.wav": "2c499a7642126dd678532bff8ce05f8a5fe66a0f55bcc0ff97a0bf27ceb38065",
+        "s.wav": "8acedc2f94e9f3955da49e3552f5cbff4339eb662403721a56ffd629ebfba08b",
+        "truth.json": "dec342e2b8486d156471bc606283fe5a0fe30358c1fc8a20a9b8196cc508e0ad"
+      },
+      "id": "smoke-0021-dt_last_word-01",
+      "scenario": "dt_last_word"
+    },
+    {
+      "files": {
+        "d.wav": "131800a37a377269a03b767187432f48c8bf3d299148cb1ff9da517b0a3ea424",
+        "mic.wav": "03aa32c7ee2693c9a4181a1c45e1ca6194aa6cb903c8b867e81e3392d1a68ee2",
+        "n.wav": "c166e27b55a89c20303859a6f5f54c2a993bbe3a1aac6e6679baf2ebe7535dc3",
+        "ref.wav": "a0e9ea7e43e70ace716e58e13e15f1217dd7d20051dcada3aa5c34382cb80295",
+        "s.wav": "61e2838f9c5a861e520f173010277277cf6827d1dfde2e64a4ed344b38ef67a4",
+        "truth.json": "3b998e65bc9bb0455539280e053a0ed2e44bec6a1845e9543188fde5ead19514"
+      },
+      "id": "smoke-0022-dt_echo_tail-00",
+      "scenario": "dt_echo_tail"
+    },
+    {
+      "files": {
+        "d.wav": "4c2924a0361ec1d83b67ed4b3a0f4eb0c7dc84c000606b789ed653eebaded8f5",
+        "mic.wav": "a2658ed12a477003b101a6ed09cf06d859ca157e490f4539f46cd6d8b8b159f4",
+        "n.wav": "0c656d28f00378b55264dee2489538981375cedbabe866fc5190c225d1efe290",
+        "ref.wav": "bbe33e31dd6deb5daac00408c8dc4782c0014563366509ff558f94308c2abe5c",
+        "s.wav": "ff67228d25e6d8a3e7727e518b5fc054ef733e7b1f126a0db91ba705c45634a7",
+        "truth.json": "9dec0954bfe196038d68d485b1460afbc299556eb6bc062d68060c0919426b44"
+      },
+      "id": "smoke-0023-dt_echo_tail-01",
+      "scenario": "dt_echo_tail"
+    },
+    {
+      "files": {
+        "d.wav": "a09b0ec599e697d0370b90ddaad9a97e9a1e5ea3df957a8a4ca6c06d1fc8c8e8",
+        "mic.wav": "6935ec461b3d15cec16274c85bfc6f5387cf99cfafc6938b8c85c249245c43db",
+        "n.wav": "dbe6a1e9ceb363357b7f34ba35a45b34d63b6b708b30ae5bd99132af5f6b6fe8",
+        "ref.wav": "b409c6a832a5b0a6fdb1b45ae06f3b61132ad682d673b88881e46d9f75c82dcd",
+        "s.wav": "eaba75783f4726fa084dc2544d0e536bc0a9642e866ba91541d33380f8fe3f94",
+        "truth.json": "42e98686714192e5f2e86ba340e8e930525f77fa7fded6bc69c80b9ae710079f"
+      },
+      "id": "smoke-0024-short-00",
+      "scenario": "short"
+    },
+    {
+      "files": {
+        "d.wav": "13fc85b79957d84281b296b6aa81f35e9fa20644a136c94c1c7d39ae2c019f06",
+        "mic.wav": "e01e9cafea86f79faed38745b0adfad04a77b54e2e829eb138b73233d09b25b6",
+        "n.wav": "8470d4c3cc8a1df4c56582cc0b4b1c0f0c077de95d3fcc0778ef2c373b555919",
+        "ref.wav": "494e8d38bb3c5197aed3db04c7bdde615ffacb82b16e2b25b8d9734995b075bb",
+        "s.wav": "307c5140aa533524170d61b5ad25eaa53f2107570ae55e8359ad5cabe7954ee5",
+        "truth.json": "cf2960dc2f4c306680786bd0d6074d9faaa5d8d1a1a7939ca1c8cb5e473838a9"
+      },
+      "id": "smoke-0025-short-01",
+      "scenario": "short"
+    },
+    {
+      "files": {
+        "d.wav": "262dd281142a2a8b0d304307e1cc2960691b532c6adfc9d32f8ba11c4389319f",
+        "mic.wav": "913f3aed316457c00e51a6aad89d7ee53f76beaecc95c009134b4f3f21815f33",
+        "n.wav": "6d38078c890d057835f465a875428c0e22eda0b6705e5c5fc4636414f92ae71a",
+        "ref.wav": "48f1f013929fea0494d09f3f7187dfb0ea23ee5405944af81b6430ae04fbf9d8",
+        "s.wav": "6e3ff092edb8c1bbc18d29315f220520d632cd0535ee220b5a4753bd089b9270",
+        "truth.json": "8832d7310952300435bfa2b7b70cccc963c3263974350cbea1c1fe51fab75c2a"
+      },
+      "id": "smoke-0026-short-02",
+      "scenario": "short"
+    },
+    {
+      "files": {
+        "d.wav": "c9aba8b6204ce8c5be4a3fe1063fd2c3046edef7d55e567616c427b4b199fed0",
+        "mic.wav": "b791b80c5ad29bb77d7c5d924ec837bdf53d77ca3b5a4c2ec87c46aa7e2958cb",
+        "n.wav": "ac3b7dae1e58f398a9778bdef99d8ed55edb366363d27c5aaf3034faec541ff1",
+        "ref.wav": "0c787a50df3229df85bbc14b4736499a258201f7a22a4aac9b01c500aae4ea0a",
+        "s.wav": "12f3b4bb8a7d39bc997f11634bbe0f52b892e04f3d1d68547fb0d1a8b24c7d12",
+        "truth.json": "122155b7950d2c039671b63f8f4a7e2754215289ea6860d68761998f26e93650"
+      },
+      "id": "smoke-0027-short-03",
+      "scenario": "short"
+    },
+    {
+      "files": {
+        "d.wav": "5e93f13909ab26c75b5f63a7a8cf5a2d73066e36ad691a2ba18a481fadcc1fdc",
+        "mic.wav": "fa78b96df1f78b0901ca5f97171b549ec2e0cb8e6e63f11846033020efd91ed8",
+        "n.wav": "de0718c1f92288b99c054ef9a8fc80f031038ee12003d09e26178e69ff14fb9d",
+        "ref.wav": "187c439a1854408add3028e828b3c482121bf623092869045737b9c48fe8c130",
+        "s.wav": "df4fc61f89ef8afc4964f5ac38ed5bd645eb7fa1145547ca9d9428b819c95e8b",
+        "truth.json": "eb41881469d38f1640e2e83941e360715577426ab2590f00eb01944e3acd1f7b"
+      },
+      "id": "smoke-0028-short-04",
+      "scenario": "short"
+    },
+    {
+      "files": {
+        "d.wav": "40ec1d69c6e5cf78c50c73882c04c6e67ab43a4ae95b705e21adcfee46c33e8d",
+        "mic.wav": "8f25df96ab3cb4774bcb6540a9731c5f623cb4668228cc74505d6a4830d09406",
+        "n.wav": "75756965107d89b7ad07897edeb37904d57de297c27a8fee134edadd35e86059",
+        "ref.wav": "598426bb8350d30b00b59710e89df3c7503a71ee1ffad383d6695c202b2b2c42",
+        "s.wav": "8ef94c3d70a135839832e84ea0fc6f6c1685b0907e2c4ed70458fafd87a13e8f",
+        "truth.json": "a4dd8e5ec1162bee64ae02b865718aee25497888921562c56c5d36816a0a00c5"
+      },
+      "id": "smoke-0029-short-05",
+      "scenario": "short"
+    },
+    {
+      "files": {
+        "d.wav": "16cace99b4d2b33dfde422b99056a68b4467a4153ff0ef3252cb8b4b3a383248",
+        "mic.wav": "6196d5aa7eb82cf61b1e37482a2a003727459dfd92cdefe9964d038539889c87",
+        "n.wav": "6674917ac63cf599f00dc19bbf32813c0afeacff55308be9dc3b96566c3d64ad",
+        "ref.wav": "fbd8e3b16612a66045436c32fc904e610dbe8d6f9954a254579e460479c8b429",
+        "s.wav": "1af88338bfbba6fe4ffd86fd05644aafc8666a09050cf0b8c474268a6a134650",
+        "truth.json": "228f06726b41fbd0d51f40946fc4619fc87c702f46b5e14aa60765d715bbaf08"
+      },
+      "id": "smoke-0030-pair-00",
+      "scenario": "pair"
+    },
+    {
+      "files": {
+        "d.wav": "eccdd58fdd8f852eb9f1576c829981b2ec5dbc9790ace858b3b3a21d945f5036",
+        "mic.wav": "d655299c40438c1474c74ce8e5ecbe4aa7fd99adf49cebcc4b7808717682398f",
+        "n.wav": "df7faed6c2b28a0b0b3e312732bb49552b5ccb54fd3537c32b7fa85fdc0d0d2d",
+        "ref.wav": "6fce6b59b56b20edb9c80e21e59422acf9d865dcf7419ee0ac0ea78aafc3f6aa",
+        "s.wav": "058c351f1b8d88a19a8359297f494e57c3cb91c7d1c87965e1fd7c914843ef37",
+        "truth.json": "10be1017ca022c607addb5a99f386e76c4eb272cfdbfeb8622b313894a1ced77"
+      },
+      "id": "smoke-0031-pair-01",
+      "scenario": "pair"
+    },
+    {
+      "files": {
+        "d.wav": "d25e140ec8b3405111f19af9f13462f6c2a755887c72f974b03f360af83c0a96",
+        "mic.wav": "d8e6fe214143dc004dbd02f31372a4ebbef68bb3dccda4048a3e746d5336875c",
+        "n.wav": "ec8eda1ebb5794efc3a246de3149d7936f83c483531e84c6bd40c2bb96d68545",
+        "ref.wav": "667cc8a9758c470250980c95d1d629cc6232c556e42c63131c8c11e1a85bc9c2",
+        "s.wav": "7d1f5e22f5bd5bf327ffb15b5efa67b8c136dfa83d28fe1dda653f4f2c2e24b0",
+        "truth.json": "ddfa90848e564a67a738351fa4702280f8786b79a3363356b5e86e31337a179e"
+      },
+      "id": "smoke-0032-pair-02",
+      "scenario": "pair"
+    },
+    {
+      "files": {
+        "d.wav": "4914f0ae498bb3cd0a555fc01b41dd5e7c94097d213a5fec9536d55dd75c565d",
+        "mic.wav": "49a9937f5acdb3b5ae3f4c1bd54e488d25aff2344fe44c5dff3b967c7cc46f24",
+        "n.wav": "f80074a67562a9450f92b43bb4682a284b186690e80d85c6ca3b7cb4dcadcc2d",
+        "ref.wav": "b163aa6702f0ef1f2d9a2c2a85a274d03f9a71b05f866791f7a7c402edc3a0a9",
+        "s.wav": "99bcfdb811ebb635007c41d6779cc9d25267908461059165c490815f1d2f991d",
+        "truth.json": "fe0adbd88fc9df3edb7621cca6172038fabc636591085fd879e0aeb3f819b175"
+      },
+      "id": "smoke-0033-pair-03",
+      "scenario": "pair"
+    },
+    {
+      "files": {
+        "d.wav": "17b54e0b1c94f62faa6b1cc685b158a8929d22fdc1410a1e660cecd7e8cb72ae",
+        "mic.wav": "17b54e0b1c94f62faa6b1cc685b158a8929d22fdc1410a1e660cecd7e8cb72ae",
+        "n.wav": "957e5754aceb4676d6c6361ba5f2263af0572947408efd42ed16779d8a853ddd",
+        "ref.wav": "9fcc67c23b07f6eb6d1243f3f89ba08f8d1297d0a0136138c5034c0c8c65d941",
+        "s.wav": "957e5754aceb4676d6c6361ba5f2263af0572947408efd42ed16779d8a853ddd",
+        "truth.json": "b109c56b35892875da29c4112cf6478adb56fa7e2bc977995002746817d1842b"
+      },
+      "id": "smoke-0034-pair-04",
+      "scenario": "pair"
+    },
+    {
+      "files": {
+        "d.wav": "cebc24d20ea20463cc5c4d59fc1f15345377684f9c59cf9f4985a06ff832125b",
+        "mic.wav": "7f890278470234c06125998b8556856a5ed599823b14e7404c8b9084e80aeb2d",
+        "n.wav": "3fc54c530364b713b63fe4e32fa1061df9a3939f05a7af250722783a1a7f8c4c",
+        "ref.wav": "55a42d100362670f1b4fdcfefa060d849d0893c52c59e1eef5d8b18680362886",
+        "s.wav": "36851402dfb5a9b3e318598704ca21a41339ddacf05c13291d7a37f50a1f4cfc",
+        "truth.json": "58be4bd95191cac942ec022faf6faf2d35566f709df9c96f5d3393dfae552d28"
+      },
+      "id": "smoke-0035-pair-05",
+      "scenario": "pair"
+    },
+    {
+      "files": {
+        "d.wav": "f04d3e3c8c5f738c2bc2e920c254b930213ca76976ffad33597e9294d63c0c1b",
+        "mic.wav": "eaaa63df96e438e27a3c842ae4806690f9b882157b539e83b030dcd6053c45aa",
+        "n.wav": "8e2b5b9917a96ac0f0ef9af43b9f6b932b4d64f69bbc010f042b376365a08a0f",
+        "ref.wav": "d5c65178967796b844f6a52d72a3d82c0de50e99f169d260a82883e06ca547a9",
+        "s.wav": "57a7731042c2421d8602801f14ed312e6b9afaa79c1bf32f33568ef8dd990af3",
+        "truth.json": "d82b971612522c41ad31ccdb1ae833c6e268ed8a17e3170fb31f5d1a0a5b550e"
+      },
+      "id": "smoke-0036-quiet-00",
+      "scenario": "quiet"
+    },
+    {
+      "files": {
+        "d.wav": "9e293bc133c260a9e0a01c74708996feb1bbcdc61bb236fbbbd90977015e628c",
+        "mic.wav": "3a29f5e8f83ea08b90764b3628413f8c4771d1aa81b8def32a99d69974253da1",
+        "n.wav": "f016e340052970d17ea9f99019e77573db0fd27e601c4a8dddea354e0149e5a4",
+        "ref.wav": "2acbf19ad226f0373a6a8d78b1d9d840c53ca3eb7e418f65fe34c06c68647087",
+        "s.wav": "a21923041aad87271bd201b6f19b8cb52df806318a2a21985327e3305752033b",
+        "truth.json": "82007f05207ba14501a842aedf4e6886f839c9d30df0aefa88f81e7141897c50"
+      },
+      "id": "smoke-0037-quiet-01",
+      "scenario": "quiet"
+    },
+    {
+      "files": {
+        "d.wav": "7786d7990d21b397536b630284b73eddbec777c725ca0d8603be026c9f2b4a51",
+        "mic.wav": "1fb6392288d1edcf21fe7a67d702088be78655efb05314ba3a5df4123c9743cb",
+        "n.wav": "62777b53e44dfaf28ffaae1f0e504e443769b7646f916ac439f3163f3d1a5192",
+        "ref.wav": "14080c4c5e0a661300fd3370ef430ce383d3b154cac933b217821e4b0f443527",
+        "s.wav": "9b11e9c90982ed17b1957a30dc84e9cf2b1cd798041f980b51ec9526b61d841e",
+        "truth.json": "4490ba380dcb156e52d2fa5c8fda74bdb19e864a98c6ca367c87ffafc66f8c25"
+      },
+      "id": "smoke-0038-quiet-02",
+      "scenario": "quiet"
+    },
+    {
+      "files": {
+        "d.wav": "4935629d99c0a74b04de2ae509fa7e6ead093c60ec0f7b72458cf4e8285648e6",
+        "mic.wav": "dca636656e8780f385b07af65eec50833cb197cc6ae4fa6b41a37bd261ce8d0b",
+        "n.wav": "3f92cbc729feeede73b79493a1c966c623cf9cb9ad3f19c506d987e14255e379",
+        "ref.wav": "e5cd6f1501d0b34143e422394b6306f35bbcc1b27f503179d826a2817443e4c7",
+        "s.wav": "56eef380aa35387cbecc1af19c4fb150acc70907f90c0a3bea940f377d682870",
+        "truth.json": "de409a8648e8fe67283d99c1c50e0e09c780863edaa5fade78bdc55dd300c3d3"
+      },
+      "id": "smoke-0039-pause-00",
+      "scenario": "pause"
+    },
+    {
+      "files": {
+        "d.wav": "b54bdae23651578c40d9a2e7bff897a69bcf399b7bc7083952676ac0a7fce5ed",
+        "mic.wav": "d7362936f61c5584714a737b0455b1a32138aa6a626341c8b339af348556999a",
+        "n.wav": "8fe2743665765fb30f4949cac7cd1286c5d8babe3bddc5f122e734d71f3b929d",
+        "ref.wav": "95d5a93ebb93a934f790a86031485cc28f8c8f538da7cc0381a13988e6935cb0",
+        "s.wav": "2d4a2593427771d06f613be1b34601f71149df8e972940b71e40924056cf6d54",
+        "truth.json": "3cb2b7a2ee7d4273e4276234b5245db51ad6ec089cc94026b453d5b5fd83cb6c"
+      },
+      "id": "smoke-0040-pause-01",
+      "scenario": "pause"
+    },
+    {
+      "files": {
+        "d.wav": "a71210997d31f42a7cc5daf7411a7d5ffbfecaabf2d96e4db93b106d481aaeb7",
+        "mic.wav": "a23fe84868b6828f76e110af2dde2655826e7d6475ed0a7237d1cc5cd09011c8",
+        "n.wav": "36044e25547aee83756bd7843d6a48dc49b7a3d63c93896d92f7b2544a2a94b6",
+        "ref.wav": "a29ee16e579d397c8ee470ac3a2e61e9a539fa35f457053c87df5b02c9b81a7e",
+        "s.wav": "8710ee4eb35fa011836983fbba3acebedfe2c3556575ddd9dd909f7766e192b6",
+        "truth.json": "bd4bb3be7de0005bc323b369c998363c0c78fa293bfe45e9ed96e4e4eda66d2a"
+      },
+      "id": "smoke-0041-pause-02",
+      "scenario": "pause"
+    },
+    {
+      "files": {
+        "d.wav": "0253aa5743d85286fd7484064903ae3eb610872942cd3614a6853672f0f41118",
+        "mic.wav": "8f1baffbdc3af5f71d888cf11ce2a2eebf63658d4ccaab6ed1f8952587fd82f6",
+        "n.wav": "86db362f2ca07194a3f5320eafee6fa541b8d477319862babed338dcff6d06c8",
+        "ref.wav": "4b6caab564cee1ee49cd2a0e34d3c65ec2e99273c7529fb0aed49b0f8e53c286",
+        "s.wav": "f3bc2828ea0995b0c8dc9e9082e17a8f64a34150e703d332512417a3353ce9b6",
+        "truth.json": "74a4cf436c0fce7f8c8886f1771eb763e2ed9f1879edb5ca2fce351be3442ef2"
+      },
+      "id": "smoke-0042-cold-00",
+      "scenario": "cold"
+    },
+    {
+      "files": {
+        "d.wav": "d2e5db2b9b8078259856474072abd4fd259175fdf3dfc7476830e7ec4870f00b",
+        "mic.wav": "51691e22e92ffb14cb083601b91a66a9d1211fd0100e8c603d0ed464ae2f6f4a",
+        "n.wav": "15cbc40b36d456d4685bda754c5cf77e238a72f84e9f9a4c782e15a3fa05b439",
+        "ref.wav": "bd6f02f36e04edbe2295b801c569ca177f705f82f98418e73404d76ae74d7fbc",
+        "s.wav": "09422c0ca14f2e77846eae1b6fabafb155b2208b5ab7f02e49b77ee26da7fb64",
+        "truth.json": "06dda5fb45182cc2da6ee971598d8007bd529cc74bdf21f743b94da3c82b8338"
+      },
+      "id": "smoke-0043-cold-01",
+      "scenario": "cold"
+    },
+    {
+      "files": {
+        "d.wav": "f471fb716e5f6f81e514b938bde2c4ce7282af16c69072c0c0be9bf04cf29abc",
+        "mic.wav": "30eee47b38e0180e9e3fa2cf014d5306f1df493d58f4474003cdc024cff78e08",
+        "n.wav": "39d5fbe4c2061c915b1ae7618420b762048b0fb51e93d6875d4110446342fc54",
+        "ref.wav": "c84f5dc16ff32bed17a4818a4534c06cd97386fb184b7cc2179db655c5f77210",
+        "s.wav": "81380c71274fc4f13bf3e32215a8987895ceea2f3dfba7bdadebf5cf9039d55c",
+        "truth.json": "60a4d77a7495d731457a45561eb9cada48edd16fff3c7e630c244ebeefa68540"
+      },
+      "id": "smoke-0044-cold-02",
+      "scenario": "cold"
+    },
+    {
+      "files": {
+        "d.wav": "ac997c9c8a8d8f6b5a58cdeb66538bbfa895fa911958be4b374c96ecab6ec56f",
+        "mic.wav": "82db68b3b4658d35281718b4f39ab02fcc34081edd9307bd5a7d070153fa4ad0",
+        "n.wav": "490fd665b86125839d12a0f61c8e55af7f76fee40a9dadc234afaf47dfaff9cf",
+        "ref.wav": "11edd8da649250b11b506c6d241df0538cd37c3529e5e5aac3ffb2c89131842c",
+        "s.wav": "11495a10456f83fae59f886ad967671cb7e650c497915012670f280160dd74b8",
+        "truth.json": "b611665155465abb9381504fde742402fa0c23f606325670eebf83a29d97702c"
+      },
+      "id": "smoke-0045-path_change-00",
+      "scenario": "path_change"
+    },
+    {
+      "files": {
+        "d.wav": "194971322d4593f817ddd81cba94539188f337b7163b23a2069c5cbeb6a7a2de",
+        "mic.wav": "c6134f891e969d11e8837643de75b8b3a898da18855e9502e3c827ba7737608e",
+        "n.wav": "0687b8bed54395aaac9bdde8c3750e0257c6a1231e18995b58e4b2e199bd7b42",
+        "ref.wav": "688bc29cc4742fcfed7b3f61dd6f09f6ae77259be04bb256b48e97d425b2803d",
+        "s.wav": "c3ed9bf6db41bda6305dc5f1c5783f6326b893842502fc0f16c07db0188546c5",
+        "truth.json": "409ec4a07c7fa9ec30386179c7dc9c5b7384678777d239764a2d7444217870e7"
+      },
+      "id": "smoke-0046-path_change-01",
+      "scenario": "path_change"
+    },
+    {
+      "files": {
+        "d.wav": "e39ee6e6443812f9dea0a15587e8bea674901ef86b9a066e88b0507d22353013",
+        "mic.wav": "3850cf2983a4d1695b7f858c023a024ac8166afeebdadadd3828eca038bd482d",
+        "n.wav": "9d51e79409c2b31ff79e7a02bba3357464b914957cc7b7b646930526a55efd1e",
+        "ref.wav": "8c03a853a0ade332f39e921d21fc0d1ae8e4ba6d10b7cbaf0ea18763d4581644",
+        "s.wav": "9766f2cb1bf9985fe8aa97e89056270e91a0cb02308f7424608546e987851509",
+        "truth.json": "2026d9dc59429b8552dd721e734c6f43a2022efd1553b799a3a5e84f3a7b1fb4"
+      },
+      "id": "smoke-0047-path_change-02",
+      "scenario": "path_change"
+    },
+    {
+      "files": {
+        "d.wav": "668e99aaf3ea94f47682091777e285e6d89c5c3f27674bb6de0e0dac27138afd",
+        "mic.wav": "3d56f7e2d1d91831ec3b8c396f645fdf2772b666fcb69c0e77010f7bc68057b8",
+        "n.wav": "ec8ef1f098d1fdf3f0156d7fc3cbe4b11ffc24a953a572f6f716674869aa513d",
+        "ref.wav": "74bb8b42ada6b47a55cbc39142f6d1d67a9167be5f6c3979e82caf8339780435",
+        "s.wav": "d5aa8c490278563e05b5277c74c3ab4fa025a83122ee4db8db681642dd558682",
+        "truth.json": "0874350faef7a1eced221c9a6127175e60350bdbce873dbe8e65c21de9dbb098"
+      },
+      "id": "smoke-0048-interference-00",
+      "scenario": "interference"
+    },
+    {
+      "files": {
+        "d.wav": "0548864f8e44c6dc9eb126541dd5799df4ac83b0f79fa93c8b229b04620863c9",
+        "mic.wav": "b68482fa82469c85b3a9b8505dce25455b656e68aad39f299a27b5a79de2211c",
+        "n.wav": "c7187580fd6e28ca97a064755139c9368f49af4a6c423d9dd1bddb7ce22cb4ee",
+        "ref.wav": "d6810f40243fc21d8fa28518a951fb9b5fa37ad6e014ccc25f28280e63fd9be2",
+        "s.wav": "f6ada4e8dfe62e730a2ec0155c3b87ffadb6ab5e0328323dd9a7efdbb77f5135",
+        "truth.json": "80ffa6f1b6ce59031a806450d5f180aeca24da66740e285ba85e293f81d0a943"
+      },
+      "id": "smoke-0049-interference-01",
+      "scenario": "interference"
+    },
+    {
+      "files": {
+        "d.wav": "9938cef4ac8193df5c2dbbda80fd53bdab04803d575950937f7029daf5ccefea",
+        "mic.wav": "7c7001844603547d3e44aa9cf936ddabf6fdab008de907d22311df34c41149ec",
+        "n.wav": "12b5d82813524b175ff1ee5a32a45e8d704c95ba34bce880367692dab910c8b3",
+        "ref.wav": "27f341d71f8d696561f0ccce1f0e5ca1f7b1561d50c771db46ba6847c48696a1",
+        "s.wav": "fd745ff9248165b79b065be28ec4f67e51eed2c64d5782e329c01fcba383b329",
+        "truth.json": "cdd539f25dee0b7cc1522da585ded7fd26c4817fe457aa81c05333547f371966"
+      },
+      "id": "smoke-0050-interference-02",
+      "scenario": "interference"
+    },
+    {
+      "files": {
+        "d.wav": "3718ff15f438c4ac59dcc2fe1903b5c72227dd969ef3eadc5f8f74dce12f8eb2",
+        "mic.wav": "3952d5fce88a6535006c66b00e551b0ab6e7bb42fb36ed4bbb79c889c23e9fea",
+        "n.wav": "fbcf464710fbccb9d2d505907273495e6ae290bc5c31c7a50d5ae5d024213851",
+        "ref.wav": "411ac860d39fae0b647ef8f99c0312aab5e14d33ef8fd83250cbdf6a94a99b01",
+        "s.wav": "a2c182f2abfca09bf3b97fa30146a6daf99acd7925fceceb3864a4ae4b556e2f",
+        "truth.json": "9e3e014cdff4f322b35806e31e89fef2d4e7ceaea2097eb0fec0e4531409b19e"
+      },
+      "id": "smoke-0051-interference-03",
+      "scenario": "interference"
+    }
+  ],
+  "count": 52,
+  "seed": 0,
+  "sr": 16000,
+  "suite": "smoke"
+}

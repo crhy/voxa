@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from . import engine
+from .hardware import _HEADROOM_FACTOR, _HEADROOM_FLOOR_GB
 
 BLOCK = 1024 * 1024
 DOWNLOAD_TIMEOUT = 30
@@ -57,11 +58,93 @@ LIGHTEST_BRAIN = ModelFile(
     "74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db",
 )
 
-BRAINS = (SMALL_BRAIN, LIGHTEST_BRAIN)
+# Pinned from Hugging Face's own tree API (size and lfs.oid per file), never
+# invented, and held at the revision the digest was taken from. The ladder runs
+# lightest to heaviest; anything a machine cannot hold is simply not suggested.
+MEDIUM_BRAIN = ModelFile(
+    "Medium brain (Qwen2.5 1.5B)",
+    "Qwen/Qwen2.5-1.5B-Instruct-GGUF",
+    "91cad51170dc346986eccefdc2dd33a9da36ead9",
+    "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+    1117320736,
+    "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
+)
+
+LARGE_BRAIN = ModelFile(
+    "Large brain (Qwen3.5 4B)",
+    "unsloth/Qwen3.5-4B-GGUF",
+    "e87f176479d0855a907a41277aca2f8ee7a09523",
+    "Qwen3.5-4B-Q4_K_M.gguf",
+    2740937888,
+    "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4",
+)
+
+LARGEST_BRAIN = ModelFile(
+    "Largest brain (Qwen3.5 9B)",
+    "unsloth/Qwen3.5-9B-GGUF",
+    "3885219b6810b007914f3a7950a8d1b469d598a5",
+    "Qwen3.5-9B-Q4_K_M.gguf",
+    5680522464,
+    "03b74727a860a56338e042c4420bb3f04b2fec5734175f4cb9fa853daf52b7e8",
+)
+
+BRAINS = (LIGHTEST_BRAIN, SMALL_BRAIN, MEDIUM_BRAIN, LARGE_BRAIN, LARGEST_BRAIN)
+
+# The brain Voxa selects when llama.cpp is the backend and none is configured:
+# deliberately the 0.8B one, not simply the first rung of the ladder.
+DEFAULT_BRAIN = SMALL_BRAIN
 
 
 def path_for(model: ModelFile, directory: Path | None = None) -> Path:
     return (directory or engine.models_dir()) / model.filename
+
+
+def approx_gb(model: ModelFile) -> float:
+    """The pinned download size in GB, the figure the fit rule works on."""
+    return model.bytes / (1024.0**3)
+
+
+def fits_machine(model: ModelFile, available_gb: float) -> bool:
+    """True when the brain fits with the headroom a model suggestion is held to.
+
+    Reuses hardware.py's rule (1.3x the weights plus 1 GB) instead of inventing
+    a second one, so the GGUF ladder and the Ollama catalog are sized the same
+    way. Pass ``available_gb`` already reduced by whatever the face server and
+    Whisper keep on the card.
+    """
+    return available_gb >= approx_gb(model) * _HEADROOM_FACTOR + _HEADROOM_FLOOR_GB
+
+
+def brain_suggestions(
+    available_gb: float,
+    reserved_gb: float = 0.0,
+    limit: int = 3,
+) -> list[ModelFile]:
+    """Up to ``limit`` GGUF brains for this machine, the largest that fits first.
+
+    Only brains that fit are offered, and never an Ollama tag: llama.cpp thinks
+    with GGUF files on disk, so a name like "qwen2.5:0.5b" is a model it cannot
+    run. A machine nothing fits (no graphics card, little RAM) still gets the
+    lightest brain rather than the empty list the issue reported.
+    """
+    usable_gb = max(available_gb - reserved_gb, 0.0)
+    fitting = [model for model in BRAINS if fits_machine(model, usable_gb)]
+    if not fitting:
+        return [LIGHTEST_BRAIN]
+    # BRAINS runs lightest first, so the largest that fits comes last.
+    return list(reversed(fitting))[:limit]
+
+
+def fit_note(model: ModelFile, available_gb: float, reserved_gb: float = 0.0) -> str:
+    """The brains-page note saying whether a rung is worth this machine's memory.
+
+    Pure so it can be tested without a window; ``reserved_gb`` is the VRAM the
+    High face server and Whisper keep for themselves.
+    """
+    usable_gb = max(available_gb - reserved_gb, 0.0)
+    if fits_machine(model, usable_gb):
+        return "Fits this machine"
+    return f"Too big for this machine (~{usable_gb:.0f} GB)"
 
 
 def is_installed(model: ModelFile, directory: Path | None = None) -> bool:
