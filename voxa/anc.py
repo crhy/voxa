@@ -386,6 +386,15 @@ class Aec3Canceller:
         self._sample_rate = int(sample_rate)
         self._stream_delay_ms = int(stream_delay_ms)
         self._double_talk_guard = bool(double_talk_guard)
+        # The residual-ratio guard cannot see through AEC3 on this machine's rooms: the user's
+        # residual measures only 1.5x above the echo path's own floor, while the microphone holds
+        # 40 % of its energy that no echo model can explain. The guard therefore asks the
+        # REFERENCE that question (the same tail-held model the bench chain uses), not AEC3.
+        from voxa.refmask import ReferenceMask
+
+        self._detect = (ReferenceMask(rate=self._sample_rate, tail=True)
+                        if double_talk_guard else None)
+        self._dt_excess = 0.1
         self._impl = EchoCanceller(sample_rate=self._sample_rate, num_channels=1,
                                    stream_delay_ms=self._stream_delay_ms)
         self._mic_rem = np.zeros(0, dtype=np.float32)
@@ -395,7 +404,6 @@ class Aec3Canceller:
         self._guard_frames = 0
         self._double_talk_frames = 0
         self._converged = 0.0
-        self._floor = 1.0
         self._clock_drift = bool(clock_drift)
         self._last_mic_power = 0.0
         self._last_residual_power = 0.0
@@ -421,6 +429,13 @@ class Aec3Canceller:
             i += self.BLOCK
         self._mic_rem = self._mic_rem[i:]
         self._ref_rem = self._ref_rem[i:]
+        if self._mic_rem.size:
+            # A chunk that is not a multiple of 160 still owes its caller its own length: the
+            # partial frame is handed on as the microphone delivered it (AEC3 only ever sees whole
+            # 10 ms frames, and feeding it a padded frame would teach its filter silence).
+            out.append(self._mic_rem)
+            self._mic_rem = self._mic_rem[0:0]
+            self._ref_rem = self._ref_rem[0:0]
         if not out:
             return np.zeros(0, dtype=np.float32)
         return np.concatenate(out).astype(np.float32)
@@ -441,27 +456,30 @@ class Aec3Canceller:
             self._note(p_mic, p_mic, p_ref)
             return mic_b
         p_res = float(np.mean(cleaned.astype(np.float64) ** 2))
-        if p_mic > 0.0 and p_res > 2.0 * p_mic:
+        if p_mic > 0.0 and p_res > p_mic:
             # Never hand on something louder than the microphone itself (AEC3's high-pass filter or
-            # a diverged filter). The frame passes through raw; the filter keeps its state.
+            # a diverged filter). The frame passes through raw; the filter keeps its state. The
+            # bound is 1.0x, not the NLMS path's 2.0x: AEC3's own suppression already shrinks the
+            # residual, so anything above the microphone is the filter's doing, and the bench
+            # measures exactly that frame in erle_fst (f129: a +1 dB tail frame measured 0 dB).
             self._guard_frames += 1
             self._note(p_mic, p_mic, p_ref)
             return mic_b
         self._frames += 1
-        if self._double_talk_guard and p_ref >= MIN_REFERENCE_POWER and p_mic > 1e-7 \
-                and p_res / max(p_mic, 1e-12) > max(4.0 * self._floor, 0.05):
-            # The residual sits far above what THIS echo path has been leaving behind, so it is not
-            # echo: the user is speaking over Voxa. AEC3's suppressor would push her voice down with
-            # it, so the frame goes on as the microphone delivered it. Nothing is discarded - the raw
-            # frame is the safest copy - and AEC3 keeps adapting (handoff 6.2; ITU-T P.340 allows at
-            # most 3 dB of near-end attenuation in double talk).
-            self._double_talk_frames += 1
-            self._note(p_mic, p_res, p_ref)
-            return mic_b
-        # What the echo path leaves behind, learned while it is not double talk: the reference for
-        # the rule above, so a long reverberant tail does not get mistaken for a speaker.
-        if p_ref >= MIN_REFERENCE_POWER and p_mic > 1e-7:
-            self._floor = 0.97 * self._floor + 0.03 * (p_res / max(p_mic, 1e-12))
+        if self._detect is not None and p_ref >= MIN_REFERENCE_POWER and p_mic > 1e-7:
+            # AEC3's suppressor pushes the near end down with the echo (ITU-T P.340 allows at most
+            # 3 dB of near-end attenuation in double talk - this binding does tens of dB), so the
+            # frame is handed to the reference model first: more than a tenth of this frame's
+            # energy unexplained by the held echo model means the user is speaking over Voxa, and
+            # the frame goes on as the microphone delivered it. Nothing is discarded - the raw
+            # frame is the safest copy - and AEC3 keeps adapting (handoff 6.2). The model's first
+            # frames learn the coupling, so it gets 4 frames of history before it may decide.
+            self._detect.process(mic_b.astype(np.float64), ref_b.astype(np.float64))
+            if (self._detect.frames_done >= 4
+                    and self._detect.last_excess_frac > self._dt_excess):
+                self._double_talk_frames += 1
+                self._note(p_mic, p_res, p_ref)
+                return mic_b
         self._note(p_mic, p_res, p_ref)
         self._converged = 0.9 * self._converged + 0.1 * erle_db(mic_b, cleaned)
         return cleaned
@@ -483,7 +501,8 @@ class Aec3Canceller:
         self._guard_frames = 0
         self._double_talk_frames = 0
         self._converged = 0.0
-        self._floor = 1.0
+        if self._detect is not None:
+            self._detect.reset()
 
     def close(self) -> None:
         """Give up echo-path ownership (the capture path calls this when it changes mode)."""

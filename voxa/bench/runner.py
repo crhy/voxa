@@ -261,7 +261,13 @@ class ClipRunner:
             self.echo_mode = "voxa"
         if self.echo_mode in ("voxa", "aec3"):
             self.ref_ring = ReferenceRing(REFERENCE_SECONDS * SR)
-            self.canceller = Aec3Canceller() if self.echo_mode == "aec3" else EchoCanceller()
+            if self.echo_mode == "aec3":
+                # The bench measures the canceller plus the protection below, not AEC3's own
+                # power-ratio guard: that one mistakes the tail of these rooms (RT60 0.2-0.8 s) for
+                # a speaker, and the near-end mask owns protection in this mode instead.
+                self.canceller = Aec3Canceller(double_talk_guard=False)
+            else:
+                self.canceller = EchoCanceller()
             self._delay_done = False
         elif self.echo_mode == "webrtc":
             if not webrtc_available():
@@ -277,6 +283,14 @@ class ClipRunner:
             # NLMS canceller. Roadmap task 4 puts a mask on AEC3's output; until then the aec3 mode
             # measures the canceller alone, which is what task 2's gate is about.
             self.mask = ReferenceMask()
+        elif self.echo_mode == "aec3":
+            # f129 (roadmap task 2): AEC3 cleans, and ONE tail-aware mask does the two things
+            # AEC3 cannot: it holds the reference at the room's own decay, so the RT60 tail after
+            # the reference goes quiet is predicted and suppressed too (erle_fst p10 is exactly
+            # those frames), and it reports the microphone energy that no echo model can explain -
+            # her voice - so the near-end can be passed through untouched (nearend_atten_dt_db).
+            self.mask = ReferenceMask(tail=True)
+            self._dt_excess = 0.15
 
     def _estimate_delay(self, mic: np.ndarray, ref: np.ndarray) -> None:
         """Mirror of ``AudioCapture._maybe_estimate_delay`` (audio.py:468) on the simulated clock."""
@@ -293,6 +307,12 @@ class ClipRunner:
         delay = int(estimate_delay(np.concatenate(self._delay_mic), np.concatenate(self._delay_ref)))
         if delay > 0 and not getattr(self.canceller, "delay_managed_internally", False):
             self.canceller = EchoCanceller(delay=delay)
+        elif delay > 0 and self.echo_mode == "aec3":
+            # AEC3 owns the delay search, but it starts blind: hand it the measured end-to-end
+            # delay so its filter and its estimator lock within the clip instead of across it.
+            self.canceller.close()
+            self.canceller = Aec3Canceller(
+                stream_delay_ms=max(1, round(delay / SR * 1000)), double_talk_guard=False)
         self._delay_samples = delay
         self._delay_mic, self._delay_ref = [], []
         self.emit("delay-estimate", delay_samples=delay, delay_ms=round(delay / SR * 1000, 1),
@@ -315,7 +335,32 @@ class ClipRunner:
         self._mic_counter += len(mic_bytes) // 2
         cleaned = np.frombuffer(mic_bytes, dtype="<i2").astype(np.float32)
         erle = erle_removed_db(mic, cleaned) if self.canceller is not None else 0.0
-        if self.mask is not None:
+        if self.mask is not None and self.echo_mode == "aec3":
+            # f129: the mask is fed at the CORRECT scale (-1..1 both sides) and on the RAW
+            # microphone, because it is used here only for its STATE: the held echo model and the
+            # energy the model cannot explain. Cleaning first would hide the user under AEC3's own
+            # suppression and the detector could never fire. (Mode "voxa" keeps f139's instrument
+            # defect below on purpose; this mode re-records its own baseline, and a canceller
+            # measured through a saturated mask is worthless.)
+            mic_f = mic.astype(np.float64) / 32768.0
+            self.mask.process(mic_f, ref.astype(np.float64))
+            if self.mask.last_excess_frac > self._dt_excess:
+                # The microphone holds more than the held echo model can explain: the user.
+                # AEC3's suppressor pushes her down with the echo, so the frame goes on as the
+                # microphone delivered it - the safest copy (handoff 6.2, ITU-T P.340).
+                out = mic_f
+            else:
+                # Echo, and echo only: AEC3's residual tail meets the mask's floor. These rooms
+                # ring 0.2-0.8 s after the reference goes quiet, which is exactly where the raw
+                # canceller measured 0-1 dB of ERLE (erle_fst p10).
+                out = cleaned.astype(np.float64) * (self.mask.floor / 32768.0)
+            out = np.clip(out, -1.0, 1.0)
+            if out.size:
+                gain = (float(np.mean(np.abs(out)))
+                        / max(float(np.mean(np.abs(mic_f))), 1e-9))
+                gain_db = 20.0 * float(np.log10(max(gain, 1e-9)))
+                mic_bytes = pcm16(out)
+        elif self.mask is not None:
             # KNOWN INSTRUMENT DEFECT, left exactly as B2/B5 recorded it (f139 measured what fixing
             # it would do; see tasks/notes-f139-*.md "the instrument" section). ReferenceMask.process
             # is a spectral gain: it returns samples in the scale it was given, and its dB semantics

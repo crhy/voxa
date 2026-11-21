@@ -655,6 +655,9 @@ def _attach_echo_probe(pipeline: Any, tee: Any, timeline: RenderTimeline, gst: A
     name = getattr(timeline, "echo_probe_name", None)
     if not name:
         return None
+    if gst.ElementFactory.find("webrtcechoprobe") is None:
+        # The plugin is not installed here: report it, and let the tap itself work on.
+        return {"attached": False, "name": name, "error": "webrtcechoprobe element unavailable"}
     make = gst.ElementFactory.make
     probe = make("webrtcechoprobe")
     probe_sink = make("fakesink")

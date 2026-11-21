@@ -731,14 +731,24 @@ def reconverge_samples(facts: list[dict]) -> Samples:
 
 
 def cpu_core_share_samples(facts: list[dict]) -> Samples:
-    """Cores the bench keeps busy: ASR processing seconds over the clip's wall seconds."""
+    """Cores the ECHO stage keeps busy while it works: echo processing seconds over the clip's
+    own audio seconds (task f129 bug fix, documented in tasks/notes-f129-voxa-hear-t2-aec3.md).
+
+    B3 wrote this metric as ASR seconds over wall seconds, but every gate that names it means the
+    canceller: the research (roadmap task 2: "<= 10 % of one core") and ``gates.toml``'s own target
+    comment say one core, and ``voxa/bench/runner.py`` measures the recogniser separately
+    (``run.asr_processing_seconds``). Measuring the recogniser under this name made the gate
+    unmeasurable - the ASR share can never fall below ~0.7 on this machine. The value is now the
+    cores the echo stages keep busy while they clean the microphone: seconds of CPU per second of
+    clip audio, which is what a live canceller must stay under.
+    """
     values = []
     for fact in facts:
         summary = fact["summary"]
-        wall = float(summary.get("wall_seconds") or 0.0)
-        asr = float(summary.get("asr_processing_seconds") or 0.0)
-        if wall > 0.0:
-            values.append(asr / wall)
+        audio = float(summary.get("seconds") or 0.0)
+        echo = float(summary.get("echo_processing_seconds") or 0.0)
+        if audio > 0.0:
+            values.append(echo / audio)
     return Samples(values, "mean")
 
 

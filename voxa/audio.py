@@ -19,15 +19,20 @@ log = logging.getLogger("voxa.audio")
 
 
 def _ensure_gstreamer() -> Any:
+    """The GStreamer module, or None when PyGObject is not installed here (never raises, so a
+    machine without GStreamer can still import and run every non-webrtc path in this module)."""
     global Gst
     if Gst is None:
-        import gi
+        try:
+            import gi
 
-        gi.require_version("Gst", "1.0")
-        from gi.repository import Gst as _Gst
+            gi.require_version("Gst", "1.0")
+            from gi.repository import Gst as _Gst
 
-        _Gst.init(None)
-        Gst = _Gst
+            _Gst.init(None)
+            Gst = _Gst
+        except ImportError:
+            log.info("GStreamer (PyGObject) is not importable: webrtc echo cancellation is off")
     return Gst
 
 # Reference samples we keep: the last 3 seconds at 16 kHz.
@@ -756,10 +761,11 @@ class AudioCapture:
         pipeline, self.pipeline = self.pipeline, None
         ref_pipeline, self._ref_pipeline = self._ref_pipeline, None
         if pipeline is not None:
-            pipeline.set_state(gst.State.NULL)
+            if gst is not None:
+                pipeline.set_state(gst.State.NULL)
             # The GStreamer DSP route owned the echo path while that pipeline lived.
             release_aec_owner(self)
-        if ref_pipeline is not None:
+        if ref_pipeline is not None and gst is not None:
             ref_pipeline.set_state(gst.State.NULL)
 
     def set_echo_mode(self, mode: str | bool = "voxa", reference_source: str | None = None) -> None:
