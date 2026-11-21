@@ -35,6 +35,12 @@ class FakeProcess:
         self.terminated = True
 
 
+def _pin(script: str = "echo hi") -> dict[str, str]:
+    """install_ollama only runs a script whose digest is pinned, so the fixture's
+    own digest is pinned here rather than the gate being loosened."""
+    return {installer.script_digest(script): "test fixture script"}
+
+
 def test_privileged_shell_command_wraps_with_flatpak_spawn_when_sandboxed() -> None:
     with patch.object(installer, "is_flatpak", return_value=True):
         assert installer._privileged_shell_command() == ["flatpak-spawn", "--host", "--directory=/", "pkexec", "sh", "-s"]
@@ -63,6 +69,7 @@ def test_install_ollama_streams_output_and_returns_exit_code() -> None:
     lines: list[str] = []
     with (
         patch.object(installer, "_fetch_install_script", return_value="echo hi"),
+        patch.object(installer, "PINNED_SCRIPT_DIGESTS", _pin()),
         patch("subprocess.Popen", return_value=fake_process),
     ):
         exit_code = installer.install_ollama(on_output=lines.append, cancel_event=threading.Event())
@@ -73,6 +80,7 @@ def test_install_ollama_streams_output_and_returns_exit_code() -> None:
 def test_install_ollama_raises_a_clear_error_when_pkexec_is_missing() -> None:
     with (
         patch.object(installer, "_fetch_install_script", return_value="echo hi"),
+        patch.object(installer, "PINNED_SCRIPT_DIGESTS", _pin()),
         patch("subprocess.Popen", side_effect=FileNotFoundError),
         pytest.raises(installer.InstallerError),
     ):
@@ -91,6 +99,7 @@ def test_install_ollama_stops_reading_and_terminates_when_cancelled() -> None:
 
     with (
         patch.object(installer, "_fetch_install_script", return_value="echo hi"),
+        patch.object(installer, "PINNED_SCRIPT_DIGESTS", _pin()),
         patch("subprocess.Popen", return_value=fake_process),
     ):
         installer.install_ollama(on_output=capture, cancel_event=cancel_event)

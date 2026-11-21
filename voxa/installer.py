@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import subprocess
 import threading
 import urllib.error
@@ -11,6 +12,12 @@ from pathlib import Path
 from .agent.host import host_command  # noqa: E402
 
 INSTALL_SCRIPT_URL = "https://ollama.com/install.sh"
+
+# Scripts Voxa is willing to hand to a root shell, keyed by SHA-256 of their exact
+# bytes. Left empty on purpose: a digest may only be added after a human has read
+# the script it pins. Run ``python tools/pin_ollama_installer.py`` to fetch the
+# current script and print the line to paste here (see docs/notes/voxa-verify-before-root.md).
+PINNED_SCRIPT_DIGESTS: dict[str, str] = {}
 
 
 class InstallerError(RuntimeError):
@@ -45,9 +52,33 @@ def _fetch_install_script(timeout: float = 15.0) -> str:
         raise InstallerError(f"Could not download the Ollama install script: {exc}") from exc
 
 
+def script_digest(script: str) -> str:
+    """SHA-256 of the install script's UTF-8 bytes, as 64 lowercase hex characters."""
+    return hashlib.sha256(script.encode("utf-8")).hexdigest()
+
+
+def verify_install_script(script: str, pinned: dict[str, str] | None = None) -> str:
+    """Return the script's digest, or raise when that digest is not pinned.
+
+    Hashing is pure ``hashlib`` over bytes already in memory: no network, no subprocess.
+    Callers must not start a privileged process unless this function returns.
+    """
+    known = pinned if pinned is not None else PINNED_SCRIPT_DIGESTS
+    digest = script_digest(script)
+    if digest in known:
+        return digest
+    raise InstallerError(
+        f"The Ollama installer downloaded from ollama.com has SHA-256 {digest}, which "
+        "Voxa has not pinned, so Voxa will not run unverified content as root. Two "
+        "honest routes: review that script and pin this digest in voxa/installer.py "
+        "(tools/pin_ollama_installer.py prints the line), or install Ollama yourself "
+        "from a terminal: curl -fsSL https://ollama.com/install.sh | sh"
+    )
+
+
 def _privileged_shell_command() -> list[str]:
     # "-s" reads the script from stdin, so the elevated process only ever
-    # sees bytes we already fetched ourselves (see install_ollama).
+    # sees bytes we already fetched ourselves and verified (see install_ollama).
     base = ["pkexec", "sh", "-s"]
     if is_flatpak():
         # flatpak-spawn --host hands the command to the *host* pkexec, since
@@ -75,9 +106,10 @@ def install_ollama(
 ) -> int:
     """Fetch the official Ollama install script and run it as root via pkexec.
 
-    Fetching happens from inside this (network-enabled) app process; only the
-    already-downloaded script text is handed to the privileged process, so
-    the elevated shell never reaches the network itself. The user sees a
+    The downloaded bytes are hashed and matched against ``PINNED_SCRIPT_DIGESTS``
+    (``verify_install_script``) before any privileged process is started; only bytes
+    whose digest someone has pinned are handed over, so the elevated shell never
+    reaches the network itself and never runs mutable web content. The user sees a
     native PolicyKit password prompt from ``pkexec`` rather than a terminal.
 
     Requires ``pkexec`` on the host, and under Flatpak also requires
@@ -85,6 +117,7 @@ def install_ollama(
     reach the host's ``pkexec``.
     """
     script = _fetch_install_script()
+    verify_install_script(script)
     command = _privileged_shell_command()
     try:
         process = subprocess.Popen(

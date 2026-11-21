@@ -7,6 +7,11 @@
 - **Voxa notices the charges you pay for.** A charge that turns up month after month in your spending log at a steady amount is recognised as a subscription: "What bills are due this week", "What do I have to pay for this week", "What subscriptions do I pay for" (#60).
 - **Bill reminders fire on the day they come due.** "Remind me about my bills" sets one reminder per recurring charge, and saying it again does not double them up (#60). Cancelling a subscription and paying a bill stay things you do yourself.
 
+### Fixed
+
+- **Installing Ollama no longer runs unreviewed web content as root.** Voxa hashes the installer it downloads from ollama.com and only hands it to the password prompt when that hash is on its reviewed list; otherwise it says so plainly and gives the terminal command to run yourself (#132).
+- **The reviewed list starts empty on purpose**, so the install button explains itself until a hash is pinned; `python tools/pin_ollama_installer.py` prints the hash of the script ollama.com currently serves, to paste in after reading it (#132).
+
 ## 0.1.8 — 2026-10-26
 
 ### New
