@@ -385,10 +385,39 @@ def test_cpu_core_share_reads_the_runner_s_own_clock() -> None:
 
 def test_metrics_this_stage_cannot_measure_are_null_and_never_fail() -> None:
     rows = compute([], seed=0)
-    for name in ("align_err_p90_ms", "erle_music_loss_db", "transport_drop_count"):
+    for name in ("transport_drop_count",):
         assert rows[name]["value"] is None
         assert rows[name]["ci"] == [None, None]
         assert rows[name]["reason"]
+
+
+def test_the_render_instrument_feeds_the_alignment_and_music_metrics() -> None:
+    """Roadmap task 1: the two metrics the render timeline made measurable.
+
+    With no clips they are still null, but with a sample count of 0 and no "reason": the instrument
+    exists, there was simply nothing to measure. With clips, each clip contributes its own P90 (for
+    the alignment) and its own size of move (for the music), and a clip whose run had no canceller to
+    align contributes nothing rather than a zero that would drag the number down.
+    """
+    empty = compute([], seed=0)
+    for name in ("align_err_p90_ms", "erle_music_loss_db"):
+        assert empty[name]["value"] is None
+        assert empty[name]["ci"] == [None, None]
+        assert empty[name]["samples"] == 0
+        assert "reason" not in empty[name]
+
+    facts = [
+        clip(truth(scenario="fst"), [], {"render": {"measurable": True,
+                                                    "align_err_p90_ms": 0.4, "erle_music_loss_db": 0.1}}),
+        clip(truth(scenario="fst"), [], {"render": {"measurable": True,
+                                                    "align_err_p90_ms": 0.9, "erle_music_loss_db": 0.7}}),
+        clip(truth(scenario="nst"), [], {"render": {"measurable": False,
+                                                    "reason": "the clip has no Voxa playback to tap"}}),
+    ]
+    # P90 of the per-clip P90s, over two measurable clips.
+    assert value_of(facts, "align_err_p90_ms") == pytest.approx(0.85)
+    assert value_of(facts, "erle_music_loss_db") == pytest.approx(0.4)
+    assert row_of(facts, "align_err_p90_ms")["samples"] == 2
 
 
 # --------------------------------------------------------------------------- the report and check
@@ -439,16 +468,21 @@ def test_gates_toml_lists_every_metric_and_b5_ratchets_every_measurable_one() ->
     from voxa.bench import gates
 
     limits = gates.thresholds()
-    assert len(limits) == 23  # B5: every metric the default-mode smoke baseline could sample
+    # B5 ratcheted 23 thresholds from the baseline; roadmap task 1 added the two its own gate numbers
+    # set (align_err_p90_ms <= 2 ms, erle_music_loss_db <= 1 dB), which the baseline could not sample.
+    assert len(limits) == 25
     listed = gates._load(gates.GATES_PATH).get("metric", [])
     assert sorted(entry["name"] for entry in listed) == sorted(METRIC_NAMES)
     unmeasurable_in_default_mode = {
-        "align_err_p90_ms", "erle_music_loss_db", "transport_drop_count",        # never measurable yet
+        "transport_drop_count",  # never measurable yet: the offline runner has no queue to drop
         "duck_latency_p50_ms", "duck_latency_p90_ms", "stop_latency_p50_ms",
         "stop_latency_p95_ms", "first_word_trunc_bargein", "turn_retention_rate",
         "reconverge_s",  # null in echo mode voxa: that mode has no duck, stop, span or recovery
     }
     assert sorted(set(METRIC_NAMES) - set(limits)) == sorted(unmeasurable_in_default_mode)
+    # Roadmap task 1: the two it made measurable carry its gate numbers, not a baseline ratchet.
+    assert limits["align_err_p90_ms"] == ("<=", 2.0)
+    assert limits["erle_music_loss_db"] == ("<=", 1.0)
     assert gates.evaluate(gates.GATES_PATH, {"metrics": compute(toy_facts(), seed=0)}) == []
 
 

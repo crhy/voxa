@@ -47,6 +47,7 @@ from .agent.claims import claims_action, first_sentences  # noqa: E402
 from .agent.host import host_command  # noqa: E402
 from .agent.host import spawn as host_spawn  # noqa: E402
 from .agent.player import active_player  # noqa: E402
+from .agent.player import attach_render_timeline as attach_media_render_timeline  # noqa: E402
 from .agent.progress import working_caption  # noqa: E402
 from .agent.profile import profile_forget, profile_get, profile_set  # noqa: E402
 from .agent.registry import ToolError  # noqa: E402
@@ -95,7 +96,11 @@ from .agent.tools import interpreter as interpreter_tools  # noqa: E402
 from .agent.tools.web import get_session  # noqa: E402
 from .anc import EchoCanceller as AncCanceller  # noqa: E402
 from .audio import AudioCapture, AudioDevice, webrtc_available  # noqa: E402
-from .bargectl import BargeInController  # noqa: E402
+from .bargectl import BargeInController, HOLD, YIELD  # noqa: E402
+from .hearing import HearingDirector, HearingSample  # noqa: E402
+from .onset import level_dbfs, power_dbfs  # noqa: E402
+from .attribution import MIN_REFERENCE_POWER, SourceEvidence, attribute  # noqa: E402
+from .attribution import EchoPathBaseline as _EchoPathBaseline  # noqa: E402
 from .catalog import CatalogUnavailable, load_catalog, refresh_and_cache, refresh_due  # noqa: E402
 from .config import ConfigStore, gpu_choice_index, normalize_gpu_choice  # noqa: E402
 from .controller import AssistantController, ControllerPorts  # noqa: E402
@@ -131,6 +136,7 @@ from .server import SERVER_FAILED, SERVER_STARTING, SERVER_UNAVAILABLE, AiServer
 from .speakstream import SentenceFeeder, looks_like_reasoning  # noqa: E402
 from .speech import SpeechService  # noqa: E402
 from .theme import host_theme_is_dark, initial_size  # noqa: E402
+from .timeline import RenderTimeline  # noqa: E402
 from .transcription import WhisperService  # noqa: E402
 from .ui import clipboard  # noqa: E402
 from .ui.avatars import character_choices, describe_characters, find_character, get_avatar  # noqa: E402
@@ -363,7 +369,15 @@ class MainWindow(Adw.ApplicationWindow):
         self.whisper = WhisperService()
         self.wake_whisper = WhisperService()
         self.audio = AudioCapture()
+        # Roadmap task 1: one render timeline for the app. The playback paths submit the PCM they hand
+        # the speakers (voxa/speech.py attaches a tee immediately before each sink); the capture path
+        # answers "what was audible when this microphone chunk was sampled" from it. The whole-sink
+        # monitor remains selectable (VOXA_ECHO_REFERENCE=monitor) for a machine where the tap cannot
+        # attach; it is not the default, because it contains every application's audio.
+        self.render_timeline = RenderTimeline()
         self.speech = SpeechService()
+        self.speech.attach_render_timeline(self.render_timeline)
+        attach_media_render_timeline(self.render_timeline)
         self.dictation: DictationController | None = None
         self.listening = False
         self.conversation: ConversationController | None = None
@@ -377,6 +391,20 @@ class MainWindow(Adw.ApplicationWindow):
         # the text being spoken now / the piece before it (own-voice check). The decision
         # itself is voxa/bargectl.py, shared with the hearing bench.
         self._barge_ctl = BargeInController(trace=self._barge_trace)
+        # Task A3: the decision, the evidence windows and the candidate transcript run on the
+        # hearing thread; this thread submits frames and receives decisions. The thread lives for
+        # the window's whole life (it polls a bounded queue, idle when nothing is queued) so the
+        # order of reply-start / reply-end commands and level samples is the order they happened.
+        self._hearing = HearingDirector(controller=self._barge_ctl,
+                                        on_decision=self._on_hearing_decision,
+                                        trace=self._barge_trace)
+        self._hearing.start()
+        # When the last level sample was taken, so a sample can say how much AUDIO it stands for.
+        self._barge_sample_at = 0.0
+        self._latest_level_raw = 0.0
+        # Attribution evidence (handoff 6.3): the echo path's own recent residual level, so a
+        # residual only counts when it stands above what THIS path usually leaves behind.
+        self._echo_baseline = _EchoPathBaseline()
         # Echo filter: remembers what Voxa is saying so a mic transcript that is
         # (part of) her own sentence is dropped, not heard as the user (issue #88).
         self.own_speech = OwnSpeech()
@@ -559,9 +587,9 @@ class MainWindow(Adw.ApplicationWindow):
     def _apply_echo_mode(self) -> None:
         mode = getattr(self.settings, "echo_mode", "voxa")
         if mode == "voxa":
-            self.audio.set_echo_mode("voxa", default_monitor_source())
+            self.audio.set_echo_mode("voxa", self._choose_reference_source())
         elif mode == "webrtc":
-            self.audio.set_echo_mode("webrtc", default_monitor_source())
+            self.audio.set_echo_mode("webrtc", self._choose_reference_source())
         else:
             self.audio.set_echo_mode("off")
 
@@ -741,7 +769,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._early = None
         if self.conversation is not None:
             self.conversation.unmute()   # speech may have muted the microphone: the wake word must get through
-        self._barge_ctl.reply_ended()
+        self._hearing.reply_ended()
         self.assistant.pause()
         self._set_status(f"Paused — say “{self.settings.wake_word}” to continue")
 
@@ -813,7 +841,7 @@ class MainWindow(Adw.ApplicationWindow):
     def _port_stop_speech(self) -> None:
         self.speech.stop()
         self._live_reset()
-        self._barge_ctl.reply_ended()
+        self._hearing.reply_ended()
         if self.conversation is not None:
             self.conversation.unmute()
 
@@ -1144,6 +1172,21 @@ class MainWindow(Adw.ApplicationWindow):
             face_quality.set_mode("prerendered")
         self._apply_face_mode()
 
+    def _choose_reference_source(self) -> str | None:
+        """The narrowest echo reference this machine offers, with VoxaTest's test voice kept out of it.
+
+        The whole-sink monitor contains every stream on the output, so a test voice played through the
+        speakers would be cancelled as if it were Voxa's own echo (handoff 8.2). :mod:`voxa.reference`
+        prefers the per-stream monitor of Voxa's own playback and says in a WARNING when the test voice
+        cannot be excluded. Two pactl queries, no more: this runs on the path that starts the microphone.
+        """
+        from .reference import decide, log_reference
+
+        decision = decide(default_monitor_source(), check_sources=False, resolve_sinks=False)
+        log_reference(decision)
+        self._reference_decision = decision
+        return decision.source
+
     def _prepare_microphone(self) -> None:
         """Before listening: choose how the computer's own sound is removed from the microphone."""
         if not getattr(self, "_echo_leftovers_checked", False):
@@ -1151,13 +1194,20 @@ class MainWindow(Adw.ApplicationWindow):
             threading.Thread(target=remove_leftover_devices, name="echo-cleanup", daemon=True).start()
         mode = getattr(self.settings, "echo_mode", "voxa")
         if mode == "voxa":
-            # Our canceller: record the loopback monitor as the reference and clean the mic against it.
-            self.audio.reference_source = default_monitor_source()
+            # Our canceller. Roadmap task 1: the reference is Voxa's own render, taken from the render
+            # timeline; no stream on the speakers is in it, so the test voice cannot be cancelled and
+            # another application's music cannot corrupt the fit.
+            if os.environ.get("VOXA_ECHO_REFERENCE", "own-render") == "monitor":
+                self.audio.reference_source = self._choose_reference_source()
+                self.audio.reference_decision = getattr(self, "_reference_decision", None)
+            else:
+                self.audio.use_own_reference(self.render_timeline)
             self.audio.pulse_source = None
             self.audio.canceller = AncCanceller()
         elif mode == "webrtc":
             # One pipeline: the monitor branch feeds the probe, the mic branch runs webrtcdsp.
-            self.audio.reference_source = default_monitor_source()
+            self.audio.reference_source = self._choose_reference_source()
+            self.audio.reference_decision = getattr(self, "_reference_decision", None)
             self.audio.pulse_source = None
             self.audio.canceller = None
         else:
@@ -2690,7 +2740,7 @@ class MainWindow(Adw.ApplicationWindow):
         # the mute/barge-in state is reset explicitly here.
         self.speech.stop()
         self._live_reset()
-        self._barge_ctl.reply_ended()
+        self._hearing.reply_ended()
         if self._pending_user_generation is not None:
             self._conversation_history.drop_last()
         self._pending_user_generation = None
@@ -2780,7 +2830,7 @@ class MainWindow(Adw.ApplicationWindow):
             self.conversation.unmute()
         self.speech.stop()
         self._live_reset()
-        self._barge_ctl.reply_ended()
+        self._hearing.reply_ended()
         if kind == "goodbye":
             # Exactly what pressing the red OFFLINE button does.
             self.stop_current_work()
@@ -3180,7 +3230,7 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _conversation_speak(self, text: str) -> None:
         typing.LAST_REPLY = text
-        self._barge_ctl.reply_started(text)
+        self._hearing.reply_started(text)
         self.own_speech.started(text)
         if self.conversation is not None:
             self.conversation.mute()
@@ -3233,7 +3283,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.own_speech.finished()
         if self.conversation is not None:
             self.conversation.unmute()
-        self._barge_ctl.reply_ended()
+        self._hearing.reply_ended()
         self.assistant.reply_finished(self.assistant.token(), waiting_for_prompt=waiting, reply_id=reply_id)
         self._set_status("Listening for a follow-up…" if waiting else self._conversation_idle_status())
         return False
@@ -3253,7 +3303,7 @@ class MainWindow(Adw.ApplicationWindow):
     def _on_conversation_speech_error(self, error: str) -> bool:
         if self.conversation is not None:
             self.conversation.unmute()
-        self._barge_ctl.reply_ended()
+        self._hearing.reply_ended()
         self._fail_assistant("Speech playback failed")
         self._toast(error)
         self._set_status(self._conversation_idle_status())
@@ -3270,6 +3320,10 @@ class MainWindow(Adw.ApplicationWindow):
     def _queue_level(self, value: float) -> None:
         # GStreamer's callback runs outside the GTK main loop. Store only the
         # newest level instead of adding an unbounded series of idle callbacks.
+        # The raw value is kept for the onset rule, which compares levels in dB: 4000 is the
+        # level meter's scale, and clamping a dB input would hide every loud frame behind the
+        # same number.
+        self._latest_level_raw = max(0.0, float(value))
         self._latest_level = max(0.0, min(4000.0, value))
 
     def _start_level_updates(self) -> None:
@@ -3323,50 +3377,187 @@ class MainWindow(Adw.ApplicationWindow):
         except Exception:  # noqa: BLE001 - tracing must never disturb the conversation
             pass
 
-    def _maybe_barge_in(self) -> None:
-        """Interrupt a spoken reply when the user talks over it.
+    def _hearing_evidence(self) -> SourceEvidence | None:
+        """The source-attribution evidence for this moment (voxa/attribution.py, handoff 6.3).
 
-        The mic keeps reporting levels while muted, so sustained loud speech here means
-        the user interrupted: stop the reply, unmute, and let the very next utterance
-        become a prompt without the wake word. A level alone is not enough — unless the
-        voice towers over her own, the captured window is transcribed first and the reply
-        is stopped only when the words are not her own.
+        Three numbers the capture path already measured - the reference's power, how much of the
+        microphone the echo path explains, and the residual it leaves - plus the VAD probability
+        of the cleaned signal. Nothing here touches an audio device or runs a model: the GTK thread
+        only reads state (handoff 6.8: no inference on this thread).
+        """
+        try:
+            ref_power, explained, residual = self.audio.echo_measurements()
+            margin = self._echo_baseline.note(residual) if residual is not None else None
+            detector = (self.conversation._voice_detector
+                        if self.conversation is not None else None)
+            prob = float(detector.last_prob) if (detector is not None and detector.last_prob is not None
+                                                and detector.probs) else None
+            evidence = SourceEvidence(
+                reference_active=bool(ref_power > MIN_REFERENCE_POWER),
+                reference_power=float(ref_power),
+                echo_explained_db=explained,
+                residual_db=residual,
+                residual_margin_db=margin,
+                vad_prob=prob,
+                # A delay of 0 means the echo path was never fitted: unqualified audio, no decision.
+                alignment_healthy=bool(self.audio.delay_samples > 0
+                                       or ref_power <= MIN_REFERENCE_POWER),
+                mic_level=float(self._latest_level / 4000.0),
+                own_level=float(self._barge_ctl.gate.baseline),
+            )
+            if self.conversation is not None:
+                # The own-speech filter reads the decision, so a span the audio attributes to a
+                # second source is never rewritten by a text match (handoff 5.3).
+                self.conversation.audio_evidence = attribute(evidence)
+            return evidence
+        except Exception as exc:  # noqa: BLE001 - attribution must never break the conversation
+            logging.debug("hearing evidence unavailable: %s", exc)
+            return None
+
+    def _maybe_barge_in(self) -> None:
+        """Hand this frame's evidence to the hearing thread (task A3).
+
+        Nothing here runs a model or touches an audio device: the level, the two dB numbers and
+        the echo's travel time are read from state and put on a bounded queue. The candidate
+        transcript - the one part of the decision that runs a model - travels as a CALLABLE and
+        is produced on the hearing thread, only when the words stage needs it. What comes back
+        is a decision, applied by ``_apply_barge_decision`` on this thread.
 
         The decision itself is :class:`voxa.bargectl.BargeInController`, which the hearing
         bench drives with the same inputs; this method supplies the live state and performs
         the effects.
         """
-        outcome = self._barge_ctl.observe(
-            self._latest_level / 4000.0,
+        now = time.monotonic()
+        dt_ms = (now - self._barge_sample_at) * 1000.0 if self._barge_sample_at else 50.0
+        self._barge_sample_at = now
+        ref_power, _explained, _residual = self.audio.echo_measurements()
+        self._hearing.submit(HearingSample(
+            level01=self._latest_level / 4000.0,
             speaking=self._barge_ctl.speaking_since > 0.0,
             paused=self.assistant.is_paused,
             muted=bool(self.conversation_active and self.conversation is not None
                        and self.conversation.muted),
             wake_word=self.settings.wake_word,
             media_just_started=self._media_just_started,
+            # The onset rule's inputs: the microphone's dB (the RAW level, not the level meter's
+            # 4000-clamped one) and the loudest the speaker path could have put in it, both in
+            # dBFS, plus the echo's travel time - without it the echo's moment is unknown and the
+            # rule says nothing rather than guessing.
+            mic_db=level_dbfs(self._latest_level_raw),
+            reference_db=power_dbfs(ref_power),
+            delay_ms=(self.audio.delay_samples / 16000.0 * 1000.0
+                      if self.audio.delay_samples > 0 else None),
+            dt_ms=min(max(dt_ms, 5.0), 250.0),
             candidate=self._barge_candidate,
-        )
+            evidence=self._hearing_evidence,
+        ))
+
+    def _on_hearing_decision(self, outcome: BargeOutcome) -> None:
+        """The hearing thread's only act: put the decision on the frame clock's queue.
+
+        Called on the worker thread; it does not touch a widget, an audio device or the
+        assistant - it hands the decision to GTK, which is where the effects belong.
+        """
+        idle(self._apply_barge_decision, outcome)
+
+    def _apply_barge_decision(self, outcome: BargeOutcome) -> bool:
+        """Perform the effects of one barge-in decision, on the frame clock.
+
+        Interrupt a spoken reply when the user talks over it: stop the reply, unmute, and let
+        the very next utterance become a prompt without the wake word. A level alone is not
+        enough - unless the voice towers over her own, the captured window is transcribed first
+        and the reply is stopped only when the words are not her own.
+
+        The first thing the method does is ask whether the decision is still about the reply
+        the app is in. A decision that crossed a yield is dropped whole.
+        """
+        if not self._hearing.accept(outcome):
+            self._barge_trace("stale-decision", action=outcome.action,
+                              generation=outcome.generation, current=self._hearing.generation())
+            return False
         if outcome.action == "offline":
             self._on_conversation_exit("goodbye")
             return
+        if outcome.onset and self.conversation is not None:
+            # Independent speech onset: pin the captured span (pre-roll included) so the
+            # audio of this possible interruption cannot be trimmed away while the words are
+            # still being judged (voxa/capture.py, handoff 6.4).
+            self.conversation.note_onset(level_floor=self._barge_ctl.onset_level_floor())
+        if outcome.action == "own-voice":
+            if self.conversation is not None:
+                # Rejected, not deleted: the span stays for its evidence window.
+                self.conversation.note_rejected()
+        if outcome.action == HOLD:
+            # The evidence did not decide: the pin stays open, nothing is stripped, and no
+            # command runs from audio this weak (voxa/attribution.py, handoff 6.5).
+            self._barge_trace("HOLD", source=outcome.source, confidence=round(outcome.confidence, 2))
+        if outcome.action == YIELD:
+            # The fast half of the decision (task A3): the floor is yielded on the ACOUSTIC
+            # onset, before a single word has been transcribed. Everything the interrupted reply
+            # still had queued is cancelled here - the piece being synthesized ahead, the pieces
+            # not yet spoken, the live-face buffer, and every callback that holds the generation
+            # being invalidated. What happens to her WORDS is decided later, by the transcript.
+            generation = self._hearing.invalidate()
+            self._barge_trace("yield", generation=generation,
+                              onset_audio_ms=round(outcome.onset_audio_ms, 1),
+                              evidence_ms=round(outcome.evidence_ms, 1),
+                              margin_db=round(outcome.margin_db, 2),
+                              audible_seconds=round(self.speech.position(), 3))
+            self.speech.stop()
+            self._discard_prefetched_reply()
+            self._live_reset()
+            if self.conversation is not None:
+                # The microphone opens now: the user must never have to repeat themselves, and
+                # the words still being spoken into it are the same utterance the pinned span
+                # began (the promotion itself waits for the transcript).
+                self.conversation.unmute()
+                self.conversation.arm_prompt()
+            self._set_status("Listening…", busy=True)
+            return False
         if outcome.action != "interrupt":
             return
         self._barge_trace("INTERRUPT")
         self.own_speech.finished()
         self.speech.stop()
         self._live_reset()
-        self.conversation.unmute()
+        if self.conversation is not None:
+            # The words of the interruption BECOME the request: the pinned span is handed to
+            # the user turn once, and the microphone that opens next continues the same
+            # utterance (handoff 5.1/6.4 - the user must never have to repeat themselves).
+            promoted = self.conversation.promote_pinned()
+            self._barge_trace("promote", frames=len(promoted),
+                              span_seconds=self.conversation.capture.span_seconds)
+            self.conversation.unmute()
         self.conversation.arm_prompt()
         self.assistant.barge_in(self.assistant.token())
         self._toast("Interrupted — go ahead.")
         self._set_status("Listening for your request…", busy=True)
+        return False
+
+    def _discard_prefetched_reply(self) -> None:
+        """Cancel the reply pieces that were prepared ahead of playback.
+
+        ``SpeechService.prepare`` synthesizes on its own thread and returns a handle; ``Prepared
+        .discard`` is what stops a piece that will never be played. Without this, a reply yielded
+        at the onset keeps speaking its next piece a moment later - the floor taken, the stream
+        not flushed.
+        """
+        state = getattr(self, "_early", None)
+        if state is None:
+            return
+        item = state.get("next")
+        if item is not None:
+            item.discard()
+        state["queue"].clear()
+        self._early = None
 
     def _barge_candidate(self) -> tuple[str, str]:
         """The words the muted microphone captured, as the barge-in decision read them.
 
-        ``candidate_text()`` consumes the rolling window: a checked candidate is never
-        checked again (voxa/conversation.py:585). ``last_candidate_raw`` is the same audio
-        before her own words were stripped.
+        ``candidate_text()`` reads a SNAPSHOT of the pinned span and never consumes it
+        (voxa/conversation.py, voxa/capture.py): the same audio is what the accepted
+        interruption is promoted from. ``last_candidate_raw`` is the same audio before her
+        own words were stripped.
         """
         heard = self.conversation.candidate_text()
         return heard, getattr(self.conversation, "last_candidate_raw", "")
@@ -4475,11 +4666,11 @@ class MainWindow(Adw.ApplicationWindow):
         state["playing"] = True
         piece = item_text or text
         if piece:
-            self._barge_ctl.reply_started(piece)
+            self._hearing.reply_started(piece)
             self.own_speech.started(piece)
         else:
-            # Grace period per piece: speaker onset is the loudest moment.
-            self._barge_ctl.note_speaking()
+            # The evidence restarts per piece: speaker onset is the loudest moment.
+            self._hearing.piece_started()
         self._barge_trace("speak-start", path="piece", conversation=self.conversation_active,
                           muted=bool(self.conversation is not None and self.conversation.muted),
                           level_timer=bool(self._level_source), live=bool(live), text=(piece or "")[:50])
@@ -5094,6 +5285,7 @@ class MainWindow(Adw.ApplicationWindow):
     def do_close_request(self) -> bool:
         self._closing = True
         getattr(self, "_welcome_cancel", threading.Event()).set()
+        self._hearing.stop()
         self.shell.close_focus_window()
         self._live_generation = getattr(self, "_live_generation", 0) + 1
         self._release_face_server()

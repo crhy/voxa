@@ -33,17 +33,22 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import sys
 import time
 import wave
+from collections import deque
 from pathlib import Path
 
 import numpy as np
 
-from ..anc import EchoCanceller, estimate_delay
+from ..anc import MIN_REFERENCE_POWER, EchoCanceller, estimate_delay
 from ..audio import AudioCapture, ReferenceRing, mix_chunk, webrtc_available
 from ..bargectl import BargeInController
+from ..onset import dbfs
+from ..attribution import EchoPathBaseline, SourceEvidence, attribute
+from ..capture import Frame
 from ..config import Settings
 from ..conversation import ConversationController, detect_exit_phrase, strip_wake_word
 from ..dictation import SpeechSegmenter
@@ -199,13 +204,32 @@ class ClipRunner:
         self.own_speech = OwnSpeech(clock=self._clock)
         self.barge = BargeInController(clock=self._clock)
         self.segmenter: SpeechSegmenter | None = None
+        # Frame sequence ids already handed to the speech-pause rules (dedupe by frame id).
+        self._segmented: set[int] = set()
+        # Attribution (handoff 6.3): the echo path's own recent residual level, and the evidence
+        # record built for the frame being judged.
+        self.echo_baseline = EchoPathBaseline()
+        self.last_evidence: SourceEvidence | None = None
+        # The reference power of the last 400 ms, so an echo still in flight counts as a live
+        # reference even after the speakers went quiet (the delay is 100-300 ms in these clips).
+        self._ref_recent: deque[float] = deque(maxlen=20)
         # What the clip produced.
         self.requests: list[str] = []
         self.turns: list[dict] = []
-        self.counts = {"suspect": 0, "barge_in": 0, "own_voice": 0, "ignored": 0, "exit": 0, "turns": 0}
+        self.counts = {"suspect": 0, "barge_in": 0, "own_voice": 0, "ignored": 0, "exit": 0,
+                       "turns": 0, "hold": 0}
         self.barge_heard: list[str] = []
         self.transcript_texts: list[str] = []
         self.speaking = False
+        # When the reply being read out started, so a yield can report the position of her
+        # playback at the moment the floor was taken, and whether that floor was already taken.
+        self._speak_started_at = 0.0
+        self.barge_yielded = False
+        # The reply whose floor was taken. The reference stream keeps playing a reply the app
+        # stopped, and restarting the barge evidence for it would interrupt the same user words
+        # twice - the grace period used to hide that, and task A3 removed it.
+        self._spoken_text = ""
+        self._interrupted_text: str | None = None
         self._quiet_frames = 0
         # The follow-up window the app opens after every reply, kept on the simulated clock
         # (ConversationController.open_followup stamps a wall-clock deadline, which a bench
@@ -265,7 +289,11 @@ class ClipRunner:
 
     def _clean_frame(self, mic_bytes: bytes, ref: np.ndarray) -> tuple[bytes, float, float, float, float]:
         """Cleaned chunk for this frame, the dB the canceller removed, the mask's gain in dB, and
-        the microphone and cleaned levels in dB (B3's near-end attenuation reads the last two)."""
+        the microphone and cleaned levels in dB (B3's near-end attenuation reads the last two).
+
+        ``ref`` is the reference for this frame in the scale the live capture path uses (-1..1,
+        see audio.py:411); the microphone travels as the int16 bytes the pipeline moves.
+        """
         gain_db = 0.0
         mic = np.frombuffer(mic_bytes, dtype="<i2").astype(np.float32)
         mic_db = level_db(mic)
@@ -276,6 +304,28 @@ class ClipRunner:
         cleaned = np.frombuffer(mic_bytes, dtype="<i2").astype(np.float32)
         erle = erle_removed_db(mic, cleaned) if self.canceller is not None else 0.0
         if self.mask is not None:
+            # KNOWN INSTRUMENT DEFECT, left exactly as B2/B5 recorded it (f139 measured what fixing
+            # it would do; see tasks/notes-f139-*.md "the instrument" section). ReferenceMask.process
+            # is a spectral gain: it returns samples in the scale it was given, and its dB semantics
+            # (refmask.py `last_user_db = 10*log10(power)`, `user_present(mask, 3.0)`) only make sense
+            # on normalised -1..1 samples. B2 feeds it int16-scale microphone samples together with
+            # float32 -1..1 reference samples, then clips the result to -1..1 before pcm16() multiplies
+            # it back by 32767, so EVERY non-silent frame of echo mode `voxa` lands at ±32767: a
+            # saturated square wave, and a mask whose band model sees a microphone 32768x louder than
+            # the reference it is comparing with. That is why the mode reports erle 0 dB, a microphone
+            # level pinned at 1.0, zero suspects, zero barge-ins and a NULL turn_retention_rate
+            # (gates.toml records those as null in the default mode).
+            #
+            # f139 tried the fix (normalise in, pcm16 back out) and measured the whole default-mode
+            # column: user_recall_nst 0.6091 -> 0.9455, nearend_atten_dt_db 8.637 -> 3.638,
+            # user_word_deletion_rate 0.3161 -> 0.2720, protected_word_keep_rate 0.2273 -> 0.5455,
+            # turn_retention_rate NULL -> 1.0 - and at the same time echo_leak_word_rate 0.1652 ->
+            # 0.2174, cpu_core_share 0.7211 -> 0.7888 and every self-interruption metric 0.0 ->
+            # non-zero, because those zeros meant "nothing ever triggers", not "nothing goes wrong".
+            # Seven ratchet lines in voxa/bench/gates.toml would go red for EVERY later task until the
+            # echo stages (roadmap tasks 2 and 4: AEC3, residual mask) earn them back, and the brief
+            # forbids touching a threshold. So the fix belongs with those tasks, which re-record the
+            # baseline; milestone A and A2 measure the barge-in path in echo mode `off`, where it runs.
             masked = np.clip(np.asarray(self.mask.process(cleaned.astype(np.float64),
                                                           ref.astype(np.float64)), dtype=np.float64), -1.0, 1.0)
             if masked.size:
@@ -286,6 +336,45 @@ class ClipRunner:
         return mic_bytes, erle, gain_db, mic_db, level_db(np.frombuffer(mic_bytes, dtype="<i2"))
 
     # --- the barge-in candidate -------------------------------------------------
+
+    def _evidence(self, level01: float, ref_power: float) -> SourceEvidence:
+        """Handoff 6.3's evidence streams for this frame, from what this pipeline can measure.
+
+        Stream 1 (echo consistency): the reference at the echo's moment and how much of the
+        microphone it explains. Stream 2 (independent speech): the residual over the echo path's
+        OWN recent baseline, plus the VAD probability in the CLEANED signal. Stream 3 (the words)
+        is added by ``bargectl`` from the candidate transcript. A field this stage cannot measure
+        stays ``None``, which pushes the decision towards "uncertain" rather than towards a guess.
+        """
+        self._ref_recent.append(ref_power)
+        residual = (self.mask.user_energy_db() if self.mask is not None else
+                    (self.canceller.residual_power_db if self.canceller is not None else None))
+        margin = self.echo_baseline.note(residual) if residual is not None else None
+        explained = (self.mask.echo_explained_db() if self.mask is not None
+                     else (self.canceller.echo_explained_db if self.canceller is not None else None))
+        detector = self.conversation._voice_detector if self.conversation is not None else None
+        # A detector that has never run has no opinion; 0.0 would be read as "the cleaned signal
+        # is not speech-like", which is a guess, not a measurement.
+        measured = detector is not None and getattr(detector, "probs", None)
+        prob = float(detector.last_prob) if measured else None
+        evidence = SourceEvidence(
+            # An echo still travelling counts as a live reference: the speakers went quiet 100-300
+            # ms ago and the microphone is still hearing it.
+            reference_active=bool(max(self._ref_recent) > MIN_REFERENCE_POWER),
+            reference_power=float(ref_power),
+            echo_explained_db=explained,
+            residual_db=residual,
+            residual_margin_db=margin,
+            vad_prob=prob,
+            alignment_healthy=bool(self._delay_samples > 0
+                                   or max(self._ref_recent) <= MIN_REFERENCE_POWER),
+            mic_level=float(level01),
+            own_level=float(self.barge.gate.baseline),
+            # level_ratio is left to bargectl: it is the one that knows the level of the sound
+            # that OPENED the gate, not of the frame that happens to do the judging.
+        )
+        self.last_evidence = evidence
+        return evidence
 
     def _candidate(self) -> tuple[str, str]:
         """The words the muted microphone captured, as ``window._barge_candidate`` reads them.
@@ -298,19 +387,49 @@ class ClipRunner:
     # --- one finished utterance -------------------------------------------------
 
     def _finish_utterance(self, segment: bytes, frame: int) -> None:
-        """The decision ``ConversationController._run`` makes once a segment is complete."""
+        """The decision ``ConversationController._run`` makes once a segment is complete.
+
+        A turn that began with a promoted span keeps its stable prefix: the prefix's words were
+        recognised once, from exactly the promoted audio, and only the audio that arrived after
+        the span is transcribed here (the same rule the live controller applies).
+        """
         self.emit("pause", segment_seconds=round(len(segment) / 32000.0, 3))
         waiting = self.conversation.waiting_for_prompt or self.conversation.keep_prompt
         hint = f"{self.wake_word.strip().capitalize()}." if not waiting else ""
-        heard = self.asr.transcribe_words(segment, hint)
+        prefix_text, prefix_bytes, prefix_words = self.conversation.take_turn_prefix()
+        if prefix_text:
+            tail = segment[prefix_bytes:] if len(segment) >= prefix_bytes else b""
+            heard = (self.asr.transcribe_words(tail, hint) if tail
+                     else {"text": "", "words": [], "no_speech_prob": None,
+                           "audio_seconds": 0.0, "asr_seconds": 0.0, "segments": 0})
+            heard["text"] = f"{prefix_text} {heard['text']}".strip()
+            heard["words"] = [*prefix_words, *heard["words"]]
+            heard["audio_seconds"] = round(len(segment) / 32000.0, 3)
+            heard["prefixed"] = True
+        else:
+            heard = self.asr.transcribe_words(segment, hint)
         self.emit("transcript", **heard)
         self.transcript_texts.append(heard["text"])
-        text = self.conversation._filter_own_speech(heard["text"])
+        # The own-speech filter is gated on the AUDIO evidence for this span, and a turn that
+        # began with a promoted span is confirmed user: its words are never rewritten by a text
+        # match (voxa/attribution.py, handoff 5.3).
+        text = self.conversation._filter_own_speech(heard["text"], evidence=self.last_evidence,
+                                                    confirmed_user=bool(prefix_text))
         if text is None:
             self.emit("endpoint", text="", complete=False, dropped="own-speech")
             return
         if not text:
             return
+        if not prefix_text and self.last_evidence is not None and self.last_evidence.reference_active:
+            # A whole utterance taken while the speakers were still live: it may only become a
+            # request when the audio supports a second source (shared brief: no automatic
+            # commands from unqualified audio during playback). When it does, the words fall
+            # through to the request rules below - they are not ignored for being qualified.
+            from voxa.attribution import USER as SOURCE_USER
+            if attribute(self.last_evidence).source != SOURCE_USER:
+                self.counts["ignored"] += 1
+                self.emit("ignored", text=text, reason="unqualified")
+                return
         keep_prompt = self.conversation.keep_prompt
         exit_kind = detect_exit_phrase(text, self.wake_word) if not keep_prompt else None
         followup_open = bool(self._followup_deadline is not None
@@ -366,7 +485,33 @@ class ClipRunner:
 
     # --- the barge-in effects ---------------------------------------------------
 
+    def _segment_frame(self, frame: Frame) -> bytes | None:
+        """Feed one captured frame to the speech-pause rules, EXACTLY ONCE per sequence id.
+
+        The promoted span and the frames that arrive after an interruption overlap in time;
+        the frame id is what makes the continuation an append instead of a duplicate.
+        """
+        if frame.seq in self._segmented:
+            return None
+        self._segmented.add(frame.seq)
+        return self.segmenter.step(frame.pcm, frame.level, frame.t_s)
+
     def _apply_barge(self, outcome) -> None:
+        if outcome.action == "yield":
+            # The fast half of the decision (task A3): the floor is yielded on the ACOUSTIC
+            # onset, before a single word has been transcribed. The reference stream keeps
+            # playing - that is the echo the microphone still hears, and what the next frames
+            # compare against - while the app's own playback stops at the position it had
+            # reached. What happens to her WORDS is decided later, by the transcript.
+            self.emit("tts-stop", reason="barge-in-onset",
+                      audible_ms=round((self._now - self._speak_started_at) * 1000.0, 1),
+                      onset_audio_ms=round(outcome.onset_audio_ms, 1),
+                      evidence_ms=round(outcome.evidence_ms, 1),
+                      margin_db=round(outcome.margin_db, 2))
+            self.barge_yielded = True
+            self.conversation.unmute()
+            self.conversation.arm_prompt()
+            return
         if outcome.action == "offline":
             self.counts["exit"] += 1
             self.emit("exit", kind="goodbye", source="barge-in", text=outcome.heard)
@@ -375,13 +520,27 @@ class ClipRunner:
             return
         self.counts["barge_in"] += 1
         self.barge_heard.append(outcome.heard)
+        self._interrupted_text = self._spoken_text
         self.emit("barge-in-confirm", heard=outcome.heard, raw=outcome.raw,
                   level=round(outcome.level, 4), listening_seconds=round(outcome.listening_seconds, 3))
         # The effects voxa/window.py performs on its INTERRUPT branch. There is no duck/pause of
         # Voxa's own stream in the current code, so no "duck" event is emitted: that is a finding,
-        # not an omission.
-        self.emit("tts-stop", heard=outcome.heard)
+        # not an omission. When the onset already yielded the floor, the playback stopped there:
+        # a second tts-stop for the same reply would count the same cessation twice.
+        if not self.barge_yielded:
+            self.emit("tts-stop", heard=outcome.heard)
         self.own_speech.finished()
+        # The effects voxa/window.py performs on its INTERRUPT branch, plus milestone A's
+        # promotion: the pinned span becomes the beginning of the user turn (once), and the
+        # microphone that opens next continues the same utterance. The live controller queues
+        # those frames for its worker thread (ConversationController.promote_pinned); this
+        # runner drives the same frames through its own SpeechSegmenter instead.
+        promoted = self.conversation.promote_pinned(enqueue=False)
+        self.emit("capture-promote", frames=[item.seq for item in promoted],
+                  span_seconds=round(self.conversation.capture.span_seconds, 3),
+                  pin_from=self.conversation.capture.pin_from)
+        for item in promoted:
+            self._segment_frame(item)
         self.conversation.unmute()
         self.conversation.arm_prompt()
         self.conversation.waiting_for_prompt = True
@@ -408,6 +567,9 @@ class ClipRunner:
             on_error=lambda text: None,
         )
         self.conversation.own_speech = self.own_speech
+        # The capture ring timestamps its frames with the runner's simulated clock, so a
+        # clip replayed faster than real time keeps real ordering and real durations.
+        self.conversation.capture.clock = self._clock
         self.segmenter = SpeechSegmenter(
             threshold=self.settings.voice_threshold,
             silence_seconds=self.settings.silence_ms / 1000.0,
@@ -431,7 +593,7 @@ class ClipRunner:
             self._now = (frame + 1) * (CHUNK_MS / 1000.0)
             lo, hi = frame * CHUNK_SAMPLES, (frame + 1) * CHUNK_SAMPLES
             mic_chunk_i16 = mic[lo:hi]
-            ref_chunk = ref[lo:hi]
+            ref_chunk = ref[lo:hi]  # float32 -1..1, exactly what the live reference ring holds (audio.py:411)
             if mic_chunk_i16.size == 0:
                 break
             ref_power = float(np.mean(ref_chunk * ref_chunk)) if ref_chunk.size else 0.0
@@ -452,11 +614,13 @@ class ClipRunner:
             erle_values.append(erle)
             mask_gains.append(gain_db)
             level = AudioCapture._rms(cleaned_bytes)
-            self.conversation.feed(cleaned_bytes, level)  # while muted this fills only the barge buffer
-            # While the mic is muted the live queue receives nothing either (conversation.py:331),
-            # so no utterance is segmented out of her own playback.
-            completed = (self.segmenter.step(cleaned_bytes, level, self._now)
-                         if not self.conversation.muted else None)
+            evidence = self._evidence(min(level, 4000.0) / 4000.0, ref_power)
+            captured = self.conversation.feed(cleaned_bytes, level, seq=frame, raw=mic_bytes)
+            # While the mic is muted the live queue receives nothing either (conversation.py:feed),
+            # so no utterance is segmented out of her own playback. The CAPTURE ring keeps every
+            # frame in both states, which is what lets an accepted interruption keep its words.
+            completed = (self._segment_frame(captured)
+                         if captured is not None and not self.conversation.muted else None)
             detector = self.conversation._voice_detector
             prob = float(detector.last_prob) if detector is not None else 0.0
             self.emit(
@@ -471,6 +635,10 @@ class ClipRunner:
                 clean_level_db=clean_db,
                 delay_samples=self._delay_samples,
                 ref_power=round(ref_power, 8),
+                echo_explained_db=(None if evidence.echo_explained_db is None
+                                   else round(evidence.echo_explained_db, 2)),
+                residual_margin_db=(None if evidence.residual_margin_db is None
+                                    else round(evidence.residual_margin_db, 2)),
                 speaking=bool(self.barge.speaking_since > 0.0),
                 muted=bool(self.conversation.muted),
             )
@@ -481,7 +649,25 @@ class ClipRunner:
                 muted=bool(self.conversation.muted),
                 wake_word=wake,
                 candidate=self._candidate,
+                evidence=evidence,
+                # The onset rule's inputs (voxa/onset.py): the microphone level of this frame and
+                # the loudest the speaker path could have put in it at the same moment, BOTH in
+                # dBFS (the microphone arrives as an int16 RMS, the reference as a float -1..1),
+                # the echo's travel time - which is what makes the echo's moment knowable at all -
+                # and how much audio this frame stands for.
+                mic_db=dbfs(mic_db),
+                reference_db=10.0 * math.log10(ref_power) if ref_power > 1e-12 else -140.0,
+                delay_ms=(self.canceller.delay_samples / SR * 1000.0
+                          if self.canceller is not None and self.canceller.delay_samples > 0 else None),
+                dt_ms=CHUNK_MS,
             )
+            if outcome.onset:
+                # Speech onset: pin the captured span (pre-roll included) before the words are
+                # judged, exactly as voxa/window.py does on the same observation.
+                self.conversation.note_onset(seq=frame,
+                                             level_floor=self.barge.onset_level_floor())
+                self.emit("capture-pin", onset_frame=frame, pin_from=self.conversation.capture.pin_from,
+                          span_seconds=round(self.conversation.capture.span_seconds, 3))
             if outcome.gate_opened and outcome.reason == "listening" and self.barge.pending_since == self._now:
                 self.counts["suspect"] += 1
                 self.emit("suspect", level=round(outcome.level, 4),
@@ -489,9 +675,15 @@ class ClipRunner:
                           settled=bool(self.barge.gate.settled))
             if outcome.heard or outcome.raw:
                 self.emit("candidate", heard=outcome.heard, raw=outcome.raw,
+                          source=outcome.source,
                           own_voice=bool(outcome.action == "own-voice"))
                 if outcome.action == "own-voice":
                     self.counts["own_voice"] += 1
+                    # Rejected, not deleted: the span survives its evidence window.
+                    self.conversation.note_rejected()
+                elif outcome.action == "hold":
+                    # Undecided: the pin stays open, nothing is stripped, no command runs from it.
+                    self.counts["hold"] += 1
             self._apply_barge(outcome)
             if completed is not None:
                 self._finish_utterance(completed, frame)
@@ -539,11 +731,21 @@ class ClipRunner:
         }
 
     def _speak_started(self, text: str) -> None:
-        """Voxa starts playing: the mic is muted and the grace period restarts (window.py:3004-3010)."""
+        """Voxa starts playing: the mic is muted and the onset evidence restarts (window.py:3004-3010).
+
+        There is no grace period any more (task A3): what restarts is the evidence - the gate's
+        baseline and the onset detector's run of unexplained sound - so the first frame of the
+        reply is already judged, which is where an interruption that starts together with her
+        speech lives.
+        """
         self.speaking = True
         self._quiet_frames = 0
+        self._speak_started_at = self._now
+        self.barge_yielded = False
         self.own_speech.started(text)
-        self.barge.reply_started(text)
+        self._spoken_text = text
+        if text != self._interrupted_text:
+            self.barge.reply_started(text)
         self.conversation.mute()
         self.emit("tts-start", text=text[:80])
 
@@ -561,7 +763,6 @@ class ClipRunner:
             self.conversation.arm_prompt()
             self._followup_deadline = self._now + self.settings.followup_seconds
         self.emit("tts-end")
-
     def _early_check(self, segment: bytes) -> bool:
         """``segment_stream``'s early hook: is what has been heard already a whole command?"""
         heard = self.asr.transcribe_words(segment, f"{self.wake_word.strip().capitalize()}.")
@@ -590,15 +791,17 @@ def read_wav_int16(path: Path) -> np.ndarray:
 
 
 def load_clip(clip_dir: Path) -> dict:
-    """Read one rendered clip: truth plus the microphone (int16) and reference (float) streams."""
+    """Read one rendered clip: truth plus the microphone (int16), the reference (float) and, for
+    roadmap task 1's render-timeline instrument, the three components the renderer mixed."""
     truth_path = clip_dir / "truth.json"
     if not truth_path.exists():
         raise FileNotFoundError(f"{truth_path} missing: render the suite first")
-    return {
-        "truth": json.loads(truth_path.read_text()),
-        "mic": read_wav_int16(clip_dir / "mic.wav"),
-        "ref": read_wav(clip_dir / "ref.wav"),
-    }
+    arrays = {"mic": read_wav_int16(clip_dir / "mic.wav"), "ref": read_wav(clip_dir / "ref.wav")}
+    for name in ("s", "d", "n"):
+        path = clip_dir / f"{name}.wav"
+        if path.exists():
+            arrays[name] = read_wav(path)
+    return {"truth": json.loads(truth_path.read_text()), **arrays}
 
 
 def build_report(suite: str, seed: int, echo_mode: str, results: list[dict],
@@ -663,6 +866,27 @@ def run(argv: list[str] | None = None) -> int:
     return 0
 
 
+def render_timeline_measure(loaded: dict, echo_mode: str) -> dict:
+    """Roadmap task 1: the same clip through the simulated output sink (``voxa/bench/sinksim``).
+
+    The frozen B1 clips have no output sink, no capture latency and no second application, which are
+    exactly the things the render timeline exists to get right, so the instrument wraps the clip's
+    own components around a sink of known latency and jitter and measures the product's
+    :class:`voxa.timeline.RenderTimeline` against it. It runs in the modes that use Voxa's own
+    canceller; in ``off`` there is no canceller to align, and the metrics say so instead of reporting
+    a number they cannot defend.
+    """
+    if echo_mode != "voxa":
+        return {"measurable": False,
+                "reason": f"echo mode {echo_mode} does not run Voxa's own canceller to align"}
+    try:
+        from . import sinksim
+
+        return sinksim.measure_clip(loaded, loaded["truth"])
+    except Exception as exc:  # noqa: BLE001 - the instrument must never lose the clip's own result
+        return {"measurable": False, "reason": f"render instrument failed: {exc}"}
+
+
 def run_clips(suite: str, seed: int, echo_mode: str, data_root: Path, limit: int | None,
               model: str, quiet: bool = False) -> dict:
     """Run every clip of a suite, write the per-clip events, and return the report."""
@@ -683,6 +907,7 @@ def run_clips(suite: str, seed: int, echo_mode: str, data_root: Path, limit: int
         loaded = load_clip(clip_dir)
         runner = ClipRunner(asr=asr, echo_mode=echo_mode, wake_word=wake_word)
         summary = runner.run(loaded["mic"], loaded["ref"], loaded["truth"])
+        summary["render"] = render_timeline_measure(loaded, echo_mode)
         clip_out = events_root / summary["id"]
         clip_out.mkdir(parents=True, exist_ok=True)
         (clip_out / "events.jsonl").write_text(

@@ -170,9 +170,14 @@ class SpeechService:
         *,
         allow_online_fallback: bool = True,
         allow_offline_fallback: bool = True,
+        stream_tag: str | None = None,
     ) -> None:
         self.allow_online_fallback = allow_online_fallback
         self.allow_offline_fallback = allow_offline_fallback
+        #: Marks this player's stream in the sound server. Voxa leaves it None; VoxaTest passes
+        #: "voxatest" so Voxa's echo reference can exclude the test voice (voxa/reference.py).
+        self.stream_tag = stream_tag or None
+        self.stream_tag_applied: dict[str, bool] = {}
         self.pipeline: Any | None = None
         self.appsrc: Any | None = None
         self.temp_path: str | None = None
@@ -186,6 +191,58 @@ class SpeechService:
         self._finished = False
         self._before_play = None
         self._voice = ""
+        # Roadmap task 1: the render timeline (voxa/timeline.py) that records what this service hands
+        # the speakers. None means no tap: playback is unchanged and the capture path keeps using the
+        # monitor it has always used.
+        self.render_timeline: Any | None = None
+        # What the last tap attempt did ({"attached": bool, "error": ...}), for the log and the tests.
+        self.tap: dict[str, Any] = {}
+        self._generation: str | None = None
+        self._generation_counter = 0
+
+    def attach_render_timeline(self, timeline: Any | None) -> None:
+        """Give this service the render timeline to submit its own playback to (roadmap task 1)."""
+        self.render_timeline = timeline
+
+    def _open_generation(self, path: str) -> str | None:
+        """One generation per utterance: the id every sample of this playback is filed under.
+
+        A generation is what a cancel refers to. Without it, samples still queued in the sink after a
+        stop would be treated as heard, and the reference would keep cancelling audio that never left
+        the speakers.
+        """
+        timeline = self.render_timeline
+        if timeline is None:
+            return None
+        self._generation_counter += 1
+        generation = f"tts-{self._generation_counter}-{time.monotonic():.3f}"
+        timeline.open(generation, path)
+        self._generation = generation
+        return generation
+
+    def _attach_reference_tap(self, pipeline: Any, path: str) -> None:
+        """Record the PCM this playback hands the speakers, immediately before the sink.
+
+        The tap is a tee in front of the sink: it sees the decoded audio after mixing, gain and
+        ducking, which is the only thing that can be an echo. Encoded bytes at the appsrc, the text,
+        and the face animation's clock are all the wrong place to measure from. A failure here is
+        logged and carried in :attr:`tap`; it never stops speech, because the capture path falls back
+        to the monitor when the timeline has nothing in it.
+        """
+        timeline = self.render_timeline
+        if timeline is None or pipeline is None:
+            self.tap = {"attached": False, "error": "no render timeline"}
+            return
+        from .timeline import GstSinkClock, attach_render_tap
+
+        try:
+            self.tap = attach_render_tap(
+                pipeline, timeline, self._generation or path, path, Gst,
+                sink_clock=GstSinkClock(pipeline, timeline.sample_rate))
+        except Exception as exc:  # noqa: BLE001 - multimedia boundary
+            self.tap = {"attached": False, "error": str(exc)}
+        if not self.tap.get("attached"):
+            log.info("render tap unavailable for %s: %s", path, self.tap.get("error"))
 
     def speak(
         self,
@@ -424,12 +481,15 @@ class SpeechService:
         pipeline = Gst.parse_launch(
             "appsrc name=source format=bytes block=true max-bytes=1048576 ! "
             "queue max-size-bytes=2097152 ! "
-            "decodebin ! audioconvert ! audioresample ! autoaudiosink"
+            "decodebin ! audioconvert ! audioresample ! autoaudiosink name=sink"
         )
         appsrc = pipeline.get_by_name("source")
         if appsrc is None:
             pipeline.set_state(Gst.State.NULL)
             raise RuntimeError("GStreamer appsrc is unavailable.")
+        self._tag_stream(pipeline.get_by_name("sink"))
+        self._open_generation("tts-stream")
+        self._attach_reference_tap(pipeline, "tts-stream")
 
         bus = pipeline.get_bus()
         bus.add_signal_watch()
@@ -692,6 +752,9 @@ class SpeechService:
             self._emit_error_for("GStreamer playback is unavailable.", cancel_event)
             return False
         pipeline.set_property("uri", Path(path).as_uri())
+        self._tag_stream(pipeline)
+        self._open_generation("tts-file")
+        self._attach_reference_tap(pipeline, "tts-file")
         bus = pipeline.get_bus()
         bus.add_signal_watch()
         bus.connect("message::eos", self._on_eos, cancel_event)
@@ -703,6 +766,24 @@ class SpeechService:
 
     def _is_current(self, cancel_event: threading.Event) -> bool:
         return cancel_event is self.cancel_event and not cancel_event.is_set()
+
+    def _tag_stream(self, element: Any, gst: Any = None) -> None:
+        """Mark this playback as the test voice in the sound server, when the caller asked for it.
+
+        Voxa's own playback is never tagged: it is what her echo reference must contain. VoxaTest
+        passes ``stream_tag="voxatest"``, and :mod:`voxa.reference` then keeps that stream out of the
+        reference (or says in a WARNING that it cannot).
+        """
+        if not self.stream_tag or element is None:
+            return
+        from .reference import TEST_STREAM_TAG, apply_stream_tag
+
+        if self.stream_tag != TEST_STREAM_TAG:
+            return
+        try:
+            self.stream_tag_applied = apply_stream_tag(element, gst if gst is not None else Gst)
+        except Exception:  # noqa: BLE001 - tagging is never a reason for speech to fail
+            self.stream_tag_applied = {}
 
     def _emit_started_for(self, cancel_event: threading.Event) -> bool:
         if not self._is_current(cancel_event) or self._started_emitted or self._finished:
@@ -743,6 +824,7 @@ class SpeechService:
         if not self._is_current(cancel_event):
             return
         self._finished = True
+        self._close_generation("finished")
         self._finish_media()
         if self._on_done is not None:
             self._on_done()
@@ -757,6 +839,7 @@ class SpeechService:
         if not self._is_current(cancel_event):
             return False
         self._finished = True
+        self._close_generation("error")
         self._finish_media()
         if self._on_error is not None:
             self._on_error(message)
@@ -764,7 +847,27 @@ class SpeechService:
 
     def stop(self) -> None:
         self.cancel_event.set()
+        self._close_generation("stopped")
         self._finish_media()
+
+    def _close_generation(self, reason: str) -> None:
+        """Tell the timeline this utterance is over: heard up to the play position, cancelled after.
+
+        Stopping a reply does not silence what the sink already queued, and the reference must not go
+        on cancelling audio that will never be heard. The timeline splits the generation at the play
+        position for exactly that reason.
+        """
+        timeline, generation = self.render_timeline, self._generation
+        self._generation = None
+        if timeline is None or generation is None:
+            return
+        try:
+            if reason == "finished":
+                timeline.finish(generation)
+            else:
+                timeline.cancel(generation, reason=reason)
+        except Exception as exc:  # noqa: BLE001 - the bookkeeping must never break the stop path
+            log.info("render timeline could not close %s: %s", generation, exc)
 
     def _finish_media(self) -> None:
         if Gst is None:

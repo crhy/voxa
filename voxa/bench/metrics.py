@@ -26,9 +26,10 @@ What each metric reads (the definitions in ``research/voxa-hearing/voxa-hearing-
 * barge-in / turn metrics: the runner's events against the truth onsets.
 * text metrics: the user's reference words against what the pipeline's ASR stage heard.
 
-Unmeasurable at this stage, with the reason in ``UNMEASURED``: ``align_err_p90_ms`` (the live
-reference-to-echo alignment is task 1), ``erle_music_loss_db`` (the frozen clip set has no music
-playback), ``transport_drop_count`` (the offline runner has no queue; the live one is task A4).
+Unmeasurable at this stage, with the reason in ``UNMEASURED``: ``transport_drop_count`` (the offline
+runner has no queue to drop; the live one is task A4). ``align_err_p90_ms`` and ``erle_music_loss_db``
+were in that list until roadmap task 1: ``voxa/timeline.py`` is the render timeline and
+``voxa/bench/sinksim.py`` is the simulated-sink instrument that measures them.
 """
 
 from __future__ import annotations
@@ -821,6 +822,42 @@ def pair_accuracy_samples(facts: list[dict]) -> Samples:
                     for sides in by_pair.values()], "mean")
 
 
+def _render_rows(facts: list[dict]) -> list[dict]:
+    """The per-clip numbers of the render-timeline instrument (``voxa/bench/sinksim.py``).
+
+    A clip whose run had no canceller to align, or no Voxa playback to tap, carries no row: the
+    metric reports the clips it can actually measure and says how many that was.
+    """
+    rows = []
+    for fact in facts:
+        row = (fact.get("summary") or {}).get("render") or {}
+        if row.get("measurable"):
+            rows.append(row)
+    return rows
+
+
+def align_error_samples(facts: list[dict]) -> Samples:
+    """Roadmap task 1: how far the render timeline's predicted play time is from the sink's real one.
+
+    One sample per clip, that clip's own P90 over every submitted chunk; the reported statistic is
+    the P90 of those, so the value is a conservative upper alignment error and a badly aligned clip
+    cannot hide inside other clips' well aligned chunks.
+    """
+    return Samples([float(row["align_err_p90_ms"]) for row in _render_rows(facts)
+                    if row.get("align_err_p90_ms") is not None], "p90")
+
+
+def erle_music_loss_samples(facts: list[dict]) -> Samples:
+    """Roadmap task 1: how far ERLE moves when a second application plays through the same speakers.
+
+    One sample per clip: the SIZE of the move in dB, either direction counting as a move. A reference
+    that holds only Voxa's own render is unbothered by what someone else is playing; a number that
+    jumps when music starts means the filter is eating audio that is not her echo. Mean over clips.
+    """
+    return Samples([float(row["erle_music_loss_db"]) for row in _render_rows(facts)
+                    if row.get("erle_music_loss_db") is not None], "mean")
+
+
 def unmeasurable(name: str) -> dict:
     """The report shape for a metric this stage cannot measure: null, and it never fails."""
     return {"value": None, "ci": [None, None], "samples": 0, "reason": name}
@@ -832,7 +869,7 @@ METRICS: tuple[tuple[str, str, str, object], ...] = (
     ("erle_fst_median_db", "dB", ">=", lambda facts: Samples(erle_fst_samples(facts)["values"], "median")),
     ("erle_fst_p10_db", "dB", ">=", lambda facts: Samples(erle_fst_samples(facts)["values"], "p10")),
     ("nearend_atten_dt_db", "dB", "<=", nearend_attenuation_samples),
-    ("align_err_p90_ms", "ms", "<=", None),
+    ("align_err_p90_ms", "ms", "<=", align_error_samples),
     ("fst_transcript_rate", "fraction", "<=", fst_transcript_samples),
     ("echo_leak_word_rate", "fraction", "<=", echo_leak_samples),
     ("false_bargein_per_hour", "events/hour", "<=", false_bargein_samples),
@@ -853,7 +890,7 @@ METRICS: tuple[tuple[str, str, str, object], ...] = (
     ("drift_erle_loss_db", "dB", "<=", drift_erle_loss_samples),
     ("reconverge_s", "s", "<=", reconverge_samples),
     ("cpu_core_share", "cores", "<=", cpu_core_share_samples),
-    ("erle_music_loss_db", "dB", ">=", None),
+    ("erle_music_loss_db", "dB", "<=", erle_music_loss_samples),
     ("self_command_rate", "fraction", "<=", self_command_samples),
     ("self_pause_per_hour", "events/hour", "<=", self_pause_samples),
     ("turn_retention_rate", "fraction", ">=", turn_retention_samples),
@@ -867,8 +904,6 @@ METRICS: tuple[tuple[str, str, str, object], ...] = (
 METRIC_NAMES = tuple(name for name, _unit, _direction, _builder in METRICS)
 
 UNMEASURED = {
-    "align_err_p90_ms": "the live reference-to-echo alignment (audio.py's probe) is roadmap task 1",
-    "erle_music_loss_db": "the frozen B1 clip set has no music playback, only Voxa's own replies",
     "transport_drop_count": "the offline runner has no queue to drop; the live appsinks are task A4",
 }
 

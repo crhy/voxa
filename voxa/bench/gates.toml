@@ -55,8 +55,13 @@ threshold = 11.77651
 name = "align_err_p90_ms"
 unit = "ms"
 direction = "<="
-# no threshold: value null in every mode. target: <= 2 ms (roadmap task 1, once the TTS reference tap
-# exists); `metrics.UNMEASURED` says the live probe is task 1's work.
+threshold = 2.0
+# roadmap task 1's gate number, from that task's file (not a baseline ratchet): the render timeline's
+# predicted play time against the sink's real one, P90 over clips of the P90 over chunks. Measured on
+# a simulated sink of 40 ms latency and 1 ms per-buffer scheduling jitter, 20 ms capture latency
+# (voxa/bench/sinksim.py): 0.92 ms [0.913, 0.929] over the 42 smoke clips that have playback. The same
+# instrument with the sink never queried - the pre-task-1 assumption that the buffer being written is
+# audible now - reports 43 ms with no jitter and 147 ms with it.
 
 [[metric]]
 name = "fst_transcript_rate"
@@ -234,10 +239,15 @@ threshold = 0.775161
 [[metric]]
 name = "erle_music_loss_db"
 unit = "dB"
-direction = ">="
-# no threshold: value null in every mode - the frozen B1 clip set has no music playback
-# (`metrics.UNMEASURED`). target: ERLE with a second app playing music within 1 dB of ERLE without it
-# (roadmap task 1's gate; the monitor reference is expected to fail it).
+direction = "<="
+threshold = 1.0
+# roadmap task 1's gate number, from that task's file (not a baseline ratchet). It is the SIZE of the
+# move in ERLE when a second application plays through the same speakers; the reference is Voxa's own
+# render. Measured 0.185 dB [0.0, 0.554] over the 42 smoke clips that have playback. The same
+# instrument with the whole-sink monitor as the reference moves by 7.5 dB (run.render_timeline.
+# erle_monitor_music_loss_db), which is how the report expects the monitor to fail this gate.
+# B3 wrote direction ">=" for a metric its own comment describes as "within 1 dB" - a magnitude, for
+# which smaller is better. Task 1 corrected the direction to "<="; no threshold had ever used it.
 
 [[metric]]
 name = "self_command_rate"

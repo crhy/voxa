@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 import re
 import shutil
 import subprocess
+import time
 from typing import Any
 from urllib import parse
 
@@ -279,11 +281,48 @@ class AudaciousPlayer(MprisPlayer):
 
 
 class AudioPlayer:
-    """Music inside Voxa with no window: a GStreamer playbin."""
+    """Music inside Voxa with no window: a GStreamer playbin.
+
+    Roadmap task 1: this is one of Voxa's own output paths, so its PCM is tapped into the render
+    timeline like her speech. Sound that leaves her speakers comes back on her microphone, and the
+    canceller can only remove what it was told about.
+    """
 
     def __init__(self) -> None:
         self.pipeline = None
         self.media: Media | None = None
+        # Set by the app (voxa/window.py): the shared render timeline. None keeps the old behaviour.
+        self.render_timeline: object | None = None
+        self.tap: dict[str, object] = {}
+        self._generation: str | None = None
+        self._generation_counter = 0
+
+    def _tap_playback(self, pipeline, start: bool) -> None:
+        """Open a generation and put the tap in front of the playbin's sink; never break the music."""
+        timeline = self.render_timeline
+        if timeline is None or pipeline is None:
+            return
+        from voxa.timeline import GstSinkClock, attach_render_tap
+
+        if start:
+            self._generation_counter += 1
+            self._generation = f"media-{self._generation_counter}-{time.monotonic():.3f}"
+            timeline.open(self._generation, "media")
+        try:
+            self.tap = attach_render_tap(pipeline, timeline, self._generation or "media", "media",
+                                         _ensure_gstreamer(), sink_clock=GstSinkClock(pipeline))
+        except Exception as exc:  # noqa: BLE001 - multimedia boundary
+            self.tap = {"attached": False, "error": str(exc)}
+        if not self.tap.get("attached"):
+            log.info("render tap unavailable for media: %s", self.tap.get("error"))
+
+    def _close_generation(self, reason: str) -> None:
+        timeline, generation = self.render_timeline, self._generation
+        self._generation = None
+        if timeline is None or generation is None:
+            return
+        with contextlib.suppress(Exception):
+            timeline.cancel(generation, reason=reason)
 
     def _uri(self, media: Media) -> str:
         url = media.audio_url or media.video_url
@@ -301,6 +340,7 @@ class AudioPlayer:
         pipeline.set_property("uri", self._uri(media))
         self.pipeline = pipeline
         self.media = media
+        self._tap_playback(pipeline, start=True)
         pipeline.set_state(gst.State.PLAYING)
 
     def play_files(self, paths: list[str]) -> None:
@@ -320,6 +360,7 @@ class AudioPlayer:
             self.pipeline.set_state(Gst.State.PLAYING)
 
     def stop(self) -> None:
+        self._close_generation("stopped")
         if self.pipeline is not None:
             self.pipeline.set_state(Gst.State.STOPPED)
             self.pipeline = None
@@ -347,6 +388,16 @@ class AudioPlayer:
 
 _INSTALLED_CACHE: dict[tuple[str, str], bool] = {}
 _BUILTIN_PLAYER = AudioPlayer()
+
+
+def attach_render_timeline(timeline: Any) -> None:
+    """Give the in-app music player the app's render timeline (roadmap task 1).
+
+    Voxa's own process puts this audio on the speakers, so it is part of what comes back on her
+    microphone and part of what her reference must describe. VLC and Audacious are not: they are other
+    applications, and their audio is exactly what the reference must NOT contain.
+    """
+    _BUILTIN_PLAYER.render_timeline = timeline
 
 
 def _installed(app_id: str, binary: str) -> bool:

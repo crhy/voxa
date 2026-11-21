@@ -27,6 +27,8 @@ import json
 import sys
 from pathlib import Path
 
+import numpy as np
+
 from . import gates, metrics
 
 CONDITION = gates.CONDITION
@@ -70,6 +72,13 @@ def build_report(suite: str, seed: int, echo_mode: str, results: list[dict],
         and not any(float(frame["erle_db"]) >= metrics.RECONVERGE_TARGET_DB
                     and float(frame["t_s"]) > float(fact["delay_est"]["t_s"])
                     for frame in fact["frames"]))
+    render_rows = [item["render"] for item in results
+                   if (item.get("render") or {}).get("measurable")]
+
+    def _render_median(key: str) -> float | None:
+        values = [float(row[key]) for row in render_rows if row.get(key) is not None]
+        return round(float(np.median(values)), 4) if values else None
+
     return {
         "suite": suite,
         "seed": seed,
@@ -99,6 +108,25 @@ def build_report(suite: str, seed: int, echo_mode: str, results: list[dict],
             "reconverge_unrecovered": unrecovered,
             "degraded": sorted({item["degraded"] for item in results if item.get("degraded")}),
             "unmeasured": sorted(name for name, row in measured.items() if row["value"] is None),
+            # Roadmap task 1: the simulated output sink the render timeline was measured against, and
+            # the same measurement with the whole-sink monitor as the reference (what the product used
+            # before the tap). Both are reported so the two can never be mistaken for each other.
+            "render_timeline": {
+                "clips_measured": len(render_rows),
+                "reference_mode": (render_rows[0].get("reference_mode") if render_rows else None),
+                "sink_latency_ms": (render_rows[0].get("sink_latency_ms") if render_rows else None),
+                "sink_jitter_ms": (render_rows[0].get("sink_jitter_ms") if render_rows else None),
+                "capture_latency_ms": (render_rows[0].get("capture_latency_ms") if render_rows else None),
+                "echo_travel_ms": (render_rows[0].get("echo_travel_ms") if render_rows else None),
+                "music_db": (render_rows[0].get("music_db") if render_rows else None),
+                "align_err_max_ms": (max((float(row["align_err_max_ms"]) for row in render_rows
+                                          if row.get("align_err_max_ms") is not None), default=None)),
+                "erle_own_median_db": _render_median("erle_own_db"),
+                "erle_own_music_median_db": _render_median("erle_own_music_db"),
+                "erle_monitor_median_db": _render_median("erle_monitor_db"),
+                "erle_monitor_music_median_db": _render_median("erle_monitor_music_db"),
+                "erle_monitor_music_loss_db": _render_median("erle_monitor_music_loss_db"),
+            },
         },
         "clips": results,
     }

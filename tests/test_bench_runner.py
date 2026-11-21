@@ -226,24 +226,46 @@ def open_the_gate(control, clock, candidate: str, her_level: float = 0.15,
     """Her own steady level settles the gate's baseline; a louder user then opens it.
 
     A constant level never opens the gate (that is what "it is still her voice" means), so the
-    helper feeds two phases and returns the simulated time the gate opened.
+    helper feeds two phases and returns the simulated time the gate opened. Each sample says
+    how much AUDIO it stands for (``dt_ms``): the windows are counted in milliseconds of sound,
+    not in callbacks.
     """
     clock["now"] = 0.5
     for _ in range(40):
         clock["now"] += 0.05
         control.observe(her_level, speaking=True, muted=True, wake_word="voxa",
-                        candidate=lambda: (candidate, candidate))
+                        candidate=lambda: (candidate, candidate), dt_ms=50.0)
     for _ in range(40):
         clock["now"] += 0.05
         outcome = control.observe(user_level, speaking=True, muted=True, wake_word="voxa",
-                                  candidate=lambda: (candidate, candidate))
+                                  candidate=lambda: (candidate, candidate), dt_ms=50.0)
         if outcome.reason == "listening" and outcome.gate_opened:
             return clock["now"]
     raise AssertionError("the level gate never opened")
 
 
-def test_barge_in_decision_grace_then_gate_then_words_then_interrupt() -> None:
-    from voxa.bargectl import BargeInController
+def judge(control, clock, level: float, heard: str, **kwargs):
+    """Keep feeding audio until the collected words are judged (the listening window is audio).
+
+    Returns the outcome that decided, or None when the evidence never decided.
+    """
+    for _ in range(40):
+        clock["now"] += 0.05
+        outcome = control.observe(level, speaking=True, muted=True, wake_word="voxa",
+                                  candidate=lambda: (heard, heard), dt_ms=50.0, **kwargs)
+        if outcome.action != IGNORED:
+            return outcome
+    return None
+
+
+def test_barge_in_decision_judges_the_first_frame_of_the_reply() -> None:
+    """No grace period: the first frame of a reply is already judged (task A3).
+
+    What restarts when she starts speaking is the EVIDENCE - the gate's baseline, the onset
+    detector's run of unexplained sound - not a fold over the microphone. The first frame is
+    therefore judged, and what it reports is the gate still learning her level.
+    """
+    from voxa.bargectl import BargeInController, IGNORED
 
     clock = {"now": 0.0}
     control = BargeInController(clock=lambda: clock["now"])
@@ -251,19 +273,19 @@ def test_barge_in_decision_grace_then_gate_then_words_then_interrupt() -> None:
 
     clock["now"] = 0.1
     first = control.observe(0.15, speaking=True, muted=True, wake_word="voxa",
-                            candidate=lambda: ("stop", "stop"))
-    assert first.action == IGNORED and first.reason == "grace"
+                            candidate=lambda: ("stop", "stop"), dt_ms=50.0)
+    assert first.action == IGNORED and first.reason == "gate-closed", first.reason
+    assert control.onset.audio_ms > 0.0, "the onset evidence did not start at the first frame"
 
     opened_at = open_the_gate(control, clock, "stop")
-    assert control.observe(0.65, speaking=True, muted=True, wake_word="voxa",
-                           candidate=lambda: ("stop", "stop")).reason == "listening"
+    listening = control.observe(0.65, speaking=True, muted=True, wake_word="voxa",
+                                candidate=lambda: ("stop", "stop"), dt_ms=50.0)
+    assert listening.reason == "listening"
 
-    clock["now"] = opened_at + 1.0
-    decided = control.observe(0.65, speaking=True, muted=True, wake_word="voxa",
-                              candidate=lambda: ("stop", "stop"))
-    assert decided.action == INTERRUPT
+    decided = judge(control, clock, 0.65, "stop")
+    assert decided is not None and decided.action == INTERRUPT, decided.reason
     assert decided.heard == "stop"
-    assert control.speaking_since == 0.0, "the interrupt branch ends the reply's grace period"
+    assert control.speaking_since == 0.0, "the interrupt branch ends the reply"
 
 
 def test_barge_in_decision_rejects_her_own_words_and_takes_offline_words_seriously() -> None:
@@ -273,9 +295,7 @@ def test_barge_in_decision_rejects_her_own_words_and_takes_offline_words_serious
     control = BargeInController(clock=lambda: clock["now"])
     control.reply_started("Do not steal the ring.")
     open_the_gate(control, clock, "do not steel the wrong")
-    clock["now"] += 1.0
-    own = control.observe(0.65, speaking=True, muted=True, wake_word="voxa",
-                          candidate=lambda: ("do not steel the wrong", "do not steel the wrong"))
+    own = judge(control, clock, 0.65, "do not steel the wrong")
     assert own.action == OWN_VOICE
     assert control.pending_since == 0.0, "her own words must not leave the gate open"
 
@@ -283,7 +303,5 @@ def test_barge_in_decision_rejects_her_own_words_and_takes_offline_words_serious
     control = BargeInController(clock=lambda: clock["now"])
     control.reply_started("The weather is clear today.")
     open_the_gate(control, clock, "Voxa, go offline")
-    clock["now"] += 1.0
-    offline = control.observe(0.65, speaking=True, muted=True, wake_word="voxa",
-                              candidate=lambda: ("Voxa, go offline", "Voxa, go offline"))
+    offline = judge(control, clock, 0.65, "Voxa, go offline")
     assert offline.action == OFFLINE

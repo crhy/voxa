@@ -1,0 +1,399 @@
+"""Milestone A: the words of an interruption become the request (voxa/capture.py,
+voxa/conversation.py, voxa/bargectl.py, voxa/bench/runner.py).
+
+Handoff 5.1 (vetted) says the old ``_barge_buf`` was DESTROYED by the check that judged it:
+``candidate_text()`` joined and cleared it, ``mute()``/``unmute()`` cleared it, and the accepted
+interruption never transferred that audio into the new request, so the user had to repeat
+themselves. Handoff 8.4 asks for these fixtures specifically: "Test frame identifiers for loss
+and duplication, not just transcript strings."
+
+Everything is offline: generated WAVs, a stub recogniser whose words come from the audio it was
+handed, a stub voice detector. No model, no network, no sound device, no sleeping.
+"""
+
+from __future__ import annotations
+
+import json
+import math
+
+import numpy as np
+import pytest
+
+from voxa.bench.render import write_wav
+from voxa.bench.runner import CHUNK_SAMPLES, ClipRunner, load_clip
+from voxa.capture import CaptureRing
+from voxa.conversation import ConversationController
+
+ECHO_LEVEL = 800  # her own voice back from the speakers, as the capture path reports it
+USER_LEVEL = 3000  # the user over it: the level gate's floor is 2 x the echo baseline
+FRAME_BYTES = CHUNK_SAMPLES * 2  # one 20 ms frame of 16-bit mono
+
+
+class StubDetector:
+    """A fake Silero detector: always voice, so the loudness rule alone decides."""
+
+    threshold = 0.5
+
+    def __init__(self) -> None:
+        self.last_prob = 0.9
+
+    def reset(self) -> None:
+        self.last_prob = 0.9
+
+    def feed(self, pcm: bytes) -> bool:
+        self.last_prob = 0.9
+        return True
+
+
+@pytest.fixture(autouse=True)
+def _stub_detector(monkeypatch):
+    monkeypatch.setattr("voxa.voicedetect.VoiceDetector", StubDetector)
+
+
+class AudioReadingASR:
+    """A recogniser whose words come from the audio it was handed, one per 20 ms frame.
+
+    It reports what the pipeline actually delivered: a frame of the user's voice is
+    ``userword``, a frame of her echo is ``herword``, silence is nothing. Counting the words
+    therefore counts the frames that reached the recogniser - which is exactly the loss/duplication
+    question, and it cannot be gamed by a transcript that was never backed by audio.
+    """
+
+    model_name = "stub"
+
+    def __init__(self) -> None:
+        self.calls = 0
+        self.audio_seconds = 0.0
+        self.processing_seconds = 0.0
+
+    def transcribe_words(self, pcm: bytes, hint: str = "") -> dict:
+        self.calls += 1
+        samples = np.frombuffer(pcm, dtype="<i2")
+        self.audio_seconds += len(samples) / 16000.0
+        words = []
+        for start in range(0, len(samples), CHUNK_SAMPLES):
+            frame = samples[start:start + CHUNK_SAMPLES]
+            if frame.size == 0:
+                continue
+            peak = int(np.max(np.abs(frame.astype(np.int64))))
+            word = ("userword" if peak >= 2000
+                    else "herword" if peak >= 400 else None)
+            if word is None:
+                continue
+            words.append({"word": word,
+                          "onset_s": round(start / 16000.0, 3),
+                          "offset_s": round((start + CHUNK_SAMPLES) / 16000.0, 3)})
+        return {
+            "text": " ".join(item["word"] for item in words),
+            "words": words,
+            "no_speech_prob": 0.02,
+            "audio_seconds": round(len(samples) / 16000.0, 3),
+            "asr_seconds": 0.0,
+            "segments": 1 if words else 0,
+        }
+
+    def transcribe(self, pcm_s16le: bytes, language: str = "en", hint: str = "") -> str:
+        return self.transcribe_words(pcm_s16le, hint)["text"]
+
+
+def signal(seconds: float, level: int, rate: int = 16000) -> np.ndarray:
+    """A constant-amplitude stretch as a WAV carries it (``write_wav`` scales by 32767)."""
+    samples = int(round(seconds * rate))
+    wave = np.tile([level, -level], samples // 2 + 1)
+    return (wave[:samples] / 32768.0).astype(np.float32)
+
+
+def pcm(seconds: float, level: int, rate: int = 16000) -> bytes:
+    """The same stretch as the int16 bytes the capture path moves."""
+    samples = int(round(seconds * rate))
+    wave = np.tile([level, -level], samples // 2 + 1)
+    return wave[:samples].astype("<i2").tobytes()
+
+
+def word_for(peak: int) -> str | None:
+    """What the stub recogniser reports for one frame of that amplitude."""
+    return "userword" if peak >= 2000 else "herword" if peak >= 400 else None
+
+
+def frame_peaks(stream: np.ndarray) -> list[int]:
+    """The peak of every 20 ms frame of a clip's microphone stream, by frame id."""
+    return [int(np.max(np.abs(stream[index:index + CHUNK_SAMPLES].astype(np.int64))))
+            for index in range(0, len(stream), CHUNK_SAMPLES)]
+
+
+def frames_of(seconds: float) -> int:
+    return int(round(seconds * 16000 / CHUNK_SAMPLES))
+
+
+def write_clip(root, suite: str, clip_id: str, mic: np.ndarray, ref: np.ndarray, truth: dict):
+    clip_dir = root / suite / clip_id
+    clip_dir.mkdir(parents=True, exist_ok=True)
+    write_wav(clip_dir / "mic.wav", mic)
+    write_wav(clip_dir / "ref.wav", ref)
+    (clip_dir / "truth.json").write_text(json.dumps(truth))
+    return clip_dir
+
+
+def short_over_reply_clip(root):
+    """A short request spoken ENTIRELY while Voxa is reading a reply (0.8-1.4 s of a 2.4 s reply)."""
+    mic = np.concatenate([signal(0.8, ECHO_LEVEL), signal(0.6, USER_LEVEL),
+                          signal(1.0, ECHO_LEVEL), signal(1.6, 0)])
+    ref = np.concatenate([signal(2.4, ECHO_LEVEL), signal(1.6, 0)])
+    return write_clip(root, "tiny", "tiny-0000-short-00", mic, ref, {
+        "id": "tiny-0000-short-00", "scenario": "short", "expect": "keep",
+        "playback": {"text": "The weather is clear today.", "onset_s": 0.0, "offset_s": 2.4},
+        "user": {"onset_s": 0.8, "offset_s": 1.4,
+                 "words": [{"word": "yes", "onset_s": 0.8, "offset_s": 1.4}]},
+    })
+
+
+def long_over_reply_clip(root):
+    """A 12 s request that starts under a reply and runs long past the five-second window."""
+    mic = np.concatenate([signal(1.5, ECHO_LEVEL), signal(12.0, USER_LEVEL), signal(1.5, 0)])
+    ref = np.concatenate([signal(3.0, ECHO_LEVEL), signal(12.0, 0)])
+    return write_clip(root, "tiny", "tiny-0001-dt_onset-00", mic, ref, {
+        "id": "tiny-0001-dt_onset-00", "scenario": "dt_onset", "expect": "keep",
+        "playback": {"text": "Reminding you at three to call Bob.", "onset_s": 0.0,
+                     "offset_s": 3.0},
+        "user": {"onset_s": 1.5, "offset_s": 13.5,
+                 "words": [{"word": "open", "onset_s": 1.5, "offset_s": 1.9}]},
+    })
+
+
+def events_of(runner, name: str) -> list[dict]:
+    return [event for event in runner.events if event["event"] == name]
+
+
+def make_controller(**overrides) -> tuple[ConversationController, AudioReadingASR]:
+    asr = AudioReadingASR()
+    kwargs = dict(
+        wake_whisper=asr,
+        prompt_whisper=asr,
+        language="en",
+        wake_word="voxa",
+        threshold=450,
+        silence_ms=700,
+        max_segment_seconds=20.0,
+        early_silence_ms=300,
+        voice_detector=False,
+        on_woken=lambda: None,
+        on_prompt=lambda text: None,
+        on_status=lambda text: None,
+        on_error=lambda text: None,
+    )
+    kwargs.update(overrides)
+    return ConversationController(**kwargs), asr
+
+
+# ------------------------------------------------------------------ sequence ids and pinning
+
+
+def test_every_captured_frame_gets_a_sequence_id_and_never_exists_twice() -> None:
+    clock = [0.0]
+    ring = CaptureRing(clock=lambda: clock[0])
+    for index in range(5):
+        clock[0] += 0.02
+        frame = ring.add(b"\x01\x02" * (index + 1), 100.0 + index)
+        assert frame.seq == index
+        assert frame.t_s == pytest.approx(clock[0])
+    same = ring.add(b"\x01\x02", 999.0, seq=2)
+    assert same.seq == 2 and same.level == 102.0, "re-adding an id must not create a second copy"
+    assert ring.frames_retained == 5
+
+
+def test_onset_pins_from_onset_minus_the_half_second_pre_roll() -> None:
+    clock = [0.0]
+    ring = CaptureRing(clock=lambda: clock[0])
+    for _ in range(100):  # 2 s of 20 ms frames
+        clock[0] += 0.02
+        ring.add(b"\x00" * FRAME_BYTES, 100.0)
+    assert ring.pin(seq=80) is True
+    # Frame 80 ends at 1.62 s; the span must start half a second before that onset.
+    onset_t = ring.pinned()[0].t_s  # not the onset frame: the pre-roll start
+    last = ring.pinned()[-1]
+    pinned = ring.pinned()
+    onset_frame = next(frame for frame in pinned if frame.seq == 80)
+    assert 0.48 <= onset_frame.t_s - onset_t <= 0.52, (onset_frame.t_s, onset_t)
+    assert pinned[0].seq < 80 and pinned[-1].seq == 99
+
+
+def test_the_pin_walks_back_over_the_run_of_speech_the_onset_belongs_to() -> None:
+    clock = [0.0]
+    ring = CaptureRing(clock=lambda: clock[0])
+    levels = ([ECHO_LEVEL] * 41 + [10] * 20 + [USER_LEVEL] * 20)
+    for level in levels:
+        clock[0] += 0.02
+        ring.add(b"\x00" * FRAME_BYTES, float(level))
+    assert ring.pin(seq=70, level_floor=1000.0, pre_roll_seconds=0.0) is True
+    # The quiet run at frames 41-60 stops the walk-back: the span starts where THIS speech began.
+    assert ring.pin_from == 61
+
+
+def a_pinned_ring():
+    clock = [0.0]
+    ring = CaptureRing(clock=lambda: clock[0], window_seconds=0.4, pre_roll_seconds=0.0)
+    for index in range(20):  # 0.4 s
+        clock[0] += 0.02
+        ring.add(pcm(0.02, USER_LEVEL), float(USER_LEVEL))
+    ring.pin(seq=10)
+    return ring, clock
+
+
+def test_a_rolling_trim_can_never_overwrite_a_pinned_span() -> None:
+    ring, clock = a_pinned_ring()
+    for index in range(20, 120):  # two more seconds: the window is only 0.4 s
+        clock[0] += 0.02
+        ring.add(pcm(0.02, USER_LEVEL), float(USER_LEVEL))
+    assert ring.pinned()[0].seq == 10, "the pinned span was trimmed away"
+    assert ring.snapshot().startswith(pcm(0.02, USER_LEVEL))
+    assert ring.dropped_frames > 0, "unpinned frames outside the window are still bounded and counted"
+
+
+def test_snapshot_reads_a_copy_and_never_consumes_the_span() -> None:
+    ring, _clock = a_pinned_ring()
+    first = ring.snapshot()
+    second = ring.snapshot()
+    assert first == second and first
+    assert [frame.seq for frame in ring.pinned()][:3] == [10, 11, 12]
+    assert ring.promote() and ring.snapshot() == b"", "the next read sees only audio not yet promoted"
+
+
+def test_a_rejected_candidate_is_released_after_its_evidence_window() -> None:
+    clock = [0.0]
+    ring = CaptureRing(clock=lambda: clock[0], evidence_seconds=2.0)
+    for _ in range(10):
+        clock[0] += 0.02
+        ring.add(b"\x00" * FRAME_BYTES, float(USER_LEVEL))
+    ring.pin(seq=5)
+    ring.note_rejected(now=1.0)
+    assert ring.pin_from is not None, "rejected audio is kept for the evidence window"
+    clock[0] = 3.01
+    ring.add(b"\x00" * FRAME_BYTES, float(USER_LEVEL))
+    assert ring.pin_from is None, "the pin is released once the window has passed"
+    assert ring.snapshot(), "and releasing the pin does not delete the frames"
+
+
+# ------------------------------------------------------------------ the controller's contract
+
+
+def test_candidate_check_does_not_consume_and_promotion_queues_the_span_once() -> None:
+    controller, asr = make_controller()
+    chunk = pcm(0.02, USER_LEVEL)
+    controller.mute()
+    for _ in range(10):
+        controller.feed(chunk, float(USER_LEVEL))
+    assert controller.queue.qsize() == 0, "her own playback never becomes a queued utterance"
+    controller.note_onset(seq=5, level_floor=None)
+    before = controller.capture.snapshot()
+    heard = controller.candidate_text()
+    assert heard.count("userword") == 10, heard
+    assert controller.capture.snapshot() == before, "the check consumed the span it judged"
+    assert asr.calls == 1
+    assert controller.candidate_text() == heard and asr.calls == 1, "the same span is not re-transcribed"
+
+    promoted = controller.promote_pinned()
+    assert [frame.seq for frame in promoted] == list(range(10))
+    queued = []
+    while not controller.queue.empty():
+        queued.append(controller.queue.get_nowait()[0])
+    assert queued == [chunk] * 10
+    # The microphone opens again: the same frame id arriving must not be appended twice, and
+    # the frame that arrives next must be appended exactly once.
+    controller.unmute()
+    controller.feed(chunk, float(USER_LEVEL), seq=3)
+    assert controller.queue.qsize() == 0, "a promoted frame is never queued a second time"
+    controller.feed(pcm(0.02, ECHO_LEVEL), float(ECHO_LEVEL), seq=10)
+    assert controller.queue.qsize() == 1, "later audio is appended exactly once"
+
+
+def test_mute_and_unmute_never_drop_a_pinned_span() -> None:
+    controller, _asr = make_controller()
+    chunk = pcm(0.02, USER_LEVEL)
+    controller.mute()
+    for _ in range(8):
+        controller.feed(chunk, float(USER_LEVEL))
+    controller.note_onset(seq=4, level_floor=None)
+    pinned = [frame.seq for frame in controller.capture.pinned()]
+    controller.mute()
+    controller.unmute()
+    controller.mute()
+    assert [frame.seq for frame in controller.capture.pinned()] == pinned == list(range(8))
+    assert controller.capture.snapshot(), "unmute() used to clear the buffer; the audio is owed to the turn"
+
+
+def test_the_gate_reports_the_onset_the_controller_pins_from() -> None:
+    from voxa.bargectl import BARGE_IN_LISTEN_SECONDS, BargeInController
+
+    clock = [10.0]
+    control = BargeInController(clock=lambda: clock[0])
+    control.reply_started("The weather is clear today.")
+    outcomes = []
+    for _ in range(80):  # 1.6 s of 20 ms samples, her echo then the user over it
+        clock[0] += 0.02
+        level = 0.2 if clock[0] < 10.8 else 0.75
+        outcomes.append(control.observe(level, speaking=True, muted=True, wake_word="voxa"))
+    assert any(outcome.onset for outcome in outcomes), "the onset tick is what pins the span"
+    onset = next(index for index, outcome in enumerate(outcomes) if outcome.onset)
+    assert outcomes[onset].reason == "listening"
+    assert control.onset_level_floor() > 0.0
+
+
+# ------------------------------------------------------------------ end to end through the bench runner
+
+
+def run_clip(clip_dir):
+    loaded = load_clip(clip_dir)
+    runner = ClipRunner(asr=AudioReadingASR(), echo_mode="off", wake_word="voxa")
+    summary = runner.run(loaded["mic"], loaded["ref"], loaded["truth"])
+    return runner, summary, loaded
+
+
+def test_a_short_request_spoken_during_a_reply_reaches_the_request_intact(tmp_path) -> None:
+    runner, summary, _loaded = run_clip(short_over_reply_clip(tmp_path / "data"))
+
+    confirms = events_of(runner, "barge-in-confirm")
+    assert len(confirms) == 1, summary["counts"]
+    promoted = events_of(runner, "capture-promote")
+    assert len(promoted) == 1
+    ids = promoted[0]["frames"]
+    assert ids == sorted(set(ids)), "a frame of the accepted span is missing or counted twice"
+    assert summary["requests"], "the interruption's words must become the request"
+    request = summary["requests"][0]
+    user_frames = frames_of(0.6)
+    assert request.count("userword") == user_frames, (request, user_frames)
+    # The words that proved the interruption reach the request exactly once: not twice, not not at all.
+    heard = confirms[0]["heard"]
+    reached = sum(1 for text in summary["requests"] if heard in text)
+    assert reached == 1, (heard, summary["requests"])
+
+
+def test_a_twelve_second_request_over_a_reply_survives_the_ring(tmp_path) -> None:
+    clip_dir = long_over_reply_clip(tmp_path / "data")
+    runner, summary, loaded = run_clip(clip_dir)
+
+    assert summary["counts"]["barge_in"] == 1
+    promoted = events_of(runner, "capture-promote")
+    assert len(promoted) == 1
+    ids = promoted[0]["frames"]
+    assert ids == sorted(set(ids)) and len(ids) > frames_of(1.0)
+
+    # The frames the pipeline handed to the speech-pause rules, by id: the pinned span plus the
+    # audio that arrived after it. The stub recogniser reports one word per frame that carries
+    # speech, so the request's word counts are a direct measure of loss and duplication.
+    accepted = runner._segmented
+    peaks = frame_peaks(loaded["mic"])
+    first_user = frames_of(1.5)
+    last_user = frames_of(13.5) - 1
+    assert first_user in accepted, "the beginning of the request was lost"
+    assert last_user in accepted, "the end of the request was lost"
+    assert set(ids) <= accepted
+
+    expected = [word_for(peaks[seq]) for seq in accepted]
+    request = summary["requests"][0]
+    for word in ("userword", "herword"):
+        assert request.count(word) == expected.count(word), (word, request[:120], len(accepted))
+    assert expected.count("userword") >= frames_of(11.0), "the 12 s request survived the ring"
+
+    capture = runner.conversation.capture
+    assert capture.pinned()[0].seq <= ids[0], "the pinned span still starts at the request's start"
+    assert capture.dropped_frames < first_user, "nothing the user had already spoken is thrown away"

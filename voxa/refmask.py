@@ -39,6 +39,11 @@ class ReferenceMask:
         self.out_den = np.zeros(0, dtype=np.float64)
         self.frames_done = 0
         self.emitted = 0
+        # Measured on the most recent analysed frame, for attribution (powers in dBFS): what the
+        # microphone holds, what the reference predicts at the echo's moment, and the residual
+        # left after that prediction. Read-only evidence; nothing here changes the signal.
+        self._mic_power = 0.0
+        self._echo_power = 0.0
 
     def _estimate_lag(self):
         n = min(len(self.mic_buf), len(self.ref_buf))
@@ -91,6 +96,8 @@ class ReferenceMask:
                 rf = self.ref_buf[rs:rs + self.frame]
                 fm, pm, mic_b, ref_b = self._frame_stats(mf, rf)
                 echo_b = self.coupling * ref_b
+                self._mic_power = float(pm.sum())
+                self._echo_power = float(echo_b.sum())
                 for b in range(self.nbands):
                     if ref_b[b] > 1e-10:
                         self.ratios[b].append(mic_b[b] / ref_b[b])
@@ -132,6 +139,20 @@ class ReferenceMask:
 
     def user_energy_db(self) -> float:
         return self.last_user_db
+
+    def mic_power_db(self) -> float:
+        """Energy the microphone delivered on the last analysed frame, in dB."""
+        return 10.0 * float(np.log10(self._mic_power)) if self._mic_power > 1e-20 else -120.0
+
+    def echo_explained_db(self) -> float:
+        """How much of the microphone the reference already explains, in dB.
+
+        0.0 dB means the reference accounts for ALL of it (positive echo evidence); a strongly
+        negative value means the microphone holds sound the speakers did not play.
+        """
+        if self._mic_power <= 1e-20:
+            return -120.0
+        return 10.0 * float(np.log10(max(self._echo_power, 1e-20) / self._mic_power))
 
     def echo_active(self) -> bool:
         return self.last_echo_active
