@@ -292,6 +292,7 @@ def test_registry_lists_all_tools():
             "get_noise_cancellation",
             "get_phone_number",
             "go_back",
+            "gpu_choose",
             "gpu_status",
             "heads_up",
             "hidden_files",

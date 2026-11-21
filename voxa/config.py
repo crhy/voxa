@@ -9,6 +9,8 @@ from typing import Any
 
 from voxa.ui.avatars import get_avatar
 
+from .hardware import parse_device_id
+
 FACE_MODES = ("live", "prerendered", "still")
 WEB_SEARCH_MODES = ("auto", "always", "never")
 ECHO_MODES = ("voxa", "webrtc", "off")
@@ -43,6 +45,25 @@ def gpu_choice_index(choice: str) -> int | None:
     return int(choice[4:])
 
 
+def normalize_gpu_device(value: object) -> str:
+    """Keep a graphics card choice to "auto", "cpu" or "<vendor>:<index>".
+
+    The id is the one ``hardware.GpuDevice.device_id`` gives ("nvidia:1"),
+    because an index alone names different cards on the Nvidia and the AMD
+    side. Whether the id still names a card that exists is decided where the
+    server is launched, not here: hardware changes between launches, and a
+    saved card that is missing today should still be used the day it comes
+    back. Anything else (a hand-edited or stale config) becomes "auto".
+    """
+    choice = str(value or "").strip().casefold()
+    if choice in {"auto", "cpu"}:
+        return choice
+    parsed = parse_device_id(choice)
+    if parsed is None:
+        return "auto"
+    return f"{parsed[0]}:{parsed[1]}"
+
+
 @dataclass(slots=True)
 class Settings:
     microphone_id: str = ""
@@ -62,6 +83,14 @@ class Settings:
     #   "gpu:<index>" - the card with that index in hardware.detect_gpus().
     # Anything else (a hand-edited or stale config) falls back to "auto".
     gpu_choice: str = "auto"
+    # Which graphics card Voxa's brain runs on (crhy/voxa#113). Three forms:
+    #   "auto"              - leave it to the backend, as before this feature;
+    #   "cpu"               - no card is used;
+    #   "<vendor>:<index>"  - the card ``hardware.detect_gpu_devices`` names,
+    #                           for example "nvidia:1".
+    # Empty or unknown values fall back to "auto"; the honest reason for the
+    # card actually chosen is worked out at launch and spoken by gpu_status.
+    gpu_device: str = "auto"
     strata_url: str = "http://127.0.0.1:8080"
     language: str = "en"
     character_id: str = ""
@@ -125,6 +154,7 @@ class Settings:
         if self.ai_backend not in {"llamacpp", "ollama", "strata"}:
             self.ai_backend = "ollama"
         self.gpu_choice = normalize_gpu_choice(self.gpu_choice)
+        self.gpu_device = normalize_gpu_device(self.gpu_device)
         self.language = (self.language or "en").strip()[:16]
         self.wake_word = (self.wake_word or "voxa").strip()[:32] or "voxa"
         self.character_id = (self.character_id or "").strip().lower()

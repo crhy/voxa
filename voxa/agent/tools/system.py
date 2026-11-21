@@ -4,7 +4,7 @@ import logging
 import subprocess
 from datetime import UTC, datetime
 
-from voxa import simulation
+from voxa import hardware, simulation
 from voxa.agent import worldtime
 from voxa.agent.host import host_command
 from voxa.agent.policy import RiskLevel
@@ -31,6 +31,7 @@ from voxa.agent.sysinfo import (
     spoken_top_cpu,
     spoken_top_memory,
 )
+from voxa.config import ConfigStore
 
 log = logging.getLogger("voxa.agent.tools.system")
 
@@ -140,7 +141,108 @@ _GPU_QUERY = [
 def gpu_status(args: dict[str, str]) -> ToolResult:
     try:
         gpu = parse_gpu(_run(_GPU_QUERY, check=False).stdout)
-        return ToolResult.success(spoken_gpu(gpu))
+        return ToolResult.success(f"{spoken_gpu(gpu)} {_brain_report()}")
+    except Exception:
+        return ToolResult.failure(_FAILURE)
+
+
+# The machine a lab run pretends to have: two cards, the main one held by
+# another workload, which is exactly the case crhy/voxa#113 is about. Without
+# it a simulated run would report whatever card the developer's machine has,
+# and the sentence would change from run to run.
+_SIMULATED_DEVICES = [
+    hardware.GpuDevice(
+        index=0,
+        vendor="nvidia",
+        name="NVIDIA GeForce RTX 4090",
+        total_vram_gb=24.0,
+        used_vram_gb=22.0,
+        utilization_percent=97.0,
+        device_id="nvidia:0",
+    ),
+    hardware.GpuDevice(
+        index=1,
+        vendor="nvidia",
+        name="NVIDIA GeForce RTX 3060",
+        total_vram_gb=8.0,
+        used_vram_gb=0.0,
+        utilization_percent=0.0,
+        device_id="nvidia:1",
+    ),
+]
+
+
+def _brain_devices() -> list[hardware.GpuDevice]:
+    if simulation.actions_simulated():
+        return list(_SIMULATED_DEVICES)
+    return hardware.detect_gpu_devices()
+
+
+def _said(reason: str) -> str:
+    """A reason from hardware.py starts lower-case; after a full stop it must not."""
+    return reason[:1].upper() + reason[1:] if reason else ""
+
+
+def _brain_report() -> str:
+    """Which card Voxa's brain is on, and why, in one spoken sentence."""
+    devices = _brain_devices()
+    settings = ConfigStore().load()
+    reserved = hardware.reserved_gpu_gb(settings.face_mode, True)
+    busy = hardware.busy_devices(devices)
+    launch, reason = hardware.resolve_brain_device(
+        settings.gpu_device,
+        devices,
+        reserved_gb=reserved,
+        busy=busy,
+    )
+    if not devices:
+        return f"Voxa's brain runs on the processor: {reason}."
+    if launch == "cpu":
+        return f"Voxa keeps her brain on the processor: {reason}."
+    chosen, _reason = hardware.pick_brain_device(devices, reserved_gb=reserved, busy=busy)
+    saved = next((device for device in devices if device.device_id == launch), None)
+    card = saved if saved is not None else chosen
+    prefix = "Voxa is on" if saved is not None else "On the automatic setting Voxa takes"
+    return f"{prefix} {hardware.describe_device(card)}: {reason}."
+
+
+def gpu_choose(args: dict[str, str]) -> ToolResult:
+    """Move Voxa's brain to another card, or to the processor, and say where it went.
+
+    The choice is saved, not applied to a server that is already running: the
+    reply says so rather than implying the card changed under Voxa's feet.
+    """
+    try:
+        move = (args.get("move") or "other").strip().casefold()
+        devices = _brain_devices()
+        settings = ConfigStore().load()
+        reserved = hardware.reserved_gpu_gb(settings.face_mode, True)
+        if move == "cpu":
+            wanted, where, reason = "cpu", "the processor", "you asked for the processor"
+        elif move == "auto":
+            wanted, where, reason = "auto", "whatever card the backend picks", "the choice is automatic again"
+        else:
+            named = hardware.parse_device_id(move)
+            if named is not None:
+                wanted = f"{named[0]}:{named[1]}"
+                found = next((device for device in devices if device.device_id == wanted), None)
+                if found is None:
+                    return ToolResult.success(f"This machine has no card {wanted}, so Voxa stays where she is.")
+                where, reason = hardware.describe_device(found), f"you named GPU {found.index}"
+            else:
+                # The card Voxa is on now is not "the other one", so it is left
+                # out of the busy set even though her own model is loaded on it.
+                busy = hardware.busy_devices(devices) - {settings.gpu_device}
+                chosen, reason = hardware.pick_brain_device(devices, reserved_gb=reserved, busy=busy)
+                if chosen is None:
+                    return ToolResult.success(f"I can't move Voxa to another graphics card. {_said(reason)}.")
+                wanted, where = chosen.device_id, hardware.describe_device(chosen)
+        settings.gpu_device = wanted
+        ConfigStore().save(settings)
+        return ToolResult.success(
+            f"Voxa will run her brain on {where} when her AI server starts next. {_said(reason)}. "
+            "Until then the server she is using keeps the card it started on."
+        )
     except Exception:
         return ToolResult.failure(_FAILURE)
 
@@ -278,10 +380,17 @@ def system_tools() -> list[Tool]:
         ),
         Tool(
             name="gpu_status",
-            description="Say how hot the graphics card is and how busy it is.",
+            description="Say how hot the graphics card is, how busy it is, and which card Voxa's brain runs on.",
             parameters={},
             risk=RiskLevel.READ_ONLY,
             handler=gpu_status,
+        ),
+        Tool(
+            name="gpu_choose",
+            description="Put Voxa's brain on another graphics card, on a card you name, or back on the processor.",
+            parameters={"move": "other|cpu|auto|<vendor>:<index>"},
+            risk=RiskLevel.REVERSIBLE,
+            handler=gpu_choose,
         ),
         Tool(
             name="cpu_status",

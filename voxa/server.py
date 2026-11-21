@@ -14,7 +14,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from pathlib import Path
 
-from . import engine
+from . import engine, hardware
 from .config import Settings, gpu_choice_index, normalize_gpu_choice
 from .installer import is_flatpak
 from .ollama import open_url
@@ -256,12 +256,17 @@ class AiServerManager:
         return host, port, f"{scheme}://{self._host_port(host, port)}"
 
     def _command(self, host: str, port: int) -> tuple[list[str], dict[str, str] | None]:
+        device, reason = self._brain_choice()
+        log.info("Voxa's AI brain device: %s (%s)", device, reason)
         if self.settings.ai_backend == "ollama":
             listen_address = self._host_port(host, port)
-            env_overrides: dict[str, str] = {"OLLAMA_HOST": listen_address}
-            gpu_env = self._gpu_env()
-            if gpu_env is not None:
-                env_overrides.update(gpu_env)
+            env_overrides: dict[str, str] = {"OLLAMA_HOST": listen_address, **self._ollama_gpu_env(device)}
+            if device == "auto":
+                # No card chosen by voice (crhy/voxa#113): the Preferences row
+                # choice (crhy/voxa#9) still steers Ollama.
+                gpu_env = self._gpu_env()
+                if gpu_env is not None:
+                    env_overrides.update(gpu_env)
             command = ["ollama", "serve"]
             if self._flatpak:
                 command = self._host_command(command, env_overrides)
@@ -275,10 +280,19 @@ class AiServerManager:
         env_overrides = self._gpu_env(card_named_in_command=True)
         bundled = engine.bundled_server()
         if bundled is not None:
-            command = engine.server_command(model, host, port, server=bundled, gpu_choice=choice)
+            command = engine.server_command(
+                model, host, port, server=bundled, gpu_choice=choice, device=device
+            )
             return command, env_overrides
 
         command = ["llama-server", "--model", model, "--host", host, "--port", str(port)]
+        flags = engine.device_flags(device)
+        if flags:
+            command += flags
+        else:
+            index = gpu_choice_index(choice)
+            if index is not None:
+                command += ["--device", f"cuda:{index}"]
         if self._flatpak:
             command = self._host_command(command, env_overrides)
         return command, env_overrides
@@ -315,6 +329,54 @@ class AiServerManager:
             assignments = [f"{name}={value}" for name, value in env_overrides.items()]
             return [*prefix, "env", *assignments, *command]
         return [*prefix, *command]
+
+    def _brain_choice(self) -> tuple[str, str]:
+        """The card Voxa's AI brain runs on, and the reason said about it.
+
+        Resolved at launch rather than in the saved settings: the machine's
+        cards are only known here, and a card saved last week that is not in
+        this machine today falls back to the automatic choice instead of
+        failing to start. ``reserved_gb`` is what the High face and Whisper
+        keep for themselves, so the choice leaves room for them too.
+        """
+        return hardware.resolve_brain_device(
+            self.settings.gpu_device,
+            hardware.detect_gpu_devices(),
+            reserved_gb=hardware.reserved_gpu_gb(self.settings.face_mode, True),
+        )
+
+    @staticmethod
+    def _ollama_gpu_env(device: str) -> dict[str, str]:
+        """The environment that puts Ollama on the chosen card.
+
+        "auto" sends nothing, so Ollama keeps its own pick; "cpu" asks for no
+        GPU layers at all with ``OLLAMA_NUM_GPU=0``; a card id passes its
+        index through ``CUDA_VISIBLE_DEVICES``, which is how Ollama selects a
+        card. llama.cpp gets the same choice as ``--device``/``--main-gpu``
+        flags instead: ``CUDA_VISIBLE_DEVICES`` renumbers the cards a process
+        can see, so sending both would make the index name the wrong card.
+        """
+        if device == "cpu":
+            return {"OLLAMA_NUM_GPU": "0"}
+        parsed = hardware.parse_device_id(device)
+        if parsed is None:
+            return {}
+        return {"CUDA_VISIBLE_DEVICES": str(parsed[1])}
+
+    @staticmethod
+    def _host_command(command: list[str], env_overrides: dict[str, str] | None) -> list[str]:
+        """Run ``command`` on the host from inside the Flatpak.
+
+        ``flatpak-spawn --host`` starts the host program with the host's own
+        environment, so the variables meant for the server have to be named
+        on the command line with ``env`` as well, or the card choice never
+        reaches the process it is meant to steer.
+        """
+        prefix = ["flatpak-spawn", "--host", "--directory=/", "--watch-bus"]
+        if not env_overrides:
+            return [*prefix, *command]
+        assignments = [f"{name}={value}" for name, value in env_overrides.items()]
+        return [*prefix, "env", *assignments, *command]
 
     def _unload_ollama_model(self) -> None:
         """Release the runner before stopping our Ollama daemon.

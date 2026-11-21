@@ -17,3 +17,4 @@ Working notes, decisions and standing orders for this project, kept by Claude Co
 - [voxatest-never-lower-volume](voxatest-never-lower-volume.md): VoxaTest runs and Voxa lab runs must never turn rhY's system volume down
 - [voxa-hearing-2](voxa-hearing-2.md): Hearing 2 program (2026-11-20): root cause of the hearing chain failures and the h01-h05 plan.
 - [voxa-gpu-choice](voxa-gpu-choice.md): How the "Graphics card" choice (crhy/voxa#9) is stored and handed to the server Voxa starts, and what stays open (Whisper's device, combining cards, the AMD hand-off)
+- [voxa-second-gpu-brain](voxa-second-gpu-brain.md): How Voxa lists the machine's GPUs (crhy/voxa#113), stores "auto"/"cpu"/"nvidia:1", and hands that card to Ollama or llama.cpp; what stays unverified on real silicon
