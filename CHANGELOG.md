@@ -112,6 +112,9 @@
 ### New
 
 - **A flight search reads itself back.** "Read back the flights", "what are the cheapest flights" or "compare them" opens the search in the browser Voxa controls and says the top three aloud, cheapest first, with stops, duration and price. Hotel and product searches read back their names and prices; when a page will not parse, she says what she opened and leaves it to your eyes.
+- **The morning briefing carries your bills.** "Good morning" now adds this month's spending after the reminders, and says so plainly when a budget you set is over: "You have spent 12 dollars and 50 cents this month. You are 2 dollars and 50 cents over your 10 dollar food budget this month." Nothing is said when the spending log is empty or unreadable. (`voxa/agent/briefing.py`, `voxa/agent/tools/briefing.py`) (#57) 🧪
+
+Still open on #57: important email and deliveries join the briefing only once a mail-read path and an orders/deliveries module exist — neither is on `main` yet, and nothing here pretends otherwise.
 
 ### Fixed
 
