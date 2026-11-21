@@ -42,6 +42,7 @@ from voxa.agent.tools.lookups import lookups_tools
 from voxa.agent.tools.mailread import mail_tools
 from voxa.agent.tools.meals import meals_tools
 from voxa.agent.tools.media import media_tools
+from voxa.agent.tools.meeting_notes import meeting_note_tools
 from voxa.agent.tools.memory_facts import memory_facts_tools
 from voxa.agent.tools.notes import notes_tools
 from voxa.agent.tools.profile import profile_tools
@@ -106,6 +107,7 @@ def default_registry() -> ToolRegistry:
         *lookups_tools(),
         *order_tools(),
         *transcribe_file_tools(),
+        *meeting_note_tools(),
         *convert_tools(),
         *memory_facts_tools(),
         *calendar_local_tools(),

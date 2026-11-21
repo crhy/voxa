@@ -178,6 +178,23 @@ adaptive noise cancellation.
 | “Forget my address” | Clears it | 🧪 |
 | A secret, such as a password | Kept in the system keyring (libsecret's `secret-tool`, or the `keyring` command); its value appears in no file Voxa writes and is never said back, only its name. No keyring on the machine means nothing is kept | 🧪 |
 
+## Meetings and calls
+
+| Try saying | What should happen | Status |
+| --- | --- | --- |
+| “Take notes on the dentist call” | Finds that recording in your usual folders, transcribes it with the local Whisper model, and saves one dated block in Documents: transcript, decisions, action items, speakers | 🧪 (#65) |
+| “What did we decide yesterday” | Searches the meeting notes for that day and reads back its decisions and action items | 🧪 (#65) |
+| “What did we agree last week” | The same, over the whole of last week | 🧪 (#65) |
+| “Read my meeting notes” | Reads back the most recent meeting notes | 🧪 (#65) |
+| “Add the action items from the dentist call to my calendar” | Writes that meeting's action items as calendar entries | 🧪 (#65) |
+| “Take notes on this call” while Voxa is recording her | ❌ consent-gated capture with a visible indicator is not built; Voxa names the recording you already have instead | ❌ (#65) |
+
+Nothing about a call leaves the machine: the recording is read from your own folders,
+the model runs locally, and the note is written into your Documents folder. The decisions
+and action items come from plain sentence rules, so they are instant and need no AI model;
+speaker names come only from “Name:” prefixes in the transcript, not from voice
+identification.
+
 ## Time and routines
 
 | Try saying | What should happen | Status |
@@ -259,3 +276,6 @@ a secret without its value reaching the action log.
 download (#75), messages, calendar, phone calls, purchases and the other assistant plans (#41–#67).
 Email reading is built (#56 part 1); replying by dictation, unsubscribing, archiving in bulk and
 finding receipts, tickets and tracking numbers are not.
+The record, archive and calendar hand-off of the meeting and call notes (#65) are in; what is left there is
+consent-gated live capture with a visible indicator, speaker identification beyond “Name:” prefixes, and a
+summary written by the AI model rather than by sentence rules.

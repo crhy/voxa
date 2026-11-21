@@ -132,6 +132,25 @@ seconds before the first action runs.
 Questions are handled by the local model and answered out loud; they do not
 touch your desktop.
 
+## Meetings and calls
+
+| Say | Voxa does |
+|---|---|
+| "take notes on the dentist call" | Transcribes that recording with the local Whisper model and saves a dated meeting note |
+| "make meeting notes from the dentist call in documents" | The same, looking for the recording in your Documents folder |
+| "what did we decide yesterday" | Searches the meeting notes for that day and reads back its decisions and action items |
+| "what did we agree last week" | The same, over the whole of last week |
+| "read my meeting notes" | Reads back the most recent meeting notes |
+| "add the action items from the dentist call to my calendar" | Writes that meeting's action items as calendar entries |
+
+A meeting note is one dated block: the transcript, the decisions heard in it, the
+action items heard in it and the speakers whose names open the transcript lines.
+The decisions and action items are found by plain sentence rules, not by a model,
+so they are instant and repeatable. Nothing is uploaded: the recording is read
+from your own folders, the model runs on your own machine, and the note is written
+there. "What did we decide" on its own still summarises the conversation you are
+having with Voxa; naming a day or a topic asks the meeting notes instead.
+
 ## Instant versus planned
 
 Single commands ("open gmail", "press enter") are matched directly and run
@@ -150,5 +169,7 @@ about you leaves the machine:
   home address, phone number). It stays local.
 - The system keyring — anything secret. Its value appears in no file Voxa writes,
   not the settings and not the action log.
+- `Documents/Voxa Meeting Notes.md` — one dated block per call: transcript, decisions,
+  action items, speakers. Written by the meeting note tools and read back by them.
 - `voxatest commands` — the test suite's catalog of the commands above, used
   to verify that phrasings map to the right tools.
