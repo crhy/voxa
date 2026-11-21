@@ -12,6 +12,7 @@ from voxa.agent.filematch import folder_key
 from voxa.agent.hearing import normalize
 from voxa.agent.helptext import topic_for
 from voxa.agent.mailflow import spoken_address
+from voxa.agent.rides import parse_ride_request
 from voxa.agent.tools import translate
 from voxa.agent.tools.browser import site_url
 from voxa.apps import clean_spoken_app_name
@@ -1328,6 +1329,7 @@ ROUTED_TOOLS = frozenset(
         "home_scene",
         "home_status",
         "find_deal",
+        "ride_quote",
         "set_location",
         "tell_time",
         "transcribe_file",
@@ -2019,6 +2021,9 @@ def _route_command(text: str) -> ToolCall | None:
         return call("set_location", city=location_use.group(1))
     if _LOCATION_FORGET.fullmatch(s):
         return call("set_location", city="")
+
+    if parse_ride_request(s, date.today(), "") is not None:
+        return call("ride_quote", request=s)
 
     if parse_request(s, date.today()):
         return call("find_deal", request=s)

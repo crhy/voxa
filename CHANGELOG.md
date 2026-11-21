@@ -2,6 +2,10 @@
 
 ## 0.1.8 — 2026-10-26
 
+### New
+
+- **Read a ride quote by voice.** "Get me a Lyft to the airport", "Call a taxi to O'Hare", "Get an Uber from home to the station at 6am tomorrow" — Voxa opens the Lyft, Uber or taxi page with the pick-up and destination pre-filled and reads the price estimate and arrival time back. Nothing is ordered, scheduled or cancelled until issue #43 decides the spend rule.
+
 ### Fixed
 
 - Follow-up questions keep the earlier question and answer as context for both typed and spoken conversations.

@@ -29,6 +29,11 @@ def set_session(session: BrowserSession | None) -> None:
     _session = session
 
 
+def current_session() -> BrowserSession | None:
+    """The session already under control, or None without creating one."""
+    return _session
+
+
 def browse(args: dict[str, str]) -> ToolResult:
     url = normalize_url(args["url"])
     if url is None:

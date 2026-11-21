@@ -116,6 +116,7 @@ adaptive noise cancellation.
 | Try saying | What should happen | Status |
 | --- | --- | --- |
 | “Get me the cheapest ticket to Hawaii” | Expedia flight search from your current city, cheapest first | 🧪 |
+| “Get me a Lyft to the airport” | Opens a Lyft page with the airport pre-filled and reads the price estimate and time back; nothing is ordered until #43 decides | 🧪 |
 | “Find me a cheap hotel in Tokyo for 4 nights” | Expedia hotels, low to high | 🧪 |
 | “Rent a car in Denver next week” | Expedia car search by price | 🧪 |
 | “Cheapest used Toyota Tacoma under 20000” | Cars.com by list price | 🧪 |

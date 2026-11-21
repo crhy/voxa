@@ -361,6 +361,7 @@ def test_registry_lists_all_tools():
             "restore_all",
             "restore_app",
             "resume_app",
+            "ride_quote",
             "say_in_language",
             "say_text",
             "scroll",
