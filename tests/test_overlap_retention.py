@@ -239,6 +239,43 @@ def a_pinned_ring():
     return ring, clock
 
 
+def test_the_raw_ring_keeps_at_least_one_second_of_the_pre_onset_region() -> None:
+    """Roadmap task 6: the turn is first onset MINUS at least 300 ms (a 1 s raw ring), so the
+    raw capture survives the decision about what to do with it. A cold start that begins under
+    a reply must still be able to hand the recogniser the user's first word even though the
+    microphone was muted and the echo stages were running when it arrived."""
+    clock = [0.0]
+    ring = CaptureRing(clock=lambda: clock[0])
+    # 1.2 s of frames while muted (her playback), raw capture carried on every frame.
+    for index in range(60):
+        clock[0] += 0.02
+        ring.add(pcm(0.02, ECHO_LEVEL), float(ECHO_LEVEL), raw=pcm(0.02, USER_LEVEL))
+    # The onset lands on the last frame; the pinned span must reach back at least 300 ms and
+    # its raw audio (not just the cleaned/echo-cancelled copy) must still be readable.
+    ring.pin(seq=59)
+    pinned = ring.pinned()
+    assert pinned, "onset-minus-pre-roll pins a span"
+    assert pinned[-1].t_s - pinned[0].t_s >= 0.30, "at least 300 ms of pre-roll"
+    raw_span = ring.snapshot(raw=True)
+    assert raw_span, "the pre-onset raw capture is still there for one pass over the whole turn"
+    assert len(raw_span) >= int(0.30 * 16000) * 2, "a full second ring covers the pre-roll"
+
+
+def test_the_pin_never_walks_back_past_the_onset_minus_pre_roll_floor() -> None:
+    """Without a level floor the span is exactly onset minus pre-roll: a cold start's pin cannot
+    reach arbitrarily far back into her own echo and hand the turn a prefix that is only her voice."""
+    clock = [0.0]
+    ring = CaptureRing(clock=lambda: clock[0], pre_roll_seconds=0.3)
+    for index in range(80):  # 1.6 s, every frame "loud" (echo during playback)
+        clock[0] += 0.02
+        ring.add(b"\x00" * FRAME_BYTES, float(ECHO_LEVEL))
+    ring.pin(seq=60)
+    pinned = ring.pinned()
+    onset_frame = next(frame for frame in pinned if frame.seq == 60)
+    assert pinned[0].seq < 60
+    assert onset_frame.t_s - pinned[0].t_s <= 0.30 + 0.021, "the span is onset minus pre-roll, not a free walk-back"
+
+
 def test_a_rolling_trim_can_never_overwrite_a_pinned_span() -> None:
     ring, clock = a_pinned_ring()
     for index in range(20, 120):  # two more seconds: the window is only 0.4 s

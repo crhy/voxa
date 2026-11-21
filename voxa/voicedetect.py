@@ -19,6 +19,23 @@ import numpy as np
 
 WINDOW = 512  # samples the model scores at a time (32 ms at 16 kHz)
 CONTEXT = 64  # samples of the previous window the model re-reads as context
+# Roadmap task 6: the Silero off-threshold sits this far below the on-threshold (report line 177:
+# "lower Silero's off-threshold (neg threshold ~ threshold - 0.15)"). With it, a 200 ms trailing pad
+# (SILERO_TRAILING_PAD_MS) is the shortest pause the caller treats as the end of a turn.
+SILERO_OFF_MARGIN = 0.15
+SILERO_TRAILING_PAD_MS = 200.0
+
+
+def silero_hysteresis(voiced: bool, prob: float, on_threshold: float,
+                      off_margin: float = SILERO_OFF_MARGIN) -> bool:
+    """One step of the Silero on/off state machine (pure, no model): speech begins at
+    ``on_threshold`` and ends only ``off_margin`` below it. ``prob`` is the window's speech
+    probability. This is the "off-threshold ~ threshold - 0.15" of roadmap task 6."""
+    if prob >= on_threshold:
+        return True
+    if prob < on_threshold - off_margin:
+        return False
+    return voiced
 
 
 class VoiceDetector:
@@ -31,13 +48,24 @@ class VoiceDetector:
     window. :meth:`reset` clears that state.
     """
 
-    def __init__(self, threshold: float = 0.5) -> None:
+    def __init__(self, threshold: float = 0.5, *, off_margin: float = SILERO_OFF_MARGIN) -> None:
         from faster_whisper.vad import get_vad_model
 
         self.threshold = float(threshold)
+        # Hysteresis (roadmap task 6): once speech has begun the detector stays voiced until the
+        # probability falls this far BELOW the on-threshold. Silero's per-window probability dips
+        # under a soft last syllable or a mid-word breath; a single threshold cuts the turn there
+        # and eats the user's last word (premature_cutoff_rate). An off-threshold of
+        # ``threshold - 0.15`` keeps the run of speech together through those dips.
+        self.off_margin = float(off_margin)
         self.session = get_vad_model().session
         self.probs: list[float] = []
         self.reset()
+
+    @property
+    def off_threshold(self) -> float:
+        """Speech ends only below this probability (the hysteresis floor)."""
+        return self.threshold - self.off_margin
 
     def reset(self) -> None:
         self.h = np.zeros((1, 1, 128), dtype="float32")
@@ -46,6 +74,7 @@ class VoiceDetector:
         self.pending = np.zeros(0, dtype="float32")
         self.last_prob = 0.0
         self.probs = []
+        self._voiced = False
 
     def feed(self, pcm_int16_bytes: bytes) -> bool:
         samples = np.frombuffer(pcm_int16_bytes, dtype="<i2").astype(np.float32) / 32768.0
@@ -62,7 +91,10 @@ class VoiceDetector:
             self.context = row[:, -CONTEXT:]
             self.last_prob = float(probs[0])
             self.probs.append(self.last_prob)
-        return self.last_prob >= self.threshold
+        # Hysteresis: rise at ``threshold``, fall only at ``off_threshold`` (= threshold - 0.15), so
+        # a brief probability dip mid-word does not end the run of speech and truncate a word.
+        self._voiced = silero_hysteresis(self._voiced, self.last_prob, self.threshold, self.off_margin)
+        return self._voiced
 
 
 # --- echo-aware near-end speech detection (roadmap task 5) -----------------------------------
