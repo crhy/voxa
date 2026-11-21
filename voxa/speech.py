@@ -27,6 +27,51 @@ NATURAL_VOICE_ATTEMPTS = 2
 NATURAL_VOICE_RETRY_SECONDS = 0.35
 LOGGER = logging.getLogger(__name__)
 
+# Roadmap task 4 (voxa-hearing research report 4): keep TTS output peaks around -3 dBFS so the
+# speaker is not driven into compression - a distorted speaker creates nonlinear echo exactly
+# where the reference has no energy, which is the echo a linear canceller cannot model.
+CEILING_DBFS = -3.0
+
+
+def cap_wav_peaks(data: bytes, ceiling_dbfs: float = CEILING_DBFS) -> bytes:
+    """Scale 16-bit PCM WAV bytes down until their loudest sample sits at ``ceiling_dbfs``.
+
+    Audio whose peak is already below the ceiling is returned untouched; a cleaner synthesis
+    (Edge/Google voices) needs no cap and must not be made quieter. Only the samples move -
+    the WAV parameters round-trip.
+    """
+    import array
+    import io
+    import wave
+
+    with wave.open(io.BytesIO(data), "rb") as wav:
+        if wav.getnchannels() < 1 or wav.getsampwidth() != 2:
+            return data
+        params = wav.getparams()
+        frames = wav.readframes(wav.getnframes())
+    samples = array.array("h")
+    samples.frombytes(frames)
+    peak = max((abs(int(s)) for s in samples), default=0)
+    ceiling = int(round(32767.0 * 10.0 ** (ceiling_dbfs / 20.0)))
+    if peak <= ceiling:
+        return data
+    scale = ceiling / peak
+    try:
+        import numpy as np  # fast path when numpy is available (it is, everywhere Voxa runs)
+    except ImportError:
+        capped = array.array(
+            "h", (max(-32768, min(32767, int(s * scale))) for s in samples)
+        ).tobytes()
+    else:
+        capped = np.clip(
+            np.frombuffer(frames, dtype="<i2") * scale, -32768, 32767
+        ).astype("<i2").tobytes()
+    out = io.BytesIO()
+    with wave.open(out, "wb") as wav:
+        wav.setparams(params)
+        wav.writeframes(capped)
+    return out.getvalue()
+
 FEMALE_VOICES = frozenset({
     "ar-SA-ZariyahNeural", "de-DE-KatjaNeural", "en-GB-SoniaNeural", "en-IE-EmilyNeural", "en-IN-NeerjaNeural",
     "en-NG-EzinneNeural", "en-US-AriaNeural", "en-US-JennyNeural", "es-MX-DaliaNeural", "fr-FR-DeniseNeural",
@@ -478,10 +523,18 @@ class SpeechService:
         cancel_event: threading.Event,
     ) -> None:
         _ensure_gstreamer()
+        # Roadmap task 4: cap the peaks at -3 dBFS on the way to the speaker. The reference
+        # tap (attached immediately before the sink) then records exactly the capped audio it
+        # will be asked to cancel, so the cap and the echo reference agree. A machine without
+        # the limiter element plays uncapped, and says nothing here because playback itself
+        # must not depend on a cap.
+        cap = ""
+        if Gst.ElementFactory.make("limiter", "tts-cap") is not None:
+            cap = f"limiter name=tts_cap threshold={CEILING_DBFS:.1f} ! "
         pipeline = Gst.parse_launch(
             "appsrc name=source format=bytes block=true max-bytes=1048576 ! "
             "queue max-size-bytes=2097152 ! "
-            "decodebin ! audioconvert ! audioresample ! autoaudiosink name=sink"
+            f"decodebin ! audioconvert ! audioresample ! {cap}autoaudiosink name=sink"
         )
         appsrc = pipeline.get_by_name("source")
         if appsrc is None:
@@ -718,7 +771,9 @@ class SpeechService:
                 suffix=".wav",
                 delete=False,
             ) as handle:
-                handle.write(result.stdout)
+                # Roadmap task 4: the robotic fallback is also the loudest synthesis here, and
+                # eSpeak NG renders peaks near 0 dBFS; cap it before it reaches the speaker.
+                handle.write(cap_wav_peaks(result.stdout))
                 path = handle.name
             if self._before_play is not None:
                 try:

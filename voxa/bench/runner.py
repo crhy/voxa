@@ -55,10 +55,19 @@ from ..conversation import ConversationController, detect_exit_phrase, strip_wak
 from ..dictation import SpeechSegmenter
 from ..endpoint import is_complete, is_followup
 from ..ownspeech import OwnSpeech
-from ..refmask import ReferenceMask
+from ..refmask import ReferenceMask, ResidualMask
 from . import metrics as metrics_module
 from . import report as report_module
 from .render import DEFAULT_DATA_ROOT, SR, read_wav
+
+# Roadmap task 4 (f131): the residual suppressor on the canceller's output. The defaults are the
+# task's rule (6 dB protect, TTS + 300 ms tail); the sweep of the over-subtraction and the protect
+# margin lives in tasks/notes-f131-voxa-hear-t4-residual-mask.md and chose the shipped values.
+MASK_OVER = 0.05  # base suppression gain on a residual band
+MASK_PROTECT_DB = 9.0  # output exceeds the predicted residual by this much = the user, keep it
+MASK_OVER_RAMP = 0.5  # extra dB of suppression per dB of ERLE shortfall
+MASK_ERLE_TARGET_DB = 20.0  # a linear canceller removes 15-25 dB; below this it left more echo
+MASK_TAIL_S = 0.3  # active during TTS plus this tail
 
 CHUNK_MS = 20
 CHUNK_SAMPLES = SR * CHUNK_MS // 1000  # 320 samples per 20 ms frame
@@ -179,9 +188,11 @@ class ClipRunner:
         echo_mode: str = "off",
         wake_word: str = "voxa",
         settings: Settings | None = None,
+        mask_params: dict | None = None,
     ) -> None:
         self.asr = asr
         self.echo_mode = echo_mode
+        self._mask_params = dict(mask_params or {})
         self.settings = settings or Settings().normalized()
         self.wake_word = wake_word
         self.events: list[dict] = []
@@ -287,27 +298,34 @@ class ClipRunner:
             else:
                 self.mask = ReferenceMask()
         if self.echo_mode == "voxa":
-            # The per-band reference mask is Voxa's own residual suppressor, tuned against her own
-            # NLMS canceller. Roadmap task 4 puts a mask on AEC3's output; until then the aec3 mode
-            # measures the canceller alone, which is what task 2's gate is about.
-            self.mask = ReferenceMask()
+            # Roadmap task 4 (f131): the whole point of the mode is now the CHAIN - her NLMS
+            # canceller plus the residual mask on its output, the same rule the aec3 mode runs.
+            # (Before this task the mask was fed at the wrong scale and the stream it emitted was
+            # the documented instrument defect; see tasks/notes-f139-voxa-hear-a2-attribute-by-audio.md.
+            # Task 4 is the task the brief says owns the fix, and it is fixed here: the residual
+            # mask is fed the cleaned float stream and the -1..1 reference, and it gives back
+            # float samples that go to pcm16 the normal way.)
+            self.mask = self._residual_mask()
         elif self.echo_mode == "aec3":
-            # f129 (roadmap task 2): AEC3 cleans, and ONE tail-aware mask does the two things
-            # AEC3 cannot: it holds the reference at the room's own decay, so the RT60 tail after
-            # the reference goes quiet is predicted and suppressed too (erle_fst p10 is exactly
-            # those frames), and it reports the microphone energy that no echo model can explain -
-            # her voice - so the near-end can be passed through untouched (nearend_atten_dt_db).
-            self.mask = ReferenceMask(tail=True)
-            self._dt_excess = 0.6
-            # The fraction of a frame that AEC3 must have LEFT IN (residual/microphone) before a
-            # held-model surprise counts as near-end speech worth protecting. On FST the linear
-            # stage removes the echo (survived ≪ this) so we suppress; on double talk the user
-            # survives it (survived ≈ this or more) so we protect.
-            self._dt_keep = 0.4
-            # A frame is only double-talk (the near end over echo) while the reference is playing;
-            # the reverberant tail lives on the frames where it has gone silent. Reference energy is
-            # in -1..1 float here (Voxa plays at rms ~0.08), and a silent tail is exactly 0.
-            self._dt_ref_floor = 1e-9
+            # f131 (roadmap task 4): ReferenceMask on the AEC output with the aligned reference.
+            # The f129 binary protect/floor switch is gone: the residual mask IS the per-band
+            # protection now (predicted residual from the output-vs-reference ratio, held at the
+            # room's decay for the tail, over-subtraction that rises when the running ERLE is low,
+            # and a band whose output exceeds the predicted residual by >= 6 dB stays untouched).
+            self.mask = self._residual_mask()
+
+    def _residual_mask(self) -> ResidualMask:
+        """f131: the residual suppressor shared by both modes (the chain: canceller + mask). The
+        defaults are the task's; the sweep axes override them via mask_params (run() flags)."""
+        params: dict = {
+            "over": MASK_OVER,
+            "protect_db": MASK_PROTECT_DB,
+            "over_ramp": MASK_OVER_RAMP,
+            "erle_target_db": MASK_ERLE_TARGET_DB,
+            "tail_s": MASK_TAIL_S,
+        }
+        params.update(self._mask_params)
+        return ResidualMask(rate=SR, **params)
 
     def _estimate_delay(self, mic: np.ndarray, ref: np.ndarray) -> None:
         """Mirror of ``AudioCapture._maybe_estimate_delay`` (audio.py:468) on the simulated clock."""
@@ -374,46 +392,21 @@ class ClipRunner:
         self._mic_counter += len(mic_bytes) // 2
         cleaned = np.frombuffer(mic_bytes, dtype="<i2").astype(np.float32)
         erle = erle_removed_db(mic, cleaned) if self.canceller is not None else 0.0
-        if self.mask is not None and self.echo_mode == "aec3":
-            # f129: the mask is fed at the CORRECT scale (-1..1 both sides) and on the RAW
-            # microphone, because it is used here only for its STATE: the held echo model and the
-            # energy the model cannot explain. Cleaning first would hide the user under AEC3's own
-            # suppression and the detector could never fire. (Mode "voxa" keeps f139's instrument
-            # defect below on purpose; this mode re-records its own baseline, and a canceller
-            # measured through a saturated mask is worthless.)
+        if self.mask is not None and self.echo_mode in ("voxa", "aec3"):
+            # f131 (roadmap task 4): the residual suppressor runs ON THE CANCELLER'S OUTPUT, with
+            # the aligned reference, at the scale both the mask and its dB semantics mean
+            # (-1..1 on both sides - the instrument-defect branch below is what this replaces).
             mic_f = mic.astype(np.float64) / 32768.0
-            self.mask.process(mic_f, ref.astype(np.float64))
-            # Two independent echo models must both be surprised before we protect the near end
-            # and pass the raw microphone: the held reference model (energy the room did not
-            # play), and AEC3 itself (energy the linear stage failed to remove). On an FST onset
-            # the held model is briefly behind but AEC3 removes the echo (residual ≪ mic) - so we
-            # suppress, not protect. On double talk the user's voice survives the linear stage
-            # (residual ≈ mic) AND the held model can't explain it - so we protect.
-            cl_f = cleaned.astype(np.float64) / 32768.0
-            mic_e = float(np.mean(mic_f * mic_f))
-            cl_e = float(np.mean(cl_f * cl_f))
-            survived = cl_e / max(mic_e, 1e-12)  # fraction of the frame AEC3 failed to remove
-            # The near-end lives where the reference is playing: the reverberant tail lives where it
-            # has gone quiet (energy ratios alone cannot tell them apart - AEC3 under-cancels these
-            # rooms' tails, so a tail frame reads as much residual as her voice does).
-            ref_e = float(np.mean(ref.astype(np.float64) * ref.astype(np.float64)))
-            protect = (ref_e > self._dt_ref_floor
-                       and self.mask.last_excess_frac > self._dt_excess
-                       and survived > self._dt_keep)
-            if protect:
-                # The user, not her own tail: the frame goes on as the microphone delivered it -
-                # the safest copy (handoff 6.2, ITU-T P.340).
-                out = mic_f
-            else:
-                # Echo, and echo only: AEC3's residual tail meets the mask's floor. These rooms
-                # ring 0.2-0.8 s after the reference goes quiet, which is exactly where the raw
-                # canceller measured 0-1 dB of ERLE (erle_fst p10).
-                out = cleaned.astype(np.float64) * (self.mask.floor / 32768.0)
-            out = np.clip(out, -1.0, 1.0)
+            cleaned_f = cleaned.astype(np.float64) / 32768.0
+            # The running ERLE of the LINEAR canceller: when it removed little (cheap speakers,
+            # high volume, a tail still ringing), the mask subtracts deeper.
+            self.mask.set_running_erle(erle)
+            out = np.clip(self.mask.process(cleaned_f, ref.astype(np.float64)), -1.0, 1.0)
             if out.size:
-                # The canceller chain (AEC3 + residual mask) is what the gate measures; the mask's
-                # suppression is part of removing the echo, so erle is measured against THIS output,
-                # not AEC3 alone. (research/voxa-hearing: the residual mask is layer 2 of AEC3.)
+                # The canceller chain (canceller + residual mask) is what the gate measures; the
+                # mask's suppression is part of removing the echo, so erle is measured against
+                # THIS output, not the canceller alone. (research/voxa-hearing: the residual mask
+                # is layer 2 of AEC3; f129 recorded the same rule for the aec3 arm.)
                 final = (out * 32768.0).astype(np.float32)
                 erle = erle_removed_db(mic, final)
                 gain = (float(np.mean(np.abs(out)))
@@ -964,14 +957,37 @@ def run(argv: list[str] | None = None) -> int:
     parser.add_argument("--model", default="", help="faster-whisper model (default: Voxa's, config.py:22)")
     parser.add_argument("--limit", type=int, default=None, help="run only the first N clips (debugging)")
     parser.add_argument("--no-gates", action="store_true", help="skip the gates.toml checks (roadmap B5)")
+    # f131 (roadmap task 4): the residual mask's axes, for the sweep. Unset means the task's
+    # defaults (MASK_* above).
+    parser.add_argument("--mask-over", type=float, default=None,
+                        help="residual mask: base over-subtraction (default %(default)s means MASK_OVER)")
+    parser.add_argument("--mask-protect-db", type=float, default=None,
+                        help="residual mask: protection margin in dB (default: MASK_PROTECT_DB)")
+    parser.add_argument("--mask-ramp", type=float, default=None,
+                        help="residual mask: over-subtraction ramp (default: MASK_OVER_RAMP)")
+    parser.add_argument("--mask-erle-target-db", type=float, default=None,
+                        help="residual mask: the ERLE the linear stage is assumed to give (default: MASK_ERLE_TARGET_DB)")
+    parser.add_argument("--mask-tail-s", type=float, default=None,
+                        help="residual mask: tail window ceiling in s (default: MASK_TAIL_S)")
     parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args(argv)
     if args.echo_mode == "aec3" and not aec3_available():
         print("echo mode aec3 needs pywebrtc-audio in this interpreter; "
               "pip install pywebrtc-audio or use --echo-mode voxa.", file=sys.stderr)
         return 2
+    mask_params: dict = {}
+    if args.mask_over is not None:
+        mask_params["over"] = args.mask_over
+    if args.mask_protect_db is not None:
+        mask_params["protect_db"] = args.mask_protect_db
+    if args.mask_ramp is not None:
+        mask_params["over_ramp"] = args.mask_ramp
+    if args.mask_erle_target_db is not None:
+        mask_params["erle_target_db"] = args.mask_erle_target_db
+    if args.mask_tail_s is not None:
+        mask_params["tail_s"] = args.mask_tail_s
     report = run_clips(args.suite, args.seed, args.echo_mode, args.data_root, args.limit,
-                       args.model, args.quiet)
+                       args.model, args.quiet, mask_params)
     out_path = args.out or Path(f".voxa-bench/report-{args.suite}.json")
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
@@ -1013,7 +1029,7 @@ def render_timeline_measure(loaded: dict, echo_mode: str) -> dict:
 
 
 def run_clips(suite: str, seed: int, echo_mode: str, data_root: Path, limit: int | None,
-              model: str, quiet: bool = False) -> dict:
+              model: str, quiet: bool = False, mask_params: dict | None = None) -> dict:
     """Run every clip of a suite, write the per-clip events, and return the report."""
     suite_dir = data_root / suite
     if not suite_dir.is_dir():
@@ -1030,7 +1046,8 @@ def run_clips(suite: str, seed: int, echo_mode: str, data_root: Path, limit: int
     facts: list[dict] = []
     for index, clip_dir in enumerate(clip_dirs):
         loaded = load_clip(clip_dir)
-        runner = ClipRunner(asr=asr, echo_mode=echo_mode, wake_word=wake_word)
+        runner = ClipRunner(asr=asr, echo_mode=echo_mode, wake_word=wake_word,
+                            mask_params=mask_params)
         summary = runner.run(loaded["mic"], loaded["ref"], loaded["truth"])
         summary["render"] = render_timeline_measure(loaded, echo_mode)
         clip_out = events_root / summary["id"]
@@ -1047,6 +1064,9 @@ def run_clips(suite: str, seed: int, echo_mode: str, data_root: Path, limit: int
                   f"barge {summary['counts']['barge_in']}", flush=True)
     report = build_report(suite, seed, echo_mode, results, facts, audio_seconds,
                           time.perf_counter() - started, model)
+    if mask_params:
+        # f131: the sweep must be able to cite which knobs each row used.
+        report["run"]["mask_params"] = dict(mask_params)
     # Roadmap task 2's CPU gate is about the echo stages, not the recogniser: cpu_core_share divides
     # ASR seconds by wall seconds and can never show what a canceller costs. This is the number the
     # "<= 10 % of one core" gate is actually about, measured on the same clips.
