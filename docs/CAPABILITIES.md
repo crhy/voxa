@@ -131,6 +131,7 @@ adaptive noise cancellation.
 | “Open my email” | Gmail opens | ✅ |
 | “Open Expedia” / “Open spacedlinux.com” | Site opens, known or not | 🧪 |
 | “Search Wikipedia for …”, “click History”, “go back” | Voxa drives her own browser | 🧪 |
+| “Download the annual report” | Clicks the link you name, saves the file in Downloads/Voxa and says where it went | 🧪 |
 
 ## Writing and files
 

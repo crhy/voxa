@@ -13,6 +13,9 @@
   indicator says which device is in use, e.g. "● Online · card 0". Combining cards is left to
   the backend, and Whisper's own device choice is not part of this yet. (`voxa/hardware.py`,
   `voxa/config.py`, `voxa/engine.py`, `voxa/server.py`, `voxa/window.py`) (#9) 🧪
+- **Voxa keeps her downloads in one folder.** "Download the annual report" clicks the link you name, saves the file
+  in your Downloads/Voxa folder, and tells you the file's name and where it went; if nothing arrives she says so
+  instead of guessing.
 
 ### Fixed
 

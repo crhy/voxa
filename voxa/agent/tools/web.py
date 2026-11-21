@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import urllib.parse
 
 from voxa.agent.browser_session import BrowserSession
@@ -141,6 +142,23 @@ def search_site(args: dict[str, str]) -> ToolResult:
     return ToolResult.success(f"Searching for {query}.")
 
 
+def download_file(args: dict[str, str]) -> ToolResult:
+    link = args["link"]
+    session = get_session()
+    try:
+        session.ensure()
+        folder = session.allow_downloads()
+        before = set(os.listdir(folder))
+        if session.click(link) is None:
+            return ToolResult.failure(f"I couldn't find a link called {link} on this page.")
+        path = session.await_download(before, folder)
+    except CdpError as exc:
+        return ToolResult.failure("Nothing was saved to your Voxa downloads folder.", detail=str(exc))
+    if path is None or not os.path.isfile(path):
+        return ToolResult.failure("Nothing was saved to your Voxa downloads folder.")
+    return ToolResult.success(f"Saved {os.path.basename(path)} in your Voxa downloads folder.", detail=path)
+
+
 def search_web(args: dict[str, str]) -> ToolResult:
     query = args["query"]
     session = get_session()
@@ -223,6 +241,15 @@ def web_tools() -> list[Tool]:
             risk=RiskLevel.REVERSIBLE,
             handler=search_site,
             required=("query",),
+        ),
+        Tool(
+            name="download_file",
+            description="Click a link and save the file it downloads into Voxa's downloads folder.",
+            parameters={"link": "text of the link or button to download"},
+            risk=RiskLevel.EXTERNAL_WRITE,
+            handler=download_file,
+            required=("link",),
+            timeout_seconds=45.0,
         ),
         Tool(
             name="search_web",
