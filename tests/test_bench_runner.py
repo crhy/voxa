@@ -1,0 +1,310 @@
+"""Tests for the B2 file-driven runner (voxa/bench/runner.py) and the factored barge-in class.
+
+Everything is offline and fast: two tiny generated clips, a stubbed ASR and a stubbed voice
+detector, so no faster-whisper model, no network, no sound device and no sleeping.
+"""
+
+from __future__ import annotations
+
+import json
+import math
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+from voxa.bargectl import IGNORED, INTERRUPT, OFFLINE, OWN_VOICE
+from voxa.bench.render import write_wav
+from voxa.bench.runner import CHUNK_SAMPLES, ClipRunner, load_clip
+
+
+class StubASR:
+    """A fake faster-whisper: the words depend on how much audio it was handed."""
+
+    model_name = "stub"
+
+    def __init__(self) -> None:
+        self.calls = 0
+        self.audio_seconds = 0.0
+        self.processing_seconds = 0.0
+        self.hints: list[str] = []
+
+    def transcribe_words(self, pcm: bytes, hint: str = "") -> dict:
+        self.calls += 1
+        self.hints.append(hint)
+        seconds = len(pcm) / 32000.0
+        self.audio_seconds += seconds
+        # The barge-in candidate is transcribed without a hint (the controller never ran
+        # ``start()``, so its prompt hint is empty); utterances carry the wake hint.
+        text = "stop" if hint == "" else "Voxa what time is it"
+        return {
+            "text": text,
+            "words": [{"word": word, "onset_s": 0.0, "offset_s": round(seconds, 3)}
+                      for word in text.split()],
+            "no_speech_prob": 0.02,
+            "audio_seconds": round(seconds, 3),
+            "asr_seconds": 0.0,
+            "segments": 1,
+        }
+
+    def transcribe(self, pcm_s16le: bytes, language: str = "en", hint: str = "") -> str:
+        return self.transcribe_words(pcm_s16le, hint)["text"]
+
+
+class StubDetector:
+    """A fake Silero detector: always voice, so the loudness rule alone decides."""
+
+    threshold = 0.5
+
+    def __init__(self, threshold: float = 0.5) -> None:
+        self.threshold = threshold
+        self.last_prob = 0.9
+
+    def reset(self) -> None:
+        self.last_prob = 0.9
+
+    def feed(self, pcm: bytes) -> bool:
+        self.last_prob = 0.9
+        return True
+
+
+@pytest.fixture(autouse=True)
+def _stub_detector(monkeypatch):
+    monkeypatch.setattr("voxa.voicedetect.VoiceDetector", StubDetector)
+
+
+def level_signal(seconds: float, level: int, rate: int = 16000) -> np.ndarray:
+    """A constant-amplitude stretch: the microphone level the pipeline will report."""
+    samples = int(round(seconds * rate))
+    wave = np.tile([level, -level], samples // 2 + 1)
+    return (wave[:samples] / 32768.0).astype(np.float32)
+
+
+def write_clip(root: Path, suite: str, clip_id: str, mic: np.ndarray, ref: np.ndarray,
+               truth: dict) -> Path:
+    clip_dir = root / suite / clip_id
+    clip_dir.mkdir(parents=True, exist_ok=True)
+    write_wav(clip_dir / "mic.wav", mic)
+    write_wav(clip_dir / "ref.wav", ref)
+    (clip_dir / "truth.json").write_text(json.dumps(truth))
+    return clip_dir
+
+
+def make_fixture(tmp_path: Path) -> tuple[Path, dict, dict]:
+    """Two clips: one where only the user speaks, one where Voxa is speaking and the user cuts in."""
+    root = tmp_path / "data"
+
+    user_only = np.concatenate([
+        level_signal(0.3, 0),
+        level_signal(1.6, 2000),
+        level_signal(1.0, 0),
+    ])
+    write_clip(root, "tiny", "tiny-0000-nst-00", user_only, np.zeros(len(user_only), np.float32), {
+        "id": "tiny-0000-nst-00", "scenario": "nst", "expect": "keep", "playback": None,
+    })
+
+    reply = np.concatenate([
+        level_signal(1.2, 600),      # her own voice: grace, then the gate learns her level
+        level_signal(1.6, 2600),     # the user talks over it: the gate opens, words are judged
+        level_signal(1.0, 600),
+        level_signal(1.0, 0),
+    ])
+    # Voxa keeps playing for 3.4 s: long enough for the canceller's 3 s delay estimate too.
+    played = np.concatenate([level_signal(3.4, 500),
+                             np.zeros(len(reply) - int(3.4 * 16000), dtype=np.float32)])
+    write_clip(root, "tiny", "tiny-0001-dt_middle-00", reply, played, {
+        "id": "tiny-0001-dt_middle-00", "scenario": "dt_middle", "expect": "keep",
+        "playback": {"text": "The weather is clear today.", "onset_s": 0.0, "offset_s": 1.8},
+    })
+    return root, {"id": "tiny-0000-nst-00"}, {"id": "tiny-0001-dt_middle-00"}
+
+
+def events_of(runner: ClipRunner, name: str) -> list[dict]:
+    return [event for event in runner.events if event["event"] == name]
+
+
+def event_names(runner: ClipRunner) -> list[str]:
+    return [event["event"] for event in runner.events]
+
+
+def test_frames_are_20_ms_chunks_with_contiguous_ids(tmp_path: Path) -> None:
+    root, _clip, _other = make_fixture(tmp_path)
+    loaded = load_clip(root / "tiny" / "tiny-0000-nst-00")
+    runner = ClipRunner(asr=StubASR(), echo_mode="off", wake_word="voxa")
+    summary = runner.run(loaded["mic"], loaded["ref"], loaded["truth"])
+
+    frames = events_of(runner, "frame")
+    expected = math.ceil(len(loaded["mic"]) / CHUNK_SAMPLES)
+    assert len(frames) == expected == summary["frames"]
+    assert [event["frame"] for event in frames] == list(range(expected))
+    assert [event["samples"] for event in frames][:3] == [[0, 320], [320, 640], [640, 960]]
+    # The simulated clock advances 20 ms per frame: no sleeping, no wall-clock drift.
+    assert [event["t_s"] for event in frames[:4]] == [0.02, 0.04, 0.06, 0.08]
+    assert summary["seconds"] == round(expected * CHUNK_SAMPLES / 16000.0, 3)
+
+
+def test_a_finished_utterance_emits_pause_transcript_endpoint_request_in_order(tmp_path: Path) -> None:
+    root, _clip, _other = make_fixture(tmp_path)
+    loaded = load_clip(root / "tiny" / "tiny-0000-nst-00")
+    asr = StubASR()
+    runner = ClipRunner(asr=asr, echo_mode="off", wake_word="voxa")
+    summary = runner.run(loaded["mic"], loaded["ref"], loaded["truth"])
+
+    names = event_names(runner)
+    for event in ("pause", "transcript", "endpoint", "request"):
+        assert event in names, names
+    assert (names.index("pause") < names.index("transcript") < names.index("endpoint")
+            < names.index("request"))
+    request = events_of(runner, "request")[0]
+    # The wake word is stripped before the text would reach the assistant.
+    assert request["text"] == "what time is it"
+    assert request["kind"] == "wake"
+    assert request["no_speech_prob"] == 0.02
+    assert [word["word"] for word in request["words"]] == ["Voxa", "what", "time", "is", "it"]
+    # The request is reported at the frame where the pause boundary fired.
+    assert request["frame"] == events_of(runner, "pause")[0]["frame"]
+    assert summary["requests"] == ["what time is it"]
+
+
+def test_talking_over_a_reply_confirms_the_barge_in_and_stops_the_reply(tmp_path: Path) -> None:
+    root, _clip, _other = make_fixture(tmp_path)
+    loaded = load_clip(root / "tiny" / "tiny-0001-dt_middle-00")
+    runner = ClipRunner(asr=StubASR(), echo_mode="off", wake_word="voxa")
+    summary = runner.run(loaded["mic"], loaded["ref"], loaded["truth"])
+
+    names = event_names(runner)
+    assert names[0] == "tts-start"
+    assert "suspect" in names and "barge-in-confirm" in names and "tts-stop" in names
+    assert names.index("suspect") < names.index("barge-in-confirm") < names.index("tts-stop")
+    assert summary["counts"]["barge_in"] == 1
+    confirm = events_of(runner, "barge-in-confirm")[0]
+    assert confirm["heard"] == "stop"
+    # The muted microphone never segments her own playback: the first pause comes after the reply.
+    assert names.index("tts-stop") < names.index("pause")
+
+
+def test_echo_mode_off_leaves_the_mic_untouched_and_voxa_cleans_it(tmp_path: Path) -> None:
+    root, _clip, _other = make_fixture(tmp_path)
+    loaded = load_clip(root / "tiny" / "tiny-0001-dt_middle-00")
+
+    raw = ClipRunner(asr=StubASR(), echo_mode="off", wake_word="voxa")
+    raw_summary = raw.run(loaded["mic"], loaded["ref"], loaded["truth"])
+    assert all(event["erle_db"] == 0.0 for event in events_of(raw, "frame"))
+    assert all(event["delay_samples"] == 0 for event in events_of(raw, "frame"))
+    assert raw_summary["echo_mode"] == "off"
+
+    cleaned = ClipRunner(asr=StubASR(), echo_mode="voxa", wake_word="voxa")
+    cleaned_summary = cleaned.run(loaded["mic"], loaded["ref"], loaded["truth"])
+    assert cleaned_summary["echo_mode"] == "voxa"
+    assert any(event["erle_db"] != 0.0 for event in events_of(cleaned, "frame"))
+    # Roadmap task 3: this synthetic mic carries no echo at all, so the tracker's coherence
+    # guard must not invent a delay; the smoke suite clips (and the real ones) do have echo,
+    # and there the estimates fire (delay_est_err_ms is measured from them).
+    assert not events_of(cleaned, "delay-estimate"), "no echo in the mic: no delay may be claimed"
+    assert events_of(cleaned, "frame")[0]["muted"] is True   # the reply starts at frame 0
+    assert events_of(cleaned, "frame")[-1]["muted"] is False  # playback ended before the clip did
+
+
+def test_webrtc_mode_reports_a_degraded_run_instead_of_claiming_cancellation(tmp_path: Path) -> None:
+    root, _clip, _other = make_fixture(tmp_path)
+    loaded = load_clip(root / "tiny" / "tiny-0001-dt_middle-00")
+    runner = ClipRunner(asr=StubASR(), echo_mode="webrtc", wake_word="voxa")
+    summary = runner.run(loaded["mic"], loaded["ref"], loaded["truth"])
+    if summary["echo_mode"] == "webrtc":  # a machine with GStreamer really cancels
+        return
+    assert summary["degraded"].startswith("webrtc unavailable")
+    assert events_of(runner, "echo-mode")[0]["available"] is False
+
+
+def test_the_runner_reads_a_rendered_clip_from_disk(tmp_path: Path) -> None:
+    root, _clip, _other = make_fixture(tmp_path)
+    loaded = load_clip(root / "tiny" / "tiny-0000-nst-00")
+    assert loaded["truth"]["id"] == "tiny-0000-nst-00"
+    assert loaded["mic"].dtype == np.dtype("<i2")
+    assert len(loaded["mic"]) == len(loaded["ref"])
+
+
+def open_the_gate(control, clock, candidate: str, her_level: float = 0.15,
+                  user_level: float = 0.65) -> float:
+    """Her own steady level settles the gate's baseline; a louder user then opens it.
+
+    A constant level never opens the gate (that is what "it is still her voice" means), so the
+    helper feeds two phases and returns the simulated time the gate opened. Each sample says
+    how much AUDIO it stands for (``dt_ms``): the windows are counted in milliseconds of sound,
+    not in callbacks.
+    """
+    clock["now"] = 0.5
+    for _ in range(40):
+        clock["now"] += 0.05
+        control.observe(her_level, speaking=True, muted=True, wake_word="voxa",
+                        candidate=lambda: (candidate, candidate), dt_ms=50.0)
+    for _ in range(40):
+        clock["now"] += 0.05
+        outcome = control.observe(user_level, speaking=True, muted=True, wake_word="voxa",
+                                  candidate=lambda: (candidate, candidate), dt_ms=50.0)
+        if outcome.reason == "listening" and outcome.gate_opened:
+            return clock["now"]
+    raise AssertionError("the level gate never opened")
+
+
+def judge(control, clock, level: float, heard: str, **kwargs):
+    """Keep feeding audio until the collected words are judged (the listening window is audio).
+
+    Returns the outcome that decided, or None when the evidence never decided.
+    """
+    for _ in range(40):
+        clock["now"] += 0.05
+        outcome = control.observe(level, speaking=True, muted=True, wake_word="voxa",
+                                  candidate=lambda: (heard, heard), dt_ms=50.0, **kwargs)
+        if outcome.action != IGNORED:
+            return outcome
+    return None
+
+
+def test_barge_in_decision_judges_the_first_frame_of_the_reply() -> None:
+    """No grace period: the first frame of a reply is already judged (task A3).
+
+    What restarts when she starts speaking is the EVIDENCE - the gate's baseline, the onset
+    detector's run of unexplained sound - not a fold over the microphone. The first frame is
+    therefore judged, and what it reports is the gate still learning her level.
+    """
+    from voxa.bargectl import BargeInController, IGNORED
+
+    clock = {"now": 0.0}
+    control = BargeInController(clock=lambda: clock["now"])
+    control.reply_started("The weather is clear today.")
+
+    clock["now"] = 0.1
+    first = control.observe(0.15, speaking=True, muted=True, wake_word="voxa",
+                            candidate=lambda: ("stop", "stop"), dt_ms=50.0)
+    assert first.action == IGNORED and first.reason == "gate-closed", first.reason
+    assert control.onset.audio_ms > 0.0, "the onset evidence did not start at the first frame"
+
+    opened_at = open_the_gate(control, clock, "stop")
+    listening = control.observe(0.65, speaking=True, muted=True, wake_word="voxa",
+                                candidate=lambda: ("stop", "stop"), dt_ms=50.0)
+    assert listening.reason == "listening"
+
+    decided = judge(control, clock, 0.65, "stop")
+    assert decided is not None and decided.action == INTERRUPT, decided.reason
+    assert decided.heard == "stop"
+    assert control.speaking_since == 0.0, "the interrupt branch ends the reply"
+
+
+def test_barge_in_decision_rejects_her_own_words_and_takes_offline_words_seriously() -> None:
+    from voxa.bargectl import BargeInController
+
+    clock = {"now": 0.0}
+    control = BargeInController(clock=lambda: clock["now"])
+    control.reply_started("Do not steal the ring.")
+    open_the_gate(control, clock, "do not steel the wrong")
+    own = judge(control, clock, 0.65, "do not steel the wrong")
+    assert own.action == OWN_VOICE
+    assert control.pending_since == 0.0, "her own words must not leave the gate open"
+
+    clock = {"now": 0.0}
+    control = BargeInController(clock=lambda: clock["now"])
+    control.reply_started("The weather is clear today.")
+    open_the_gate(control, clock, "Voxa, go offline")
+    offline = judge(control, clock, 0.65, "Voxa, go offline")
+    assert offline.action == OFFLINE
