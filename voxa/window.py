@@ -62,6 +62,11 @@ from .agent.routines import (  # noqa: E402
     parse_create,
     parse_delete,
     parse_list,
+    parse_schedule,
+    parse_unschedule,
+    schedule_reply,
+    schedule_text,
+    unschedule_reply,
 )
 from .agent.spoken_text import format_dictation, parse_dictation_control  # noqa: E402
 from .agent.suggest import Suggestion, SuggestionState, suggest  # noqa: E402
@@ -480,6 +485,10 @@ class MainWindow(Adw.ApplicationWindow):
         self.routine_store = RoutineStore(self.action_log.path.parent / "routines.json")
         self._routine_queue: list[str] = []
         self._routine_active = False
+        # Routines already fired by the 5-second clock this day, so a scheduled run happens
+        # once per weekday and time instead of a dozen times in the same minute.
+        self._routine_fired: set[tuple[str, int | None, tuple[int, int] | None]] = set()
+        self._routine_fired_date = datetime.now().date()
         # Dictation mode: utterances go straight into the focused window instead
         # of the model, until the user says "stop dictating".
         self._external_dictation = False
@@ -1348,8 +1357,9 @@ class MainWindow(Adw.ApplicationWindow):
         self.toast_overlay.add_toast(toast)
 
     def _reminders_tick(self) -> bool:
-        """Deliver reminders whose time has come, then reschedule. Returns True to keep the timer."""
-        for item in self.reminder_store.due(datetime.now()):
+        """Deliver reminders whose time has come and run routines whose schedule says now."""
+        now = datetime.now()
+        for item in self.reminder_store.due(now):
             if item.kind == "timer":
                 phrase = timer_phrase(item.text)
             elif item.kind == "focus":
@@ -1359,7 +1369,38 @@ class MainWindow(Adw.ApplicationWindow):
             self._toast(phrase)
             if self.assistant.is_active:
                 self._conversation_speak(phrase)
+        self._run_due_routines(now)
         return True
+
+    def _run_due_routines(self, now: datetime) -> None:
+        """Run each routine whose weekday and time say now, once, as if it had been triggered.
+
+        The steps go through ``_start_routine``, the same path a spoken trigger uses, so they
+        run in order and are logged like any other command. Only the routine's name is spoken;
+        the steps never go back through ``match``, so a step cannot re-trigger the routine.
+        """
+        if self._routine_fired_date != now.date():
+            self._routine_fired.clear()
+            self._routine_fired_date = now.date()
+        for routine in self.routine_store.due(now):
+            fired = (routine.name, routine.weekday, routine.at)
+            if fired in self._routine_fired:
+                continue
+            if self._routine_active or self._routine_queue:
+                # Another routine is still running; try again on the next tick, while the
+                # scheduled minute still counts.
+                return
+            self._routine_fired.add(fired)
+            self._log_action(
+                f"{schedule_text(routine)} {routine.name}",
+                "routine",
+                detail=f"scheduled run {routine.name}",
+            )
+            phrase = f"Running the {routine.name} routine."
+            self._toast(phrase)
+            if self.assistant.is_active:
+                self._conversation_speak(phrase)
+            self._start_routine(routine.steps)
 
     def _start_progress(self) -> None:
         self.progress.set_visible(True)
@@ -3747,14 +3788,40 @@ class MainWindow(Adw.ApplicationWindow):
             return
         if parse_list(prompt):
             self._log_action(prompt, "routine", detail="list")
-            names = [r.name for r in self.routine_store.all()]
-            self._say_notice(list_reply(names))
+            self._say_notice(list_reply(self.routine_store.all()))
             return
         deleted = parse_delete(prompt)
         if deleted is not None:
             ok = self.routine_store.remove(deleted)
             self._log_action(prompt, "routine", ok=ok, detail=f"delete {deleted}")
             self._say_notice(delete_reply(deleted, ok))
+            return
+        scheduled = parse_schedule(prompt)
+        if scheduled is not None:
+            spoken, weekday, at = scheduled
+            routine = self.routine_store.find(spoken)
+            if routine is not None:
+                self.routine_store.set_schedule(routine.name, weekday, at)
+                self._log_action(prompt, "routine", detail=f"schedule {routine.name}")
+                self._say_notice(schedule_reply(routine.name, weekday, at))
+                return
+            if not prompt.strip().startswith("every "):
+                # "schedule the <name> routine ..." about a routine that was never created.
+                self._log_action(prompt, "routine", ok=False, detail=f"schedule {spoken}")
+                self._say_notice(delete_reply(spoken, False))
+                return
+            # A bare "every friday at five, <phrase>" with no such routine is not a scheduling
+            # command after all: let the rest of the router hear it.
+        unscheduled = parse_unschedule(prompt)
+        if unscheduled is not None:
+            routine = self.routine_store.find(unscheduled)
+            if routine is None:
+                self._log_action(prompt, "routine", ok=False, detail=f"unschedule {unscheduled}")
+                self._say_notice(delete_reply(unscheduled, False))
+            else:
+                ok = self.routine_store.clear_schedule(routine.name)
+                self._log_action(prompt, "routine", ok=ok, detail=f"unschedule {routine.name}")
+                self._say_notice(unschedule_reply(routine.name, ok))
             return
         matched = self.routine_store.match(prompt)
         if matched is not None:
