@@ -109,6 +109,10 @@
   not as measured latency on a real network.
   (`voxa/agent/homeassistant.py`, `voxa/agent/tools/home.py`, `voxa/agent/intents.py`) (#44) 🧪
 
+### New
+
+- **A flight search reads itself back.** "Read back the flights", "what are the cheapest flights" or "compare them" opens the search in the browser Voxa controls and says the top three aloud, cheapest first, with stops, duration and price. Hotel and product searches read back their names and prices; when a page will not parse, she says what she opened and leaves it to your eyes.
+
 ### Fixed
 
 - **Installing Ollama no longer runs unreviewed web content as root.** Voxa hashes the installer it downloads from ollama.com and only hands it to the password prompt when that hash is on its reviewed list; otherwise it says so plainly and gives the terminal command to run yourself (#132).

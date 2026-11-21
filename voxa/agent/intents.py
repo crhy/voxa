@@ -1676,6 +1676,7 @@ ROUTED_TOOLS = frozenset(
         "home_devices",
         "find_deal",
         "product_results",
+        "deal_results",
         "set_location",
         "tell_time",
         "transcribe_file",
@@ -1918,7 +1919,17 @@ def _route_iso_download(s: str) -> ToolCall | None:
     if folder:
         args["folder"] = folder
     return ToolCall("download_iso", args)
-
+# Reading a price or booking search back aloud instead of only opening it (crhy/voxa#48).
+_DEAL_NOUN = r"(?:results?|options?|choices?|fares?|flights?|hotels?|tickets?|deals?|prices?|ones?)"
+_DEAL_COUNT = r"(?:top|best|first|cheapest|three|two|few|several|\d+)"
+_DEAL_READ = re.compile(
+    r"(?:read|recite|speak|tell)(?:\s+back)?\s+(?:me\s+)?(?:the\s+|these\s+|those\s+|my\s+)?"
+    rf"(?:{_DEAL_COUNT}\s+)*(?:{_DEAL_NOUN}|{_DEAL_COUNT})\b"
+    rf"|(?:what|how)\b.*?\b(?:are|is)\s+(?:the\s+)?(?:{_DEAL_COUNT}\s+)*{_DEAL_NOUN}\b"
+    rf"|(?:compare|rank)\s+(?:the\s+|these\s+|my\s+|both\s+)?"
+    rf"(?:{_DEAL_COUNT}\s+)*(?:{_DEAL_NOUN}|them|these|those)\b",
+    re.IGNORECASE,
+)
 
 def route(text: str) -> ToolCall | None:
     """Map a spoken command to a tool call, or None when no rule matches."""
@@ -2577,6 +2588,11 @@ def _route_command(text: str) -> ToolCall | None:
                          or bitcoin_buy_match.group("amount2") or "")
         value = parse_amount(spoken_amount)
         return call("bitcoin_buy", amount=(f"{value:g}" if value is not None else ""))
+    # strata/f160: #48's read-back reader and #51's product reader share these phrases;
+    # the older, broader flight/booking rule is tried first, and #51 keeps the phrases
+    # only it matches ("products", "standing desk" style requests).
+    if _DEAL_READ.fullmatch(s):
+        return call("deal_results", request=s)
     if _PRODUCT_READ.fullmatch(s):
         return call("product_results", request=s)
 
