@@ -377,6 +377,7 @@ def test_registry_lists_all_tools():
             "say_in_language",
             "say_text",
             "scroll",
+            "search_file_contents",
             "search_site",
             "search_web",
             "search_youtube",

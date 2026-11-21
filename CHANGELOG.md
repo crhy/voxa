@@ -21,6 +21,7 @@
   or "summarize this" and Voxa attaches the focused window's title and visible text to the request before the AI
   answers it. Questions that do not refer to the screen read nothing at all, and web phrasing such as "on this page"
   still goes to the browser.
+- **Find files by the words inside them.** "Search my documents for lease", "Find files containing invoice", "Which files mention Portland" — Voxa reads the text inside the files in the folder you name and says back the line it found. It never moves, renames or deletes anything while searching, and says so when a folder takes too long to search.
 
 ### Fixed
 
