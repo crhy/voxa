@@ -698,6 +698,13 @@ def build_clip(item: dict, tts_source: Source | None, user_source: Source | None
             "delay_ms": delay_samples * 1000.0 / SR,
             "delay_samples": delay_samples,
             "delay_step_ms": item["delay_step_ms"],
+            # TASK-3 BUG FIX (f130), see tasks/notes-f130-voxa-hear-t3-delay-drift.md: the path
+            # change lands at a RANDOM time (line 642) but the truth never recorded WHERE, so a
+            # path_change clip could not reconstruct its own echo path, and a delay estimate made
+            # after the step could not be judged against the truth. The audio is unchanged; only
+            # the truth record gains the two fields the renderer already knew.
+            "step_at_s": (step_at / SR) if step_at else None,
+            "clip_seconds": n / SR,
             "drift_ppm": item["drift_ppm"],
             "nonlinearity": item["nonlinearity"],
         },

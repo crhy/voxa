@@ -378,8 +378,11 @@ def test_a_voxa_only_clip_that_becomes_a_command_is_the_serious_failure() -> Non
 
 
 def test_cpu_core_share_reads_the_runner_s_own_clock() -> None:
+    # f129 bug fix: the metric that carries the gate "<= 10 % of one core" (roadmap task 2)
+    # divides ECHO-stage seconds by clip audio seconds, not the recogniser by wall clock.
     facts = [clip(truth(scenario="nst"), frames(10),
-                {"wall_seconds": 2.0, "asr_processing_seconds": 1.0})]
+                {"seconds": 2.0, "echo_processing_seconds": 1.0,
+                 "wall_seconds": 9.0, "asr_processing_seconds": 7.0})]
     assert value_of(facts, "cpu_core_share") == pytest.approx(0.5)
 
 

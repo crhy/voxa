@@ -13,9 +13,13 @@ from .hardware import parse_device_id
 
 FACE_MODES = ("live", "prerendered", "still")
 WEB_SEARCH_MODES = ("auto", "always", "never")
+<<<<<<< HEAD
 ECHO_MODES = ("voxa", "webrtc", "off")
 # The exchanges voxa/agent/exchange.py knows how to talk to (issue #46).
 EXCHANGE_NAMES = ("kraken", "coinbase", "bitstamp")
+=======
+ECHO_MODES = ("voxa", "aec3", "webrtc", "off")
+>>>>>>> origin/strata/f130-voxa-hear-t3-delay-drift
 DEFAULT_TTS_RATE = 230
 LEGACY_DEFAULT_TTS_RATES = (180, 225, 250)
 
@@ -102,8 +106,10 @@ class Settings:
     # Subtract the computer's own sound (Voxa's voice, music) from the microphone.
     echo_cancel: bool = True
     # How to remove the computer's own sound: "voxa" = Voxa's own canceller (listens to the output's
-    # monitor; adds no device and never changes the audio output), "webrtc" = the WebRTC echo
-    # canceller inside the capture pipeline (experimental), "off" = none.
+    # monitor; adds no device and never changes the audio output), "aec3" = WebRTC AEC3 running in
+    # this process against Voxa's own render (roadmap task 2; falls back to "voxa" without the
+    # pywebrtc-audio binding), "webrtc" = the WebRTC echo canceller inside the GStreamer capture
+    # pipeline (experimental), "off" = none.
     # ``echo_cancel`` is a deprecated alias: False maps to "off".
     echo_mode: str = "webrtc"  # removes music and video sound before she listens; off when unavailable
     # Milliseconds the lips run ahead of the reported audio position (compensates sound-card and display delay).

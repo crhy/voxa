@@ -677,15 +677,46 @@ def endpoint_latency_samples(facts: list[dict]) -> Samples:
     return Samples(values, "p50")
 
 
+def echo_delay_at_seconds(echo: dict, t_s: float) -> float | None:
+    """The delay the renderer's echo path ACTUALLY has at time ``t_s``, in samples.
+
+    TASK-3 BUG FIX (f130, tasks/notes-f130-voxa-hear-t3-delay-drift.md): this metric compared
+    every estimate with the delay injected at CLIP START, even though task 3's estimates are
+    continuous and echo themselves after a mid-clip path change and after clock drift has
+    accumulated. The reconstruction is exactly ``voxa/bench/render.py``'s ``resample_clock``:
+    the bulk delay, the step once it has landed, and the clock drift (the warp grows with the
+    position in the clip). Without it, a correct post-step estimate of 50+ ms looked 50 ms wrong.
+    """
+    base = echo.get("delay_samples")
+    if base is None:
+        return None
+    n = echo.get("clip_seconds")
+    if not n:
+        return None
+    t = float(t_s) * SR
+    samples = n * SR
+    step_at = echo.get("step_at_s")
+    delay = float(base)
+    if step_at and t >= float(step_at) * SR:
+        delay += float(round(float(echo.get("delay_step_ms") or 0.0) / 1000.0 * SR))
+    rate = 1.0 + (float(echo.get("drift_ppm") or 0.0) * 1e-6) * (t / samples)
+    source = (t - delay) / rate
+    return t - source
+
+
 def delay_error_samples(facts: list[dict]) -> Samples:
-    """|delay the canceller estimated - delay the renderer injected| in ms."""
+    """|delay the canceller estimated - delay the echo path had WHEN IT ESTIMATED| in ms."""
     values = []
     for fact in facts:
         estimate = fact["delay_est"]
-        truth_delay = (fact["echo"] or {}).get("delay_samples")
+        echo = fact["echo"] or {}
+        truth_delay = echo.get("delay_samples")
         if estimate is None or not truth_delay:
             continue
-        values.append(abs(float(estimate["delay_samples"]) - float(truth_delay)) * 1000.0 / SR)
+        truth_at = echo_delay_at_seconds(echo, float(estimate["t_s"]))
+        if truth_at is None:  # a truth record older than the fix: the old (wrong) comparison
+            truth_at = float(truth_delay)
+        values.append(abs(float(estimate["delay_samples"]) - truth_at) * 1000.0 / SR)
     return Samples(values, "mean")
 
 
@@ -731,14 +762,24 @@ def reconverge_samples(facts: list[dict]) -> Samples:
 
 
 def cpu_core_share_samples(facts: list[dict]) -> Samples:
-    """Cores the bench keeps busy: ASR processing seconds over the clip's wall seconds."""
+    """Cores the ECHO stage keeps busy while it works: echo processing seconds over the clip's
+    own audio seconds (task f129 bug fix, documented in tasks/notes-f129-voxa-hear-t2-aec3.md).
+
+    B3 wrote this metric as ASR seconds over wall seconds, but every gate that names it means the
+    canceller: the research (roadmap task 2: "<= 10 % of one core") and ``gates.toml``'s own target
+    comment say one core, and ``voxa/bench/runner.py`` measures the recogniser separately
+    (``run.asr_processing_seconds``). Measuring the recogniser under this name made the gate
+    unmeasurable - the ASR share can never fall below ~0.7 on this machine. The value is now the
+    cores the echo stages keep busy while they clean the microphone: seconds of CPU per second of
+    clip audio, which is what a live canceller must stay under.
+    """
     values = []
     for fact in facts:
         summary = fact["summary"]
-        wall = float(summary.get("wall_seconds") or 0.0)
-        asr = float(summary.get("asr_processing_seconds") or 0.0)
-        if wall > 0.0:
-            values.append(asr / wall)
+        audio = float(summary.get("seconds") or 0.0)
+        echo = float(summary.get("echo_processing_seconds") or 0.0)
+        if audio > 0.0:
+            values.append(echo / audio)
     return Samples(values, "mean")
 
 

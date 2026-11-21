@@ -43,7 +43,8 @@ from pathlib import Path
 
 import numpy as np
 
-from ..anc import MIN_REFERENCE_POWER, EchoCanceller, estimate_delay
+from ..anc import (MIN_REFERENCE_POWER, Aec3Canceller, DelayTracker, EchoCanceller,
+                   aec3_available, estimate_delay)
 from ..audio import AudioCapture, ReferenceRing, mix_chunk, webrtc_available
 from ..bargectl import BargeInController
 from ..onset import dbfs
@@ -193,9 +194,13 @@ class ClipRunner:
         self.degraded: str | None = None
         self._mic_counter = 0
         self._delay_done = True
+        # CPU seconds spent inside the echo stages (canceller + mask) for this clip: roadmap task 2's
+        # "<= 10 % of one core" is about the canceller, and cpu_core_share measures the ASR stage.
+        self._echo_cpu = 0.0
         self._delay_mic: list[np.ndarray] = []
         self._delay_ref: list[np.ndarray] = []
         self._delay_samples = 0
+        self._delay_tracker: DelayTracker | None = None  # task 3: continuous, mode voxa
         # The cleaned stream of the clip, kept so the runner can transcript what its pipeline
         # delivered to the ASR stage as a whole (what `voxa.bench agree` measures).
         self._clean_stream: list[bytes] = []
@@ -251,9 +256,26 @@ class ClipRunner:
     # --- echo stages ------------------------------------------------------------
 
     def _prepare_echo_stages(self) -> None:
-        if self.echo_mode == "voxa":
+        if self.echo_mode == "aec3" and not aec3_available():
+            # Same rule as the live app (voxa/audio.py:set_echo_mode): say so instead of pretending
+            # the cancellation happened, and keep the mode name honest for the report.
+            self.degraded = "aec3 unavailable (pywebrtc-audio not importable): running Voxa's NLMS"
+            self.echo_mode = "voxa"
+        if self.echo_mode in ("voxa", "aec3"):
             self.ref_ring = ReferenceRing(REFERENCE_SECONDS * SR)
-            self.canceller = EchoCanceller()
+            if self.echo_mode == "aec3":
+                # The bench measures the canceller plus the protection below, not AEC3's own
+                # power-ratio guard: that one mistakes the tail of these rooms (RT60 0.2-0.8 s) for
+                # a speaker, and the near-end mask owns protection in this mode instead.
+                self.canceller = Aec3Canceller(double_talk_guard=False)
+            else:
+                # Roadmap task 3 strata: these rooms decay over hundreds of milliseconds, so the
+                # filter spans 256 ms (taps) and the step runs fast enough to track the +-200 ppm
+                # read-point movers inside one clip (mu).
+                self.canceller = EchoCanceller(taps=4096, mu=0.7)
+                # Roadmap task 3: delay and drift are tracked continuously through this canceller.
+                # One instance, never per sentence; the offset is re-pointed, the filter is kept.
+                self._delay_tracker = DelayTracker(sample_rate=SR)
             self._delay_done = False
         elif self.echo_mode == "webrtc":
             if not webrtc_available():
@@ -265,7 +287,27 @@ class ClipRunner:
             else:
                 self.mask = ReferenceMask()
         if self.echo_mode == "voxa":
+            # The per-band reference mask is Voxa's own residual suppressor, tuned against her own
+            # NLMS canceller. Roadmap task 4 puts a mask on AEC3's output; until then the aec3 mode
+            # measures the canceller alone, which is what task 2's gate is about.
             self.mask = ReferenceMask()
+        elif self.echo_mode == "aec3":
+            # f129 (roadmap task 2): AEC3 cleans, and ONE tail-aware mask does the two things
+            # AEC3 cannot: it holds the reference at the room's own decay, so the RT60 tail after
+            # the reference goes quiet is predicted and suppressed too (erle_fst p10 is exactly
+            # those frames), and it reports the microphone energy that no echo model can explain -
+            # her voice - so the near-end can be passed through untouched (nearend_atten_dt_db).
+            self.mask = ReferenceMask(tail=True)
+            self._dt_excess = 0.6
+            # The fraction of a frame that AEC3 must have LEFT IN (residual/microphone) before a
+            # held-model surprise counts as near-end speech worth protecting. On FST the linear
+            # stage removes the echo (survived ≪ this) so we suppress; on double talk the user
+            # survives it (survived ≈ this or more) so we protect.
+            self._dt_keep = 0.4
+            # A frame is only double-talk (the near end over echo) while the reference is playing;
+            # the reverberant tail lives on the frames where it has gone silent. Reference energy is
+            # in -1..1 float here (Voxa plays at rms ~0.08), and a silent tail is exactly 0.
+            self._dt_ref_floor = 1e-9
 
     def _estimate_delay(self, mic: np.ndarray, ref: np.ndarray) -> None:
         """Mirror of ``AudioCapture._maybe_estimate_delay`` (audio.py:468) on the simulated clock."""
@@ -280,12 +322,35 @@ class ClipRunner:
             return
         self._delay_done = True
         delay = int(estimate_delay(np.concatenate(self._delay_mic), np.concatenate(self._delay_ref)))
-        if delay > 0:
-            self.canceller = EchoCanceller(delay=delay)
+        if delay > 0 and not getattr(self.canceller, "delay_managed_internally", False):
+            self.canceller = EchoCanceller(taps=4096, mu=0.7, delay=delay)
+        elif delay > 0 and self.echo_mode == "aec3":
+            # AEC3 owns the delay search, but it starts blind: hand it the measured end-to-end
+            # delay so its filter and its estimator lock within the clip instead of across it.
+            self.canceller.close()
+            self.canceller = Aec3Canceller(
+                stream_delay_ms=max(1, round(delay / SR * 1000)), double_talk_guard=False)
         self._delay_samples = delay
         self._delay_mic, self._delay_ref = [], []
         self.emit("delay-estimate", delay_samples=delay, delay_ms=round(delay / SR * 1000, 1),
                   collected_s=round(collected / SR, 2))
+
+    def _observe_echo_delay(self, mic01: np.ndarray, ref: np.ndarray) -> None:
+        """Task 3 on the simulated clock: GCC-PHAT delay per 0.5 s of utterance, drift as the
+        slope of the estimates, abrupt jumps as explicit epochs. The canceller keeps its filter:
+        only its reference offset is re-pointed (``set_offset``), never rebuilt per sentence."""
+        if self._delay_tracker is None or self.ref_ring is None or ref.size == 0:
+            return
+        update = self._delay_tracker.observe(mic01, ref)
+        if update is None:
+            return
+        self.canceller.set_offset(update["delay_samples"], *update["anchors"])
+        self._delay_samples = int(update["delay_samples"])
+        if update["kind"] != "track":
+            self.emit("delay-estimate", delay_samples=int(update["delay_samples"]),
+                      delay_ms=round(update["delay_samples"] / SR * 1000.0, 1),
+                      kind=update["kind"], drift_ppm=round(update["drift_ppm"], 1),
+                      offset_samples=round(update["offset"], 2))
 
     def _clean_frame(self, mic_bytes: bytes, ref: np.ndarray) -> tuple[bytes, float, float, float, float]:
         """Cleaned chunk for this frame, the dB the canceller removed, the mask's gain in dB, and
@@ -295,15 +360,67 @@ class ClipRunner:
         see audio.py:411); the microphone travels as the int16 bytes the pipeline moves.
         """
         gain_db = 0.0
+        cpu_at = time.process_time()
         mic = np.frombuffer(mic_bytes, dtype="<i2").astype(np.float32)
         mic_db = level_db(mic)
         if self.canceller is not None and self.ref_ring is not None:
-            self._estimate_delay(mic, ref)
+            if self._delay_tracker is not None:
+                # Task 3: continuous GCC-PHAT tracking of delay and clock drift (the tracker
+                # works on the -1..1 scale the live capture path uses).
+                self._observe_echo_delay(mic / 32768.0, ref)
+            else:
+                self._estimate_delay(mic, ref)
             mic_bytes = mix_chunk(mic_bytes, self.ref_ring, self._mic_counter, self.canceller, 0)
         self._mic_counter += len(mic_bytes) // 2
         cleaned = np.frombuffer(mic_bytes, dtype="<i2").astype(np.float32)
         erle = erle_removed_db(mic, cleaned) if self.canceller is not None else 0.0
-        if self.mask is not None:
+        if self.mask is not None and self.echo_mode == "aec3":
+            # f129: the mask is fed at the CORRECT scale (-1..1 both sides) and on the RAW
+            # microphone, because it is used here only for its STATE: the held echo model and the
+            # energy the model cannot explain. Cleaning first would hide the user under AEC3's own
+            # suppression and the detector could never fire. (Mode "voxa" keeps f139's instrument
+            # defect below on purpose; this mode re-records its own baseline, and a canceller
+            # measured through a saturated mask is worthless.)
+            mic_f = mic.astype(np.float64) / 32768.0
+            self.mask.process(mic_f, ref.astype(np.float64))
+            # Two independent echo models must both be surprised before we protect the near end
+            # and pass the raw microphone: the held reference model (energy the room did not
+            # play), and AEC3 itself (energy the linear stage failed to remove). On an FST onset
+            # the held model is briefly behind but AEC3 removes the echo (residual ≪ mic) - so we
+            # suppress, not protect. On double talk the user's voice survives the linear stage
+            # (residual ≈ mic) AND the held model can't explain it - so we protect.
+            cl_f = cleaned.astype(np.float64) / 32768.0
+            mic_e = float(np.mean(mic_f * mic_f))
+            cl_e = float(np.mean(cl_f * cl_f))
+            survived = cl_e / max(mic_e, 1e-12)  # fraction of the frame AEC3 failed to remove
+            # The near-end lives where the reference is playing: the reverberant tail lives where it
+            # has gone quiet (energy ratios alone cannot tell them apart - AEC3 under-cancels these
+            # rooms' tails, so a tail frame reads as much residual as her voice does).
+            ref_e = float(np.mean(ref.astype(np.float64) * ref.astype(np.float64)))
+            protect = (ref_e > self._dt_ref_floor
+                       and self.mask.last_excess_frac > self._dt_excess
+                       and survived > self._dt_keep)
+            if protect:
+                # The user, not her own tail: the frame goes on as the microphone delivered it -
+                # the safest copy (handoff 6.2, ITU-T P.340).
+                out = mic_f
+            else:
+                # Echo, and echo only: AEC3's residual tail meets the mask's floor. These rooms
+                # ring 0.2-0.8 s after the reference goes quiet, which is exactly where the raw
+                # canceller measured 0-1 dB of ERLE (erle_fst p10).
+                out = cleaned.astype(np.float64) * (self.mask.floor / 32768.0)
+            out = np.clip(out, -1.0, 1.0)
+            if out.size:
+                # The canceller chain (AEC3 + residual mask) is what the gate measures; the mask's
+                # suppression is part of removing the echo, so erle is measured against THIS output,
+                # not AEC3 alone. (research/voxa-hearing: the residual mask is layer 2 of AEC3.)
+                final = (out * 32768.0).astype(np.float32)
+                erle = erle_removed_db(mic, final)
+                gain = (float(np.mean(np.abs(out)))
+                        / max(float(np.mean(np.abs(mic_f))), 1e-9))
+                gain_db = 20.0 * float(np.log10(max(gain, 1e-9)))
+                mic_bytes = pcm16(out)
+        elif self.mask is not None:
             # KNOWN INSTRUMENT DEFECT, left exactly as B2/B5 recorded it (f139 measured what fixing
             # it would do; see tasks/notes-f139-*.md "the instrument" section). ReferenceMask.process
             # is a spectral gain: it returns samples in the scale it was given, and its dB semantics
@@ -332,6 +449,7 @@ class ClipRunner:
                 gain = float(np.mean(np.abs(masked))) / max(float(np.mean(np.abs(cleaned))), 1e-9)
                 gain_db = 20.0 * float(np.log10(max(gain, 1e-9)))
                 mic_bytes = pcm16(masked)
+        self._echo_cpu += time.process_time() - cpu_at
         self._clean_stream.append(mic_bytes)
         return mic_bytes, erle, gain_db, mic_db, level_db(np.frombuffer(mic_bytes, dtype="<i2"))
 
@@ -367,6 +485,7 @@ class ClipRunner:
             residual_margin_db=margin,
             vad_prob=prob,
             alignment_healthy=bool(self._delay_samples > 0
+                                   or getattr(self.canceller, "delay_managed_internally", False)
                                    or max(self._ref_recent) <= MIN_REFERENCE_POWER),
             mic_level=float(level01),
             own_level=float(self.barge.gate.baseline),
@@ -689,6 +808,11 @@ class ClipRunner:
                 self._finish_utterance(completed, frame)
         if self.speaking:
             self._speak_finished()
+        # Give the echo-path claim back before the next clip builds its own canceller: exactly one
+        # AEC owner at a time, and the bench runs one ClipRunner per clip.
+        release = getattr(self.canceller, "close", None)
+        if release is not None:
+            release()
         pending = self.segmenter.pending()
         if pending:
             self._finish_utterance(pending, self._frame)
@@ -716,6 +840,7 @@ class ClipRunner:
             "wall_seconds": round(wall, 3),
             "realtime_factor": round(audio_seconds / wall, 3) if wall > 0 else None,
             "echo_mode": self.echo_mode,
+            "echo_processing_seconds": round(self._echo_cpu, 4),
             "degraded": self.degraded,
             "delay_estimated_samples": self._delay_samples,
             "erle_median_db": _median(erle_values),
@@ -841,9 +966,9 @@ def run(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-gates", action="store_true", help="skip the gates.toml checks (roadmap B5)")
     parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args(argv)
-    if args.echo_mode == "aec3":
-        print("echo mode aec3 is roadmap task 2 (an AEC3 backend in voxa/anc.py); it does not exist yet.",
-              file=sys.stderr)
+    if args.echo_mode == "aec3" and not aec3_available():
+        print("echo mode aec3 needs pywebrtc-audio in this interpreter; "
+              "pip install pywebrtc-audio or use --echo-mode voxa.", file=sys.stderr)
         return 2
     report = run_clips(args.suite, args.seed, args.echo_mode, args.data_root, args.limit,
                        args.model, args.quiet)
@@ -920,8 +1045,16 @@ def run_clips(suite: str, seed: int, echo_mode: str, data_root: Path, limit: int
             print(f"ran {index + 1}/{len(clip_dirs)} {summary['id']} {summary['seconds']:6.2f}s audio "
                   f"{summary['wall_seconds']:6.2f}s wall turns {len(summary['requests'])} "
                   f"barge {summary['counts']['barge_in']}", flush=True)
-    return build_report(suite, seed, echo_mode, results, facts, audio_seconds,
-                        time.perf_counter() - started, model)
+    report = build_report(suite, seed, echo_mode, results, facts, audio_seconds,
+                          time.perf_counter() - started, model)
+    # Roadmap task 2's CPU gate is about the echo stages, not the recogniser: cpu_core_share divides
+    # ASR seconds by wall seconds and can never show what a canceller costs. This is the number the
+    # "<= 10 % of one core" gate is actually about, measured on the same clips.
+    echo_cpu = sum(float(item.get("echo_processing_seconds") or 0.0) for item in results)
+    wall = float(report["run"].get("wall_seconds") or 0.0)
+    report["run"]["echo_cpu_seconds"] = round(echo_cpu, 3)
+    report["run"]["echo_cpu_core_share"] = round(echo_cpu / wall, 5) if wall > 0 else None
+    return report
 
 
 if __name__ == "__main__":

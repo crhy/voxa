@@ -13,13 +13,31 @@ import numpy as np
 
 class ReferenceMask:
     def __init__(self, rate=16000, frame=512, hop=256, bands=64, over=1.5,
-                 floor=0.1, memory_s=0.4):
+                 floor=0.1, memory_s=0.4, tail: bool = False, rt_s: float | None = None):
+        """
+        tail=False (the default, and every existing caller): predict echo from the reference NOW.
+
+        tail=True (roadmap task 2, f129): the echo of speech that ENDED a moment ago is still in
+        the room - the clip sets carry RT60 of 0.2-0.8 s - and a mask that only looks at the
+        current reference lets that tail through untouched. The prediction then HOLDS the
+        reference and lets it decay at the room's own rate: ``rt_s`` when given, else the value
+        from ``rt_grid`` that best fits the observed microphone decay. The held reference also
+        makes the near-end detector readable while she is playing: ``last_excess_frac`` is the
+        share of the microphone that the held echo model cannot explain - the user.
+        """
         self.rate = int(rate)
         self.frame = int(frame)
         self.hop = int(hop)
         self.nbands = int(bands)
         self.over = float(over)
         self.floor = float(floor)
+        self.tail = bool(tail)
+        self.rt_grid = (0.2, 0.35, 0.5, 0.7, 0.9) if rt_s is None else (float(rt_s),)
+        self.helds = [np.zeros(self.nbands) for _ in self.rt_grid]
+        self.decay = [10.0 ** (-6.9 * (hop / rate) / rt) for rt in self.rt_grid]
+        self.rt_scores = [0.0, 0.0, 0.0, 0.0, 0.0][:len(self.rt_grid)]
+        self.rt_frames = [0] * len(self.rt_grid)
+        self.rt_idx = min(2, len(self.rt_grid) - 1)
         self.mem_frames = max(4, int(memory_s * self.rate / self.hop))
         hann = 0.5 - 0.5 * np.cos(2.0 * np.pi * np.arange(self.frame) / self.frame)
         self.win = np.sqrt(hann)
@@ -33,6 +51,8 @@ class ReferenceMask:
         self.lag = 0
         self.last_user_db = -120.0
         self.last_echo_active = False
+        self.last_excess = 0.0
+        self.last_excess_frac = 0.0
         self.mic_buf = np.zeros(0, dtype=np.float64)
         self.ref_buf = np.zeros(0, dtype=np.float64)
         self.out_num = np.zeros(0, dtype=np.float64)
@@ -61,6 +81,27 @@ class ReferenceMask:
         if k > size // 2:
             k -= size
         return int(k)
+
+    def _held_prediction(self, ref_b: np.ndarray, mic_b: np.ndarray) -> tuple[np.ndarray, int]:
+        """Predict echo power per band from the reference HELD at the room's own decay (tail=True).
+
+        Every candidate decay keeps its own held reference; the one whose held prediction explains
+        the microphone best on the frames where the reference just went quiet (the tail) wins. The
+        microphone is never learned from here - only the reference history and its decay are.
+        """
+        ref_total = float(ref_b.sum())
+        for k, h in enumerate(self.helds):
+            np.maximum(h * self.decay[k], ref_b, out=h)
+        for k, h in enumerate(self.helds):
+            if ref_total < 0.5 * float(h.sum()):  # the tail: speakers quiet, room still ringing
+                pred = float((self.coupling * h).sum())
+                err = abs(float(mic_b.sum()) - pred) / max(float(mic_b.sum()), 1e-12)
+                self.rt_scores[k] += err
+                self.rt_frames[k] += 1
+        if any(self.rt_frames):
+            self.rt_idx = min(range(len(self.rt_grid)),
+                              key=lambda k: (self.rt_scores[k] / f if (f := self.rt_frames[k]) else 9e9))
+        return self.coupling * self.helds[self.rt_idx], self.rt_idx
 
     def _frame_stats(self, mic_frame, ref_frame):
         fm = np.fft.rfft(mic_frame)
@@ -95,11 +136,18 @@ class ReferenceMask:
                 rs = max(0, min(rs, max(0, len(self.ref_buf) - self.frame)))
                 rf = self.ref_buf[rs:rs + self.frame]
                 fm, pm, mic_b, ref_b = self._frame_stats(mf, rf)
-                echo_b = self.coupling * ref_b
+                if self.tail:
+                    echo_b, self.rt_idx = self._held_prediction(ref_b, mic_b)
+                else:
+                    echo_b = self.coupling * ref_b
                 self._mic_power = float(pm.sum())
                 self._echo_power = float(echo_b.sum())
+                # how much of the microphone the echo model cannot explain (roadmap task 2's
+                # near-end evidence: the user, not her own tail)
+                self.last_excess = float(np.sum(np.maximum(mic_b - self.over * echo_b, 0.0)))
+                self.last_excess_frac = self.last_excess / max(self._mic_power, 1e-12)
                 for b in range(self.nbands):
-                    if ref_b[b] > 1e-10:
+                    if ref_b[b] > 1e-10 and (not self.tail or ref_b[b] >= 0.25 * np.max(ref_b)):
                         self.ratios[b].append(mic_b[b] / ref_b[b])
                         r = sorted(self.ratios[b])
                         self.coupling[b] = r[len(r) // 2]

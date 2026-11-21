@@ -197,7 +197,10 @@ def test_echo_mode_off_leaves_the_mic_untouched_and_voxa_cleans_it(tmp_path: Pat
     cleaned_summary = cleaned.run(loaded["mic"], loaded["ref"], loaded["truth"])
     assert cleaned_summary["echo_mode"] == "voxa"
     assert any(event["erle_db"] != 0.0 for event in events_of(cleaned, "frame"))
-    assert events_of(cleaned, "delay-estimate"), "the canceller must estimate the echo delay as live does"
+    # Roadmap task 3: this synthetic mic carries no echo at all, so the tracker's coherence
+    # guard must not invent a delay; the smoke suite clips (and the real ones) do have echo,
+    # and there the estimates fire (delay_est_err_ms is measured from them).
+    assert not events_of(cleaned, "delay-estimate"), "no echo in the mic: no delay may be claimed"
     assert events_of(cleaned, "frame")[0]["muted"] is True   # the reply starts at frame 0
     assert events_of(cleaned, "frame")[-1]["muted"] is False  # playback ended before the clip did
 
