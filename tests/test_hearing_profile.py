@@ -224,7 +224,9 @@ def test_remeasuring_the_delay_keeps_the_learned_filter(tmp_path, monkeypatch):
     capture.canceller.load_state(learned_state(ref[:span], mic[:span], 0).export_state())
     before = capture.canceller.weights.copy()
     _feed_delay_estimation(capture, mic[:span], ref[:span])
-    assert capture._delay_done is True
+    # main's roadmap task 3 made delay tracking continuous (strata/f160 merge):
+    # _delay_done no longer latches after the first NLMS estimate; the offset is
+    # re-pointed with set_offset, which never touches the filter.
     assert capture.canceller._delay > 0
     assert np.array_equal(capture.canceller.weights, before)
 
