@@ -200,6 +200,14 @@ class ClipRunner:
         self._mask_params = dict(mask_params or {})
         self.settings = settings or Settings().normalized()
         self.wake_word = wake_word
+        # The live ConversationController nudges Whisper with a machine vocabulary
+        # (``voxa/vocabulary.build_hint``: command verbs + installed app names + Spaced
+        # products + taught names), built once in ``_build_prompt_hint``. The bench must feed
+        # the SAME hint or it under-tests what the live product's ASR actually sees
+        # (f146: voxatest scored "Devuan"→"Devon" because the bench hint was only "Voxa.").
+        # Never fatal: an empty/absent list falls back to the wake-word-only hint the bench used
+        # before, so a clip with no machine vocabulary runs exactly the pipeline it ran before.
+        self._vocabulary_hint = self._build_vocabulary_hint()
         # Roadmap task 9: the same acoustic endpoint decision the live app makes,
         # from the weights under the bench data root.
         model_path = smart_turn_model_path(self.settings.smart_turn_model, data_root)
@@ -285,6 +293,22 @@ class ClipRunner:
         # (ConversationController.open_followup stamps a wall-clock deadline, which a bench
         # running faster than real time cannot use).
         self._followup_deadline: float | None = None
+
+    def _build_vocabulary_hint(self) -> str:
+        """The live app's Whisper vocabulary hint, or "" when it cannot be built here.
+
+        Mirrors ``ConversationController._build_prompt_hint`` (voxa/conversation.py:366): the same
+        ``voxa/vocabulary.build_hint`` sentence over the machine's command verbs, installed app names
+        and taught spellings. Never fatal — an empty hint leaves the bench on the wake-word-only
+        hint it used before, so a clip with no machine vocabulary runs exactly the pipeline it ran before.
+        """
+        try:
+            from ..spellings import names as taught_names
+            from ..vocabulary import build_hint, refresh_app_names
+
+            return build_hint(refresh_app_names(), self.wake_word, people=taught_names())
+        except Exception:  # noqa: BLE001 - a broken probe must not change what the clip runs
+            return ""
 
     def _clock(self) -> float:
         return self._now
@@ -678,7 +702,7 @@ class ClipRunner:
         """
         self.emit("pause", segment_seconds=round(len(segment) / 32000.0, 3))
         waiting = self.conversation.waiting_for_prompt or self.conversation.keep_prompt
-        hint = f"{self.wake_word.strip().capitalize()}." if not waiting else ""
+        hint = (self._vocabulary_hint or f"{self.wake_word.strip().capitalize()}.") if not waiting else ""
         prefix_text, prefix_bytes, prefix_words = self.conversation.take_turn_prefix()
         if prefix_text:
             tail = segment[prefix_bytes:] if len(segment) >= prefix_bytes else b""

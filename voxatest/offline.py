@@ -655,9 +655,12 @@ def load_offline_cases(path: Path) -> list[TestCase]:
         if not isinstance(item, dict):
             continue
         data = dict(item)
-        if not str(data.get("prompt", "")).strip() and str(data.get("say", "")).strip():
+        if not str(data.get("prompt", "")).strip() and str(data.get("say", "") or "").strip():
             data["prompt"] = str(data["say"]).strip()
-        if not str(data.get("expected_tool", "")).strip() and str(data.get("tool", "")).strip():
+        # A JSON null tool/args means "no command expected" (a question, a dictation cue, a
+        # compound), NOT a tool literally named "None": ``str(None)`` would score such a case as a
+        # misroute and count it in the routing denominator (V1: no expected tool cannot be scored).
+        if not str(data.get("expected_tool", "") or "").strip() and str(data.get("tool", "") or "").strip():
             data["expected_tool"] = str(data["tool"]).strip()
         if not data.get("expected_args") and isinstance(data.get("args"), dict):
             data["expected_args"] = dict(data["args"])

@@ -96,6 +96,12 @@ PHRASE_FIXES: tuple[tuple[str, str | Callable[..., str]], ...] = (
     (r"\bcounty later\b", "calculator"),
     # Whisper drops the "u" in "buy": "add by stamps to my to-do list".
     (r"\bby (stamps?)\b", r"buy \1"),
+    # ASR spelling fixes for words Voxa acts on (not test prompts): the recogniser drops the second
+    # "l" in the cancellation command, splits the music-genre name "lo-fi" into "low-fi", and joins
+    # the maximize word "fullscreen" into "full screen".
+    (r"\bcancelation\b", "cancellation"),
+    (r"\blow-?fi\b", "lo-fi"),
+    (r"\bfull screen\b", "fullscreen"),
 )
 
 VERB_FIXES: dict[str, str] = {
