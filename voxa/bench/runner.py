@@ -58,6 +58,7 @@ from ..ownspeech import OwnSpeech
 from ..refmask import ReferenceMask, ResidualMask
 from ..voicedetect import SPEECH_PLAYBACK_THRESHOLD, DoubleTalkGate, VoiceDetector
 from . import metrics as metrics_module
+from . import modes
 from . import report as report_module
 from .render import DEFAULT_DATA_ROOT, SR, read_wav
 
@@ -279,6 +280,9 @@ class ClipRunner:
     # --- echo stages ------------------------------------------------------------
 
     def _prepare_echo_stages(self) -> None:
+        if self.echo_mode in modes.HEARING2_MODES:
+            self._prepare_hearing2_stages()
+            return
         if self.echo_mode == "aec3" and not aec3_available():
             # Same rule as the live app (voxa/audio.py:set_echo_mode): say so instead of pretending
             # the cancellation happened, and keep the mode name honest for the report.
@@ -326,6 +330,39 @@ class ClipRunner:
             # and a band whose output exceeds the predicted residual by >= 6 dB stays untouched).
             self.mask = self._residual_mask()
 
+    def _prepare_hearing2_stages(self) -> None:
+        """Hearing 2 (task h01): the candidate arms, behind the same canceller interface.
+
+        A candidate whose dependency is not on this machine is never substituted: the mode keeps
+        its name, says why in ``degraded``, and runs with no linear stage at all. Quoting that as
+        a cancellation number would lie, so :meth:`voxa.bench.modes.availability` is recorded in
+        the report and docs/hearing/frontier.md marks the arm unmeasured.
+        """
+        self.ref_ring = ReferenceRing(REFERENCE_SECONDS * SR)
+        self._delay_done = False
+        probe = modes.availability()
+        if self.echo_mode == "hybrid":
+            # The best linear stage this machine has, then the best residual stage it has: AEC3
+            # through the installed wheel, or Voxa's own NLMS, and f131's residual suppressor on
+            # its output. (The neural residual stage of the task's spec needs DTLN weights, which
+            # this host cannot fetch; that is recorded, not hidden.)
+            if aec3_available():
+                self.canceller = Aec3Canceller(double_talk_guard=False)
+                self._hybrid_linear = "aec3"
+            else:
+                self.canceller = EchoCanceller(taps=4096, mu=0.7)
+                self._delay_tracker = DelayTracker(sample_rate=SR)
+                self._hybrid_linear = "voxa"
+            self.mask = self._residual_mask()
+            return
+        ok, reason = bool(probe[self.echo_mode]["available"]), str(probe[self.echo_mode]["reason"])
+        self.mode_probe = probe[self.echo_mode]
+        if not ok:
+            self.degraded = f"{self.echo_mode} unavailable: {reason}"
+            return
+        self.canceller = modes.make_linear(self.echo_mode, sample_rate=SR)
+        self._speex_settings = getattr(self.canceller, "settings", None)
+
     def _residual_mask(self) -> ResidualMask:
         """f131: the residual suppressor shared by both modes (the chain: canceller + mask). The
         defaults are the task's; the sweep axes override them via mask_params (run() flags)."""
@@ -352,14 +389,16 @@ class ClipRunner:
             return
         self._delay_done = True
         delay = int(estimate_delay(np.concatenate(self._delay_mic), np.concatenate(self._delay_ref)))
-        if delay > 0 and not getattr(self.canceller, "delay_managed_internally", False):
-            self.canceller = EchoCanceller(taps=4096, mu=0.7, delay=delay)
-        elif delay > 0 and self.echo_mode == "aec3":
+        if delay > 0 and isinstance(self.canceller, Aec3Canceller):
             # AEC3 owns the delay search, but it starts blind: hand it the measured end-to-end
             # delay so its filter and its estimator lock within the clip instead of across it.
             self.canceller.close()
             self.canceller = Aec3Canceller(
                 stream_delay_ms=max(1, round(delay / SR * 1000)), double_talk_guard=False)
+        elif delay > 0 and getattr(self.canceller, "delay_ctl_supported", False):
+            self.canceller.set_delay(delay)
+        elif delay > 0 and isinstance(self.canceller, EchoCanceller):
+            self.canceller = EchoCanceller(taps=4096, mu=0.7, delay=delay)
         self._delay_samples = delay
         self._delay_mic, self._delay_ref = [], []
         self.emit("delay-estimate", delay_samples=delay, delay_ms=round(delay / SR * 1000, 1),
@@ -404,7 +443,7 @@ class ClipRunner:
         self._mic_counter += len(mic_bytes) // 2
         cleaned = np.frombuffer(mic_bytes, dtype="<i2").astype(np.float32)
         erle = erle_removed_db(mic, cleaned) if self.canceller is not None else 0.0
-        if self.mask is not None and self.echo_mode in ("voxa", "aec3"):
+        if self.mask is not None and self.canceller is not None:
             # f131 (roadmap task 4): the residual suppressor runs ON THE CANCELLER'S OUTPUT, with
             # the aligned reference, at the scale both the mask and its dB semantics mean
             # (-1..1 on both sides - the instrument-defect branch below is what this replaces).
@@ -1028,13 +1067,16 @@ def check_gates(report: dict) -> list[str]:
     return gates.evaluate(gates.GATES_PATH, report)
 
 
-def run(argv: list[str] | None = None) -> int:
+def arg_parser() -> argparse.ArgumentParser:
+    """The bench ``run`` command line, built separately so the tests can inspect its choices."""
     parser = argparse.ArgumentParser(
         prog="python -m voxa.bench run",
         description="push bench clips through Voxa's real hearing and barge-in pipeline")
     parser.add_argument("--suite", choices=("smoke", "full"), default="smoke")
     parser.add_argument("--seed", type=int, default=0, help="the render's seed; clips are read, not built")
-    parser.add_argument("--echo-mode", choices=("voxa", "webrtc", "aec3", "off"), default="voxa")
+    parser.add_argument("--echo-mode",
+                        choices=("voxa", "webrtc", "aec3", "off") + modes.HEARING2_MODES,
+                        default="voxa")
     parser.add_argument("--out", type=Path, default=None,
                         help="report path (default .voxa-bench/report-<suite>.json)")
     parser.add_argument("--data-root", type=Path,
@@ -1055,10 +1097,21 @@ def run(argv: list[str] | None = None) -> int:
     parser.add_argument("--mask-tail-s", type=float, default=None,
                         help="residual mask: tail window ceiling in s (default: MASK_TAIL_S)")
     parser.add_argument("--quiet", action="store_true")
-    args = parser.parse_args(argv)
+    return parser
+
+
+def run(argv: list[str] | None = None) -> int:
+    args = arg_parser().parse_args(argv)
     if args.echo_mode == "aec3" and not aec3_available():
         print("echo mode aec3 needs pywebrtc-audio in this interpreter; "
               "pip install pywebrtc-audio or use --echo-mode voxa.", file=sys.stderr)
+        return 2
+    probe = modes.availability()
+    if args.echo_mode in modes.HEARING2_MODES and not probe[args.echo_mode]["available"]:
+        # An arm that cannot run here is never quietly replaced by another one: the numbers a
+        # run like that produces are not that arm's numbers. Hearing 2 records the reason.
+        print(f"echo mode {args.echo_mode} cannot run here: {probe[args.echo_mode]['reason']}",
+              file=sys.stderr)
         return 2
     mask_params: dict = {}
     if args.mask_over is not None:
@@ -1073,6 +1126,9 @@ def run(argv: list[str] | None = None) -> int:
         mask_params["tail_s"] = args.mask_tail_s
     report = run_clips(args.suite, args.seed, args.echo_mode, args.data_root, args.limit,
                        args.model, args.quiet, mask_params)
+    # Hearing 2 (h01): what each candidate arm really is on this machine, next to the numbers.
+    report["run"]["echo_mode_probe"] = dict(probe)
+    report["run"]["hybrid_linear"] = ("aec3" if aec3_available() else "voxa")
     out_path = args.out or Path(f".voxa-bench/report-{args.suite}.json")
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
