@@ -1127,6 +1127,28 @@ _DATE_WHEN_RENEW = re.compile(
 )
 
 
+# #60: bills and subscriptions found in the spending log. These come before the date rules
+# because "this week" means "what the spending log says is due", while "this month" keeps
+# answering from the dates you remembered by hand.
+_BILLS_DUE = re.compile(
+    r"(?:what|which) (?:bills?|charges?|payments?) (?:is|are|do i have)(?: due)? this week"
+    r"|what do i (?:all )?have to pay for this week"
+    r"|(?:am i|will i be) charged this week",
+    re.IGNORECASE,
+)
+_SUBSCRIPTIONS_LIST = re.compile(
+    r"(?:what|which) subscriptions? do i pay for"
+    r"|(?:what|which) subscriptions? (?:am i|do i) pay(?: for)?"
+    r"|(?:list|show) (?:the )?subscriptions i pay for",
+    re.IGNORECASE,
+)
+_BILLS_REMIND = re.compile(
+    r"(?:remind me about|watch|track|keep an eye on) (?:my |the )?(?:bills?|subscriptions?|charges?)"
+    r"|(?:set up|create|add|get) (?:bill|subscription|recurring charge)(?:s)? reminders?",
+    re.IGNORECASE,
+)
+
+
 def _date_name(phrase: str) -> str:
     """"my mom" -> "mom": the bare name the date tools expect."""
     out = re.sub(r"^(?:remember|note|keep in mind|don'?t forget)(?: that)?\s+", "", (phrase or "").strip(), flags=re.IGNORECASE)
@@ -1350,6 +1372,9 @@ ROUTED_TOOLS = frozenset(
         "calendar_week",
         "expense_add",
         "expense_total",
+        "bills_due",
+        "bills_remind",
+        "subscriptions_list",
         "expense_breakdown",
         "expense_undo",
         "expense_spreadsheet",
@@ -1595,6 +1620,12 @@ def _route_command(text: str) -> ToolCall | None:
         return call("list_reminders")
     if _CANCEL_REMINDERS.fullmatch(s):
         return call("cancel_reminders")
+    if _BILLS_DUE.fullmatch(s):
+        return call("bills_due")
+    if _SUBSCRIPTIONS_LIST.fullmatch(s):
+        return call("subscriptions_list")
+    if _BILLS_REMIND.fullmatch(s):
+        return call("bills_remind")
     date_remember = _DATE_REMEMBER.fullmatch(s)
     if date_remember:
         return call("date_remember", kind=date_remember.group("kind").lower(), name=_date_name(date_remember.group("name")), when=date_remember.group("when"))

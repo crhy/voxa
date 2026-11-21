@@ -178,6 +178,9 @@ adaptive noise cancellation.
 | --- | --- | --- |
 | “Set a timer for 5 minutes” / “Remind me at 3 pm to call Bob” | Reminder fires and is spoken | 🧪 |
 | “Cancel my reminders” | Reminders cleared | 🧪 |
+| “What bills are due this week” / “what do I have to pay for this week” | The recurring charges in your spending log that come due in the next seven days, with their amounts | 🧪 |
+| “What subscriptions do I pay for” | The charges that repeat month after month, with the amount and how often | 🧪 |
+| “Remind me about my bills” | One reminder per recurring charge, spoken on the day it comes due | 🧪 |
 | “Take a note: call the vet on Friday” | Appends to a plain text file, Voxa Notes.md in Documents | 🧪 |
 | “Read my notes” | Speaks the notes back, newest first | 🧪 |
 | “Delete my last note” | Removes the last note from the file | 🧪 |

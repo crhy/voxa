@@ -93,6 +93,19 @@ Any key you can name, Voxa can press.
 The invoice is an ODF document, the way every Voxa draft is written, and it is opened in LibreOffice there for you to
 edit, print, keep or delete. Nothing is sent anywhere: sending an invoice is a later step.
 
+## Spending and bills
+
+| Say | Voxa does |
+|---|---|
+| "what bills are due this week" | Names the recurring charges in your spending log that come due in the next seven days, with their amounts |
+| "what do I have to pay for this week" | The same answer in other words |
+| "what subscriptions do I pay for" | Lists the charges that repeat month after month, with the amount and how often |
+| "remind me about my bills" | Sets a reminder for each recurring charge; it is spoken on the day it comes due |
+
+Recurring charges are found in the spending log you build with "I spent 12 dollars on lunch":
+a charge seen in at least three different months at a steady amount counts as one you pay for.
+Nothing is sent anywhere and no bill is ever paid or cancelled by voice.
+
 ## Multi-step requests
 
 You can chain actions in one sentence and Voxa carries them out in order:
