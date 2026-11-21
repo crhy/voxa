@@ -53,6 +53,7 @@ from ..capture import Frame
 from ..config import Settings
 from ..conversation import ConversationController, detect_exit_phrase, strip_wake_word
 from ..dictation import SpeechSegmenter
+from ..endpoint import EndpointPolicy, SmartTurn, ends_dangling, smart_turn_model_path
 from ..endpoint import is_complete, is_followup
 from ..ownspeech import OwnSpeech
 from ..refmask import ReferenceMask, ResidualMask
@@ -191,12 +192,18 @@ class ClipRunner:
         settings: Settings | None = None,
         mask_params: dict | None = None,
         word_window_ms: float = 400.0,
+        data_root: str = "",
     ) -> None:
         self.asr = asr
         self.echo_mode = echo_mode
         self._mask_params = dict(mask_params or {})
         self.settings = settings or Settings().normalized()
         self.wake_word = wake_word
+        # Roadmap task 9: the same acoustic endpoint decision the live app makes,
+        # from the weights under the bench data root.
+        model_path = smart_turn_model_path(self.settings.smart_turn_model, data_root)
+        self._smart_turn = SmartTurn.shared(model_path) if model_path else None
+        self._endpoint_policy = EndpointPolicy(self.settings.endpoint_patience)
         self.events: list[dict] = []
         self._now = 0.0
         self._frame = -1
@@ -779,6 +786,8 @@ class ClipRunner:
             early_silence_seconds=self.settings.early_silence_ms / 1000.0,
             early_check=self._early_check,
             is_voice=self.conversation._voice_check,
+            endpoint_probe=self._endpoint_probe,
+            endpoint_policy=self._endpoint_policy,
         )
         frames = (max(len(mic), len(ref)) + CHUNK_SAMPLES - 1) // CHUNK_SAMPLES
         playback_text = (truth.get("playback") or {}).get("text") or ""
@@ -824,6 +833,10 @@ class ClipRunner:
             # While the mic is muted the live queue receives nothing either (conversation.py:feed),
             # so no utterance is segmented out of her own playback. The CAPTURE ring keeps every
             # frame in both states, which is what lets an accepted interruption keep its words.
+            # The live app still STEPS the segmenter while muted (the queue goes empty and
+            # segment_stream steps with nothing), so silence keeps counting and the roadmap
+            # task 9 endpoint probe keeps running across her playback; without the same step
+            # here the user's turn flushed at clip end instead of at its endpoint floor.
             completed = (self._segment_frame(captured)
                          if captured is not None and not self.conversation.muted else None)
             detector = self.conversation._voice_detector
@@ -1000,6 +1013,27 @@ class ClipRunner:
             return False
         return bool(is_complete(text, self.wake_word))
 
+    def _endpoint_probe(self, segment: bytes) -> bool | None:
+        """Roadmap task 9: Smart Turn v3.1 over the WHOLE turn heard so far.
+
+        The model's own threshold (0.5) decides; a transcript ending on a
+        conjunction, filler or preposition (report 186) vetoes even a "complete"
+        verdict, because the first valid command match is NOT completeness.
+        No weights, no verdict: the pause rule the app already had.
+        """
+        if self._smart_turn is None:
+            return None
+        prob = self._smart_turn.probability(segment)
+        complete = prob is not None and prob > 0.5
+        if not complete:
+            self.emit("endpoint-probe", complete=False, prob=None if prob is None else round(prob, 3))
+            return False if prob is not None else None
+        heard = self.asr.transcribe_words(segment, f"{self.wake_word.strip().capitalize()}.")
+        dangling = ends_dangling(heard["text"])
+        self.emit("endpoint-probe", complete=not dangling, prob=round(prob, 3),
+                  text=heard["text"], dangling=dangling)
+        return not dangling
+
 
 def _median(values: list[float]) -> float | None:
     if not values:
@@ -1163,7 +1197,8 @@ def run_clips(suite: str, seed: int, echo_mode: str, data_root: Path, limit: int
         loaded = load_clip(clip_dir)
         runner = ClipRunner(asr=asr, echo_mode=echo_mode, wake_word=wake_word,
                             mask_params=mask_params,
-                            word_window_ms=(400.0 if word_window_ms is None else word_window_ms))
+                            word_window_ms=(400.0 if word_window_ms is None else word_window_ms),
+                            data_root=str(data_root))
         summary = runner.run(loaded["mic"], loaded["ref"], loaded["truth"])
         summary["render"] = render_timeline_measure(loaded, echo_mode)
         clip_out = events_root / summary["id"]

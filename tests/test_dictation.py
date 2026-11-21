@@ -3,6 +3,8 @@ from __future__ import annotations
 import queue
 import threading
 
+import pytest
+
 from voxa.dictation import DICTATION_CHUNK_SECONDS, DictationController, segment_stream
 
 LOUD_CHUNK = (b"\x00\x10" * 1000, 1000.0)  # 2000 bytes, above any test threshold
@@ -299,3 +301,87 @@ def test_segment_stream_reads_a_callable_max_segment_on_every_chunk() -> None:
         )
     )
     assert len(segment) == 6 * len(LOUD_CHUNK[0])
+
+
+def _seg_probe_steps(probe, verdict_calls) -> list[float]:
+    """Feed one voiced second, then silence; return (t, completed_len) per step."""
+    from voxa.dictation import SpeechSegmenter
+    from voxa.endpoint import EndpointPolicy
+
+    seg = SpeechSegmenter(threshold=500, silence_seconds=0.7, max_segment_seconds=10.0,
+                          endpoint_probe=probe, endpoint_policy=EndpointPolicy("default"))
+    chunk = b"\x02\x00" * 1600  # 100 ms of int16 samples
+    completed_at: list[float] = []
+    t = 0.0
+    for _ in range(10):
+        seg.step(chunk, 600.0, t)
+        t += 0.1
+    for _ in range(28):
+        out = seg.step(b"\x00\x00" * 1600, 100.0, t)
+        if out is not None:
+            completed_at.append(t)
+            break
+        t += 0.1
+    return completed_at
+
+
+def test_endpoint_probe_true_ends_at_the_complete_floor() -> None:
+    calls: list[int] = []
+
+    def probe(segment: bytes) -> bool:
+        calls.append(len(segment))
+        return True
+
+    assert _seg_probe_steps(probe, calls) == [pytest.approx(1.4)]  # 0.5 s floor, not 0.7
+    assert len(calls) == 1  # 250 ms trigger into the pause
+
+
+def test_endpoint_probe_false_holds_until_the_incomplete_wait() -> None:
+    calls: list[int] = []
+
+    def probe(segment: bytes) -> bool:
+        calls.append(len(segment))
+        return False
+
+    assert _seg_probe_steps(probe, calls) == [pytest.approx(2.9)]  # 2.0 s incomplete floor
+    assert len(calls) == 1
+
+
+def test_endpoint_probe_none_keeps_the_silence_floor() -> None:
+    calls: list[int] = []
+
+    def probe(segment: bytes) -> None:
+        calls.append(len(segment))
+        return None
+
+    assert _seg_probe_steps(probe, calls) == [pytest.approx(1.6)]  # the 0.7 s the app already had
+    assert len(calls) == 1
+
+
+def test_endpoint_probe_reruns_on_each_new_pause() -> None:
+    calls: list[int] = []
+
+    def probe(segment: bytes) -> bool:
+        calls.append(len(segment))
+        return False
+
+    from voxa.dictation import SpeechSegmenter
+    from voxa.endpoint import EndpointPolicy
+
+    seg = SpeechSegmenter(threshold=500, silence_seconds=0.7, max_segment_seconds=10.0,
+                          endpoint_probe=probe, endpoint_policy=EndpointPolicy("default"))
+    chunk = b"\x02\x00" * 1600
+    t = 0.0
+    for _ in range(10):
+        seg.step(chunk, 600.0, t)
+        t += 0.1
+    for _ in range(4):  # 0.4 s pause: trigger fires, False holds the turn open
+        seg.step(b"\x00\x00" * 1600, 100.0, t)
+        t += 0.1
+    for _ in range(3):  # the user resumes
+        seg.step(chunk, 600.0, t)
+        t += 0.1
+    for _ in range(4):  # second pause: the probe runs again
+        seg.step(b"\x00\x00" * 1600, 100.0, t)
+        t += 0.1
+    assert len(calls) == 2

@@ -61,6 +61,13 @@ class Settings:
     wake_word: str = "voxa"
     early_silence_ms: int = 300
     early_final_pass: bool = False
+    # Roadmap task 9: the Smart Turn v3.1 endpoint model. Empty uses the
+    # packaged weights (flatpak / bench data root), "off" disables the probe,
+    # anything else is a path to the ONNX file.
+    smart_turn_model: str = ""
+    # "patience", like Siri's Pause Time: how long Voxa waits at a pause before
+    # it takes the floor. default / longer / longest.
+    endpoint_patience: str = "default"
     suggestions_enabled: bool = True
     followup_seconds: float = 10.0
     dictation_hints_given: int = 0

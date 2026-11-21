@@ -14,7 +14,7 @@ from . import spellings
 from .agent.intents import is_start_dictation
 from .capture import CaptureRing, Frame
 from .dictation import DICTATION_CHUNK_SECONDS, segment_stream
-from .endpoint import is_complete, is_followup
+from .endpoint import EndpointPolicy, SmartTurn, ends_dangling, is_complete, is_followup, smart_turn_model_path
 from .transcription import WhisperService
 from .vocabulary import build_hint, refresh_app_names
 
@@ -227,6 +227,8 @@ class ConversationController:
         early_silence_ms: int = 300,
         early_final_pass: bool = False,
         voice_detector: bool = True,
+        smart_turn_model: str = "",
+        endpoint_patience: str = "default",
         on_woken: Callable[[], None],
         on_prompt: Callable[[str], None],
         on_status: Callable[[str], None],
@@ -262,6 +264,19 @@ class ConversationController:
             except Exception as exc:  # noqa: BLE001 - optional detector
                 logging.debug("voice detector unavailable: %s", exc)
                 self._voice_detector = None
+        # Roadmap task 9: the acoustic endpoint decision. The weights ship with the
+        # flatpak (or the bench data root); without them the pause rules stay as
+        # they were. The session is shared process-wide, inference stays off the
+        # UI thread (this controller's worker thread segments).
+        self._endpoint_policy = EndpointPolicy(endpoint_patience)
+        self._smart_turn: SmartTurn | None = None
+        model_path = smart_turn_model_path(smart_turn_model)
+        if model_path:
+            engine = SmartTurn.shared(model_path)
+            if engine.available:
+                self._smart_turn = engine
+            else:
+                logging.debug("smart turn model unavailable: %s", engine.error)
         self.on_woken = on_woken
         self.on_prompt = on_prompt
         self.on_status = on_status
@@ -498,9 +513,33 @@ class ConversationController:
             early_silence_seconds=self.early_silence_seconds if early else None,
             early_check=early_check if early else None,
             is_voice=self._voice_check if self._voice_detector is not None else None,
+            endpoint_probe=self._endpoint_probe if self._smart_turn is not None else None,
+            endpoint_policy=self._endpoint_policy,
         ):
             return segment
         return None
+
+    def _endpoint_probe(self, segment: bytes) -> "bool | None":
+        """Roadmap task 9: is the WHOLE turn heard so far acoustically finished?
+
+        Smart Turn v3.1's own verdict decides; a transcript ending on a
+        conjunction, filler or preposition (report 186) vetoes a "complete"
+        answer, because a first valid command match is not completeness. The
+        small always-loaded model does the text check, exactly like
+        :meth:`_early_check`.
+        """
+        if self._smart_turn is None:
+            return None
+        complete = self._smart_turn.is_complete(segment)
+        if complete is not True:
+            return complete
+        try:
+            text = self.wake_whisper.transcribe(segment, self.language,
+                                                f"{self.wake_word.strip().capitalize()}.")
+        except Exception as exc:  # noqa: BLE001 - a probe must not lose the turn
+            logging.debug("endpoint probe transcript failed: %s", exc)
+            return True
+        return not ends_dangling(text)
 
     def _voice_check(self, pcm: bytes, level: float) -> bool:
         """Detector verdict for one chunk; falls back to the loudness rule on error.
