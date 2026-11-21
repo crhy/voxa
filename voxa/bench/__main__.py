@@ -1,19 +1,18 @@
 """``python -m voxa.bench <subcommand>`` - the hearing bench command line.
 
 B1 implements ``render``; B2 implements ``run`` (the file-driven pipeline runner) and ``agree``
-(runner transcripts vs direct ASR). ``check`` is named here so the bench interface is fixed while
-roadmap B3 fills it in; calling it before it exists exits 2 and says which task adds it.
+(runner transcripts vs direct ASR); roadmap B3 implements ``check``, which asserts metric
+conditions on a written report and exits non-zero unless every one of them holds.
 """
 
 from __future__ import annotations
 
 import sys
 
-from . import agree, render, runner
+from . import agree, render, report, runner
 
 # Subcommand -> the roadmap task that implements it.
 NOT_IMPLEMENTED = {
-    "check": "B3 (voxa/bench/report.py)",
 }
 
 USAGE = """usage: python -m voxa.bench <subcommand> [options]
@@ -21,8 +20,8 @@ USAGE = """usage: python -m voxa.bench <subcommand> [options]
   render   render a seeded synthetic clip set (roadmap B1)
   run      run the file-driven pipeline over a clip set (roadmap B2)
   agree    compare runner output with direct ASR (roadmap B2)
-  check    assert metric conditions on a report ({task})
-""".format(task="added by a later roadmap task")
+  check    assert metric conditions on a report (roadmap B3)
+"""
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -37,6 +36,8 @@ def main(argv: list[str] | None = None) -> int:
         return runner.run(rest)
     if command == "agree":
         return agree.main(rest)
+    if command == "check":
+        return report.check(rest)
     task = NOT_IMPLEMENTED.get(command)
     if task is not None:
         print(f"voxa.bench {command} is not implemented yet; roadmap task {task} adds it.", file=sys.stderr)

@@ -1,0 +1,178 @@
+# Gates for the Voxa hearing bench.
+#
+# Roadmap B3 creates this file with EVERY metric the shared brief names and NO threshold yet,
+# so `python -m voxa.bench run` reports every metric and fails nothing. Roadmap B5 records the
+# baseline thresholds here after the first honest baseline run; the numbers a single task gates
+# on live in that task's file, never in this one - loosening a threshold here to make a run pass
+# is forbidden by the brief.
+#
+# `direction` is the direction a better result moves in. A metric with no threshold line is
+# pending. A metric reported with value null (this stage cannot measure it) never fails a gate.
+
+[[metric]]
+name = "erle_fst_median_db"
+unit = "dB"
+direction = ">="
+
+[[metric]]
+name = "erle_fst_p10_db"
+unit = "dB"
+direction = ">="
+
+[[metric]]
+name = "nearend_atten_dt_db"
+unit = "dB"
+direction = "<="
+
+[[metric]]
+name = "align_err_p90_ms"
+unit = "ms"
+direction = "<="
+# threshold = ...  not measurable at this stage (metrics.UNMEASURED says why)
+
+[[metric]]
+name = "fst_transcript_rate"
+unit = "fraction"
+direction = "<="
+
+[[metric]]
+name = "echo_leak_word_rate"
+unit = "fraction"
+direction = "<="
+
+[[metric]]
+name = "false_bargein_per_hour"
+unit = "events/hour"
+direction = "<="
+
+[[metric]]
+name = "missed_bargein_rate"
+unit = "fraction"
+direction = "<="
+
+[[metric]]
+name = "duck_latency_p50_ms"
+unit = "ms"
+direction = "<="
+
+[[metric]]
+name = "duck_latency_p90_ms"
+unit = "ms"
+direction = "<="
+
+[[metric]]
+name = "interrupt_stop_rate"
+unit = "fraction"
+direction = "<="
+
+[[metric]]
+name = "backchannel_resume_rate"
+unit = "fraction"
+direction = ">="
+
+[[metric]]
+name = "protected_word_keep_rate"
+unit = "fraction"
+direction = ">="
+
+[[metric]]
+name = "user_recall_nst"
+unit = "fraction"
+direction = ">="
+
+[[metric]]
+name = "dt_wer_penalty_pts"
+unit = "points"
+direction = "<="
+
+[[metric]]
+name = "first_word_trunc_cold"
+unit = "fraction"
+direction = "<="
+
+[[metric]]
+name = "first_word_trunc_bargein"
+unit = "fraction"
+direction = "<="
+
+[[metric]]
+name = "premature_cutoff_rate"
+unit = "fraction"
+direction = "<="
+
+[[metric]]
+name = "ep50_ms"
+unit = "ms"
+direction = "<="
+
+[[metric]]
+name = "ep90_ms"
+unit = "ms"
+direction = "<="
+
+[[metric]]
+name = "delay_est_err_ms"
+unit = "ms"
+direction = "<="
+
+[[metric]]
+name = "drift_erle_loss_db"
+unit = "dB"
+direction = "<="
+
+[[metric]]
+name = "reconverge_s"
+unit = "s"
+direction = "<="
+
+[[metric]]
+name = "cpu_core_share"
+unit = "cores"
+direction = "<="
+
+[[metric]]
+name = "erle_music_loss_db"
+unit = "dB"
+direction = ">="
+# threshold = ...  not measurable at this stage (metrics.UNMEASURED says why)
+
+[[metric]]
+name = "self_command_rate"
+unit = "fraction"
+direction = "<="
+
+[[metric]]
+name = "self_pause_per_hour"
+unit = "events/hour"
+direction = "<="
+
+[[metric]]
+name = "turn_retention_rate"
+unit = "fraction"
+direction = ">="
+
+[[metric]]
+name = "user_word_deletion_rate"
+unit = "fraction"
+direction = "<="
+
+[[metric]]
+name = "pair_accuracy"
+unit = "fraction"
+direction = ">="
+
+[[metric]]
+name = "stop_latency_p50_ms"
+unit = "ms"
+direction = "<="
+
+[[metric]]
+name = "stop_latency_p95_ms"
+unit = "ms"
+direction = "<="
+
+[[metric]]
+name = "transport_drop_count"
+unit = "count"
+direction = "<="
+# threshold = ...  not measurable at this stage (metrics.UNMEASURED says why)
