@@ -39,6 +39,7 @@ from voxa.agent.tools.meals import meals_tools
 from voxa.agent.tools.media import media_tools
 from voxa.agent.tools.memory_facts import memory_facts_tools
 from voxa.agent.tools.notes import notes_tools
+from voxa.agent.tools.profile import profile_tools
 from voxa.agent.tools.projectsteps import project_steps_tools
 from voxa.agent.tools.radio import radio_tools
 from voxa.agent.tools.readfile import readfile_tools
@@ -71,6 +72,7 @@ def default_registry() -> ToolRegistry:
         *desktoptheme_tools(),
         *local_music_tools(),
         *contact_tools(),
+        *profile_tools(),
         *media_tools(),
         *github_tools(),
         *help_tools(),

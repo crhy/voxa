@@ -36,6 +36,7 @@ from .agent.host import host_command  # noqa: E402
 from .agent.host import spawn as host_spawn  # noqa: E402
 from .agent.player import active_player  # noqa: E402
 from .agent.progress import working_caption  # noqa: E402
+from .agent.profile import profile_forget, profile_get, profile_set  # noqa: E402
 from .agent.registry import ToolError  # noqa: E402
 from .agent.reminders import ReminderStore, focus_phrase, reminder_phrase, timer_phrase  # noqa: E402
 from .agent.result import ToolResult  # noqa: E402
@@ -62,6 +63,7 @@ from .agent.tools import (  # noqa: E402
     github,
     media,
     projectsteps,
+    profile,
     rebook,
     slides,
     textedit,
@@ -415,6 +417,8 @@ class MainWindow(Adw.ApplicationWindow):
         ui.say = lambda text: idle(self._say_notice, text)
         contacts.get_contacts = lambda: self.settings.contacts
         contacts.save_contacts = self._save_contacts
+        profile.get_profile = lambda field: profile_get(self.settings, field)
+        profile.save_profile = self._save_profile
         textedit.read_clipboard = clipboard.read_text
         translate.ask_model = lambda messages: textedit.ask_model(messages)
         events.ask_model = lambda messages: textedit.ask_model(messages)
@@ -495,6 +499,14 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _save_contacts(self, contacts: dict[str, str]) -> None:
         self.settings.contacts = contacts
+        self.config_store.save(self.settings)
+
+    def _save_profile(self, field: str, value: str) -> None:
+        """Save or clear one profile field; an empty value means forget it."""
+        if value:
+            profile_set(self.settings, field, value)
+        else:
+            profile_forget(self.settings, field)
         self.config_store.save(self.settings)
 
     def _save_echo_mode(self, mode: str) -> None:

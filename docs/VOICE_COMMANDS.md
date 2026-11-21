@@ -36,6 +36,25 @@ model and take a few seconds.
 | "close this window" | Closes the window that is currently focused |
 | "switch to spotify" | Focuses the window of the named application |
 
+## Personal details
+
+| Say | Voxa does |
+|---|---|
+| "my name is Rhy" | Remembers your name |
+| "my address is 12 oak street" | Saves your home address |
+| "what address do you have?" / "what is my address?" | Reads your saved home address back |
+| "my phone number is 555 1212" / "what is my phone number?" | Saves and reads back your phone number |
+| "forget my address" | Clears it |
+
+These are the plain facts Voxa keeps about you: name, home address, phone number. They
+are stored in `~/.config/voxa/config.json`, the same file as the other preferences, and
+they may be read back out loud.
+
+Anything secret — a password, a code — never goes in that file. Voxa keeps secrets in
+the system keyring (libsecret's `secret-tool`, or the `keyring` command), says only the
+name of a secret back and never its value, and on a machine with no keyring it refuses
+and keeps nothing.
+
 ## Typing and dictation
 
 | Say | Voxa does |
@@ -96,9 +115,14 @@ takes a few seconds.
 
 ## Where the data goes
 
-Every action Voxa performs is written to an action log on your machine:
+Every action Voxa performs is written to an action log on your machine, and nothing
+about you leaves the machine:
 
 - `~/.local/state/voxa/actions.jsonl` — one line per action, what was said
   and what was done. It stays local.
+- `~/.config/voxa/config.json` — your preferences and your plain profile (name,
+  home address, phone number). It stays local.
+- The system keyring — anything secret. Its value appears in no file Voxa writes,
+  not the settings and not the action log.
 - `voxatest commands` — the test suite's catalog of the commands above, used
   to verify that phrasings map to the right tools.
