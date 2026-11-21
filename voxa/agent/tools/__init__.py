@@ -49,6 +49,7 @@ from voxa.agent.tools.projectsteps import project_steps_tools
 from voxa.agent.tools.radio import radio_tools
 from voxa.agent.tools.readfile import readfile_tools
 from voxa.agent.tools.rebook import rebook_tools
+from voxa.agent.tools.receipts import receipt_tools
 from voxa.agent.tools.recite import recite_tools
 from voxa.agent.tools.reminders import reminders_tools
 from voxa.agent.tools.screenshot import screenshot_tools
@@ -110,6 +111,7 @@ def default_registry() -> ToolRegistry:
         *expense_tools(),
         *invoice_tools(),
         *bills_tools(),
+        *receipt_tools(),
         *date_tools(),
         *screenshot_tools(),
         *camera_tools(),

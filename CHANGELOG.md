@@ -35,6 +35,16 @@
   being promised a split, and a saved card that is not in the machine today falls back to
   automatic. Running the split on real silicon is still to be measured. (`voxa/hardware.py`,
   `voxa/config.py`, `voxa/engine.py`, `voxa/server.py`, `voxa/agent/tools/system.py`) (#113) 🧪
+- **A receipt photo or scan goes into the spending ledger.** "Log this receipt", "add the
+  receipt in my downloads to my expenses", "what did I spend according to this receipt" —
+  Voxa reads the picture with the text reader already on the desktop (tesseract, run on the
+  host, no package installed), takes the amount off the line the receipt labels TOTAL, works
+  the category out from the merchant and the items (a deli receipt is food, a fuel receipt
+  transport) and files it under the day printed on the print. A receipt whose total cannot be
+  read is refused out loud and nothing is written, and "undo the last expense" removes a
+  receipt like any other entry. Receipts arriving from email are still open: they need #56,
+  which needs #41's secrets store.
+  (`voxa/agent/receipts.py`, `voxa/agent/tools/receipts.py`, `voxa/agent/intents.py`) (#62) 🧪
 
 ### Fixed
 
