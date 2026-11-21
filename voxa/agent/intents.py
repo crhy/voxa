@@ -598,6 +598,22 @@ _REPEAT_LAST = re.compile(
     r"(?:say|repeat)\s+that(?:\s+again)?|what\s+did\s+you\s+say",
     re.IGNORECASE,
 )
+# The local, opt-in turn log of crhy/voxa#116 §6: "show my turn log" speaks the
+# summary and names the file, "clear my turn log" deletes it. Deliberately narrow,
+# and matched before the generic delete/cancel rules further down.
+_TURN_LOG_SHOW = re.compile(
+    r"(?:"
+    r"(?:show|display|read|print|summarize|summarise|review)(?: me)?(?: my| the| voxa'?s| her)? turn logs?"
+    r"|turn logs?(?: summary)?"
+    r"|what (?:did )?(?:i|you) log (?:about )?turns?"
+    r"|how many turns (?:are|were|have been) logged)",
+    re.IGNORECASE,
+)
+_TURN_LOG_CLEAR = re.compile(
+    r"(?:clear|delete|erase|remove|wipe|forget)(?: my| the| voxa'?s| her)? turn logs?"
+    r"|turn log (?:clear|delete|reset)",
+    re.IGNORECASE,
+)
 _COPY_THAT = re.compile(r"copy (?:that|this)", re.IGNORECASE)
 _NEW_TAB = re.compile(r"(?:open|add|create)\s+(?:a\s+)?new tab", re.IGNORECASE)
 _SAVE_FILE = re.compile(
@@ -1494,6 +1510,8 @@ ROUTED_TOOLS = frozenset(
         "maximize_self",
         "change_character",
         "list_characters",
+        "turn_log_show",
+        "turn_log_clear",
         "list_open_windows",
         "active_window_name",
         "browse",
@@ -1905,6 +1923,10 @@ def _route_command(text: str) -> ToolCall | None:
         return call("interpreter_status")
     if _INTERPRETER_SWITCH.fullmatch(s):
         return call("interpreter_switch")
+    if _TURN_LOG_CLEAR.fullmatch(s):
+        return call("turn_log_clear")
+    if _TURN_LOG_SHOW.fullmatch(s):
+        return call("turn_log_show")
     say_in_match = _SAY_IN.fullmatch(s)
     if say_in_match and translate.language_name(say_in_match.group(2)) is not None:
         return call("say_in_language", phrase=say_in_match.group(1).strip("\"'“”"), language=say_in_match.group(2))

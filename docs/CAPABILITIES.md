@@ -261,6 +261,8 @@ identification.
 | Backend → llama.cpp, brains list | Suggests the largest brain this machine fits, and each rung says "Fits this machine" or "Too big for this machine (~N GB)"; no Ollama tag is ever offered (#130) | 🧪 |
 | High selected with a large model | Warns when the two will not fit on the graphics card | 🧪 |
 | Look beside the backend selector | A dot and a word: Online, Starting… or Offline | 🧪 |
+| "Show my turn log" | Speaks the summary of the turns logged on this machine (which brain answered, escalation accuracy, review hits, median time to the first spoken word) and names the file; off until switched on, and nothing leaves the machine (#116) | 🧪 |
+| "Clear my turn log" | Deletes that file and says where it was | 🧪 |
 
 ## On the screen
 
@@ -285,3 +287,5 @@ finding receipts, tickets and tracking numbers are not.
 The record, archive and calendar hand-off of the meeting and call notes (#65) are in; what is left there is
 consent-gated live capture with a visible indicator, speaker identification beyond “Name:” prefixes, and a
 summary written by the AI model rather than by sentence rules.
+download (#75), messages, email triage, calendar, phone calls, purchases and the other assistant plans (#41–#67),
+and #116's big brain itself — its model choice, the GPU split and the review sampling rate stay open.

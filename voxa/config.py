@@ -135,6 +135,11 @@ class Settings:
     name: str = ""
     home_address: str = ""
     phone_number: str = ""
+    # crhy/voxa#116 §6: log every turn (request kind, which brain answered, time to
+    # the first spoken word, escalation decision, review verdict, corrections and
+    # barge-ins) so real use can be measured. Local only, nothing leaves this machine;
+    # "show my turn log" views it and "clear my turn log" deletes it.
+    turn_log: bool = False
     home_assistant_url: str = ""
     home_assistant_token: str = ""
     # The user's own IMAP account, read hands-free by voxa/agent/mailread.py (#56).
