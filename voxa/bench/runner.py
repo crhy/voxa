@@ -190,6 +190,7 @@ class ClipRunner:
         wake_word: str = "voxa",
         settings: Settings | None = None,
         mask_params: dict | None = None,
+        word_window_ms: float = 400.0,
     ) -> None:
         self.asr = asr
         self.echo_mode = echo_mode
@@ -206,6 +207,10 @@ class ClipRunner:
         self.degraded: str | None = None
         self._mic_counter = 0
         self._delay_done = True
+        # Roadmap task 7: the +- window (ms) a heard word may sit from one of her played words and
+        # still be a time-matched echo candidate. Swept 200/400/600 in the notes; 400 default.
+        self._word_window_ms = float(word_window_ms)
+        self._playback_words: list[dict] = []
         # CPU seconds spent inside the echo stages (canceller + mask) for this clip: roadmap task 2's
         # "<= 10 % of one core" is about the canceller, and cpu_core_share measures the ASR stage.
         self._echo_cpu = 0.0
@@ -590,6 +595,15 @@ class ClipRunner:
             heard = self.asr.transcribe_words(segment, hint)
         self.emit("transcript", **heard)
         self.transcript_texts.append(heard["text"])
+        # Roadmap task 7: the word-timed overlap as ONE weighted evidence feature (never a
+        # deletion): match the recogniser's words against the word-timed timeline of her playback.
+        if self._playback_words and heard.get("words"):
+            timed = self.own_speech.timed_overlap(
+                [(w["word"], w["onset_s"], w["offset_s"]) for w in heard["words"]],
+                window_ms=self._word_window_ms,
+            )
+            if self.last_evidence is not None:
+                self.last_evidence.word_timed_overlap = timed["share"]
         # The own-speech filter is gated on the AUDIO evidence for this span, and a turn that
         # began with a promoted span is confirmed user: its words are never rewritten by a text
         # match (voxa/attribution.py, handoff 5.3).
@@ -768,6 +782,9 @@ class ClipRunner:
         )
         frames = (max(len(mic), len(ref)) + CHUNK_SAMPLES - 1) // CHUNK_SAMPLES
         playback_text = (truth.get("playback") or {}).get("text") or ""
+        # Roadmap task 7: her own playback word timeline (word + audible onset/offset), the same
+        # render produces for the echo-leak metric; fed to the own-speech filter at playback start.
+        self._playback_words = list((truth.get("playback") or {}).get("words") or [])
         erle_values: list[float] = []
         mask_gains: list[float] = []
         asr_calls_at_start, asr_audio_at_start = self.asr.calls, self.asr.audio_seconds
@@ -946,6 +963,15 @@ class ClipRunner:
         self._speak_started_at = self._now
         self.barge_yielded = False
         self.own_speech.started(text)
+        # Roadmap task 7: hand the own-speech filter the word-timed timeline of this very reply
+        # (edge-TTS word boundaries already in audible time) so a heard word can be matched to the
+        # word she was audible reading at that moment, per generation.
+        if self._playback_words:
+            self.own_speech.note_played_boundaries(
+                [(w["word"], w["onset_s"], max(0.0, w["offset_s"] - w["onset_s"]))
+                 for w in self._playback_words],
+                generation=text,
+            )
         self._spoken_text = text
         if text != self._interrupted_text:
             self.barge.reply_started(text)
@@ -1054,6 +1080,9 @@ def run(argv: list[str] | None = None) -> int:
                         help="residual mask: the ERLE the linear stage is assumed to give (default: MASK_ERLE_TARGET_DB)")
     parser.add_argument("--mask-tail-s", type=float, default=None,
                         help="residual mask: tail window ceiling in s (default: MASK_TAIL_S)")
+    parser.add_argument("--word-window-ms", type=float, default=None,
+                        help="roadmap task 7: the +- window (ms) a heard word may sit from one of "
+                             "her played words to count as a time-matched echo feature (default 400)")
     parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args(argv)
     if args.echo_mode == "aec3" and not aec3_available():
@@ -1072,7 +1101,7 @@ def run(argv: list[str] | None = None) -> int:
     if args.mask_tail_s is not None:
         mask_params["tail_s"] = args.mask_tail_s
     report = run_clips(args.suite, args.seed, args.echo_mode, args.data_root, args.limit,
-                       args.model, args.quiet, mask_params)
+                       args.model, args.quiet, mask_params, args.word_window_ms)
     out_path = args.out or Path(f".voxa-bench/report-{args.suite}.json")
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
@@ -1114,7 +1143,8 @@ def render_timeline_measure(loaded: dict, echo_mode: str) -> dict:
 
 
 def run_clips(suite: str, seed: int, echo_mode: str, data_root: Path, limit: int | None,
-              model: str, quiet: bool = False, mask_params: dict | None = None) -> dict:
+              model: str, quiet: bool = False, mask_params: dict | None = None,
+              word_window_ms: float | None = None) -> dict:
     """Run every clip of a suite, write the per-clip events, and return the report."""
     suite_dir = data_root / suite
     if not suite_dir.is_dir():
@@ -1132,7 +1162,8 @@ def run_clips(suite: str, seed: int, echo_mode: str, data_root: Path, limit: int
     for index, clip_dir in enumerate(clip_dirs):
         loaded = load_clip(clip_dir)
         runner = ClipRunner(asr=asr, echo_mode=echo_mode, wake_word=wake_word,
-                            mask_params=mask_params)
+                            mask_params=mask_params,
+                            word_window_ms=(400.0 if word_window_ms is None else word_window_ms))
         summary = runner.run(loaded["mic"], loaded["ref"], loaded["truth"])
         summary["render"] = render_timeline_measure(loaded, echo_mode)
         clip_out = events_root / summary["id"]
@@ -1152,6 +1183,9 @@ def run_clips(suite: str, seed: int, echo_mode: str, data_root: Path, limit: int
     if mask_params:
         # f131: the sweep must be able to cite which knobs each row used.
         report["run"]["mask_params"] = dict(mask_params)
+    if word_window_ms is not None:
+        # f134 (roadmap task 7): cite the word-timed window each sweep row used.
+        report["run"]["word_window_ms"] = float(word_window_ms)
     # Roadmap task 2's CPU gate is about the echo stages, not the recogniser: cpu_core_share divides
     # ASR seconds by wall seconds and can never show what a canceller costs. This is the number the
     # "<= 10 % of one core" gate is actually about, measured on the same clips.

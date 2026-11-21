@@ -53,6 +53,9 @@ TEXT_WEIGHT = 0.3
 # then the words are the only evidence there is, they get more weight, and the decision is
 # reported as degraded (the app says so; roadmap task 1 gives the reference tap back).
 TEXT_ONLY_WEIGHT = 0.7
+# Roadmap task 7: the word-timed overlap's own weight, never above the cap the words are allowed
+# (a time-matched word is the single strongest word feature, but still one supporter, not a vote).
+WORD_TIMED_WEIGHT = TEXT_WEIGHT
 # A stop word is a cue about what to DO once a second source is supported.
 STOP_CUE = 0.15
 STOP_CUE_WITHOUT_AUDIO = 0.5
@@ -119,6 +122,12 @@ class SourceEvidence:
     word_count: int = 0
     stop_word: bool = False
     wake_word: bool = False
+    # Roadmap task 7: the WORD-TIMED overlap - the share of heard words that fuzzy-match a TTS
+    # word her speakers were audible reading within +-W ms (``voxa/ownspeech``'s ``timed_overlap``).
+    # A time-matched word is stronger echo evidence than a bare out-of-order overlap (it matches
+    # at the moment the echo could actually land), but it is still ONE weighted feature: it may
+    # nudge the confidence, never decide, and never on a confirmed near-end utterance.
+    word_timed_overlap: float = 0.0
 
 
 @dataclass(slots=True)
@@ -272,6 +281,15 @@ def attribute(ev: SourceEvidence, baseline_db: float | None = None) -> SourceDec
                         if value is not None)
     weight = TEXT_WEIGHT if audio_streams else TEXT_ONLY_WEIGHT
     text_value = -text_score(ev.text_overlap, ev.text_sound, weight)
+    # Roadmap task 7: the word-timed overlap is a heavier word feature than a bare overlap - a
+    # heard word that lands inside the audible span of the very word she was reading is an echo
+    # candidate at the moment the echo could actually arrive. Cap it at the same weight the words
+    # are allowed; it never decides alone and never on a confirmed near-end utterance.
+    if ev.word_timed_overlap:
+        timed = -min(weight, WORD_TIMED_WEIGHT * ev.word_timed_overlap)
+        text_value += timed
+        reasons.append(f"words time-matched to her playback {ev.word_timed_overlap:.2f} "
+                       f"(+{abs(timed):.2f} toward echo)")
     add("text", text_value)
     if ev.text_overlap >= 0.6 or ev.text_sound >= 0.6:
         reasons.append(f"words resemble her sentence (overlap {ev.text_overlap:.2f}, "
