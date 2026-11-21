@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import subprocess
 import threading
 import time
 from dataclasses import dataclass
@@ -12,6 +13,7 @@ import numpy as np
 from .anc import (Aec3Canceller, DelayTracker, EchoCanceller, aec3_available, claim_aec_owner,
                   estimate_delay,
                   release_aec_owner)
+from .echo import OUTPUT_SPEAKERS, DeviceWatcher, OutputSnapshot, output_tuning
 from .timeline import CaptureClock, RenderTimeline
 
 Gst: Any = None  # Initialized lazily so importing this module needs no GStreamer or PyGObject.
@@ -242,6 +244,18 @@ class AudioCapture:
         self._sink_identifier: str | None = None
         # The GStreamer route: the name of the webrtcechoprobe the playback tap registers (task 2).
         self.echo_probe_name: str | None = None
+        # Roadmap task 10: what the sound goes out on, and the epoch it was learned under.
+        # A device, headphone or Bluetooth-profile change is an EXPLICIT epoch: the reference
+        # history, the canceller and the latency measurement all restart together, because the
+        # acoustic path (and its codec buffering) is a different one. Never per sentence.
+        self._echo_mode = "off"
+        self.output_class: str = OUTPUT_SPEAKERS
+        self.tuning = output_tuning(self.output_class)
+        self.epoch = 0
+        self._recovery_until = 0.0
+        self._device_watcher: DeviceWatcher | None = None
+        # The live capture source, kept so an epoch can re-read the driver's own latency.
+        self._capture_src: Any = None
 
     def list_devices(self) -> list[AudioDevice]:
         gst = _ensure_gstreamer()
@@ -314,6 +328,7 @@ class AudioCapture:
                 source = selected.device.create_element(None)
             else:
                 source = gst.ElementFactory.make("autoaudiosrc")
+        self._capture_src = source  # an epoch re-reads this driver's latency (task 10)
         convert = gst.ElementFactory.make("audioconvert")
         resample = gst.ElementFactory.make("audioresample")
         capsfilter = gst.ElementFactory.make("capsfilter")
@@ -408,6 +423,175 @@ class AudioCapture:
         freeze the alignment). Unknown or unanswered means 0: no correction, the old behaviour.
         """
         self.capture_clock.latency = seconds
+
+    # --- roadmap task 10: device, headphone and Bluetooth changes as explicit epochs -------
+
+    def start_device_watch(self, *, poll_seconds: float = 2.0, runner: Any = None) -> None:
+        """Watch the user's output device and react to changes with an epoch (roadmap task 10).
+
+        Read-only: the watcher only asks PulseAudio/PipeWire what the default sink, source and
+        Bluetooth profile ARE; Voxa never switches a profile, a port or the default device itself
+        (WirePlumber's autoswitch to the headset profile is an event to REACT to). Safe to call
+        twice, never raises: no daemon, no watcher, and the pipeline keeps its current epoch.
+        """
+        if self._device_watcher is not None:
+            return None
+        try:
+            watcher = DeviceWatcher(self._on_device_change, runner=runner or subprocess.run,
+                                    poll_seconds=poll_seconds, log=log)
+        except Exception:  # noqa: BLE001 - a machine with no audio at all must still run
+            log.info("device watcher unavailable: audio stays on its current epoch")
+            return None
+        self._device_watcher = watcher
+        # One synchronous read first: the very first output is not an epoch, it is what this
+        # capture is, so the tuning (and AEC3's delay seed) is right from the first sentence.
+        watcher.poll_once()
+        if watcher.snapshot is not None:
+            self.note_output(watcher.snapshot.output_class)
+        watcher.start()
+        return None
+
+    def stop_device_watch(self) -> None:
+        watcher, self._device_watcher = self._device_watcher, None
+        if watcher is not None:
+            watcher.stop()
+
+    def _on_device_change(self, change: dict) -> None:
+        """The watcher's callback: one device change, one explicit epoch."""
+        snap: OutputSnapshot | None = change.get("to")
+        reason = str(change.get("reason") or "device-change")
+        self.begin_epoch(getattr(snap, "output_class", None), reason=reason)
+
+    def note_output(self, output_class: str | None, *, reason: str = "startup") -> str:
+        """Learn WHICH output this is without an epoch (the watcher's first read).
+
+        The very first read has nothing to recover from, and opening a recovery window there would
+        hold the user's first request for no reason. The tuning still applies, because the AEC3
+        delay seed below is chosen when the canceller is created.
+        """
+        if not output_class or output_class == self.output_class:
+            return self.output_class
+        self.output_class = output_class
+        self.tuning = output_tuning(output_class)
+        log.info("audio output %s (%s): delay search %.0f ms, residual margin %.1f dB",
+                 output_class, reason, self.tuning.delay_search_ms, self.tuning.residual_margin_db)
+        return output_class
+
+    def echo_path_qualified(self) -> bool:
+        """True when the echo path can say what the microphone's sound is made of RIGHT NOW.
+
+        False is "unqualified audio": no delay estimate yet, or no canceller at all. Task 10's
+        recovery rule holds automatic commands off exactly that, and keeps the audio."""
+        canceller = self.canceller
+        if canceller is None or not self._canceller_enabled:
+            return False
+        if getattr(canceller, "delay_managed_internally", False):
+            return True  # AEC3 owns the alignment: it reports nothing because it is always searching
+        return self.delay_samples > 0
+
+    @property
+    def recovering(self) -> bool:
+        """True inside an epoch's recovery window (handoff 6.2's recovery process).
+
+        During recovery the pipeline keeps every sample of audio - nothing is thrown away - but
+        unqualified audio may not raise an automatic command: the canceller has not converged on the
+        new path yet, and a decision made from audio it cannot explain is how a device change turns
+        into a self-interruption.
+        """
+        return time.monotonic() < self._recovery_until
+
+    def begin_epoch(self, output_class: str | None = None, *, reason: str = "device-change") -> int:
+        """One explicit epoch: flush the reference, recreate the canceller, re-measure latency.
+
+        Roadmap task 10 and handoff 6.2: a route, device or Bluetooth-profile change is the ONLY
+        thing that reaches here (the canceller is never rebuilt per sentence, and the delay tracker
+        re-estimates the delay without ever touching the filter). Everything acoustic restarts
+        together: the reference history, the canceller instance, the latency measurement and the
+        task-5 thresholds that belong to this output (``self.tuning``). The recovery window that
+        opens holds automatic commands off unqualified audio while it converges.
+        """
+        self.epoch += 1
+        if output_class and output_class != self.output_class:
+            self.output_class = output_class
+        self.tuning = output_tuning(self.output_class)
+        log.info("audio epoch %d (%s): output %s, echo path %s, delay search %.0f ms, "
+                 "residual margin %.1f dB", self.epoch, reason, self.output_class,
+                 "present" if self.tuning.echo_path_present else "absent",
+                 self.tuning.delay_search_ms, self.tuning.residual_margin_db)
+        # 1. Flush the reference history: samples rendered into the OLD device's clock say nothing
+        #    about this one. Both reference kinds flush together (task 1's timeline and the ring).
+        if self.timeline is not None:
+            self.timeline.new_epoch(reason)
+        if self._ref_ring is not None:
+            self._ref_ring = ReferenceRing(REFERENCE_SECONDS * REFERENCE_RATE)
+        self._ref_anchor = None
+        # 2. Re-measure the latency before the first chunk of the new path is aligned.
+        self._remeasure_latency()
+        # 3. Recreate the canceller for the new path (one owner: the old one gives the path up
+        #    first), and restart the delay estimate - the delay itself is what changed.
+        self._recreate_canceller()
+        self._delay_tracker = None
+        self._delay_mic, self._delay_ref = [], []
+        self._delay_done = self.canceller is None
+        # 4. The recovery window (handoff 6.2): no automatic commands from unqualified audio.
+        self._recovery_until = time.monotonic() + self.tuning.recovery_s
+        return self.epoch
+
+    def _recreate_canceller(self) -> None:
+        """Build a fresh canceller of the mode the capture path asked for, with this output's delay."""
+        mode = self._echo_mode
+        old, self.canceller = self.canceller, None
+        if old is not None:
+            release_aec_owner(old)
+            with contextlib.suppress(Exception):
+                old.close()  # AEC3 exposes close(); the NLMS path does not
+        if mode == "webrtc":
+            # The GStreamer DSP owns this pipeline's echo path: an epoch restarts the pipeline
+            # instead (``start`` re-runs it), which is also what re-opens its probe.
+            self.canceller = None
+            return
+        try:
+            if mode == "aec3":
+                # A2DP/HFP buffer hundreds of milliseconds on top of the room: seed AEC3 with the
+                # delay its estimator may expect (task 10's table). A normal output keeps today's
+                # blind start, because a wrong seed costs more than it saves.
+                self.canceller = Aec3Canceller(stream_delay_ms=int(self.tuning.aec3_seed_ms))
+            elif mode in ("voxa", "off"):
+                self.canceller = EchoCanceller()
+            else:
+                self.canceller = None
+                return
+        except Exception as exc:  # noqa: BLE001 - the microphone must survive a canceller failure
+            log.warning("echo canceller could not restart (%s): raw microphone, degraded state", exc)
+            self.canceller = None
+        self._canceller_enabled = self.canceller is not None
+        self._canceller_logged = False
+        self.apply_clock_drift()
+
+    def _remeasure_latency(self) -> float | None:
+        """Read the live capture latency again (an epoch may have changed the driver's buffer)."""
+        current = self.capture_clock.latency
+        if callable(current):
+            # The app handed us a live question, so ask it again: a Bluetooth profile changes the
+            # answer, and this is exactly why set_capture_latency accepts a callable.
+            try:
+                value = float(current())
+            except Exception:  # noqa: BLE001 - the source may be gone mid-switch
+                return None
+            log.debug("capture latency re-measured: %.1f ms", value * 1000.0)
+            return value
+        source = self._capture_src
+        if source is not None:
+            # The PulseAudio/PipeWire source driver tells its own latency in microseconds, the same
+            # property _start_reference sets on the reference side.
+            with contextlib.suppress(Exception):
+                if source.find_property("latency") is not None:
+                    microseconds = float(source.get_property("latency"))
+                    self.capture_clock.latency = max(0.0, microseconds / 1_000_000.0)
+                    log.debug("capture latency re-measured from the source: %.1f ms",
+                              self.capture_clock.latency * 1000.0)
+                    return self.capture_clock.latency
+        return current if isinstance(current, (int, float)) else None
 
     def reference_mode(self) -> str:
         """``own-render`` / ``monitor`` / ``none``: what the canceller is being fed right now."""
@@ -508,6 +692,7 @@ class AudioCapture:
         # The microphone is opened exactly as the plain capture pipeline opens it.
         selected = next((item for item in self._devices if item.identifier == device_id), None)
         mic_src = selected.device.create_element(None) if selected is not None else make("pulsesrc")
+        self._capture_src = mic_src  # an epoch re-reads this driver's latency (task 10)
         convert_m, resample_m, caps_m = make("audioconvert"), make("audioresample"), make("capsfilter")
         probe, probe_sink = make("webrtcechoprobe"), make("fakesink")
         convert, resample, capsfilter = make("audioconvert"), make("audioresample"), make("capsfilter")
@@ -767,6 +952,7 @@ class AudioCapture:
         return self.canceller.delay_samples if self.canceller is not None else 0
 
     def stop(self) -> None:
+        self.stop_device_watch()
         gst = _ensure_gstreamer() if (self.pipeline is not None or self._ref_pipeline is not None) else None
         pipeline, self.pipeline = self.pipeline, None
         ref_pipeline, self._ref_pipeline = self._ref_pipeline, None
@@ -794,6 +980,7 @@ class AudioCapture:
         if mode == "webrtc" and not webrtc_available():
             log.info("webrtc echo cancellation unavailable: running with echo off")
             mode = "off"
+        self._echo_mode = mode  # an epoch (task 10) recreates THIS mode's canceller
         if mode == "webrtc":
             self.pulse_source = None
             self.reference_source = reference_source
@@ -838,7 +1025,12 @@ class AudioCapture:
         if not isinstance(self.canceller, wanted):
             # Exactly one canceller owns the echo path: give the old one up before the new one claims it.
             release_aec_owner(self.canceller)
-            self.canceller = wanted()
+            if mode == "aec3":
+                # Task 10: a Bluetooth link buffers hundreds of ms on top of the room, and the
+                # output is already known here - seed the estimator instead of starting blind.
+                self.canceller = wanted(stream_delay_ms=int(self.tuning.aec3_seed_ms))
+            else:
+                self.canceller = wanted()
         self._canceller_enabled = True
         self._canceller_logged = False
         self.apply_clock_drift()

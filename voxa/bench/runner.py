@@ -47,7 +47,8 @@ from ..anc import (MIN_REFERENCE_POWER, Aec3Canceller, DelayTracker, EchoCancell
                    aec3_available, estimate_delay)
 from ..audio import AudioCapture, ReferenceRing, mix_chunk, webrtc_available
 from ..bargectl import BargeInController
-from ..onset import dbfs
+from ..onset import OnsetDetector, dbfs
+from ..echo import OUTPUT_SPEAKERS, output_tuning
 from ..attribution import EchoPathBaseline, SourceEvidence, attribute
 from ..capture import Frame
 from ..config import Settings
@@ -243,6 +244,15 @@ class ClipRunner:
         # that SEES the muted microphone: the conversation's own detector never runs while a
         # reply plays, which left vad_prob "not measured" for every playback frame. The runner
         # feeds the cleaned bytes of every frame to both.
+        # Roadmap task 10: the output class the clip plays through, its epoch counter, and the
+        # recovery window an epoch opens. Defaults are today's shipped thresholds, so a clip with
+        # no device switch (every frozen clip) runs exactly the pipeline it ran before.
+        self.output_class = OUTPUT_SPEAKERS
+        self.tuning = output_tuning(self.output_class)
+        self.epoch = 0
+        self._recovery_until_s = 0.0
+        self._device_switch: dict | None = None
+        self.held_commands = 0
         self.dt_gate = DoubleTalkGate()
         self._clean_vad: VoiceDetector | None = None  # lazy: it loads the Silero model
         self._clean_prob: float | None = None
@@ -351,6 +361,82 @@ class ClipRunner:
         params.update(self._mask_params)
         return ResidualMask(rate=SR, **params)
 
+    # --- roadmap task 10: device, headphone and Bluetooth changes as explicit epochs ----
+
+    def _note_output(self, echo_truth: dict) -> None:
+        """Read what the clip plays through, and whether it switches mid-clip (task 10).
+
+        Frozen clips carry none of these keys and run exactly the pipeline they ran before. A
+        stratum (tools/device_strata_lab.py) or a future clip pins the output class and, when the
+        device changes, the instant and the new class - the same facts the live watcher reads from
+        ``pactl``/``pw-dump`` (device.bus, device.form_factor, port type).
+        """
+        self.output_class = echo_truth.get("output_class") or OUTPUT_SPEAKERS
+        self.tuning = output_tuning(self.output_class)
+        self._device_switch = echo_truth.get("device_switch")
+        self._recovery_until_s = 0.0
+
+    def _apply_output_tuning(self) -> None:
+        """Hand the task-5 thresholds to this output (report line 189, relaxation for headphones)."""
+        tuning = self.tuning
+        self.dt_gate = DoubleTalkGate(
+            speech_threshold=tuning.speech_threshold, joint_ms=tuning.joint_ms,
+            hold_ms=tuning.hold_ms, margin_db=tuning.residual_margin_db,
+            coherence_echo=tuning.coherence_echo, erle_drop_db=tuning.erle_drop_db)
+        # The onset rule is the live barge-in's residual margin: an epoch replaces it wholesale,
+        # because its run of unexplained sound started counting a different acoustic path.
+        self.barge.onset = OnsetDetector(margin_db=tuning.onset_margin_db,
+                                         evidence_ms=tuning.onset_evidence_ms)
+
+    def _begin_epoch(self, output_class: str, *, reason: str = "device-switch") -> None:
+        """One explicit epoch on the simulated clock: flush the reference, recreate the canceller,
+        re-measure the delay, retune the thresholds, open the recovery window (handoff 6.2)."""
+        self.epoch += 1
+        self.output_class = output_class or self.output_class
+        self.tuning = output_tuning(self.output_class)
+        self._apply_output_tuning()
+        if self.ref_ring is not None:
+            self.ref_ring = ReferenceRing(REFERENCE_SECONDS * SR)
+        self._delay_mic, self._delay_ref = [], []
+        self._delay_samples = 0
+        self._delay_done = False
+        self._delay_tracker = (DelayTracker(sample_rate=SR)
+                               if self.echo_mode == "voxa" else None)
+        if self.canceller is not None:
+            release = getattr(self.canceller, "close", None)
+            if release is not None:
+                release()
+            self.canceller = self._new_canceller()
+        self._recovery_until_s = self._now + self.tuning.recovery_s
+        self.emit("device-epoch", output_class=self.output_class, epoch=self.epoch,
+                  reason=reason, delay_search_ms=self.tuning.delay_search_ms,
+                  residual_margin_db=self.tuning.residual_margin_db,
+                  onset_margin_db=self.tuning.onset_margin_db,
+                  recovery_s=self.tuning.recovery_s)
+
+    def _recovering(self) -> bool:
+        return self._now < self._recovery_until_s
+
+    def _switch_due(self, frame: int) -> str | None:
+        """The epoch a mid-clip device switch asks for, once, at its own frame."""
+        switch = self._device_switch
+        if not switch or switch.get("fired"):
+            return None
+        at = float(switch.get("at_s") or 0.0)
+        if self._now + (CHUNK_MS / 1000.0) <= at:
+            return None
+        switch["fired"] = True
+        return str(switch.get("output_class") or self.output_class)
+
+    def _new_canceller(self) -> EchoCanceller | None:
+        """The canceller this mode/epoch needs (the bench mode decides, as _prepare_echo_stages does)."""
+        if self.echo_mode == "aec3":
+            return Aec3Canceller(double_talk_guard=False,
+                                 stream_delay_ms=int(self.tuning.aec3_seed_ms))
+        if self.echo_mode == "voxa":
+            return EchoCanceller(taps=4096, mu=0.7)
+        return None
+
     def _estimate_delay(self, mic: np.ndarray, ref: np.ndarray) -> None:
         """Mirror of ``AudioCapture._maybe_estimate_delay`` (audio.py:468) on the simulated clock."""
         if self._delay_done or self.ref_ring is None or ref.size == 0:
@@ -363,7 +449,12 @@ class ClipRunner:
         if collected < REFERENCE_SECONDS * SR:
             return
         self._delay_done = True
-        delay = int(estimate_delay(np.concatenate(self._delay_mic), np.concatenate(self._delay_ref)))
+        # Task 10: the search window the OUTPUT allows bounds the estimate. A plain output's
+        # 300 ms is today's bound; Bluetooth widens it to 400 ms for the codec buffering on
+        # top of the room (report line 189), so a 300 ms bulk delay is inside the search.
+        search_samples = int(round(self.tuning.delay_search_ms / 1000.0 * SR))
+        delay = int(estimate_delay(np.concatenate(self._delay_mic), np.concatenate(self._delay_ref),
+                                 max_delay=max(4800, search_samples)))
         if delay > 0 and not getattr(self.canceller, "delay_managed_internally", False):
             self.canceller = EchoCanceller(taps=4096, mu=0.7, delay=delay)
         elif delay > 0 and self.echo_mode == "aec3":
@@ -673,10 +764,25 @@ class ClipRunner:
                       words=heard["words"], no_speech_prob=heard["no_speech_prob"])
         self.conversation.waiting_for_prompt = keep_prompt
 
+    def _unqualified_audio(self) -> bool:
+        """True when the pipeline cannot explain the microphone: no delay, or an echo model that
+        has not converged on this path yet (roadmap task 10's recovery rule)."""
+        aligned = (self._delay_samples > 0
+                   or getattr(self.canceller, "delay_managed_internally", False))
+        return not aligned
+
     def _deliver(self, text: str, frame: int, *, kind: str, words: list[dict] | None = None,
                  no_speech_prob: float | None = None) -> None:
         """The request that would reach the assistant (what ``on_prompt`` carries in the app)."""
         if not text:
+            return
+        # Roadmap task 10: inside an epoch's recovery window no automatic command may come from
+        # audio the canceller cannot qualify yet. The audio itself is KEPT (the capture ring and
+        # the cleaned stream hold it); only the automatic decision is held off, and it says so.
+        if kind == "request" and self._recovering() and self._unqualified_audio():
+            self.held_commands += 1
+            self.emit("command-held", text=text, frame=frame, epoch=self.epoch,
+                      reason="recovery-window-unqualified-audio")
             return
         self.requests.append(text)
         self.counts["turns"] += 1
@@ -751,6 +857,10 @@ class ClipRunner:
 
     def run(self, mic: np.ndarray, ref: np.ndarray, truth: dict) -> dict:
         self._prepare_echo_stages()
+        # Roadmap task 10: what the clip plays through, and any mid-clip device switch. With the
+        # frozen clips this is the default output and no switch: the pipeline is unchanged.
+        self._note_output(truth.get("echo") or {})
+        self._apply_output_tuning()
         # Task 5: a new clip starts the joint gate, its Silero run and the suspect flag over.
         self.dt_gate.reset()
         if self._clean_vad is not None:
@@ -810,6 +920,10 @@ class ClipRunner:
             ref_chunk = ref[lo:hi]  # float32 -1..1, exactly what the live reference ring holds (audio.py:411)
             if mic_chunk_i16.size == 0:
                 break
+            # 0b. A mid-clip device/headphone/Bluetooth switch is an explicit epoch (task 10).
+            wanted = self._switch_due(frame)
+            if wanted is not None:
+                self._begin_epoch(wanted)
             ref_power = float(np.mean(ref_chunk * ref_chunk)) if ref_chunk.size else 0.0
             if self.ref_ring is not None:
                 self.ref_ring.append(ref_chunk)
@@ -861,6 +975,9 @@ class ClipRunner:
                 mic_level_db=mic_db,
                 clean_level_db=clean_db,
                 delay_samples=self._delay_samples,
+                output_class=self.output_class,
+                epoch=self.epoch,
+                recovering=self._recovering(),
                 ref_power=round(ref_power, 8),
                 echo_explained_db=(None if evidence.echo_explained_db is None
                                    else round(evidence.echo_explained_db, 2)),
@@ -951,6 +1068,10 @@ class ClipRunner:
             "echo_processing_seconds": round(self._echo_cpu, 4),
             "degraded": self.degraded,
             "delay_estimated_samples": self._delay_samples,
+            "output_class": self.output_class,
+            "device_epochs": self.epoch,
+            "device_switch": bool(self._device_switch),
+            "held_commands": self.held_commands,
             "erle_median_db": _median(erle_values),
             "mask_gain_max_db": round(max(mask_gains), 2) if mask_gains else None,
             "requests": self.requests,
