@@ -29,7 +29,20 @@ from . import (  # noqa: E402
     websearch,
     welcome,
 )
-from .agent import hearing, host, intents, issueflow, livetv, mailflow, planner, radio, repeat, saveflow, ui  # noqa: E402
+from .agent import (  # noqa: E402
+    hearing,
+    host,
+    intents,
+    issueflow,
+    livetv,
+    mailflow,
+    planner,
+    radio,
+    repeat,
+    saveflow,
+    screencontext,
+    ui,
+)
 from .agent.actionlog import ActionLog, ActionRecord  # noqa: E402
 from .agent.claims import claims_action, first_sentences  # noqa: E402
 from .agent.host import host_command  # noqa: E402
@@ -3931,13 +3944,20 @@ class MainWindow(Adw.ApplicationWindow):
                 client = self._ai_client()
                 if hasattr(client, "is_model_loaded") and client.is_model_loaded(self.settings.ollama_model) is False:
                     idle(self._on_model_loading, self.settings.ollama_model, generation, cancel_event)
+                # "This" and "here" only mean something with the window in front: attach its
+                # title and visible text. Done here, not on the GTK thread, because reading
+                # another program's window can take seconds.
+                instruction = system_prompt
+                screen = screencontext.gather(prompt, title=ui.active_window_title, text=ui.text)
+                if screen:
+                    instruction = f"{system_prompt}\n\n{screen}"
                 answer = client.generate_stream(
                     model=self._chat_model(),
                     prompt=user_prompt,
                     cancel_event=cancel_event,
                     on_chunk=lambda chunk: None,
                     messages=[
-                        {"role": "system", "content": system_prompt},
+                        {"role": "system", "content": instruction},
                         {"role": "user", "content": user_prompt},
                     ],
                 )

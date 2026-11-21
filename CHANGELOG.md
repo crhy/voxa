@@ -17,6 +17,10 @@
   in your Downloads/Voxa folder, and tells you the file's name and where it went; if nothing arrives she says so
   instead of guessing.
 - **Track a parcel from text you paste.** Paste or select a confirmation email or a shop's order page and say "Track this package" — Voxa finds the tracking numbers in the text, opens each carrier page, says the status that page actually states, and keeps a list of what is coming, so "Where is my filament order?" and "What's arriving this week?" answer from that list without opening anything.
+- **She understands "this" and "here" by reading the window in front of you.** Ask "read this to me", "what's here"
+  or "summarize this" and Voxa attaches the focused window's title and visible text to the request before the AI
+  answers it. Questions that do not refer to the screen read nothing at all, and web phrasing such as "on this page"
+  still goes to the browser.
 
 ### Fixed
 
