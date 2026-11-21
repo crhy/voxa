@@ -170,6 +170,10 @@ def run_case(seconds: float, delay0_ms: float, delay1_ms: float, tuning: OutputT
     before = curve[curve[:, 0] < (switch_at_s if switch_at_s is not None else seconds) - 0.5]
     steady = round(float(np.mean(before[:, 1])), 2) if before.size else 0.0
 
+    after = curve[(curve[:, 0] >= (switch_at_s or 0.0) + 1.5) &
+                  (curve[:, 0] <= (switch_at_s or 0.0) + 4.0)] if switch_at_s is not None else curve
+    erle_after = round(float(np.mean(after[:, 1])), 2) if after.size else None
+
     reconverge = None
     if switch_at_s is not None:
         for t_s, erle in curve[curve[:, 0] >= switch_at_s]:
@@ -186,6 +190,7 @@ def run_case(seconds: float, delay0_ms: float, delay1_ms: float, tuning: OutputT
         "aligned_from_bulk": found_first,
         "delay_estimates": len(est_err),
         "erle_db": steady,
+        "erle_after_switch_db": erle_after,
         "reconverge_s": reconverge,
         "false_onsets": false_onsets,
         "unqualified_s": round(unqualified_s, 2),
