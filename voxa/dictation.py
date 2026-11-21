@@ -11,6 +11,107 @@ PRE_ROLL_BYTES = int(0.6 * 16000) * 2  # 0.6 s of 16 kHz 16-bit audio kept befor
 DICTATION_CHUNK_SECONDS = 6.0
 
 
+class SpeechSegmenter:
+    """The per-chunk state of :func:`segment_stream`, split out so a file-driven caller
+    can drive the same speech-pause rules with its own clock (roadmap B2: the hearing
+    bench replays WAV files faster than real time and must segment exactly as the live
+    app does, without sleeping).
+
+    ``step(pcm, level, now)`` takes one chunk plus the clock reading the caller took for
+    it and returns the segment completed by that chunk, or ``None``. The live queue,
+    the stop event and the two wall-clock timeouts stay in :func:`segment_stream`.
+    """
+
+    def __init__(
+        self,
+        *,
+        threshold: int,
+        silence_seconds: float,
+        max_segment_seconds: float | Callable[[], float],
+        early_silence_seconds: float | None = None,
+        early_check: Callable[[bytes], bool] | None = None,
+        is_voice: Callable[[bytes, float], bool] | None = None,
+    ) -> None:
+        self.threshold = threshold
+        self.silence_seconds = silence_seconds
+        self.max_segment_seconds = max_segment_seconds
+        self.early_silence_seconds = early_silence_seconds
+        self.early_check = early_check
+        self.is_voice = is_voice
+        self.segment = bytearray()
+        self.heard_voice = False
+        self.heard_any_voice = False
+        self.last_voice = 0.0
+        self.last_any_voice = 0.0
+        self.early_checked = False
+
+    def step(self, pcm: bytes | None, level: float, now: float) -> bytes | None:
+        """Consume one chunk (``pcm is None`` means nothing arrived) and return the
+        segment it completed, or None. ``now`` is the caller's clock for this chunk."""
+        if not self.last_voice:
+            self.last_voice = self.last_any_voice = now
+        if pcm is not None:
+            self.segment.extend(pcm)
+            if self.is_voice is not None:
+                voiced = level >= self.threshold / 2 and self.is_voice(pcm, level)
+            else:
+                voiced = level >= self.threshold
+            if voiced:
+                self.heard_voice = True
+                self.heard_any_voice = True
+                self.last_voice = now
+                self.last_any_voice = now
+                self.early_checked = False
+
+        duration = len(self.segment) / (16000 * 2)
+        # Require a little recorded content before treating a pause as a
+        # boundary; scale it with the silence setting so short pauses cut
+        # sooner instead of accumulating toward the max-segment cutoff.
+        min_content = min(0.8, max(0.3, self.silence_seconds / 2.0))
+        completed: bytes | None = None
+        if (
+            self.early_check is not None
+            and self.early_silence_seconds is not None
+            and self.heard_voice
+            and duration >= min_content
+            and not self.early_checked
+            and now - self.last_voice >= self.early_silence_seconds
+        ):
+            self.early_checked = True
+            if self.early_check(bytes(self.segment)):
+                completed = bytes(self.segment)
+                self.segment = bytearray()
+                self.heard_voice = False
+                self.last_voice = now
+                self.early_checked = False
+        pause_ready = (
+            self.heard_voice
+            and duration >= min_content
+            and now - self.last_voice >= self.silence_seconds
+        )
+        limit = (
+            self.max_segment_seconds()
+            if callable(self.max_segment_seconds)
+            else self.max_segment_seconds
+        )
+        max_ready = self.heard_voice and duration >= limit
+        if pause_ready or max_ready:
+            completed = bytes(self.segment)
+            self.segment = bytearray()
+            self.heard_voice = False
+            self.last_voice = now
+
+        if not self.heard_voice and duration > 2.0:
+            # Keep the last moments instead of emptying the buffer: a soft first syllable ("Vo…")
+            # that arrived just before the buffer was emptied was lost with it.
+            del self.segment[:-PRE_ROLL_BYTES]
+        return completed
+
+    def pending(self) -> bytes:
+        """The audio collected since the last boundary (empty when no voice was heard)."""
+        return bytes(self.segment) if self.heard_voice else b""
+
+
 def segment_stream(
     input_queue: queue.Queue[tuple[bytes, float] | None],
     stop_event: threading.Event,
@@ -33,10 +134,9 @@ def segment_stream(
     fires and the generator ends (without touching ``stop_event``, so callers
     decide what ending idle means for them).
 
-    If ``trailing_silence_seconds`` elapses after the first voice in the stream,
-    the pending segment (if it contains voice) is yielded and the generator ends
-    on its own; ``on_idle_timeout`` is not called for this case. ``None`` (the
-    default) keeps the behaviour unchanged.
+    If ``trailing_silence_seconds`` elapses after the first voice in the stream, the
+    pending segment (if it contains voice) is yielded and the generator ends
+    on its own; ``on_idle_timeout`` is not called for this case.
 
     If ``early_silence_seconds`` and ``early_check`` are both given, then once a
     pause reaches ``early_silence_seconds`` (before the full ``silence_seconds``
@@ -50,13 +150,18 @@ def segment_stream(
 
     ``max_segment_seconds`` may be a callable, read on every chunk, so a mode
     switched on mid-utterance (dictation) applies to the segment already in progress.
+
+    The per-chunk rules live in :class:`SpeechSegmenter`; this function only supplies
+    the queue, the stop event and the two wall-clock timeouts.
     """
-    segment = bytearray()
-    heard_voice = False
-    heard_any_voice = False
-    last_voice = time.monotonic()
-    last_any_voice = last_voice
-    early_checked = False
+    segmenter = SpeechSegmenter(
+        threshold=threshold,
+        silence_seconds=silence_seconds,
+        max_segment_seconds=max_segment_seconds,
+        early_silence_seconds=early_silence_seconds,
+        early_check=early_check,
+        is_voice=is_voice,
+    )
 
     while not stop_event.is_set():
         try:
@@ -65,73 +170,30 @@ def segment_stream(
             item = None
         now = time.monotonic()
 
-        if item is None:
-            if stop_event.is_set():
-                break
-        else:
-            pcm, level = item
-            segment.extend(pcm)
-            if is_voice is not None:
-                voiced = level >= threshold / 2 and is_voice(pcm, level)
-            else:
-                voiced = level >= threshold
-            if voiced:
-                heard_voice = True
-                heard_any_voice = True
-                last_voice = now
-                last_any_voice = now
-                early_checked = False
-
-        duration = len(segment) / (16000 * 2)
-        # Require a little recorded content before treating a pause as a
-        # boundary; scale it with the silence setting so short pauses cut
-        # sooner instead of accumulating toward the max-segment cutoff.
-        min_content = min(0.8, max(0.3, silence_seconds / 2.0))
-        if (
-            early_check is not None
-            and early_silence_seconds is not None
-            and heard_voice
-            and duration >= min_content
-            and not early_checked
-            and now - last_voice >= early_silence_seconds
-        ):
-            early_checked = True
-            if early_check(bytes(segment)):
-                yield bytes(segment)
-                segment = bytearray()
-                heard_voice = False
-                last_voice = now
-                early_checked = False
-        pause_ready = heard_voice and duration >= min_content and now - last_voice >= silence_seconds
-        limit = max_segment_seconds() if callable(max_segment_seconds) else max_segment_seconds
-        max_ready = heard_voice and duration >= limit
-        if pause_ready or max_ready:
-            yield bytes(segment)
-            segment = bytearray()
-            heard_voice = False
-            last_voice = now
-
-        if not heard_voice and duration > 2.0:
-            # Keep the last moments instead of emptying the buffer: a soft first syllable ("Vo…")
-            # that arrived just before the buffer was emptied was lost with it.
-            del segment[:-PRE_ROLL_BYTES]
+        completed = segmenter.step(
+            item[0] if item is not None else None,
+            item[1] if item is not None else 0.0,
+            now,
+        )
+        if completed is not None:
+            yield completed
 
         if (
             trailing_silence_seconds is not None
-            and heard_any_voice
-            and now - last_any_voice > trailing_silence_seconds
+            and segmenter.heard_any_voice
+            and now - segmenter.last_any_voice > trailing_silence_seconds
         ):
-            if heard_voice and segment:
-                yield bytes(segment)
+            if segmenter.pending():
+                yield segmenter.pending()
             return
 
-        if idle_timeout_seconds is not None and now - last_any_voice > idle_timeout_seconds:
+        if idle_timeout_seconds is not None and now - segmenter.last_any_voice > idle_timeout_seconds:
             if on_idle_timeout is not None:
                 on_idle_timeout()
             return
 
-    if heard_voice and segment:
-        yield bytes(segment)
+    if segmenter.pending():
+        yield segmenter.pending()
 
 
 class DictationController:
