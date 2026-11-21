@@ -219,8 +219,17 @@ def score_run(results: list[dict[str, Any]], wake_word: str | None = None, top: 
     for case in cases:
         by_category.setdefault(str(case["category"]), []).append(case)
     from . import hearing as hearing_module
+    from . import paused as paused_module
 
     measures = [row.get("hearing") for row in results if isinstance(row.get("hearing"), dict)]
+
+    def _paused_row(row: dict) -> dict | None:
+        offline = row.get("offline")
+        if isinstance(offline, dict) and isinstance(offline.get("paused"), dict):
+            return offline["paused"]
+        return None
+
+    paused_measures = [row for row in (_paused_row(item) for item in results) if row is not None]
     block = {
         "hearing_word_accuracy": _mean(accuracies),
         "routed_tool_accuracy": None if not routed else _mean([1.0 if case["routed"] else 0.0 for case in routed]),
@@ -233,6 +242,9 @@ def score_run(results: list[dict[str, Any]], wake_word: str | None = None, top: 
         "cases": cases,
     }
     block.update(hearing_module.score_hearing(measures))
+    # The paused suite (issue 136): paused_false_trigger_rate / paused_wake_recall join
+    # this block so `voxatest check` reads them like every other comprehension key.
+    block.update(paused_module.score_paused(paused_measures))
     return block
 
 
@@ -270,6 +282,8 @@ def format_comprehension(comprehension: dict[str, Any], top: int = TOP_CONFUSION
     from . import hearing as hearing_module
 
     lines.extend(hearing_module.format_hearing(comprehension))
+    from . import paused as paused_module
+    lines.extend(paused_module.format_paused(comprehension))
     return lines
 
 
@@ -300,6 +314,11 @@ def format_comprehension_markdown(comprehension: dict[str, Any], top: int = TOP_
     lines.extend(["| Said | Heard | Count |", "| --- | --- | ---: |"])
     for row in rows:
         lines.append(f"| {row['said']} | {row['heard']} | {row['count']} |")
+    from . import paused as paused_module
+    paused_lines = paused_module.format_paused(comprehension)
+    if paused_lines:
+        lines.extend(["", "### Paused (issue 136)", ""])
+        lines.extend(paused_lines)
     return lines
 
 

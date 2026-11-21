@@ -1,0 +1,545 @@
+{
+  "_about": "f161 (issue 136): paused-mode VoxaTest. Every case is spoken while Voxa is PAUSED. \"wake\": true means the sentence really addresses her (it starts with the wake word) and must get through; every other case is background speech that must produce nothing but silence. Run: python -m voxatest run --offline-audio --cases voxatest/data/test_cases_paused.json --json-report .voxa-bench/vt-paused.json; gate: python -m voxatest check .voxa-bench/vt-paused.json \"paused_false_trigger_rate<=0\" \"paused_wake_recall>=1\".",
+  "cases": [
+    {
+      "id": "paused-wake-time",
+      "category": "paused_wake",
+      "prompt": "Voxa, what time is it?",
+      "paused": true,
+      "wake": true
+    },
+    {
+      "id": "paused-wake-open-firefox",
+      "category": "paused_wake",
+      "prompt": "Voxa, open firefox",
+      "paused": true,
+      "wake": true
+    },
+    {
+      "id": "paused-wake-timer",
+      "category": "paused_wake",
+      "prompt": "Voxa, set a timer for ten minutes",
+      "paused": true,
+      "wake": true
+    },
+    {
+      "id": "paused-wake-weather",
+      "category": "paused_wake",
+      "prompt": "Voxa, what is the weather today",
+      "paused": true,
+      "wake": true
+    },
+    {
+      "id": "paused-wake-jazz",
+      "category": "paused_wake",
+      "prompt": "Voxa, play some jazz",
+      "paused": true,
+      "wake": true
+    },
+    {
+      "id": "paused-wake-joke",
+      "category": "paused_wake",
+      "prompt": "Voxa, tell me a joke",
+      "paused": true,
+      "wake": true
+    },
+    {
+      "id": "paused-wake-search",
+      "category": "paused_wake",
+      "prompt": "Voxa, search for cat videos",
+      "paused": true,
+      "wake": true
+    },
+    {
+      "id": "paused-wake-dictation",
+      "category": "paused_wake",
+      "prompt": "Voxa, start dictation",
+      "paused": true,
+      "wake": true
+    },
+    {
+      "id": "paused-wake-news",
+      "category": "paused_wake",
+      "prompt": "Voxa, read the news",
+      "paused": true,
+      "wake": true
+    },
+    {
+      "id": "paused-wake-convert",
+      "category": "paused_wake",
+      "prompt": "Voxa, convert 100 kilometers to miles",
+      "paused": true,
+      "wake": true
+    },
+    {
+      "id": "paused-wake-list",
+      "category": "paused_wake",
+      "prompt": "Voxa, add milk to my shopping list",
+      "paused": true,
+      "wake": true
+    },
+    {
+      "id": "paused-wake-door",
+      "category": "paused_wake",
+      "prompt": "Voxa, close the door",
+      "paused": true,
+      "wake": true
+    },
+    {
+      "id": "paused-near-miss-voxel",
+      "category": "paused_near_miss",
+      "prompt": "Voxel of the day, a tiny cube of cheese",
+      "paused": true
+    },
+    {
+      "id": "paused-near-miss-voxel2",
+      "category": "paused_near_miss",
+      "prompt": "Voxel graphics look great in that demo",
+      "paused": true
+    },
+    {
+      "id": "paused-near-miss-roxa",
+      "category": "paused_near_miss",
+      "prompt": "Roxa called me back later today",
+      "paused": true
+    },
+    {
+      "id": "paused-near-miss-roxa2",
+      "category": "paused_near_miss",
+      "prompt": "Roxa and Marco argued about the schedule",
+      "paused": true
+    },
+    {
+      "id": "paused-near-miss-poxa",
+      "category": "paused_near_miss",
+      "prompt": "Poxa is a genus of head louse",
+      "paused": true
+    },
+    {
+      "id": "paused-near-miss-vox-populi",
+      "category": "paused_near_miss",
+      "prompt": "The podcast discussed the vox populi street interviews",
+      "paused": true
+    },
+    {
+      "id": "paused-near-miss-vox-uh",
+      "category": "paused_near_miss",
+      "prompt": "Vox uh what happened next",
+      "paused": true
+    },
+    {
+      "id": "paused-near-miss-boxer",
+      "category": "paused_near_miss",
+      "prompt": "The boxer next door barks all day",
+      "paused": true
+    },
+    {
+      "id": "paused-near-miss-boxer2",
+      "category": "paused_near_miss",
+      "prompt": "Boxer training takes a lot of patience",
+      "paused": true
+    },
+    {
+      "id": "paused-near-miss-vox-media",
+      "category": "paused_near_miss",
+      "prompt": "Vox Media reported the scores last night",
+      "paused": true
+    },
+    {
+      "id": "paused-near-miss-box-office",
+      "category": "paused_near_miss",
+      "prompt": "The box office opens at ten sharp",
+      "paused": true
+    },
+    {
+      "id": "paused-near-miss-hoxa",
+      "category": "paused_near_miss",
+      "prompt": "Hoxa is a surname you rarely see",
+      "paused": true
+    },
+    {
+      "id": "paused-near-miss-foxes",
+      "category": "paused_near_miss",
+      "prompt": "Foxes cache food for the winter",
+      "paused": true
+    },
+    {
+      "id": "paused-exit-cancel",
+      "category": "paused_exit",
+      "prompt": "cancel",
+      "paused": true
+    },
+    {
+      "id": "paused-exit-never-mind",
+      "category": "paused_exit",
+      "prompt": "never mind",
+      "paused": true
+    },
+    {
+      "id": "paused-exit-forget-it",
+      "category": "paused_exit",
+      "prompt": "forget it",
+      "paused": true
+    },
+    {
+      "id": "paused-exit-done",
+      "category": "paused_exit",
+      "prompt": "done",
+      "paused": true
+    },
+    {
+      "id": "paused-exit-stop",
+      "category": "paused_exit",
+      "prompt": "stop",
+      "paused": true
+    },
+    {
+      "id": "paused-exit-stop-talking",
+      "category": "paused_exit",
+      "prompt": "stop talking",
+      "paused": true
+    },
+    {
+      "id": "paused-exit-offline",
+      "category": "paused_exit",
+      "prompt": "offline",
+      "paused": true
+    },
+    {
+      "id": "paused-exit-turn-off",
+      "category": "paused_exit",
+      "prompt": "turn off",
+      "paused": true
+    },
+    {
+      "id": "paused-exit-shut-down",
+      "category": "paused_exit",
+      "prompt": "shut down",
+      "paused": true
+    },
+    {
+      "id": "paused-exit-thats-all",
+      "category": "paused_exit",
+      "prompt": "thats all",
+      "paused": true
+    },
+    {
+      "id": "paused-exit-see-you",
+      "category": "paused_exit",
+      "prompt": "see you",
+      "paused": true
+    },
+    {
+      "id": "paused-exit-go-to-sleep",
+      "category": "paused_exit",
+      "prompt": "go to sleep",
+      "paused": true
+    },
+    {
+      "id": "paused-tv-host-let-it-go",
+      "category": "paused_tv",
+      "prompt": "And then the host said let it go",
+      "paused": true
+    },
+    {
+      "id": "paused-tv-cancel-culture",
+      "category": "paused_tv",
+      "prompt": "Tonight on the show, cancel culture explained",
+      "paused": true
+    },
+    {
+      "id": "paused-tv-weather-rain",
+      "category": "paused_tv",
+      "prompt": "The weather forecast says heavy rain tomorrow",
+      "paused": true
+    },
+    {
+      "id": "paused-tv-actor-sleep",
+      "category": "paused_tv",
+      "prompt": "The actor said go to sleep in that play",
+      "paused": true
+    },
+    {
+      "id": "paused-tv-router-offline",
+      "category": "paused_tv",
+      "prompt": "The router went offline during the storm",
+      "paused": true
+    },
+    {
+      "id": "paused-tv-voiceover-nature",
+      "category": "paused_tv",
+      "prompt": "A voiceover narrated the whole nature documentary",
+      "paused": true
+    },
+    {
+      "id": "paused-tv-podcast-done-deal",
+      "category": "paused_tv",
+      "prompt": "The podcast hosts called it a done deal",
+      "paused": true
+    },
+    {
+      "id": "paused-tv-never-mind-interview",
+      "category": "paused_tv",
+      "prompt": "She said never mind I found it in the interview",
+      "paused": true
+    },
+    {
+      "id": "paused-tv-boxer-award",
+      "category": "paused_tv",
+      "prompt": "The documentary about the boxer won an award",
+      "paused": true
+    },
+    {
+      "id": "paused-tv-forget-it-scene",
+      "category": "paused_tv",
+      "prompt": "In the last scene he whispers forget it",
+      "paused": true
+    },
+    {
+      "id": "paused-tv-vox-populi-poll",
+      "category": "paused_tv",
+      "prompt": "The news ran a vox populi poll on the street",
+      "paused": true
+    },
+    {
+      "id": "paused-tv-turn-off-set",
+      "category": "paused_tv",
+      "prompt": "The crew asked them to turn off the set lights",
+      "paused": true
+    },
+    {
+      "id": "paused-music-take-a-break",
+      "category": "paused_music",
+      "prompt": "the song sings take a break",
+      "paused": true
+    },
+    {
+      "id": "paused-music-go-to-sleep",
+      "category": "paused_music",
+      "prompt": "the lullaby says go to sleep",
+      "paused": true
+    },
+    {
+      "id": "paused-music-stop-talking",
+      "category": "paused_music",
+      "prompt": "the lyrics are baby we can stop talking",
+      "paused": true
+    },
+    {
+      "id": "paused-music-never-gonna",
+      "category": "paused_music",
+      "prompt": "the song says never gonna give you up",
+      "paused": true
+    },
+    {
+      "id": "paused-music-done-done",
+      "category": "paused_music",
+      "prompt": "the chorus repeats done done done",
+      "paused": true
+    },
+    {
+      "id": "paused-music-see-you-again",
+      "category": "paused_music",
+      "prompt": "the ballad ends with see you again",
+      "paused": true
+    },
+    {
+      "id": "paused-music-forget-it-refrain",
+      "category": "paused_music",
+      "prompt": "the refrain keeps repeating forget it",
+      "paused": true
+    },
+    {
+      "id": "paused-music-cancel-out",
+      "category": "paused_music",
+      "prompt": "the punk track shouts cancel cancel cancel",
+      "paused": true
+    },
+    {
+      "id": "paused-music-boxer-song",
+      "category": "paused_music",
+      "prompt": "the indie band wrote a song about a boxer",
+      "paused": true
+    },
+    {
+      "id": "paused-music-offline-mixtape",
+      "category": "paused_music",
+      "prompt": "the mixtape is called offline and it is long",
+      "paused": true
+    },
+    {
+      "id": "paused-two-voxel-guest",
+      "category": "paused_two_people",
+      "prompt": "So then he said voxel of the day to her",
+      "paused": true
+    },
+    {
+      "id": "paused-two-boxer-heard",
+      "category": "paused_two_people",
+      "prompt": "Did you hear about that boxer at the gym",
+      "paused": true
+    },
+    {
+      "id": "paused-two-what-time",
+      "category": "paused_two_people",
+      "prompt": "One guest asked what time is it",
+      "paused": true
+    },
+    {
+      "id": "paused-two-never-mind-crowd",
+      "category": "paused_two_people",
+      "prompt": "The crowd chanted never mind never mind",
+      "paused": true
+    },
+    {
+      "id": "paused-two-done-together",
+      "category": "paused_two_people",
+      "prompt": "They both said done at exactly the same time",
+      "paused": true
+    },
+    {
+      "id": "paused-two-forget-it-left",
+      "category": "paused_two_people",
+      "prompt": "She told him forget it and left the cafe",
+      "paused": true
+    },
+    {
+      "id": "paused-two-see-you-phone",
+      "category": "paused_two_people",
+      "prompt": "Someones phone rang and they said see you",
+      "paused": true
+    },
+    {
+      "id": "paused-two-vox-populi-two",
+      "category": "paused_two_people",
+      "prompt": "Two strangers argued about the vox populi results",
+      "paused": true
+    },
+    {
+      "id": "paused-two-offline-shout",
+      "category": "paused_two_people",
+      "prompt": "A kid shouted offline at the other kid",
+      "paused": true
+    },
+    {
+      "id": "paused-two-roxa-schedule",
+      "category": "paused_two_people",
+      "prompt": "The neighbours asked when Roxa gets home",
+      "paused": true
+    },
+    {
+      "id": "paused-echo-paris",
+      "category": "paused_echo",
+      "reply": "The capital of France is Paris.",
+      "prompt": "The capital of France is Paris.",
+      "paused": true
+    },
+    {
+      "id": "paused-echo-paris-wake",
+      "category": "paused_echo",
+      "reply": "Voxa, the capital of France is Paris.",
+      "prompt": "Voxa, the capital of France is Paris.",
+      "paused": true
+    },
+    {
+      "id": "paused-echo-matches",
+      "category": "paused_echo",
+      "reply": "I found three matches for that search.",
+      "prompt": "I found three matches for that search.",
+      "paused": true
+    },
+    {
+      "id": "paused-echo-radio",
+      "category": "paused_echo",
+      "reply": "Playing the radio station you asked for.",
+      "prompt": "Playing the radio station you asked for.",
+      "paused": true
+    },
+    {
+      "id": "paused-echo-timer-wake",
+      "category": "paused_echo",
+      "reply": "Voxa here, the timer is set for five minutes.",
+      "prompt": "Voxa here, the timer is set for five minutes.",
+      "paused": true
+    },
+    {
+      "id": "paused-echo-timer",
+      "category": "paused_echo",
+      "reply": "Setting a timer for ten minutes now.",
+      "prompt": "Setting a timer for ten minutes now.",
+      "paused": true
+    },
+    {
+      "id": "paused-cmd-close-door",
+      "category": "paused_background",
+      "prompt": "close the door",
+      "paused": true
+    },
+    {
+      "id": "paused-cmd-off-lights",
+      "category": "paused_background",
+      "prompt": "turn off the lights",
+      "paused": true
+    },
+    {
+      "id": "paused-cmd-play-jazz",
+      "category": "paused_background",
+      "prompt": "play some jazz",
+      "paused": true
+    },
+    {
+      "id": "paused-cmd-open-browser",
+      "category": "paused_background",
+      "prompt": "open the browser",
+      "paused": true
+    },
+    {
+      "id": "paused-cmd-what-time",
+      "category": "paused_background",
+      "prompt": "what time is it",
+      "paused": true
+    },
+    {
+      "id": "paused-cmd-set-timer",
+      "category": "paused_background",
+      "prompt": "set a timer for five minutes",
+      "paused": true
+    },
+    {
+      "id": "paused-cmd-cat-videos",
+      "category": "paused_background",
+      "prompt": "search for cat videos",
+      "paused": true
+    },
+    {
+      "id": "paused-cmd-tell-joke",
+      "category": "paused_background",
+      "prompt": "tell me a joke",
+      "paused": true
+    },
+    {
+      "id": "paused-cmd-add-milk",
+      "category": "paused_background",
+      "prompt": "add milk to the shopping list",
+      "paused": true
+    },
+    {
+      "id": "paused-cmd-read-news",
+      "category": "paused_background",
+      "prompt": "read the news",
+      "paused": true
+    },
+    {
+      "id": "paused-cmd-start-dictation",
+      "category": "paused_background",
+      "prompt": "start dictation",
+      "paused": true
+    },
+    {
+      "id": "paused-cmd-convert-km",
+      "category": "paused_background",
+      "prompt": "convert one hundred kilometers to miles",
+      "paused": true
+    }
+  ]
+}
