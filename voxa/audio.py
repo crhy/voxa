@@ -9,6 +9,7 @@ from typing import Any
 
 import numpy as np
 
+from . import anccal
 from .anc import (Aec3Canceller, DelayTracker, EchoCanceller, aec3_available, claim_aec_owner,
                   estimate_delay,
                   release_aec_owner)
@@ -242,6 +243,14 @@ class AudioCapture:
         self._sink_identifier: str | None = None
         # The GStreamer route: the name of the webrtcechoprobe the playback tap registers (task 2).
         self.echo_probe_name: str | None = None
+        # The speaker/microphone pair Voxa is hearing through (see voxa/anccal.py): the saved profile
+        # for that pair is her starting filter, and what she learns during use is saved back under it.
+        self.hearing_sink: str | None = None
+        self.hearing_microphone: str | None = None
+        self.hearing_profile_applied = False
+        self.hearing_profile_stale = False
+        self.hearing_needs_calibration = False
+        self.hearing_level = 0.0
 
     def list_devices(self) -> list[AudioDevice]:
         gst = _ensure_gstreamer()
@@ -350,6 +359,8 @@ class AudioCapture:
         self._ref_anchor = None
         self._canceller_enabled = True
         self._canceller_logged = False
+        # Start from the hearing profile saved for this speaker and microphone, when there is one.
+        self.apply_hearing_profile(self.reference_source, device_id)
         self._delay_done = self.canceller is None
         self._delay_mic = []
         self._delay_ref = []
@@ -450,6 +461,12 @@ class AudioCapture:
     @property
     def reference_ring(self) -> ReferenceRing | None:
         return self._ref_ring
+
+    def _microphone_identity(self) -> str | None:
+        """The microphone Voxa listens with, as her settings and the running capture name it."""
+        if self.hearing_microphone:
+            return self.hearing_microphone
+        return self._start_args[0] if self._start_args is not None else None
 
     def _start_reference(self, gst) -> None:
         """Open the second pipeline that records the computer's own playback into the ring buffer."""
@@ -669,6 +686,7 @@ class AudioCapture:
             self._mic_counter += len(pcm) // 2
             return pcm
         try:
+            self._note_mic_level(pcm)
             if self.reference_via() == "timeline":
                 cleaned = clean_chunk(pcm, window, self.canceller)
             else:
@@ -683,6 +701,15 @@ class AudioCapture:
             return pcm
         self._mic_counter += len(pcm) // 2
         return cleaned
+
+    def _note_mic_level(self, pcm: bytes) -> None:
+        """Remember the loudest microphone level she is learning at, for :func:`anccal.profile_is_current`."""
+        samples = np.frombuffer(pcm, dtype="<i2")
+        if not samples.size:
+            return
+        peak = float(np.max(np.abs(samples.astype(np.float64)))) / 32768.0
+        if peak > self.hearing_level:
+            self.hearing_level = peak
 
     def _maybe_estimate_delay(self, pcm: bytes) -> None:
         """Track the echo delay and the clock drift continuously (roadmap task 3).
@@ -767,6 +794,7 @@ class AudioCapture:
         return self.canceller.delay_samples if self.canceller is not None else 0
 
     def stop(self) -> None:
+        self._save_hearing_profile()
         gst = _ensure_gstreamer() if (self.pipeline is not None or self._ref_pipeline is not None) else None
         pipeline, self.pipeline = self.pipeline, None
         ref_pipeline, self._ref_pipeline = self._ref_pipeline, None
@@ -777,6 +805,65 @@ class AudioCapture:
             release_aec_owner(self)
         if ref_pipeline is not None and gst is not None:
             ref_pipeline.set_state(gst.State.NULL)
+
+    def _save_hearing_profile(self) -> None:
+        """Save the filter the running canceller learned, under this speaker/microphone pair.
+
+        Only a filter that actually did work is worth remembering: it must have adapted on real
+        reference material and removed at least 3 dB of the computer's own sound.
+        """
+        canceller = self.canceller
+        if canceller is None or not self.hearing_sink or not self.hearing_microphone:
+            return
+        if not self.hearing_profile_applied and getattr(canceller, "_blocks_adapted", 0) <= 0:
+            return
+        if getattr(canceller, "converged_db", 0.0) < 3.0:
+            return
+        export = getattr(canceller, "export_state", None)
+        if export is None:
+            return
+        try:
+            anccal.save_live_state(export(), getattr(canceller, "_delay", 0), self.hearing_sink,
+                                   self.hearing_microphone, self.hearing_level)
+        except (OSError, ValueError, TypeError):
+            log.info("could not save the hearing profile for %s/%s", self.hearing_sink,
+                     self.hearing_microphone)
+            return
+        log.info("saved the hearing profile for %s/%s (%.1f dB of the computer's own sound removed)",
+                 self.hearing_sink, self.hearing_microphone, canceller.converged_db)
+
+    def apply_hearing_profile(self, sink: str | None, source: str | None,
+                              level: float | None = None) -> bool:
+        """Start the canceller from the hearing profile saved for this speaker/microphone pair.
+
+        Returns True when the saved filter was loaded, False when echo cancellation is off, when no
+        profile exists for the pair, or when the saved one belongs to another speaker or a very
+        different volume (then Voxa adapts from scratch and sets :attr:`hearing_profile_stale`).
+        Either way the pair is remembered, so what the running canceller learns can be saved back
+        by :meth:`stop`.
+        """
+        if not sink or not source:
+            return False
+        self.hearing_sink, self.hearing_microphone = sink, source
+        if level is not None:
+            self.hearing_level = max(self.hearing_level, float(level))
+        if self.canceller is None:
+            return False
+        profile = anccal.load_profile(sink, source)
+        if profile is None:
+            return False
+        canceller = EchoCanceller(delay=int(profile.get("delay", 0) or 0))
+        state = profile.get("state")
+        if isinstance(state, dict):
+            canceller.load_state(state)
+        if canceller.weights is None or not anccal.profile_is_current(profile, sink, source, level):
+            self.hearing_profile_stale = True
+            log.info("saved profile is for a different speaker or volume; adapting from scratch")
+            return False
+        self.canceller = canceller
+        self.hearing_profile_applied = True
+        log.info("starting from the hearing profile saved for %s/%s", sink, source)
+        return True
 
     def set_echo_mode(self, mode: str | bool = "voxa", reference_source: str | None = None) -> None:
         """Switch echo cancellation mode ("voxa", "aec3", "webrtc" or "off"), applying immediately if capture is running.
@@ -839,6 +926,7 @@ class AudioCapture:
             # Exactly one canceller owns the echo path: give the old one up before the new one claims it.
             release_aec_owner(self.canceller)
             self.canceller = wanted()
+        self.apply_hearing_profile(self.reference_source, self._microphone_identity())
         self._canceller_enabled = True
         self._canceller_logged = False
         self.apply_clock_drift()

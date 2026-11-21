@@ -1220,6 +1220,14 @@ class MainWindow(Adw.ApplicationWindow):
                 release()
             self.audio.canceller = Aec3Canceller() if mode == "aec3" else AncCanceller()
             self.audio.apply_clock_drift()
+            if mode != "aec3":
+                # Start from the hearing profile saved for this speaker and microphone, if it still fits.
+                microphone = self.settings.microphone_id or self.settings.microphone_name
+                if self.audio.apply_hearing_profile(self.audio.reference_source, microphone, level=None):
+                    self.audio.hearing_needs_calibration = False
+                elif self.audio.hearing_profile_stale:
+                    self.audio.hearing_needs_calibration = True
+                    self._set_status("Re-learning my hearing for this speaker and microphone")
         elif mode == "webrtc":
             # One pipeline: the monitor branch feeds the probe, the mic branch runs webrtcdsp.
             self.audio.reference_source = self._choose_reference_source()

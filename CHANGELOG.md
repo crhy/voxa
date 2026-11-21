@@ -79,6 +79,14 @@
 ### New
 
 - **A product search reads itself back.** "Read back the products", "what are the best rated", "compare the prices" or "tell me the top three" opens the search in the browser Voxa controls and says the top three products aloud, cheapest first, with price and rating — and the shop when the page names one. Nothing is bought and no spend rule is involved; when a page will not parse, she says what she opened and leaves it to your eyes.
+### Hearing
+
+- **Voxa starts from the hearing she learned for this speaker and microphone.** The filter her canceller ends
+  up with is saved per output/microphone pair under `$XDG_DATA_HOME/voxa/hearing/`, and the next time she listens
+  through that pair she starts from it instead of adapting from scratch; she keeps adapting quietly during use
+  and saves what she learns. A profile belonging to another speaker, or to a very different volume, is not used:
+  she says she is re-learning her hearing and adapts from scratch. Re-measuring the echo delay no longer throws
+  the learned filter away. (`voxa/anccal.py`, `voxa/audio.py`, `voxa/window.py`) (#72) 🧪
 
 ### Fixed
 
