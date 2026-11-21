@@ -87,6 +87,8 @@
   and saves what she learns. A profile belonging to another speaker, or to a very different volume, is not used:
   she says she is re-learning her hearing and adapts from scratch. Re-measuring the echo delay no longer throws
   the learned filter away. (`voxa/anccal.py`, `voxa/audio.py`, `voxa/window.py`) (#72) 🧪
+- Installed Ollama models appear in the picker as soon as Voxa opens, even when the Ollama server is stopped: the list is read from Ollama's own model folder, and the live list replaces it the moment the server answers. The Online / Starting / Offline dot follows the server, so a full list never claims a stopped engine is running (#27).
+- The Ollama choices (install, pull or remove models) sit at the top of the Local AI menu, directly under the model server group (#27).
 
 ### Fixed
 

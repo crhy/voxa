@@ -14,6 +14,7 @@ Working notes, decisions and standing orders for this project, kept by Claude Co
 - [voxa-tell-before-live-audio-tests](voxa-tell-before-live-audio-tests.md): Tell rhY before any lab test that plays sound or records the microphones, so the room can be quietened first
 - [voxa-two-brains-plan](voxa-two-brains-plan.md): Voxa's next phase (after the Dr. Mario Wii port ships) is the two-brain design in crhy/voxa#116.
 - [voxa-verify-before-root](voxa-verify-before-root.md): Voxa only runs a downloaded Ollama installer as root when its SHA-256 is on a reviewed pin list (empty until rhY pins one); Spaced owns the privileged host helper, Voxa owns the user flow and the refusal.
+- [voxa-local-ai-menu](voxa-local-ai-menu.md): Voxa lists installed Ollama models by reading Ollama's own model folder, so the picker is never empty just because the server is stopped (crhy/voxa#27)
 - [voxatest-clean-up-after-each-run](voxatest-clean-up-after-each-run.md): After every live Voxa/VoxaTest run, close what the run opened (VLC, windows, browser tabs) and remove its leftovers
 - [voxatest-never-lower-volume](voxatest-never-lower-volume.md): VoxaTest runs and Voxa lab runs must never turn rhY's system volume down
 - [voxa-hearing-2](voxa-hearing-2.md): Hearing 2 program (2026-11-20): root cause of the hearing chain failures and the h01-h05 plan.

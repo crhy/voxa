@@ -50,6 +50,7 @@ from pathlib import Path
 from typing import Any
 
 from . import APP_VERSION
+from .ollama import ollama_display_name
 
 BACKUP_FORMAT_VERSION = 1
 MANIFEST_TAR_KEY = "manifest.json"
@@ -420,14 +421,10 @@ def _parse_ollama_models(paths: BackupPaths, hash_blobs: bool = True) -> list[Mo
 def _ollama_display_name(registry: str, relative: Path) -> str:
     """Format model names the way ``ollama list`` does: skip the registry
     (and the ``library`` prefix for registry.ollama.ai) and join with ``/``,
-    suffixing ``:tag`` for the final component."""
-    parts = list(relative.parts)
-    if registry == "registry.ollama.ai":
-        if parts and parts[0] == registry:
-            parts = parts[1:]
-        if parts and parts[0] == "library":
-            parts = parts[1:]
-    return "/".join(parts[:-1]) + ":" + parts[-1] if len(parts) > 1 else parts[0]
+    suffixing ``:tag`` for the final component.  One rule lives in
+    ``voxa/ollama.py: ollama_display_name``, shared with the model picker.
+    """
+    return ollama_display_name(relative)
 
 
 def _opencode_config_files(paths: BackupPaths) -> list[Path]:
