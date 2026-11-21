@@ -1020,6 +1020,18 @@ _CAL_NEXT = re.compile(
     r"what(?:'s| is) (?:my )?next(?: appointment| meeting| event)?|what(?:'s| is) next on my calendar",
     re.IGNORECASE,
 )
+_CAL_FREE_NEED = r"(?:half |half an |a |an |one |two |three |four |five |six |seven |eight |nine |ten |eleven |twelve |fifteen |twenty |thirty |forty |\d+)?\s*(?:hour|hours|minute|minutes)"
+_CAL_FREE = re.compile(
+    rf"(?:when|what time) (?:am i|do i have|will i be|are i) (?:any |some )?free(?: time)?"
+    rf"(?: (?:for|in) (?P<need1>{_CAL_FREE_NEED}))?(?: (?P<day1>.+))?"
+    rf"|(?:find|show|check|get) (?:me )?(?:some |any |my )?free time(?: (?P<day2>.+))?"
+    rf"|when (?:do|does) i have (?P<need3>{_CAL_FREE_NEED}) free(?: (?P<day3>.+))?",
+    re.IGNORECASE,
+)
+_CAL_MOVE = re.compile(
+    r"(?:move|reschedule|change) (?:my |the )?(?P<title>.+?) (?:to|for|on) (?P<when>.+)",
+    re.IGNORECASE,
+)
 _CAL_CANCEL = re.compile(
     r"(?:cancel|remove|delete) (?:my |the )?(?P<title>.+?)(?: appointment| meeting)?(?: from my calendar)?",
     re.IGNORECASE,
@@ -1163,6 +1175,28 @@ def _date_name(phrase: str) -> str:
     """"my mom" -> "mom": the bare name the date tools expect."""
     out = re.sub(r"^(?:remember|note|keep in mind|don'?t forget)(?: that)?\s+", "", (phrase or "").strip(), flags=re.IGNORECASE)
     return re.sub(r"^(?:my|the)\s+", "", out, flags=re.IGNORECASE)
+
+
+_FREE_DAY_HEAD = re.compile(r"^(?:on|in|at|for|during|by)\s+", re.IGNORECASE)
+_FREE_DAY_TAIL = re.compile(
+    r"(?:\b(?:in|at|during|this|the|a|any)\b\s+)*(?:morning|afternoon|evening|night)\b\s*$",
+    re.IGNORECASE,
+)
+
+
+def _free_day_phrase(spoken: str) -> str:
+    """The day part of a free-time question: "on friday" -> "friday", "this afternoon" -> "" (today)."""
+    phrase = " ".join((spoken or "").strip().split())
+    today = date.today()
+    head = _FREE_DAY_HEAD.sub("", phrase, count=1)
+    for candidate in (phrase, head):
+        if split_when(candidate, today) is not None:
+            return candidate
+    for candidate in (phrase, head):
+        trimmed = " ".join(_FREE_DAY_TAIL.sub("", candidate).split())
+        if not trimmed or split_when(trimmed, today) is not None:
+            return trimmed
+    return phrase
 
 
 def _list_word(phrase: str | None) -> str:
@@ -1400,6 +1434,8 @@ ROUTED_TOOLS = frozenset(
         "calendar_add",
         "calendar_day",
         "calendar_next",
+        "calendar_move",
+        "calendar_free",
         "calendar_cancel",
         "calendar_conflicts",
         "calendar_add_weekly",
@@ -1818,6 +1854,20 @@ def _route_command(text: str) -> ToolCall | None:
         return call("calendar_day", day=cal_day.group("day") or "")
     if _CAL_NEXT.fullmatch(s):
         return call("calendar_next")
+    cal_free = _CAL_FREE.fullmatch(s)
+    if cal_free:
+        free_day = _free_day_phrase(cal_free.group("day1") or cal_free.group("day2") or cal_free.group("day3") or "")
+        if free_day and split_when(free_day, date.today()) is None:
+            cal_free = None
+    if cal_free:
+        return call(
+            "calendar_free",
+            day=free_day,
+            minutes=(cal_free.group("need1") or cal_free.group("need3") or "").strip(),
+        )
+    cal_move = _CAL_MOVE.fullmatch(s)
+    if cal_move and cal_move.group("when") and split_when(cal_move.group("when"), date.today()) is not None:
+        return call("calendar_move", title=cal_move.group("title").strip(), when=cal_move.group("when").strip())
     cal_cancel = _CAL_CANCEL.fullmatch(s)
     if cal_cancel and _CAL_NAMED.search(s):
         return call("calendar_cancel", title=cal_cancel.group("title"))
