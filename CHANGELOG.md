@@ -6,6 +6,13 @@
 
 - **Voxa notices the charges you pay for.** A charge that turns up month after month in your spending log at a steady amount is recognised as a subscription: "What bills are due this week", "What do I have to pay for this week", "What subscriptions do I pay for" (#60).
 - **Bill reminders fire on the day they come due.** "Remind me about my bills" sets one reminder per recurring charge, and saying it again does not double them up (#60). Cancelling a subscription and paying a bill stay things you do yourself.
+- **Pick which graphics card the AI runs on.** Preferences → Local AI has a "Graphics card"
+  row listing the cards this machine has, plus "Automatic" and "Processor only". The choice is
+  handed to the server Voxa starts — Ollama through its environment
+  (`CUDA_VISIBLE_DEVICES`), llama.cpp through its own `--device` option — and the Local AI
+  indicator says which device is in use, e.g. "● Online · card 0". Combining cards is left to
+  the backend, and Whisper's own device choice is not part of this yet. (`voxa/hardware.py`,
+  `voxa/config.py`, `voxa/engine.py`, `voxa/server.py`, `voxa/window.py`) (#9) 🧪
 
 ### Fixed
 

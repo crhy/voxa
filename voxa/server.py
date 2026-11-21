@@ -15,7 +15,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 
 from . import engine
-from .config import Settings
+from .config import Settings, gpu_choice_index, normalize_gpu_choice
 from .installer import is_flatpak
 from .ollama import open_url
 
@@ -257,32 +257,64 @@ class AiServerManager:
 
     def _command(self, host: str, port: int) -> tuple[list[str], dict[str, str] | None]:
         if self.settings.ai_backend == "ollama":
-            command = ["ollama", "serve"]
             listen_address = self._host_port(host, port)
+            env_overrides: dict[str, str] = {"OLLAMA_HOST": listen_address}
+            gpu_env = self._gpu_env()
+            if gpu_env is not None:
+                env_overrides.update(gpu_env)
+            command = ["ollama", "serve"]
             if self._flatpak:
-                command = [
-                    "flatpak-spawn",
-                    "--host",
-                    "--directory=/",
-                    "--watch-bus",
-                    "env",
-                    f"OLLAMA_HOST={listen_address}",
-                    *command,
-                ]
-            return command, {"OLLAMA_HOST": listen_address}
+                command = self._host_command(command, env_overrides)
+            return command, env_overrides
 
         model = self.settings.llamacpp_model
         if not model:
             return None, None
 
+        choice = normalize_gpu_choice(self.settings.gpu_choice)
+        env_overrides = self._gpu_env(card_named_in_command=True)
         bundled = engine.bundled_server()
         if bundled is not None:
-            return engine.server_command(model, host, port, server=bundled), None
+            command = engine.server_command(model, host, port, server=bundled, gpu_choice=choice)
+            return command, env_overrides
 
         command = ["llama-server", "--model", model, "--host", host, "--port", str(port)]
         if self._flatpak:
-            command = ["flatpak-spawn", "--host", "--directory=/", "--watch-bus", *command]
-        return command, None
+            command = self._host_command(command, env_overrides)
+        return command, env_overrides
+
+    def _gpu_env(self, *, card_named_in_command: bool = False) -> dict[str, str] | None:
+        """The environment matching the saved graphics card choice.
+
+        "auto" sends nothing, so the backend keeps its own pick; "cpu" hides every
+        card with an empty ``CUDA_VISIBLE_DEVICES``; a chosen card passes its index.
+
+        llama.cpp is the exception (``card_named_in_command``): it is told the card
+        with ``--device cuda:<index>``, and ``CUDA_VISIBLE_DEVICES`` renumbers the
+        cards a process can see, so sending both would make ``cuda:<index>`` name
+        the wrong card or no card at all.
+        """
+        choice = normalize_gpu_choice(self.settings.gpu_choice)
+        if choice == "auto":
+            return None
+        if choice == "cpu":
+            return {"CUDA_VISIBLE_DEVICES": ""}
+        return None if card_named_in_command else {"CUDA_VISIBLE_DEVICES": str(gpu_choice_index(choice))}
+
+    @staticmethod
+    def _host_command(command: list[str], env_overrides: dict[str, str] | None) -> list[str]:
+        """Run ``command`` on the host from inside the Flatpak.
+
+        ``flatpak-spawn --host`` starts the host program with the host's own
+        environment, so the variables Voxa would pass through Popen have to be
+        named on the command line with ``env`` as well, or the card choice
+        never reaches the server.
+        """
+        prefix = ["flatpak-spawn", "--host", "--directory=/", "--watch-bus"]
+        if env_overrides:
+            assignments = [f"{name}={value}" for name, value in env_overrides.items()]
+            return [*prefix, "env", *assignments, *command]
+        return [*prefix, *command]
 
     def _unload_ollama_model(self) -> None:
         """Release the runner before stopping our Ollama daemon.

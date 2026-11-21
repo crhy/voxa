@@ -16,6 +16,33 @@ DEFAULT_TTS_RATE = 230
 LEGACY_DEFAULT_TTS_RATES = (180, 225, 250)
 
 
+def normalize_gpu_choice(value: object) -> str:
+    """Keep a graphics card choice to "auto", "cpu" or "gpu:<index>".
+
+    A card index that no longer exists is not repaired here: the choice is
+    remembered so a card added later still gets it, and the Preferences row
+    shows when the saved card is not present on this machine.
+    """
+    choice = str(value or "").strip().casefold()
+    if choice in {"auto", "cpu"}:
+        return choice
+    if not choice.startswith("gpu:"):
+        return "auto"
+    try:
+        index = int(choice[4:])
+    except ValueError:
+        return "auto"
+    return f"gpu:{index}" if index >= 0 else "auto"
+
+
+def gpu_choice_index(choice: str) -> int | None:
+    """The card index a choice names; None for "auto" and for "cpu"."""
+    choice = normalize_gpu_choice(choice)
+    if not choice.startswith("gpu:"):
+        return None
+    return int(choice[4:])
+
+
 @dataclass(slots=True)
 class Settings:
     microphone_id: str = ""
@@ -29,6 +56,12 @@ class Settings:
     ai_backend: str = "llamacpp"
     llamacpp_url: str = "http://127.0.0.1:8781"
     llamacpp_model: str = ""
+    # Which graphics card the local AI runs on (crhy/voxa#9). Three forms:
+    #   "auto"   - leave it to the backend, exactly as before this feature;
+    #   "cpu"    - "Processor only": no card is used;
+    #   "gpu:<index>" - the card with that index in hardware.detect_gpus().
+    # Anything else (a hand-edited or stale config) falls back to "auto".
+    gpu_choice: str = "auto"
     strata_url: str = "http://127.0.0.1:8080"
     language: str = "en"
     character_id: str = ""
@@ -91,6 +124,7 @@ class Settings:
         self.strata_url = self.strata_url.rstrip("/") or "http://127.0.0.1:8080"
         if self.ai_backend not in {"llamacpp", "ollama", "strata"}:
             self.ai_backend = "ollama"
+        self.gpu_choice = normalize_gpu_choice(self.gpu_choice)
         self.language = (self.language or "en").strip()[:16]
         self.wake_word = (self.wake_word or "voxa").strip()[:32] or "voxa"
         self.character_id = (self.character_id or "").strip().lower()
