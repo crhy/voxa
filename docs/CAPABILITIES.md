@@ -164,7 +164,9 @@ adaptive noise cancellation.
 | “Post an issue to GitHub for Voxa” | Asks for a title, then a description (say “stop dictation” to finish), then opens GitHub's new-issue page filled in for you to submit | 🧪 |
 | “Send an email to my mom” | Asks for her address the first time (and remembers it), then the subject, then you dictate the message; opens the draft in your mail program for you to press Send | 🧪 |
 | “Email Bob about the meeting” | Voxa writes a draft about that topic and opens it for you to review | 🧪 |
-| “Mom's email is mom at example dot com” / “what is Mom's email?” | Remembers and reads back email addresses | 🧪 |
+| "Mom's email is mom at example dot com" / "what is Mom's email?" | Remembers and reads back email addresses | 🧪 |
+| "Any important email" / "how many unread emails?" / "what's in my inbox?" | Reads your own account over IMAP: the unread count, who it is from, what it is about, the important ones first; nothing is sent, moved or marked read (#56) | 🧪 |
+| "Read me the email from Sam" | Speaks that message aloud, without marking it read | 🧪 |
 
 ## About you
 
@@ -254,3 +256,6 @@ download (#75), messages, email triage, calendar, phone calls, purchases and the
 For #41 the first step is in — the keyring wrapper, and the plain profile (name, home address,
 phone number) said and read back; still open there: using those fields inside forms, and speaking
 a secret without its value reaching the action log.
+download (#75), messages, calendar, phone calls, purchases and the other assistant plans (#41–#67).
+Email reading is built (#56 part 1); replying by dictation, unsubscribing, archiving in bulk and
+finding receipts, tickets and tracking numbers are not.

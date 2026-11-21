@@ -39,6 +39,7 @@ from voxa.agent.tools.livetv import livetv_tools
 from voxa.agent.tools.local import local_tools
 from voxa.agent.tools.localmusic import local_music_tools
 from voxa.agent.tools.lookups import lookups_tools
+from voxa.agent.tools.mailread import mail_tools
 from voxa.agent.tools.meals import meals_tools
 from voxa.agent.tools.media import media_tools
 from voxa.agent.tools.memory_facts import memory_facts_tools
@@ -122,6 +123,7 @@ def default_registry() -> ToolRegistry:
         *translate_tools(),
         *interpreter_tools(),
         *home_tools(),
+        *mail_tools(),
         *volume_tools(),
         *compiz_tools(),
         *file_dialog_tools(),
