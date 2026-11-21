@@ -99,6 +99,10 @@ class SourceEvidence:
     # The joint double-talk gate's voice-only verdict for this moment
     # (voxa.voicedetect.DoubleTalkGate): True only when all three audio streams held together.
     joint_suspect: bool | None = None
+    # The gate's MIRROR verdict: the microphone held the delayed reference (high coherence,
+    # nothing of its own) for the same window. Only this, not "not suspect", may suppress the
+    # caller's fallback gate or vote for echo.
+    joint_echo: bool | None = None
     vad_prob: float | None = None    # speech probability in the CLEANED signal (None = not measured)
     alignment_healthy: bool = True           # delay known, fresh, within tolerance
     mic_level: float = 0.0                   # 0..1, the scale BargeInGate uses
@@ -230,6 +234,10 @@ def attribute(ev: SourceEvidence, baseline_db: float | None = None) -> SourceDec
     if ev.joint_suspect:
         add("joint", JOINT_LIFT)
         reasons.append("joint double-talk gate: speech, margin and echo-inconsistency held together")
+    elif ev.joint_echo:
+        # The MIRROR verdict of the same gate: this span was the delayed reference the whole time.
+        add("joint", -JOINT_LIFT)
+        reasons.append("joint double-talk gate: microphone held the delayed reference, nothing of its own")
     if ev.vad_prob is not None:
         if ev.vad_prob >= VAD_SPEECH:
             add("vad", 0.3)

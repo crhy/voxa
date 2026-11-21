@@ -131,6 +131,8 @@ class DoubleTalkGate:
         self._joint_ms = 0.0
         self._suspect = False
         self._gap_ms = 0.0
+        self._echo_ms = 0.0
+        self._echo_consistent = False
         self._suspect_rise_ms = 0.0     # audio seen when the joint run raised the suspect
         self._audio_ms = 0.0
         self._mic = np.zeros(0, dtype=np.float64)
@@ -193,8 +195,15 @@ class DoubleTalkGate:
         measurable = (prob is not None and residual_over_prediction_db is not None
                       and self.coherence is not None and reference_active and alignment_healthy)
         joint = bool(measurable and cond_a and cond_b and cond_c)
+        # The MIRROR test (the patent's other half): the microphone IS the delayed reference -
+        # high coherence at the tracked delay, and nothing of its own in the cleaned signal.
+        # A frame that is neither suspect nor echo-consistent is INDETERMINATE: the caller keeps
+        # the fallback rule, because "the joint test did not fire" is not evidence of echo.
+        cond_echo_frame = bool(measurable and not cond_c and self.coherence is not None
+                               and self.coherence >= self.coherence_echo
+                               and not (cond_a and cond_b))
         self.conditions = {"speech": cond_a, "residual": cond_b, "inconsistent": cond_c,
-                           "measurable": measurable}
+                           "consistent": cond_echo_frame, "measurable": measurable}
         if joint:
             self._joint_ms += dt
             self._gap_ms = 0.0
@@ -208,6 +217,14 @@ class DoubleTalkGate:
                 if self._gap_ms >= self.hold_ms:
                     self._suspect = False
                     self._gap_ms = 0.0
+        if cond_echo_frame:
+            self._echo_ms += dt
+            if not self._echo_consistent and self._echo_ms >= self.joint_ms:
+                self._echo_consistent = True
+        else:
+            self._echo_ms = 0.0
+            if self._echo_consistent and not self._suspect:
+                self._echo_consistent = False
         return self._suspect
 
     def _coherence(self, delay_samples: int | None) -> float | None:
@@ -238,6 +255,13 @@ class DoubleTalkGate:
     @property
     def suspect(self) -> bool:
         return self._suspect
+
+    @property
+    def echo_consistent(self) -> bool:
+        """The mirror verdict: this span IS the delayed reference (high coherence, nothing of
+        its own). It is the only finding allowed to SUPPRESS the caller's fallback gate -
+        "not suspect" alone is indeterminate, never evidence of echo."""
+        return self._echo_consistent
 
     @property
     def joint_run_ms(self) -> float:

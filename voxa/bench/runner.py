@@ -237,6 +237,7 @@ class ClipRunner:
         self._mask_margin: float | None = None
         self._dt_suspect = False
         self._dt_measurable = False
+        self._dt_echo = False
         # The reference power of the last 400 ms, so an echo still in flight counts as a live
         # reference even after the speakers went quiet (the delay is 100-300 ms in these clips).
         self._ref_recent: deque[float] = deque(maxlen=20)
@@ -495,6 +496,7 @@ class ClipRunner:
             reference_active=bool(max(list(self._ref_recent) + [ref_power]) > MIN_REFERENCE_POWER),
             alignment_healthy=alignment_healthy)
         self._dt_measurable = bool(self.dt_gate.conditions.get("measurable"))
+        self._dt_echo = self.dt_gate.echo_consistent
         if self._dt_suspect and self.canceller is not None:
             self.canceller.note_double_talk(2.0 * CHUNK_MS)
 
@@ -541,6 +543,7 @@ class ClipRunner:
             # and says so - the degraded path, not a guess of "no second source").
             joint_suspect=(self._dt_suspect if (self._dt_measurable or self._dt_suspect)
                            else None),
+            joint_echo=(self._dt_echo if (self._dt_measurable or self._dt_echo) else None),
             vad_prob=prob,
             alignment_healthy=bool(self._delay_samples > 0
                                    or getattr(self.canceller, "delay_managed_internally", False)
@@ -734,6 +737,7 @@ class ClipRunner:
         self._clean_prob = None
         self._dt_suspect = False
         self._dt_measurable = False
+        self._dt_echo = False
         wake = self.wake_word
         self.conversation = ConversationController(
             wake_whisper=self.asr,
@@ -814,6 +818,7 @@ class ClipRunner:
                 clean_vad_prob=(None if self._clean_prob is None else round(self._clean_prob, 3)),
                 suspect=bool(self._dt_suspect),
                 joint_conditions=self.dt_gate.conditions or None,
+                joint_echo=bool(self.dt_gate.echo_consistent),
                 joint_coherence=(None if self.dt_gate.coherence is None
                                  else round(float(self.dt_gate.coherence), 3)),
                 joint_run_ms=round(self.dt_gate.joint_run_ms, 1),

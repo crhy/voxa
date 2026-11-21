@@ -288,7 +288,10 @@ class BargeInController:
         if joint is not None and audio.reference_active:
             if joint:
                 opened = True
-            elif opened:
+            elif opened and getattr(audio, "joint_echo", False):
+                # Only the gate's MIRROR verdict may suppress the fallback: the microphone held
+                # the delayed reference, so the tower is her own voice. "Not suspect" alone is
+                # indeterminate, and barge-ins the joint window has not confirmed keep the floor.
                 opened = False
                 stats["joint_closed"] = stats.get("joint_closed", 0) + 1
         if self.gate.listening and self.pending_since <= 0.0 and not opened:
