@@ -156,7 +156,7 @@ class ExactAligner:
         # distant peak counts, and only a comparable one.
         far_lo, far_hi = max(0, peak - self._sr // 25), min(window.size, peak + self._sr // 25)
         rest = np.concatenate((window[:far_lo], window[far_hi:]))
-        if rest.size and float(rest.max()) >= 0.8 * top:
+        if rest.size and float(rest.max()) >= 0.5 * top:
             return None  # an unresolved second path: not confident, hold the drift line
         if 0 < peak < window.size - 1:
             left, mid, right = window[peak - 1], window[peak], window[peak + 1]
