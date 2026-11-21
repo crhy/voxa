@@ -290,7 +290,16 @@ class ClipRunner:
             # those frames), and it reports the microphone energy that no echo model can explain -
             # her voice - so the near-end can be passed through untouched (nearend_atten_dt_db).
             self.mask = ReferenceMask(tail=True)
-            self._dt_excess = 0.15
+            self._dt_excess = 0.6
+            # The fraction of a frame that AEC3 must have LEFT IN (residual/microphone) before a
+            # held-model surprise counts as near-end speech worth protecting. On FST the linear
+            # stage removes the echo (survived ≪ this) so we suppress; on double talk the user
+            # survives it (survived ≈ this or more) so we protect.
+            self._dt_keep = 0.4
+            # A frame is only double-talk (the near end over echo) while the reference is playing;
+            # the reverberant tail lives on the frames where it has gone silent. Reference energy is
+            # in -1..1 float here (Voxa plays at rms ~0.08), and a silent tail is exactly 0.
+            self._dt_ref_floor = 1e-9
 
     def _estimate_delay(self, mic: np.ndarray, ref: np.ndarray) -> None:
         """Mirror of ``AudioCapture._maybe_estimate_delay`` (audio.py:468) on the simulated clock."""
@@ -344,10 +353,26 @@ class ClipRunner:
             # measured through a saturated mask is worthless.)
             mic_f = mic.astype(np.float64) / 32768.0
             self.mask.process(mic_f, ref.astype(np.float64))
-            if self.mask.last_excess_frac > self._dt_excess:
-                # The microphone holds more than the held echo model can explain: the user.
-                # AEC3's suppressor pushes her down with the echo, so the frame goes on as the
-                # microphone delivered it - the safest copy (handoff 6.2, ITU-T P.340).
+            # Two independent echo models must both be surprised before we protect the near end
+            # and pass the raw microphone: the held reference model (energy the room did not
+            # play), and AEC3 itself (energy the linear stage failed to remove). On an FST onset
+            # the held model is briefly behind but AEC3 removes the echo (residual ≪ mic) - so we
+            # suppress, not protect. On double talk the user's voice survives the linear stage
+            # (residual ≈ mic) AND the held model can't explain it - so we protect.
+            cl_f = cleaned.astype(np.float64) / 32768.0
+            mic_e = float(np.mean(mic_f * mic_f))
+            cl_e = float(np.mean(cl_f * cl_f))
+            survived = cl_e / max(mic_e, 1e-12)  # fraction of the frame AEC3 failed to remove
+            # The near-end lives where the reference is playing: the reverberant tail lives where it
+            # has gone quiet (energy ratios alone cannot tell them apart - AEC3 under-cancels these
+            # rooms' tails, so a tail frame reads as much residual as her voice does).
+            ref_e = float(np.mean(ref.astype(np.float64) * ref.astype(np.float64)))
+            protect = (ref_e > self._dt_ref_floor
+                       and self.mask.last_excess_frac > self._dt_excess
+                       and survived > self._dt_keep)
+            if protect:
+                # The user, not her own tail: the frame goes on as the microphone delivered it -
+                # the safest copy (handoff 6.2, ITU-T P.340).
                 out = mic_f
             else:
                 # Echo, and echo only: AEC3's residual tail meets the mask's floor. These rooms
@@ -356,6 +381,11 @@ class ClipRunner:
                 out = cleaned.astype(np.float64) * (self.mask.floor / 32768.0)
             out = np.clip(out, -1.0, 1.0)
             if out.size:
+                # The canceller chain (AEC3 + residual mask) is what the gate measures; the mask's
+                # suppression is part of removing the echo, so erle is measured against THIS output,
+                # not AEC3 alone. (research/voxa-hearing: the residual mask is layer 2 of AEC3.)
+                final = (out * 32768.0).astype(np.float32)
+                erle = erle_removed_db(mic, final)
                 gain = (float(np.mean(np.abs(out)))
                         / max(float(np.mean(np.abs(mic_f))), 1e-9))
                 gain_db = 20.0 * float(np.log10(max(gain, 1e-9)))
