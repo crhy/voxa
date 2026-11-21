@@ -42,6 +42,7 @@ from voxa.agent.tools.media import media_tools
 from voxa.agent.tools.memory_facts import memory_facts_tools
 from voxa.agent.tools.notes import notes_tools
 from voxa.agent.tools.profile import profile_tools
+from voxa.agent.tools.orders import order_tools
 from voxa.agent.tools.projectsteps import project_steps_tools
 from voxa.agent.tools.radio import radio_tools
 from voxa.agent.tools.readfile import readfile_tools
@@ -99,6 +100,7 @@ def default_registry() -> ToolRegistry:
         *devstatus_tools(),
         *headsup_tools(),
         *lookups_tools(),
+        *order_tools(),
         *transcribe_file_tools(),
         *convert_tools(),
         *memory_facts_tools(),

@@ -16,6 +16,7 @@
 - **Voxa keeps her downloads in one folder.** "Download the annual report" clicks the link you name, saves the file
   in your Downloads/Voxa folder, and tells you the file's name and where it went; if nothing arrives she says so
   instead of guessing.
+- **Track a parcel from text you paste.** Paste or select a confirmation email or a shop's order page and say "Track this package" — Voxa finds the tracking numbers in the text, opens each carrier page, says the status that page actually states, and keeps a list of what is coming, so "Where is my filament order?" and "What's arriving this week?" answer from that list without opening anything.
 
 ### Fixed
 
