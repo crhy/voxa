@@ -138,6 +138,8 @@ adaptive noise cancellation.
 | “Open Expedia” / “Open spacedlinux.com” | Site opens, known or not | 🧪 |
 | “Search Wikipedia for …”, “click History”, “go back” | Voxa drives her own browser | 🧪 |
 | “Download the annual report” | Clicks the link you name, saves the file in Downloads/Voxa and says where it went | 🧪 |
+| "Search Wikipedia for …", "click History", "go back" | Voxa drives her own browser | 🧪 |
+| “Fill in this form” | Voxa reads the form's fields, fills name, address and email from what she remembers, asks for what is missing, and sends only when you say yes | 🧪 |
 
 ## Writing and files
 

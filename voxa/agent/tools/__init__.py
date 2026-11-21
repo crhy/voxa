@@ -28,6 +28,7 @@ from voxa.agent.tools.family import family_tools
 from voxa.agent.tools.filemanage import file_manage_tools
 from voxa.agent.tools.files import file_dialog_tools
 from voxa.agent.tools.finance_docs import finance_docs_tools
+from voxa.agent.tools.forms import form_tools
 from voxa.agent.tools.github import github_tools
 from voxa.agent.tools.headsup import headsup_tools
 from voxa.agent.tools.help import help_tools
@@ -83,6 +84,7 @@ def default_registry() -> ToolRegistry:
         *local_music_tools(),
         *contact_tools(),
         *profile_tools(),
+        *form_tools(),
         *media_tools(),
         *github_tools(),
         *help_tools(),
