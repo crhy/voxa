@@ -14,3 +14,4 @@ Working notes, decisions and standing orders for this project, kept by Claude Co
 - [voxa-two-brains-plan](voxa-two-brains-plan.md): Voxa's next phase (after the Dr. Mario Wii port ships) is the two-brain design in crhy/voxa#116.
 - [voxatest-clean-up-after-each-run](voxatest-clean-up-after-each-run.md): After every live Voxa/VoxaTest run, close what the run opened (VLC, windows, browser tabs) and remove its leftovers
 - [voxatest-never-lower-volume](voxatest-never-lower-volume.md): VoxaTest runs and Voxa lab runs must never turn rhY's system volume down
+- [voxa-hearing-2](voxa-hearing-2.md): Hearing 2 program (2026-11-20): root cause of the hearing chain failures and the h01-h05 plan.
