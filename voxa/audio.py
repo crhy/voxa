@@ -9,7 +9,8 @@ from typing import Any
 
 import numpy as np
 
-from .anc import (Aec3Canceller, EchoCanceller, aec3_available, claim_aec_owner, estimate_delay,
+from .anc import (Aec3Canceller, DelayTracker, EchoCanceller, aec3_available, claim_aec_owner,
+                  estimate_delay,
                   release_aec_owner)
 from .timeline import CaptureClock, RenderTimeline
 
@@ -233,6 +234,7 @@ class AudioCapture:
         self._delay_done = True
         self._delay_mic: list = []
         self._delay_ref: list = []
+        self._delay_tracker: DelayTracker | None = None
         self._start_args: tuple | None = None
         # Roadmap task 2: the device the microphone is on and the device the sound goes out on.
         # Different devices mean different clocks, which is what AEC3's drift handling wants to know.
@@ -351,6 +353,7 @@ class AudioCapture:
         self._delay_done = self.canceller is None
         self._delay_mic = []
         self._delay_ref = []
+        self._delay_tracker = None  # a fresh capture or mode change is an explicit epoch
         self._ref_ring = (ReferenceRing(REFERENCE_SECONDS * REFERENCE_RATE)
                            if (self.reference_source or self.own_reference) else None)
         if self.reference_source:
@@ -576,6 +579,7 @@ class AudioCapture:
         self._delay_done = True
         self._delay_mic = []
         self._delay_ref = []
+        self._delay_tracker = None  # a fresh capture or mode change is an explicit epoch
         self._ref_ring = None
         self.pipeline = pipeline
         # One AEC owner: the GStreamer DSP owns the echo path for as long as this pipeline lives.
@@ -681,30 +685,36 @@ class AudioCapture:
         return cleaned
 
     def _maybe_estimate_delay(self, pcm: bytes) -> None:
-        """During the first loud-enough 3 seconds, measure the echo delay once and rebuild the canceller."""
+        """Track the echo delay and the clock drift continuously (roadmap task 3).
+
+        A GCC-PHAT over the first 0.5 s of every TTS utterance gives the coarse offset,
+        re-estimated every 0.5 s after that: the slope of the estimates is the clock drift in
+        ppm (above 50 ppm the drift flag latches and the interpolated offsets resample the
+        reference), and an abrupt jump is an explicit epoch the drift never sees. The
+        canceller NEVER rebuilds per sentence: only its reference offset is re-pointed, its
+        filter, convergence and double-talk state carry across utterances."""
         if self._delay_done:
             return
+        if getattr(self.canceller, "delay_managed_internally", False):
+            # AEC3 estimates the delay itself and does not report one; the flag it carries
+            # (apply_clock_drift) and its own estimator stay in charge. The estimator here
+            # is done: nothing to build, AEC3 is never replaced by the NLMS canceller.
+            self._delay_done = True
+            return
+        if self._delay_tracker is None:
+            self._delay_tracker = DelayTracker(sample_rate=REFERENCE_RATE)
         window = self._reference_window(len(pcm) // 2)
         if window is None:
             return
         mic = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
-        ref = np.asarray(window, dtype=np.float32)
-        if float(np.mean(ref * ref)) < 1e-6:
-            return  # the reference is not loud enough yet
-        self._delay_mic.append(mic)
-        self._delay_ref.append(ref)
-        collected = sum(chunk.size for chunk in self._delay_mic)
-        if collected < REFERENCE_SECONDS * REFERENCE_RATE:
+        update = self._delay_tracker.observe(mic, np.asarray(window, dtype=np.float32))
+        if update is None:
             return
-        self._delay_done = True
-        delay = estimate_delay(np.concatenate(self._delay_mic), np.concatenate(self._delay_ref))
-        if delay > 0 and not getattr(self.canceller, "delay_managed_internally", False):
-            # AEC3 estimates the delay itself and does not report one; only the NLMS filter is
-            # rebuilt from this measurement (roadmap task 3 makes the estimate continuous).
-            release_aec_owner(self.canceller)
-            self.canceller = EchoCanceller(delay=delay)
-            self.apply_clock_drift()
-            log.info("echo delay estimated at %d samples (%.3f s)", delay, delay / REFERENCE_RATE)
+        self.canceller.set_offset(update["delay_samples"], *update["anchors"])
+        if update["kind"] != "track":
+            log.info("echo delay %s: %d samples (%.3f s), drift %.1f ppm", update["kind"],
+                     update["delay_samples"], update["delay_samples"] / REFERENCE_RATE,
+                     update["drift_ppm"])
 
     @staticmethod
     def _rms(pcm: bytes) -> float:
@@ -794,6 +804,7 @@ class AudioCapture:
             self._delay_done = True
             self._delay_mic = []
             self._delay_ref = []
+            self._delay_tracker = None  # a mode change is an explicit epoch
             self._ref_ring = None
             self._ref_anchor = None
             if self._ref_pipeline is not None:
@@ -813,6 +824,7 @@ class AudioCapture:
             self._delay_done = True
             self._delay_mic = []
             self._delay_ref = []
+            self._delay_tracker = None  # a mode change is an explicit epoch
             self._ref_ring = None
             self._ref_anchor = None
             if self._ref_pipeline is not None:
@@ -834,6 +846,7 @@ class AudioCapture:
             self._delay_done = False
             self._delay_mic = []
             self._delay_ref = []
+            self._delay_tracker = None  # a mode change is an explicit epoch
             self._ref_ring = None
             return
         if self._ref_ring is None:
@@ -844,3 +857,4 @@ class AudioCapture:
         self._delay_done = False
         self._delay_mic = []
         self._delay_ref = []
+        self._delay_tracker = None  # a fresh capture or mode change is an explicit epoch

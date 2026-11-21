@@ -677,15 +677,46 @@ def endpoint_latency_samples(facts: list[dict]) -> Samples:
     return Samples(values, "p50")
 
 
+def echo_delay_at_seconds(echo: dict, t_s: float) -> float | None:
+    """The delay the renderer's echo path ACTUALLY has at time ``t_s``, in samples.
+
+    TASK-3 BUG FIX (f130, tasks/notes-f130-voxa-hear-t3-delay-drift.md): this metric compared
+    every estimate with the delay injected at CLIP START, even though task 3's estimates are
+    continuous and echo themselves after a mid-clip path change and after clock drift has
+    accumulated. The reconstruction is exactly ``voxa/bench/render.py``'s ``resample_clock``:
+    the bulk delay, the step once it has landed, and the clock drift (the warp grows with the
+    position in the clip). Without it, a correct post-step estimate of 50+ ms looked 50 ms wrong.
+    """
+    base = echo.get("delay_samples")
+    if base is None:
+        return None
+    n = echo.get("clip_seconds")
+    if not n:
+        return None
+    t = float(t_s) * SR
+    samples = n * SR
+    step_at = echo.get("step_at_s")
+    delay = float(base)
+    if step_at and t >= float(step_at) * SR:
+        delay += float(round(float(echo.get("delay_step_ms") or 0.0) / 1000.0 * SR))
+    rate = 1.0 + (float(echo.get("drift_ppm") or 0.0) * 1e-6) * (t / samples)
+    source = (t - delay) / rate
+    return t - source
+
+
 def delay_error_samples(facts: list[dict]) -> Samples:
-    """|delay the canceller estimated - delay the renderer injected| in ms."""
+    """|delay the canceller estimated - delay the echo path had WHEN IT ESTIMATED| in ms."""
     values = []
     for fact in facts:
         estimate = fact["delay_est"]
-        truth_delay = (fact["echo"] or {}).get("delay_samples")
+        echo = fact["echo"] or {}
+        truth_delay = echo.get("delay_samples")
         if estimate is None or not truth_delay:
             continue
-        values.append(abs(float(estimate["delay_samples"]) - float(truth_delay)) * 1000.0 / SR)
+        truth_at = echo_delay_at_seconds(echo, float(estimate["t_s"]))
+        if truth_at is None:  # a truth record older than the fix: the old (wrong) comparison
+            truth_at = float(truth_delay)
+        values.append(abs(float(estimate["delay_samples"]) - truth_at) * 1000.0 / SR)
     return Samples(values, "mean")
 
 

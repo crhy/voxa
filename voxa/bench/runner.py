@@ -43,7 +43,8 @@ from pathlib import Path
 
 import numpy as np
 
-from ..anc import MIN_REFERENCE_POWER, Aec3Canceller, EchoCanceller, aec3_available, estimate_delay
+from ..anc import (MIN_REFERENCE_POWER, Aec3Canceller, DelayTracker, EchoCanceller,
+                   aec3_available, estimate_delay)
 from ..audio import AudioCapture, ReferenceRing, mix_chunk, webrtc_available
 from ..bargectl import BargeInController
 from ..onset import dbfs
@@ -199,6 +200,7 @@ class ClipRunner:
         self._delay_mic: list[np.ndarray] = []
         self._delay_ref: list[np.ndarray] = []
         self._delay_samples = 0
+        self._delay_tracker: DelayTracker | None = None  # task 3: continuous, mode voxa
         # The cleaned stream of the clip, kept so the runner can transcript what its pipeline
         # delivered to the ASR stage as a whole (what `voxa.bench agree` measures).
         self._clean_stream: list[bytes] = []
@@ -267,7 +269,13 @@ class ClipRunner:
                 # a speaker, and the near-end mask owns protection in this mode instead.
                 self.canceller = Aec3Canceller(double_talk_guard=False)
             else:
-                self.canceller = EchoCanceller()
+                # Roadmap task 3 strata: these rooms decay over hundreds of milliseconds, so the
+                # filter spans 256 ms (taps) and the step runs fast enough to track the +-200 ppm
+                # read-point movers inside one clip (mu).
+                self.canceller = EchoCanceller(taps=4096, mu=0.7)
+                # Roadmap task 3: delay and drift are tracked continuously through this canceller.
+                # One instance, never per sentence; the offset is re-pointed, the filter is kept.
+                self._delay_tracker = DelayTracker(sample_rate=SR)
             self._delay_done = False
         elif self.echo_mode == "webrtc":
             if not webrtc_available():
@@ -315,7 +323,7 @@ class ClipRunner:
         self._delay_done = True
         delay = int(estimate_delay(np.concatenate(self._delay_mic), np.concatenate(self._delay_ref)))
         if delay > 0 and not getattr(self.canceller, "delay_managed_internally", False):
-            self.canceller = EchoCanceller(delay=delay)
+            self.canceller = EchoCanceller(taps=4096, mu=0.7, delay=delay)
         elif delay > 0 and self.echo_mode == "aec3":
             # AEC3 owns the delay search, but it starts blind: hand it the measured end-to-end
             # delay so its filter and its estimator lock within the clip instead of across it.
@@ -326,6 +334,23 @@ class ClipRunner:
         self._delay_mic, self._delay_ref = [], []
         self.emit("delay-estimate", delay_samples=delay, delay_ms=round(delay / SR * 1000, 1),
                   collected_s=round(collected / SR, 2))
+
+    def _observe_echo_delay(self, mic01: np.ndarray, ref: np.ndarray) -> None:
+        """Task 3 on the simulated clock: GCC-PHAT delay per 0.5 s of utterance, drift as the
+        slope of the estimates, abrupt jumps as explicit epochs. The canceller keeps its filter:
+        only its reference offset is re-pointed (``set_offset``), never rebuilt per sentence."""
+        if self._delay_tracker is None or self.ref_ring is None or ref.size == 0:
+            return
+        update = self._delay_tracker.observe(mic01, ref)
+        if update is None:
+            return
+        self.canceller.set_offset(update["delay_samples"], *update["anchors"])
+        self._delay_samples = int(update["delay_samples"])
+        if update["kind"] != "track":
+            self.emit("delay-estimate", delay_samples=int(update["delay_samples"]),
+                      delay_ms=round(update["delay_samples"] / SR * 1000.0, 1),
+                      kind=update["kind"], drift_ppm=round(update["drift_ppm"], 1),
+                      offset_samples=round(update["offset"], 2))
 
     def _clean_frame(self, mic_bytes: bytes, ref: np.ndarray) -> tuple[bytes, float, float, float, float]:
         """Cleaned chunk for this frame, the dB the canceller removed, the mask's gain in dB, and
@@ -339,7 +364,12 @@ class ClipRunner:
         mic = np.frombuffer(mic_bytes, dtype="<i2").astype(np.float32)
         mic_db = level_db(mic)
         if self.canceller is not None and self.ref_ring is not None:
-            self._estimate_delay(mic, ref)
+            if self._delay_tracker is not None:
+                # Task 3: continuous GCC-PHAT tracking of delay and clock drift (the tracker
+                # works on the -1..1 scale the live capture path uses).
+                self._observe_echo_delay(mic / 32768.0, ref)
+            else:
+                self._estimate_delay(mic, ref)
             mic_bytes = mix_chunk(mic_bytes, self.ref_ring, self._mic_counter, self.canceller, 0)
         self._mic_counter += len(mic_bytes) // 2
         cleaned = np.frombuffer(mic_bytes, dtype="<i2").astype(np.float32)

@@ -75,6 +75,227 @@ def estimate_delay(mic, ref, max_delay: int = 4800) -> int:
     return peak
 
 
+GCCPHAT_SEARCH_MS = 400.0  # roadmap task 3: the 0-400 ms delay search
+
+
+def gccphat_delay(mic, ref, max_delay_ms: float = GCCPHAT_SEARCH_MS,
+                  sample_rate: int = 16000):
+    """GCC-PHAT: the delay the echo reaches the microphone at, in samples (fractional).
+
+    The phase transform whitens the cross spectrum, so the peak sits on the DIRECT path even
+    when the room rings (RT60 0.2-0.8 s) and the window is only 0.5 s of a TTS utterance
+    (roadmap task 3). Returns None when there is nothing to correlate. The peak is refined
+    to sub-sample by a 3-point parabolic fit, which is what makes the +-1 ms gate possible.
+    """
+    mic = np.asarray(mic, dtype=np.float64)
+    ref = np.asarray(ref, dtype=np.float64)
+    n = min(mic.size, ref.size)
+    if n < max(1600, int(0.1 * sample_rate)):
+        return None
+    mic, ref = mic[:n], ref[:n]
+    if float(np.mean(mic * mic)) < 1e-10 or float(np.mean(ref * ref)) < 1e-10:
+        return None
+    max_delay = int(max_delay_ms / 1000.0 * sample_rate)
+    size = 1
+    while size < n + max_delay:
+        size <<= 1
+    cross = np.fft.rfft(mic, size) * np.conj(np.fft.rfft(ref, size))
+    cross /= np.abs(cross) + 1e-12  # phase transform: flat spectrum, a sharp peak
+    corr = np.fft.irfft(cross, size)
+    window = corr[: max_delay + 1]
+    peak = int(np.argmax(window))
+    floor = float(np.median(window))
+    if floor > 0.0:
+        if window[peak] < 8.0 * floor:
+            return None
+    elif window[peak] <= 0.0:
+        return None
+    if peak == 0 or peak == max_delay:
+        return float(peak)
+    left, top, right = window[peak - 1], window[peak], window[peak + 1]
+    denom = left - 2.0 * top + right
+    shift = 0.5 * (left - right) / denom if denom != 0.0 else 0.0
+    return float(peak) + float(np.clip(shift, -1.0, 1.0))
+
+
+COHERENCE_MIN = 0.12  # overlap correlation at the estimated lag: echo present, not a near-end accident
+
+
+class DelayTracker:
+    """Track the echo delay and the clock drift of the echo path, continuously.
+
+    Roadmap task 3. At the onset of every TTS utterance the first 0.5 s give a GCC-PHAT
+    delay over 0-400 ms: the coarse offset the canceller's reference must carry. The
+    estimate repeats every 0.5 s while the utterance plays, so a drifting echo path is
+    tracked WITHIN one reply, not only across replies:
+
+    * hysteresis: the coarse offset (``delay_samples``, what the metrics and the canceller
+      report) moves only on a shift of more than 1 ms confirmed by the next estimate;
+    * slope: the estimates' slope across utterances is the clock drift in ppm; above 50
+      ppm ``has_clock_drift`` latches, and the piecewise-linear offset between estimates
+      IS the reference resampling the drift needs (the anchors ``observe`` returns);
+    * an abrupt jump (a route change, a device switch) is an epoch: it is accepted at
+      once, an event of its own, and the slope regression restarts from it - a slow drift
+      never looks like a jump, and a jump is never smeared into the drift estimate.
+
+    The tracker never touches the canceller's filter state: keeping it is the point.
+    """
+
+    def __init__(self, sample_rate: int = 16000, search_ms: float = GCCPHAT_SEARCH_MS,
+                 window_s: float = 0.5, hysteresis_ms: float = 1.0,
+                 epoch_ms: float = 8.0, ppm_threshold: float = 50.0,
+                 gap_s: float = 0.35) -> None:
+        self._sr = int(sample_rate)
+        self._search_ms = float(search_ms)
+        self._window = max(160, int(round(window_s * self._sr)))
+        self._hyst = float(hysteresis_ms) / 1000.0 * self._sr
+        self._epoch = float(epoch_ms) / 1000.0 * self._sr
+        self._ppm_threshold = float(ppm_threshold)
+        self._gap = max(1, int(round(gap_s * self._sr)))  # quiet shorter than this stays inside
+        self._pos_samples = 0  # global audio position observe() has seen
+        self._in_utterance = False
+        self._utt_start = 0
+        self._utt_mic: list = []
+        self._utt_ref: list = []
+        self._utt_next = self._window
+        self._gap_run = 0  # consecutive quiet samples inside the open utterance
+        self.coarse = 0  # the hysteresis-stabilised integer offset
+        self._have_coarse = False
+        self._est_ts: list = []  # (t_s, estimate) since the last epoch
+        self._est_d: list = []
+        self._candidate = None  # an unconfirmed >1 ms shift
+        self._epoch_candidate: float | None = None  # an unconfirmed epoch jump
+        self.drift_ppm = 0.0
+        self.has_clock_drift = False
+        self.epochs = 0
+        self.last_update: dict | None = None
+
+    def observe(self, mic, ref) -> dict | None:
+        """Feed one aligned chunk of (microphone, reference) floats -1..1.
+
+        Returns an update when a 0.5 s window produced an estimate, else None::
+        {"kind": "utterance" | "track" | "shift" | "epoch", "t_s", "delay_samples",
+         "offset", "anchors": (t0, off0, t1, off1), "drift_ppm"}
+        """
+        mic = np.asarray(mic, dtype=np.float32)
+        ref = np.asarray(ref, dtype=np.float32)
+        n = min(mic.size, ref.size)
+        if n == 0:
+            return None
+        mic, ref = mic[:n], ref[:n]
+        playing = float(np.mean(ref * ref)) > SILENT_REFERENCE_POWER
+        update = None
+        if playing:
+            if not self._in_utterance:
+                self._in_utterance = True
+                self._utt_start = self._pos_samples
+                self._utt_mic, self._utt_ref = [], []
+                self._utt_next = self._window
+            self._utt_mic.append(mic)
+            self._utt_ref.append(ref)
+            self._gap_run = 0
+            while self._utt_next <= self._pos_samples + n - self._utt_start:
+                update = self._estimate_at(self._utt_next)
+                self._utt_next += self._window
+        elif self._in_utterance:
+            # A TTS reply pauses between words; closing on every dip would restart the
+            # 0.5 s windows and the first estimate would land after playback ends, so the
+            # canceller never gets its offset while the echo plays. Hold the reply open
+            # across inter-word pauses; only a sustained silence ends it (then the tail
+            # is not estimated).
+            self._gap_run += n
+            if self._gap_run > self._gap:
+                self._in_utterance = False
+            else:
+                self._utt_mic.append(mic)
+                self._utt_ref.append(ref)
+        self._pos_samples += n
+        if update is not None:
+            self.last_update = update
+        return update
+
+    def _estimate_at(self, utt_sample: int) -> dict | None:
+        """GCC-PHAT over the aligned 0.5 s window ending at ``utt_sample`` of the utterance."""
+        mic_all = np.concatenate(self._utt_mic)
+        ref_all = np.concatenate(self._utt_ref)
+        end = min(utt_sample, ref_all.size)
+        start = max(0, end - self._window)
+        t_s = (self._utt_start + end) / self._sr
+        est = gccphat_delay(mic_all[start:end], ref_all[start:end],
+                            max_delay_ms=self._search_ms, sample_rate=self._sr)
+        if est is None:
+            return None
+        if not self._coherent(mic_all[start:end], ref_all[start:end], int(round(est))):
+            return None  # the peak is an accident of the near-end speaker, not an echo
+        return self._accept(float(est), t_s)
+
+    @staticmethod
+    def _coherent(mic_w: np.ndarray, ref_w: np.ndarray, lag: int) -> bool:
+        """Does the microphone window actually carry a copy of the reference at ``lag``?
+
+        GCC-PHAT whitens everything: when the user speaks over her own reply the peak can land
+        on a coincidence of the near-end signal, and a jump to that lag wrecks the canceller.
+        A real echo keeps a plain overlap correlation at its own lag well above the accident
+        level; near-end-dominated windows do not (the double-talk guard downstream keeps the
+        filter, and a missing window costs one 0.5 s delay, not a wrong offset).
+        """
+        if lag <= 0 or lag >= len(mic_w):
+            return False
+        m = mic_w[lag:]
+        r = ref_w[:len(mic_w) - lag]
+        mm = float(np.dot(m, m))
+        rr = float(np.dot(r, r))
+        if mm <= 0.0 or rr <= 0.0:
+            return False
+        return float(np.dot(m, r)) ** 2 / (mm * rr) >= COHERENCE_MIN ** 2
+
+    def _accept(self, est: float, t_s: float) -> dict:
+        kind = "track"
+        if not self._have_coarse:
+            self.coarse = int(round(est))
+            self._have_coarse = True
+            kind = "utterance"
+        else:
+            delta = est - self.coarse
+            if abs(delta) > self._epoch:
+                # An abrupt path change is an explicit epoch that skips the hysteresis and
+                # restarts the slope regression, but one window is not a jump: a lone
+                # near-end spike or a window cut in half by the change itself gets
+                # confirmed by the next window agreeing before the coarse offset jumps.
+                if (self._epoch_candidate is not None and delta * self._epoch_candidate > 0.0
+                        and abs(est - self._epoch_candidate) <= 2.0 * self._hyst):
+                    self.coarse = int(round(est))
+                    self.epochs += 1
+                    self._epoch_candidate = None
+                    self._est_ts, self._est_d, self._candidate = [], [], None
+                    kind = "epoch"
+                else:
+                    self._epoch_candidate = est
+            elif abs(delta) > self._hyst:
+                if self._candidate is not None and delta * self._candidate > 0.0:
+                    self.coarse = int(round(est))
+                    self._candidate = None
+                    kind = "shift"
+                else:
+                    self._candidate = delta
+        self._est_ts.append(t_s)
+        self._est_d.append(est)
+        if len(self._est_ts) > 24:  # bounded memory: the regression only needs the recent past
+            self._est_ts.pop(0)
+            self._est_d.pop(0)
+        if len(self._est_ts) >= 4:
+            t = np.asarray(self._est_ts)
+            d = np.asarray(self._est_d)
+            slope = float(np.polyfit(t, d, 1)[0])  # samples of extra delay per second
+            self.drift_ppm = slope / self._sr * 1e6
+            if abs(self.drift_ppm) >= self._ppm_threshold:
+                self.has_clock_drift = True
+        off0 = self._est_d[-2] if len(self._est_d) >= 2 else est
+        t0 = self._est_ts[-2] if len(self._est_ts) >= 2 else t_s
+        return {"kind": kind, "t_s": t_s, "delay_samples": self.coarse, "offset": est,
+                "anchors": (t0, off0, t_s, est), "drift_ppm": self.drift_ppm}
+
+
 def nlms_cancel(mic, ref, taps: int = 1024, mu: float = 0.5, delay: int = 0,
                 weights=None, history=None, freeze=None):
     """Normalised least-mean-squares echo cancellation, sample by sample.
@@ -126,6 +347,9 @@ class EchoCanceller:
 
     BLOCK = 160
 
+    # The bench rooms decay over hundreds of milliseconds (roadmap task 3 strata): a filter
+    # shorter than the echo tail cannot cancel it at all - the bench asks for taps spanning
+    # 256 ms. The default stays the short-path length the unit tests warm up in two seconds.
     def __init__(self, sample_rate: int = 16000, taps: int = 1024, mu: float = 0.5, delay: int = 0):
         self._sample_rate = sample_rate
         self._taps = taps
@@ -136,7 +360,8 @@ class EchoCanceller:
         self._mic_rem = np.zeros(0)
         self._ref_rem = np.zeros(0)
         self._ref_hist = np.zeros(0)
-        self._pos = 0
+        self._ref_base = 0  # global SAMPLE index of _ref_hist[0] (the reference stream, bounded)
+        self._pos = 0  # global SAMPLE index of the next microphone sample process() will see
         self._floor = 1.0
         self._blocks_adapted = 0
         self._converged = 0.0
@@ -146,23 +371,93 @@ class EchoCanceller:
         self._last_mic_power = 0.0
         self._last_residual_power = 0.0
         self._last_reference_power = 0.0
+        # Roadmap task 3: the reference is read at a fractional offset that the delay tracker
+        # re-estimates every 0.5 s. Between estimates the offset interpolates the two nearest
+        # ones, which IS the reference resampling the clock drift needs (+-200 ppm). None = the
+        # plain integer delay, exactly the behaviour every legacy caller had.
+        self._offset_anchors = None
+        self._clock_drift = False
+
+    def set_offset(self, coarse: int, t0: float = 0.0, off0: float = 0.0,
+                   t1: float = 0.0, off1: float = 0.0) -> None:
+        """Re-point the reference offset WITHOUT touching the filter (roadmap task 3).
+
+        ``coarse`` is the hysteresis-stabilised integer offset the canceller and the metrics
+        report; the (t, offset) anchors from :class:`DelayTracker` position the read precisely,
+        interpolating between estimates and holding outside them. The weights, the reference
+        buffer, the convergence and double-talk state all survive - only an explicit epoch
+        (a route change, a device switch, :meth:`reset`) may drop them.
+        """
+        self._delay = int(coarse)
+        if t1 <= t0 and t0 == 0.0 and off0 == 0.0:
+            # All anchor defaults: the caller means the plain integer coarse offset.
+            self._offset_anchors = None
+        elif t1 <= t0:
+            self._offset_anchors = None if off0 == float(self._delay) else (
+                float(t0), float(off0), float(t0), float(off0))
+        else:
+            self._offset_anchors = (float(t0), float(off0), float(t1), float(off1))
+
+    def set_clock_drift(self, detected: bool) -> None:
+        """Record that capture and playback run on different clocks (read by the capture path)."""
+        self._clock_drift = bool(detected)
+
+    @property
+    def has_clock_drift(self) -> bool:
+        return self._clock_drift
+
+    def _offset_at(self, times_s: np.ndarray) -> np.ndarray:
+        """The offset in samples to read the reference at at these global times."""
+        if self._offset_anchors is None:
+            return np.full(times_s.shape, float(self._delay))
+        t0, off0, t1, off1 = self._offset_anchors
+        return np.interp(times_s, (t0, t1), (off0, off1))
+
+    def _trim_ref_hist(self) -> None:
+        """Keep the reference history bounded: the read window plus the filter span."""
+        keep = self._taps + max(self._delay, int(GCCPHAT_SEARCH_MS / 1000.0 * self._sample_rate))
+        keep += 4 * self.BLOCK + 2048
+        if self._ref_hist.size > keep:
+            drop = self._ref_hist.size - keep
+            self._ref_hist = self._ref_hist[drop:]
+            self._ref_base += drop
+
+    def _shifted_ref(self, length: int) -> np.ndarray:
+        """The reference samples the same span as this block, read at the tracked offset.
+
+        Fractional reads interpolate two neighbouring samples; positions before the stream
+        began read as silence (what the old pending buffer was zero-initialised to).
+        """
+        hist = self._ref_hist
+        pos = self._pos + np.arange(length)
+        times_s = pos / float(self._sample_rate)
+        idx = pos - self._offset_at(times_s) - self._ref_base
+        idx = np.clip(idx, -1.0, float(hist.size))
+        lo = np.floor(idx).astype(np.int64)
+        frac = idx - lo
+        padded = np.concatenate(([0.0], hist, [0.0]))
+        a = padded[lo + 1]
+        b = padded[lo + 2]
+        return a + (b - a) * frac
 
     def _delayed_ref(self, length: int) -> np.ndarray:
-        start = self._pos - self._delay
-        if start >= 0:
-            return self._ref_hist[start:start + length]
-        head = np.zeros(-start)
-        return np.concatenate([head, self._ref_hist[:length + start]])
+        """The delayed reference for this block (the offset the filter is fitted with)."""
+        return self._shifted_ref(length)
 
     def _block(self, mic_b: np.ndarray, ref_b: np.ndarray) -> np.ndarray:
         length = len(mic_b)
         self._ref_hist = np.concatenate([self._ref_hist, ref_b])
+        self._trim_ref_hist()
         w0 = self.weights.copy() if self.weights is not None else None
         h0 = dict(self.history) if self.history is not None else None
-        trial, w1, h1 = nlms_cancel(mic_b, ref_b, taps=self._taps, mu=self._mu,
-                                    delay=self._delay, weights=w0, history=h0,
+        # The offset (coarse + interpolated fine correction) is applied to the REFERENCE read,
+        # not to a pending buffer inside the filter: that is what lets it be fractional, move
+        # every 0.5 s and survive a coarse re-point without losing one sample of filter state.
+        ref_s = self._shifted_ref(length)
+        trial, w1, h1 = nlms_cancel(mic_b, ref_s, taps=self._taps, mu=self._mu,
+                                    delay=0, weights=w0, history=h0,
                                     freeze=np.ones(length, dtype=bool))
-        delayed = self._delayed_ref(length)
+        delayed = ref_s
         p_mic = float(np.mean(mic_b ** 2))
         p_res = float(np.mean(trial ** 2))
         # Kept for attribution (handoff 6.3, evidence stream 1): what the echo path explains and
@@ -172,7 +467,12 @@ class EchoCanceller:
         self._last_reference_power = float(np.mean(delayed ** 2))
         p_ref = self._last_reference_power
         p_now = float(np.mean(ref_b ** 2))  # power of the reference block itself (what the speakers play now)
-        speaking = (p_ref < 1e-7 and p_mic > 1e-6) or (
+        # Tail-aware double-talk: these rooms ring up to 0.8 s after her own words (roadmap
+        # task 2 learned the same lesson about AEC3's guard), so microphone energy where the
+        # DELAYED reference reads quiet is the tail - the user may only be called when the
+        # recent reference history has been quiet for longer than the longest room too.
+        hist_ener = float(np.mean(self._ref_hist ** 2)) if self._ref_hist.size else 0.0
+        speaking = (p_ref < 1e-7 and hist_ener < 1e-7 and p_mic > 1e-6) or (
             self._blocks_adapted > 100
             and p_res / max(p_mic, 1e-12) > max(8.0 * self._floor, 0.05)
             and p_res > 1e-6)
@@ -206,8 +506,8 @@ class EchoCanceller:
             self.history = h1
             self._pos += length
             return self._never_worse(mic_b, trial, p_mic)
-        result, w2, h2 = nlms_cancel(mic_b, ref_b, taps=self._taps, mu=self._mu,
-                                     delay=self._delay, weights=w0, history=h0, freeze=None)
+        result, w2, h2 = nlms_cancel(mic_b, ref_s, taps=self._taps, mu=self._mu,
+                                     delay=0, weights=w0, history=h0, freeze=None)
         self.weights = w2
         self.history = h2
         self._blocks_adapted += 1
