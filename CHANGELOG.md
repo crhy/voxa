@@ -14,6 +14,7 @@
   are namespaced `voxa/<name>` and labelled “Voxa <name>”. A secret's value appears in no file
   Voxa writes — not the settings, not the action log — and only its name is ever read back.
   (`voxa/agent/secrets.py`) (#41) 🧪
+- **An invoice from one sentence.** "Make me an invoice for two office chairs to Acme, net 40 dollars freight 6 taxes 2, terms 15 days" — Voxa works out the client, what is being delivered, the net, freight and taxes, numbers the invoice, writes it as a document in your Voxa Drafts folder and opens it in LibreOffice; "read me the invoice back" repeats the client, the total and when it is due. (#54) 🧪
 
 ### Fixed
 

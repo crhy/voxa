@@ -82,6 +82,17 @@ finishes the message wherever you are typing.
 
 Any key you can name, Voxa can press.
 
+## Documents
+
+| Say | Voxa does |
+|---|---|
+| "make me an invoice for two office chairs to Acme, net 40 dollars freight 6 taxes 2, terms 15 days" | Numbers the invoice, writes it into your Voxa Drafts folder and opens it in LibreOffice |
+| "invoice for Acme net 40 dollars freight 6 taxes 2" | The same invoice, without the lead-in words |
+| "read me the invoice back" | Speaks the client, the total and when it is due |
+
+The invoice is an ODF document, the way every Voxa draft is written, and it is opened in LibreOffice there for you to
+edit, print, keep or delete. Nothing is sent anywhere: sending an invoice is a later step.
+
 ## Multi-step requests
 
 You can chain actions in one sentence and Voxa carries them out in order:

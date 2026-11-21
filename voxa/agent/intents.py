@@ -1055,6 +1055,23 @@ _TRIP_COST = re.compile(
     r"|what did i spend on the (?P<n2>.+?) trip",
     re.IGNORECASE,
 )
+_INVOICE_KIND = r"(?:invoice|delivery\s+slip)s?"
+_INVOICE_MADE = re.compile(
+    rf"(?:make|create|generate|write|draft|issue|build)\s+(?:me\s+)?(?:an?|the|one)?\s*(?:new\s+)?{_INVOICE_KIND}"
+    rf"\b(?:[\s,:]+(?P<rest>.*))?",
+    re.IGNORECASE,
+)
+_INVOICE_BARE = re.compile(
+    rf"{_INVOICE_KIND}\s+(?P<rest>(?:net|freight|taxes|tax|for)\b.*|[$\u00a3\u00a4\u00a5\u20ac].*)",
+    re.IGNORECASE,
+)
+_INVOICE_READ = re.compile(
+    r"(?:read|repeat|say)\s+(?:me\s+)?(?:the\s+)?invoice\s+(?:back|again)(?:\s+to\s+me)?"
+    r"|read\s+(?:me\s+)?(?:the\s+)?(?:last|newest|most recent)\s+invoice(?:\s+back)?"
+    r"|(?:what|how) (?:did\s+)?(?:the\s+)?invoice (?:say|read)"
+    r"|invoice\s+back",
+    re.IGNORECASE,
+)
 _DATE_KIND = r"birthday|anniversary"
 _DATE_REMEMBER = re.compile(
     rf"(?:remember (?:that )?)?(?P<name>.+?)'s (?P<kind>{_DATE_KIND}) is (?:on )?(?P<when>.+)",
@@ -1339,6 +1356,8 @@ ROUTED_TOOLS = frozenset(
         "budget_set",
         "budget_status",
         "trip_cost",
+        "make_invoice",
+        "invoice_read",
         "date_remember",
         "date_when",
         "date_upcoming",
@@ -1665,6 +1684,15 @@ def _route_command(text: str) -> ToolCall | None:
         return call("expense_undo")
     if _EXPENSE_SHEET.fullmatch(s):
         return call("expense_spreadsheet")
+    invoice_made = _INVOICE_MADE.fullmatch(s)
+    if invoice_made:
+        return call("make_invoice", line=s)
+    invoice_bare = _INVOICE_BARE.fullmatch(s)
+    if invoice_bare:
+        return call("make_invoice", line=s)
+    invoice_read = _INVOICE_READ.fullmatch(s)
+    if invoice_read:
+        return call("invoice_read")
     event_plan = _EVENT_PLAN.fullmatch(s)
     if event_plan:
         event = event_plan.group("event").strip()
