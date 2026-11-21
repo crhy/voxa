@@ -74,6 +74,7 @@
 - Which big-brain model to run, how the GPU is split between the two brains, and the review sampling rate: #116 §7 keeps these to be decided by measurement, and nothing here chooses them.
 - The escalation prompt that decides when the little brain asks the big brain.
 - The improvement loop that turns logged disagreements into VoxaTest cases and periodic reports.
+- **The High face download can arrive from more than one place.** When a release publishes a torrent, a file your machine already has is reused if it matches the published checksum, and the release's web seeds are tried alongside the GitHub download. The published checksums are checked either way, so another machine can only ever make the download faster, never different; when nothing else has the file, the plain GitHub download is used at full speed. (#117)
 
 ### Fixed
 
