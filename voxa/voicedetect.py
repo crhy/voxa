@@ -133,14 +133,14 @@ class DoubleTalkGate:
         self._gap_ms = 0.0
         self._suspect_rise_ms = 0.0     # audio seen when the joint run raised the suspect
         self._audio_ms = 0.0
-        self._cleaned = np.zeros(0, dtype=np.float64)
+        self._mic = np.zeros(0, dtype=np.float64)
         self._reference = np.zeros(0, dtype=np.float64)
         self._erle_baseline: float | None = None
         # What the last frame measured (None = this stage could not measure it).
         self.coherence: float | None = None
         self.conditions: dict = {}
 
-    def observe(self, *, dt_ms: float, prob: float | None, cleaned: np.ndarray,
+    def observe(self, *, dt_ms: float, prob: float | None, mic: np.ndarray,
                 ref: np.ndarray, delay_samples: int | None,
                 residual_over_prediction_db: float | None, erle_db: float | None,
                 reference_active: bool, alignment_healthy: bool) -> bool:
@@ -148,18 +148,27 @@ class DoubleTalkGate:
 
         Suspect = all three streams held (>= ``joint_ms`` of them), and it persists through
         joint gaps shorter than ``hold_ms``.
+
+        ``mic`` is the MICROPHONE the canceller was fed, not its output: the patent's echo test
+        asks whether the microphone is still explained by the delayed reference (high coherence
+        = echo, no second source). The cleaned signal is meaningless for that test - the echo was
+        already removed from it - which is why the SPEAKING half (``prob``) and the MARGIN half
+        (``residual_over_prediction_db``) arrive as scalars measured on the cleaned stream.
         """
         dt = max(0.0, float(dt_ms))
         self._audio_ms += dt
-        cleaned = np.asarray(cleaned, dtype=np.float64)
+        mic = np.asarray(mic, dtype=np.float64)
         ref = np.asarray(ref, dtype=np.float64)
-        if cleaned.size:
-            self._cleaned = np.concatenate((self._cleaned, cleaned))
+        if mic.size:
+            self._mic = np.concatenate((self._mic, mic))
             self._reference = np.concatenate((self._reference, ref))
-        if self._cleaned.size > 4 * COHERENCE_WINDOW:
-            keep = 2 * COHERENCE_WINDOW
-            drop = self._cleaned.size - keep
-            self._cleaned = self._cleaned[-keep:]
+        # Keep enough history to align the coherence window against the reference at the
+        # canceller's tracked delay: the reference readback reaches back ``delay_samples`` from
+        # the end of the cleaned window, so the buffer must hold window + delay + headroom.
+        need = COHERENCE_WINDOW + (int(delay_samples) if delay_samples else 0) + COHERENCE_WINDOW
+        keep = max(2 * COHERENCE_WINDOW, need)
+        if self._mic.size > keep + COHERENCE_WINDOW:
+            self._mic = self._mic[-keep:]
             self._reference = self._reference[-keep:]
 
         # (c) echo consistency: short-time coherence at the canceller's tracked delay.
@@ -207,12 +216,12 @@ class DoubleTalkGate:
         ``delay_samples`` None (alignment unhealthy, echo travel unknown) measures NOTHING:
         the joint gate does not fire, the caller degrades.
         """
-        n = min(self._cleaned.size, self._reference.size)
+        n = min(self._mic.size, self._reference.size)
         if delay_samples is None or n < COHERENCE_WINDOW:
             return None
         # The cleaned window ends at the stream position ``self._pos``; the echo inside it came
         # from the reference ``delay_samples`` earlier.
-        x = self._cleaned[-COHERENCE_WINDOW:]
+        x = self._mic[-COHERENCE_WINDOW:]
         # The reference window aligned to the cleaned one, shifted by the echo delay.
         end = n - int(delay_samples)
         if end < COHERENCE_WINDOW:
@@ -231,7 +240,7 @@ class DoubleTalkGate:
         return self._suspect
 
     @property
-    def joint_ms(self) -> float:
+    def joint_run_ms(self) -> float:
         """The current run of joint evidence (0.0 = none)."""
         return self._joint_ms
 

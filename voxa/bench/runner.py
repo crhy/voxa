@@ -234,7 +234,9 @@ class ClipRunner:
         self.dt_gate = DoubleTalkGate()
         self._clean_vad: VoiceDetector | None = None  # lazy: it loads the Silero model
         self._clean_prob: float | None = None
+        self._mask_margin: float | None = None
         self._dt_suspect = False
+        self._dt_measurable = False
         # The reference power of the last 400 ms, so an echo still in flight counts as a live
         # reference even after the speakers went quiet (the delay is 100-300 ms in these clips).
         self._ref_recent: deque[float] = deque(maxlen=20)
@@ -453,39 +455,46 @@ class ClipRunner:
                 mic_bytes = pcm16(masked)
         self._echo_cpu += time.process_time() - cpu_at
         self._clean_stream.append(mic_bytes)
-        self._note_joint_evidence(mic_bytes, ref, erle)
+        self._note_joint_evidence(mic_bytes, ref, erle, raw_mic=mic.astype(np.float64) / 32768.0)
         return mic_bytes, erle, gain_db, mic_db, level_db(np.frombuffer(mic_bytes, dtype="<i2"))
 
-    def _note_joint_evidence(self, cleaned_bytes: bytes, ref: np.ndarray, erle_db: float) -> None:
+    def _note_joint_evidence(self, cleaned_bytes: bytes, ref: np.ndarray, erle_db: float,
+                             *, raw_mic: np.ndarray) -> None:
         """Roadmap task 5: feed the joint double-talk gate one frame of the CLEANED stream.
 
         Silero runs on the cleaned bytes every frame - muted or not - so the probability the
         evidence carries during playback is a measurement, not a stale 0.0. The gate holds all
         three audio streams before it calls the frame suspect; while it does, the canceller's OWN
         double-talk control is extended through the hold (voxa/anc.py ``note_double_talk``), never
-        a blanket freeze.
+        a blanket freeze. The coherence half of the gate reads the RAW microphone (``raw_mic``):
+        the echo test asks whether the microphone is still the delayed reference, and the cleaned
+        stream has already lost the echo it would have to match.
         """
         if self._clean_vad is None:
             self._clean_vad = VoiceDetector(threshold=SPEECH_PLAYBACK_THRESHOLD)
         self._clean_vad.feed(cleaned_bytes)
         prob = float(self._clean_vad.last_prob) if self._clean_vad.probs else None
-        cleaned = np.frombuffer(cleaned_bytes, dtype="<i2").astype(np.float64) / 32768.0
+        ref_power = float(np.mean(np.asarray(ref, dtype=np.float64) ** 2))
         margin = (float(self.mask.residual_margin_db)
                   if self.mask is not None and np.isfinite(self.mask.residual_margin_db)
                   else None)
+        self._mask_margin = margin
         delay = self._delay_samples if self._delay_samples > 0 else (
             self.canceller.delay_samples if self.canceller is not None else 0)
         alignment_healthy = bool(delay > 0
                                  or getattr(self.canceller, "delay_managed_internally", False))
         self._clean_prob = prob
         self._dt_suspect = self.dt_gate.observe(
-            dt_ms=CHUNK_MS, prob=prob, cleaned=cleaned,
+            dt_ms=CHUNK_MS, prob=prob, mic=raw_mic,
             ref=np.asarray(ref, dtype=np.float64),
             delay_samples=delay if delay > 0 else None,
             residual_over_prediction_db=margin, erle_db=erle_db,
-            reference_active=bool(np.mean(np.asarray(ref, dtype=np.float64) ** 2)
-                                  > MIN_REFERENCE_POWER),
+            # An echo still in flight counts as a live reference (the same 400 ms rule the
+            # evidence uses): the reference ring keeps holding the delay's audio after the
+            # speakers go quiet between words.
+            reference_active=bool(max(list(self._ref_recent) + [ref_power]) > MIN_REFERENCE_POWER),
             alignment_healthy=alignment_healthy)
+        self._dt_measurable = bool(self.dt_gate.conditions.get("measurable"))
         if self._dt_suspect and self.canceller is not None:
             self.canceller.note_double_talk(2.0 * CHUNK_MS)
 
@@ -528,7 +537,10 @@ class ClipRunner:
                 float(self.mask.residual_margin_db)
                 if self.mask is not None and np.isfinite(self.mask.residual_margin_db)
                 else None),
-            joint_suspect=self._dt_suspect,
+            # None when THIS gate could not measure (the caller falls back to the level gate
+            # and says so - the degraded path, not a guess of "no second source").
+            joint_suspect=(self._dt_suspect if (self._dt_measurable or self._dt_suspect)
+                           else None),
             vad_prob=prob,
             alignment_healthy=bool(self._delay_samples > 0
                                    or getattr(self.canceller, "delay_managed_internally", False)
@@ -721,6 +733,7 @@ class ClipRunner:
             self._clean_vad.reset()
         self._clean_prob = None
         self._dt_suspect = False
+        self._dt_measurable = False
         wake = self.wake_word
         self.conversation = ConversationController(
             wake_whisper=self.asr,
@@ -800,6 +813,12 @@ class ClipRunner:
                 vad_prob=round(prob, 3),
                 clean_vad_prob=(None if self._clean_prob is None else round(self._clean_prob, 3)),
                 suspect=bool(self._dt_suspect),
+                joint_conditions=self.dt_gate.conditions or None,
+                joint_coherence=(None if self.dt_gate.coherence is None
+                                 else round(float(self.dt_gate.coherence), 3)),
+                joint_run_ms=round(self.dt_gate.joint_run_ms, 1),
+                mask_margin_db=(None if self._mask_margin is None
+                                else round(self._mask_margin, 2)),
                 voiced=bool(completed is not None),
                 level=round(level, 1),
                 erle_db=round(erle, 2),

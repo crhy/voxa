@@ -353,9 +353,16 @@ class ResidualMask(ReferenceMask):
         # poison the same measurement elsewhere). Evidence for the joint double-talk gate.
         out_total_margin = float(out_b.sum())
         echo_total_margin = float(echo_b.sum())
-        self.residual_margin_db = (
-            float(10.0 * np.log10(out_total_margin / echo_total_margin))
-            if out_total_margin > 0.0 and echo_total_margin > 0.0 else float("-inf"))
+        # A frame the mask cannot explain at all (predicted residual ~0 but the output is loud)
+        # stands a HUNDRED dB above what was predicted - the clearest second source there is, not
+        # "nothing". The floor is relative to the output so the margin saturates instead of
+        # dividing by zero; a genuinely silent frame (output ~0) is reported as -inf (no claim).
+        if out_total_margin > 0.0:
+            echo_floor = out_total_margin * 1e-6
+            self.residual_margin_db = float(10.0 * np.log10(
+                out_total_margin / max(echo_total_margin, echo_floor)))
+        else:
+            self.residual_margin_db = float("-inf")
         # One decision per frame: which bands are near-end, and whether the near end holds the
         # whole frame. A band the margin rule protects is near-end speech: its inflated
         # output-vs-reference ratio must NOT teach the echo model, or every later frame of her
