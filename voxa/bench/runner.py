@@ -56,6 +56,7 @@ from ..dictation import SpeechSegmenter
 from ..endpoint import is_complete, is_followup
 from ..ownspeech import OwnSpeech
 from ..refmask import ReferenceMask, ResidualMask
+from ..voicedetect import SPEECH_PLAYBACK_THRESHOLD, DoubleTalkGate, VoiceDetector
 from . import metrics as metrics_module
 from . import report as report_module
 from .render import DEFAULT_DATA_ROOT, SR, read_wav
@@ -226,6 +227,14 @@ class ClipRunner:
         # record built for the frame being judged.
         self.echo_baseline = EchoPathBaseline()
         self.last_evidence: SourceEvidence | None = None
+        # Roadmap task 5: the joint double-talk gate over the cleaned stream, and a Silero run
+        # that SEES the muted microphone: the conversation's own detector never runs while a
+        # reply plays, which left vad_prob "not measured" for every playback frame. The runner
+        # feeds the cleaned bytes of every frame to both.
+        self.dt_gate = DoubleTalkGate()
+        self._clean_vad: VoiceDetector | None = None  # lazy: it loads the Silero model
+        self._clean_prob: float | None = None
+        self._dt_suspect = False
         # The reference power of the last 400 ms, so an echo still in flight counts as a live
         # reference even after the speakers went quiet (the delay is 100-300 ms in these clips).
         self._ref_recent: deque[float] = deque(maxlen=20)
@@ -444,7 +453,41 @@ class ClipRunner:
                 mic_bytes = pcm16(masked)
         self._echo_cpu += time.process_time() - cpu_at
         self._clean_stream.append(mic_bytes)
+        self._note_joint_evidence(mic_bytes, ref, erle)
         return mic_bytes, erle, gain_db, mic_db, level_db(np.frombuffer(mic_bytes, dtype="<i2"))
+
+    def _note_joint_evidence(self, cleaned_bytes: bytes, ref: np.ndarray, erle_db: float) -> None:
+        """Roadmap task 5: feed the joint double-talk gate one frame of the CLEANED stream.
+
+        Silero runs on the cleaned bytes every frame - muted or not - so the probability the
+        evidence carries during playback is a measurement, not a stale 0.0. The gate holds all
+        three audio streams before it calls the frame suspect; while it does, the canceller's OWN
+        double-talk control is extended through the hold (voxa/anc.py ``note_double_talk``), never
+        a blanket freeze.
+        """
+        if self._clean_vad is None:
+            self._clean_vad = VoiceDetector(threshold=SPEECH_PLAYBACK_THRESHOLD)
+        self._clean_vad.feed(cleaned_bytes)
+        prob = float(self._clean_vad.last_prob) if self._clean_vad.probs else None
+        cleaned = np.frombuffer(cleaned_bytes, dtype="<i2").astype(np.float64) / 32768.0
+        margin = (float(self.mask.residual_margin_db)
+                  if self.mask is not None and np.isfinite(self.mask.residual_margin_db)
+                  else None)
+        delay = self._delay_samples if self._delay_samples > 0 else (
+            self.canceller.delay_samples if self.canceller is not None else 0)
+        alignment_healthy = bool(delay > 0
+                                 or getattr(self.canceller, "delay_managed_internally", False))
+        self._clean_prob = prob
+        self._dt_suspect = self.dt_gate.observe(
+            dt_ms=CHUNK_MS, prob=prob, cleaned=cleaned,
+            ref=np.asarray(ref, dtype=np.float64),
+            delay_samples=delay if delay > 0 else None,
+            residual_over_prediction_db=margin, erle_db=erle_db,
+            reference_active=bool(np.mean(np.asarray(ref, dtype=np.float64) ** 2)
+                                  > MIN_REFERENCE_POWER),
+            alignment_healthy=alignment_healthy)
+        if self._dt_suspect and self.canceller is not None:
+            self.canceller.note_double_talk(2.0 * CHUNK_MS)
 
     # --- the barge-in candidate -------------------------------------------------
 
@@ -467,7 +510,10 @@ class ClipRunner:
         # A detector that has never run has no opinion; 0.0 would be read as "the cleaned signal
         # is not speech-like", which is a guess, not a measurement.
         measured = detector is not None and getattr(detector, "probs", None)
-        prob = float(detector.last_prob) if measured else None
+        # Task 5: the runner's own Silero on the cleaned stream outranks the conversation's,
+        # which never runs on a muted microphone.
+        prob = (self._clean_prob if self._clean_prob is not None
+                else (float(detector.last_prob) if measured else None))
         evidence = SourceEvidence(
             # An echo still travelling counts as a live reference: the speakers went quiet 100-300
             # ms ago and the microphone is still hearing it.
@@ -476,6 +522,13 @@ class ClipRunner:
             echo_explained_db=explained,
             residual_db=residual,
             residual_margin_db=margin,
+            # Task 5: the mask's own margin (output over ITS predicted residual) and the joint
+            # gate's voice-only verdict, measured this frame.
+            residual_over_prediction_db=(
+                float(self.mask.residual_margin_db)
+                if self.mask is not None and np.isfinite(self.mask.residual_margin_db)
+                else None),
+            joint_suspect=self._dt_suspect,
             vad_prob=prob,
             alignment_healthy=bool(self._delay_samples > 0
                                    or getattr(self.canceller, "delay_managed_internally", False)
@@ -662,6 +715,12 @@ class ClipRunner:
 
     def run(self, mic: np.ndarray, ref: np.ndarray, truth: dict) -> dict:
         self._prepare_echo_stages()
+        # Task 5: a new clip starts the joint gate, its Silero run and the suspect flag over.
+        self.dt_gate.reset()
+        if self._clean_vad is not None:
+            self._clean_vad.reset()
+        self._clean_prob = None
+        self._dt_suspect = False
         wake = self.wake_word
         self.conversation = ConversationController(
             wake_whisper=self.asr,
@@ -739,6 +798,8 @@ class ClipRunner:
                 "frame",
                 vad=bool(prob >= detector.threshold) if detector is not None else None,
                 vad_prob=round(prob, 3),
+                clean_vad_prob=(None if self._clean_prob is None else round(self._clean_prob, 3)),
+                suspect=bool(self._dt_suspect),
                 voiced=bool(completed is not None),
                 level=round(level, 1),
                 erle_db=round(erle, 2),

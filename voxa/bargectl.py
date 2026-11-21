@@ -279,6 +279,18 @@ class BargeInController:
         stats["baseline"] = float(self.gate.baseline)
         self.gate.note_reply_audio(dt)
         opened = self.gate.update(level01, self.gate.baseline, dt)
+        # Roadmap task 5: with a live reference, the JOINT double-talk gate is the opening rule -
+        # the raw level ratio is what interrupted her on her own loudest syllables. The gate
+        # still tracks levels (baseline teaching, the fallback below), but the candidate window
+        # opens when the three audio streams agreed, not when the microphone towers.
+        audio = evidence() if callable(evidence) else evidence
+        joint = audio.joint_suspect if audio is not None else None
+        if joint is not None and audio.reference_active:
+            if joint:
+                opened = True
+            elif opened:
+                opened = False
+                stats["joint_closed"] = stats.get("joint_closed", 0) + 1
         if self.gate.listening and self.pending_since <= 0.0 and not opened:
             # Still her voice (or noise): teach the gate what "normal" is.
             self.gate.note_speaking_level(level01, dt)
@@ -320,7 +332,6 @@ class BargeInController:
             self.gate.reset()
             self._clear_candidate()
             return BargeOutcome(OFFLINE, heard=heard, raw=raw, level=level01)
-        audio = evidence() if callable(evidence) else evidence
         decision = source_decision(heard, self.speaking_text, self.recent_spoken, raw=raw,
                                    evidence=audio,
                                    level_ratio=(self.pending_ratio
