@@ -45,6 +45,17 @@ modules:
       - ./configure --prefix=/app --with-sonic=no --with-mbrola=no --with-pcaudiolib=no
       - make -j${FLATPAK_BUILDER_N_JOBS}
       - make install
+    # Issue #75's first step: the owner measured 38 MB of the installed payload
+    # in `lib/debug`, which is never loaded at run time. Every module below that
+    # installs compiled binaries gets the same pair: `cleanup:` drops the debug
+    # directories, `post-install:` prunes any `debug` directory left under the
+    # install prefix. Patterns starting with / are paths under /app; a pattern
+    # without the leading slash would only match a basename and never fire.
+    cleanup:
+      - /lib/debug
+      - /share/debug
+    post-install:
+      - find /app -type d -name debug -prune -exec rm -rf {} +
 
   # Generated with flatpak-pip-generator (committed; see requirements.txt note).
   - python3-requirements-flatpak.json
@@ -74,6 +85,11 @@ modules:
       - ln -sf libcublas.so.12.6.4.1 /app/lib/cuda/libcublas.so.12
       - ln -sf libcublasLt.so.12.6.4.1 /app/lib/cuda/libcublasLt.so.12
       - ln -sf libcudart.so.12.6.77 /app/lib/cuda/libcudart.so.12
+    cleanup:
+      - /lib/debug
+      - /share/debug
+    post-install:
+      - find /app/lib/cuda -type d -name debug -prune -exec rm -rf {} +
 
   # nvidia-smi + NVML: the GNOME 50 runtime does not ship nvidia-smi and the
   # sandbox does not inherit the host's, so hardware.py's GPU probes (model
@@ -147,10 +163,14 @@ modules:
       # Keep the server only; the other tools are not used by Voxa.
       - find /app/bin -name 'llama-*' ! -name llama-server -delete
       - rm -f /app/bin/llama
+      # The Vulkan and per-CPU-level backend .so files carry the debug symbols.
+      - find /app/lib -type d -name debug -prune -exec rm -rf {} +
     cleanup:
       - /include
       - /lib/cmake
       - /lib/pkgconfig
+      - /lib/debug
+      - /share/debug
 
   - name: voxa
     buildsystem: simple
@@ -189,3 +209,10 @@ modules:
       # Panels and menus draw the two-tone symbolic icon, which follows the desktop
       # theme's colours; the colour icon above stays the app-grid icon (issue #23).
       - install -Dm644 icons/io.github.crhy.voxa-symbolic.svg /app/share/icons/hicolor/scalable/symbolic/apps/io.github.crhy.voxa-symbolic.svg
+
+    # Last module: sweeps whatever debug directory the modules above left behind.
+    post-install:
+      - find /app -type d -name debug -prune -exec rm -rf {} +
+    cleanup:
+      - /lib/debug
+      - /share/debug

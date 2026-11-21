@@ -115,6 +115,9 @@
 - **The morning briefing carries your bills.** "Good morning" now adds this month's spending after the reminders, and says so plainly when a budget you set is over: "You have spent 12 dollars and 50 cents this month. You are 2 dollars and 50 cents over your 10 dollar food budget this month." Nothing is said when the spending log is empty or unreadable. (`voxa/agent/briefing.py`, `voxa/agent/tools/briefing.py`) (#57) 🧪
 
 Still open on #57: important email and deliveries join the briefing only once a mail-read path and an orders/deliveries module exist — neither is on `main` yet, and nothing here pretends otherwise.
+### Changed
+
+- The Flatpak no longer carries debug symbols. Every module that installs compiled binaries now drops its `debug` directories — about 38 MB by the owner's own measurement, and nothing is lost at run time. The three bigger size questions (CUDA as an add-on, which characters ship in the core, whether the 3D avatars stay) are still open and unchanged here.
 
 ### Fixed
 

@@ -9,6 +9,10 @@
             "build-commands": [
                 "pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"huggingface-hub==1.32.0\" --no-build-isolation"
             ],
+            "cleanup": [
+                "/lib/debug",
+                "/share/debug"
+            ],
             "sources": [
                 {
                     "type": "file",
@@ -94,6 +98,10 @@
             "build-commands": [
                 "pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"av==18.1.0\" --no-build-isolation"
             ],
+            "cleanup": [
+                "/lib/debug",
+                "/share/debug"
+            ],
             "sources": [
                 {
                     "type": "file",
@@ -110,6 +118,10 @@
             "buildsystem": "simple",
             "build-commands": [
                 "pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"faster-whisper>=1.2,<2\" --no-build-isolation"
+            ],
+            "cleanup": [
+                "/lib/debug",
+                "/share/debug"
             ],
             "sources": [
                 {
@@ -236,6 +248,10 @@
             "build-commands": [
                 "pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"numpy>=2.0,<3\" --no-build-isolation"
             ],
+            "cleanup": [
+                "/lib/debug",
+                "/share/debug"
+            ],
             "sources": [
                 {
                     "type": "file",
@@ -351,6 +367,10 @@
             "buildsystem": "simple",
             "build-commands": [
                 "pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"PyOpenGL>=3.1,<4\" --no-build-isolation"
+            ],
+            "cleanup": [
+                "/lib/debug",
+                "/share/debug"
             ],
             "sources": [
                 {

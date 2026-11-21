@@ -94,6 +94,9 @@ jobs:
       # with org.gnome.Sdk//50, --wheel-arches=x86_64, and --prefer-wheels for
       # ctranslate2, onnxruntime, tokenizers, av, numpy, pyyaml, protobuf, and
       # hf-xet (the hf-xet source archive requires an unbundled Rust/maturin toolchain).
+      # The generator does not emit cleanup: entries, so after regenerating, re-add
+      # [ /lib/debug, /share/debug ] to the wheel modules that carry compiled code
+      # (issue #75); tests/test_flatpak_payload.py fails the build if they go missing.
       - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
           manifest-path: io.github.crhy.voxa.yml
