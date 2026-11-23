@@ -335,7 +335,11 @@ class ClipRunner:
             # Task 4 is the task the brief says owns the fix, and it is fixed here: the residual
             # mask is fed the cleaned float stream and the -1..1 reference, and it gives back
             # float samples that go to pcm16 the normal way.)
-            self.mask = self._residual_mask()
+            # f171 (shipping decision on f169's measurement): the mode runs the SAME residual
+            # stage the live capture path now runs - LockedResidualMask on the locked output,
+            # handed that lock frame by frame - so this row stays production's number.
+            self.mask = self._exact_residual_mask()
+            self._mask_sees_lock = True
         elif self.echo_mode == "aec3":
             # f131 (roadmap task 4): ReferenceMask on the AEC output with the aligned reference.
             # The f129 binary protect/floor switch is gone: the residual mask IS the per-band
@@ -472,12 +476,18 @@ class ClipRunner:
         if self._aligner is None or self.ref_ring is None or ref.size == 0:
             return
         if self._delay_lock is not None:
-            self._delay_lock.observe(self._now, mic01, ref)
+            applied = self._delay_lock.observe(self._now, mic01, ref)
             locked = self._delay_lock.delay_frac
             if locked is None:
                 return
             self._delay_frac = float(locked)
             coarse = int(round(locked))
+            if self._mask_sees_lock and self.mask is not None and applied == "lock":
+                # f171: the mode runs the SHIPPING chain, so the mask is handed the delay the
+                # lock just drove the canceller at - and never a delay the canceller is not
+                # using: while the estimate holds the reference (visible degraded) the mask
+                # keeps the last delay it was measured, exactly as voxa/audio.py does.
+                self.mask.set_delay(float(locked))
             if self._delay_samples != coarse:
                 self._delay_samples = coarse
                 self.emit("delay-estimate", delay_samples=coarse,

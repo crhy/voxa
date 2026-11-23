@@ -11,8 +11,9 @@ import numpy as np
 
 from .align import ExactDelayLock
 from .anc import (Aec3Canceller, EchoCanceller, aec3_available, claim_aec_owner,
-                  estimate_delay,
+                  erle_db, estimate_delay,
                   release_aec_owner)
+from .refmask import LockedResidualMask
 from .timeline import CaptureClock, RenderTimeline
 
 Gst: Any = None  # Initialized lazily so importing this module needs no GStreamer or PyGObject.
@@ -236,6 +237,11 @@ class AudioCapture:
         self._delay_mic: list = []
         self._delay_ref: list = []
         self._delay_lock: ExactDelayLock | None = None
+        # Roadmap task 4 on the exact-delay output (f171): the residual stage ON the shipping
+        # canceller's own output, read at the delay the lock drives the canceller at. None =
+        # the mode has no residual stage (echo off, the webrtc route, or AEC3, whose delay is
+        # its own and was never handed to a lock).
+        self._residual_mask: LockedResidualMask | None = None
         self._delay_lock_logged = False   # the exact lock's first success: logged once
         self._delay_degraded_logged = False  # the fallback estimate taking over: logged once
         self._start_args: tuple | None = None
@@ -357,6 +363,9 @@ class AudioCapture:
         self._delay_mic = []
         self._delay_ref = []
         self._delay_lock = None  # a fresh capture or mode change is an explicit epoch
+        self._residual_mask = (LockedResidualMask(rate=REFERENCE_RATE)
+                               if isinstance(self.canceller, EchoCanceller)
+                               else None)  # the residual stage re-learns the path with the capture
         self._ref_ring = (ReferenceRing(REFERENCE_SECONDS * REFERENCE_RATE)
                            if (self.reference_source or self.own_reference) else None)
         if self.reference_source:
@@ -583,6 +592,7 @@ class AudioCapture:
         self._delay_mic = []
         self._delay_ref = []
         self._delay_lock = None  # a fresh capture or mode change is an explicit epoch
+        self._residual_mask = None  # the GStreamer DSP owns the whole echo path, stage included
         self._ref_ring = None
         self.pipeline = pipeline
         # One AEC owner: the GStreamer DSP owns the echo path for as long as this pipeline lives.
@@ -684,8 +694,43 @@ class AudioCapture:
             self._canceller_enabled = False
             self._mic_counter += len(pcm) // 2
             return pcm
+        cleaned = self._residual_stage(cleaned, pcm, window)
         self._mic_counter += len(pcm) // 2
         return cleaned
+
+    def _residual_stage(self, cleaned: bytes, mic_bytes: bytes, ref: np.ndarray) -> bytes:
+        """Roadmap task 4 on the EXACT-DELAY output (task f171, issue #72).
+
+        The residual suppressor runs ON THE CANCELLER'S OWN OUTPUT with the same reference
+        window the canceller just heard: it predicts the residue the linear stage left per band
+        (:class:`voxa.refmask.LockedResidualMask`, the f131 machinery with the delay the lock
+        proved handed to it by :meth:`voxa.refmask.ReferenceMask.set_delay`, so the reference it
+        reads and the canceller's residue are the SAME pair). The canceller is unchanged and
+        stays the only AEC owner: the mask is a spectral gain on its output, not a second
+        canceller, and it suppresses nothing outside TTS plus its echo tail (the mask's own
+        ``tail_s`` rule) - a frame it cannot explain is kept, never deleted.
+
+        A mask failure degrades the stage alone, visibly: the cleaned stream still carries the
+        canceller's verdict, exactly as it did before this task.
+        """
+        if self._residual_mask is None:
+            return cleaned
+        try:
+            mic = np.frombuffer(mic_bytes, dtype="<i2").astype(np.float64) / 32768.0
+            out = np.frombuffer(cleaned, dtype="<i2").astype(np.float64) / 32768.0
+            # The running ERLE of the LINEAR canceller: where it removed little, the mask
+            # subtracts deeper (roadmap task 4's over-subtraction ramp).
+            self._residual_mask.set_running_erle(erle_db(mic, out))
+            masked = np.clip(self._residual_mask.process(out, np.asarray(ref, dtype=np.float64)),
+                             -1.0, 1.0)
+            if masked.size == 0:
+                return cleaned
+            masked = np.clip(np.rint(masked * 32767.0), -32768, 32767)
+            return masked.astype("<i2").tobytes()
+        except Exception as exc:  # noqa: BLE001 - recording must never break
+            log.warning("residual echo stage failed; keeping the canceller's output: %s", exc)
+            self._residual_mask = None
+            return cleaned
 
     def _maybe_estimate_delay(self, pcm: bytes) -> None:
         """Track the echo delay and the clock drift continuously (roadmap task 3), through
@@ -717,6 +762,14 @@ class AudioCapture:
         mic = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
         update = self._delay_lock.observe(
             self._mic_counter / REFERENCE_RATE, mic, np.asarray(window, dtype=np.float32))
+        if update == "lock" and self._residual_mask is not None:
+            # f171 (roadmap task 4 on the exact-delay output): the mask reads its reference at
+            # the SAME delay the canceller was just driven at, so every band ratio, every held
+            # tail and the 6 dB near-end rule all see the pair the lock proved. Before the
+            # first lock nothing is handed and the mask estimates its own lag (the pre-f169
+            # behaviour); a degraded frame never hands the mask a delay the canceller is NOT
+            # using, so it never passes a verdict measured against an unmeasured alignment.
+            self._residual_mask.set_delay(float(self._delay_lock.delay_frac))
         if update == "lock":
             if not self._delay_lock_logged:
                 log.info("echo delay: exact lock at %.3f ms (drift %.1f ppm)",
@@ -839,6 +892,7 @@ class AudioCapture:
             self._delay_mic = []
             self._delay_ref = []
             self._delay_lock = None  # a mode change is an explicit epoch
+            self._residual_mask = None  # no canceller output to put a stage on
             self._ref_ring = None
             self._ref_anchor = None
             if self._ref_pipeline is not None:
@@ -859,6 +913,7 @@ class AudioCapture:
             self._delay_mic = []
             self._delay_ref = []
             self._delay_lock = None  # a mode change is an explicit epoch
+            self._residual_mask = None  # no canceller output to put a stage on
             self._ref_ring = None
             self._ref_anchor = None
             if self._ref_pipeline is not None:
@@ -873,6 +928,12 @@ class AudioCapture:
             # Exactly one canceller owns the echo path: give the old one up before the new one claims it.
             release_aec_owner(self.canceller)
             self.canceller = wanted()
+        # f171 (roadmap task 4 on the exact-delay output): the residual stage rides on THIS
+        # canceller's output - it is a spectral gain, not a second AEC owner. A mode change is
+        # an explicit epoch, so the stage starts fresh with it: no delay handed yet, and the
+        # mask estimates its own lag until the exact lock proves one and hands it over.
+        self._residual_mask = (LockedResidualMask(rate=REFERENCE_RATE)
+                               if mode == "voxa" else None)
         self._canceller_enabled = True
         self._canceller_logged = False
         self.apply_clock_drift()
