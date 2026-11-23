@@ -3407,8 +3407,11 @@ class MainWindow(Adw.ApplicationWindow):
         if outcome.onset and self.conversation is not None:
             # Independent speech onset: pin the captured span (pre-roll included) so the
             # audio of this possible interruption cannot be trimmed away while the words are
-            # still being judged (voxa/capture.py, handoff 6.4).
-            self.conversation.note_onset(level_floor=self._barge_ctl.onset_level_floor())
+            # still being judged (voxa/capture.py, handoff 6.4). f177: pin from the suspect
+            # onset (the run of unexplained sound the onset rule confirmed), not the late
+            # confirming frame, over the cleaned stream, so the first word is not lost.
+            self.conversation.note_onset(level_floor=self._barge_ctl.onset_level_floor(),
+                                         onset_audio_ms=outcome.onset_audio_ms)
         # Roadmap task 8 (f174): the joint double-talk gate (f173) is the reversible-duck rule.
         # Its suspect lowers Voxa's OWN stream (12 dB ramp, never the system volume, never the mic)
         # and records the sample position; a frame the gate MEASURED as echo gives the floor back at

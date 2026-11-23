@@ -277,6 +277,113 @@ def test_the_pin_never_walks_back_past_the_onset_minus_pre_roll_floor() -> None:
     assert onset_frame.t_s - pinned[0].t_s <= 0.30 + 0.021, "the span is onset minus pre-roll, not a free walk-back"
 
 
+# ------------------------------------------------------------------ f177: POST-AEC pre-roll for the barge-in case
+
+
+def _post_aec_preroll_ring():
+    """Her playback, then the user, with the CLEANED (post-AEC) and the RAW capture carried apart.
+
+    Frames 0-39: she is playing and the user is talking over her. The canceller + mask DESTROY the
+    user's first word there - the cleaned frame is quiet (echo cancelled, user masked), while the
+    RAW microphone still carries the user (this is exactly what f133 measured: recovering the first
+    word from that raw audio re-introduces her echo). Frames 40-59: the user is clearly heard, so the
+    onset rule confirms here - 400 ms of unexplained sound after the first word was masked.
+    """
+    clock = [0.0]
+    ring = CaptureRing(clock=lambda: clock[0])
+    for _ in range(40):  # 0.8 s under playback: cleaned ~quiet, raw carries the user
+        clock[0] += 0.02
+        ring.add(pcm(0.02, 120), 120.0, raw=pcm(0.02, USER_LEVEL))
+    for _ in range(20):  # the user heard clearly: the confirming onset lands at seq 59
+        clock[0] += 0.02
+        ring.add(pcm(0.02, USER_LEVEL), float(USER_LEVEL))
+    return ring
+
+
+def test_a_barge_in_turn_starts_at_the_suspect_onset_minus_pre_roll_from_cleaned_audio() -> None:
+    """f177: pinning from the suspect onset (the run of unexplained sound the onset confirmed),
+    not the late confirming frame, starts the barge-in turn on the cleaned stream earlier - so the
+    first word that arrived under her playback is inside the span."""
+    ring = _post_aec_preroll_ring()
+    plain_ring = _post_aec_preroll_ring()
+    # Control: pinning the same onset with NO run length starts at onset minus pre-roll only.
+    plain_ring.pin(seq=59, onset_audio_ms=None)
+    plain = plain_ring.pin_from
+    ring.pin(seq=59, onset_audio_ms=400.0)
+    # The suspect onset (seq 59 - 0.4 s = seq 39) minus the 0.5 s pre-roll reaches earlier.
+    assert ring.pin_from is not None and ring.pin_from < plain, (ring.pin_from, plain)
+    assert ring.pin_from <= 20, "the span starts at the suspect onset minus the pre-roll"
+    span = ring.pinned()
+    assert span[0].seq == ring.pin_from and span[-1].seq == 59
+
+
+def test_the_barge_in_pre_roll_uses_cleaned_audio_never_the_raw_ring() -> None:
+    """f177: the pre-roll is the CLEANED (post-AEC, post-mask) stream, NOT the raw ring: the raw
+    audio under playback carries her echo, and promoting it would pull an echo word into the turn
+    (f133's re-introduced echo). The promoted span's bytes must be the cleaned copies."""
+    ring = _post_aec_preroll_ring()
+    ring.pin(seq=59, onset_audio_ms=400.0)
+    span = ring.promote_pinned()
+    assert span, "the barge-in turn owes its audio to the record"
+    for frame in span:
+        # the promoted bytes are the cleaned frame, whose pre-onset region is echo-cancelled quiet
+        peak = int(np.max(np.abs(np.frombuffer(frame.pcm, dtype="<i2").astype(np.int64))))
+        if frame.seq < 40:
+            assert peak < 2000, "cleaned pre-roll frames are the cancelled stream, not the raw copy"
+            assert frame.raw is not None, "the raw user-under-echo capture is kept but not used"
+            raw_peak = int(np.max(np.abs(np.frombuffer(frame.raw, dtype="<i2").astype(np.int64))))
+            assert raw_peak >= 2000, "the raw copy WOULD have carried an echo/user word"
+        else:
+            assert peak >= 2000, "the clear user frames are still in the span"
+    cleaned = b"".join(frame.pcm for frame in span)
+    raw = b"".join(frame.raw for frame in span if frame.raw is not None)
+    assert cleaned and raw and cleaned != raw, "the turn is the cleaned stream, never the raw ring"
+    assert ring.snapshot() == b"", "promotion consumed the span once"
+
+
+def test_the_pre_roll_never_pulls_an_echo_word_into_the_whole_turn_pass() -> None:
+    """Assembling the whole turn with the post-AEC pre-roll and running ONE pass over it must not
+    produce her echo word: the cleaned pre-roll region carries no echo, so the stub recogniser sees
+    only the user's words (peak >= 2000) and silence, never herword (400 <= peak < 2000)."""
+    ring = _post_aec_preroll_ring()
+    ring.pin(seq=59, onset_audio_ms=400.0)
+    span = b"".join(frame.pcm for frame in ring.promote_pinned())
+    asr = AudioReadingASR()
+    heard = asr.transcribe_words(span, "")["text"].split()
+    assert "herword" not in heard, "the pre-roll re-introduced an echo word into the turn"
+    assert "userword" in heard, "the user's own words are still in the assembled whole turn"
+
+
+def test_the_degraded_none_onset_audio_ms_path_is_unchanged() -> None:
+    """A caller that cannot supply the onset run length (None: the degraded joint path, no onset
+    rule) pins exactly as before - onset minus pre-roll - and the suspect-onset wiring changes
+    nothing about it."""
+    clock = [0.0]
+    ring = CaptureRing(clock=lambda: clock[0], pre_roll_seconds=0.3)
+    for _ in range(80):
+        clock[0] += 0.02
+        ring.add(b"\x00" * FRAME_BYTES, float(ECHO_LEVEL))
+    ring.pin(seq=60, onset_audio_ms=None)
+    pinned = ring.pinned()
+    onset_frame = next(frame for frame in pinned if frame.seq == 60)
+    assert onset_frame.t_s - pinned[0].t_s <= 0.30 + 0.021, "None onset_audio_ms = unchanged behaviour"
+
+
+def test_a_raw_ring_cold_start_is_not_used_for_the_first_word() -> None:
+    """f133's cold-start recovery from the RAW ring stays OUT: the turn's audio is always the
+    cleaned stream, so a cold first word is never recovered by reading the raw microphone back."""
+    ring = _post_aec_preroll_ring()
+    ring.pin(seq=59, onset_audio_ms=400.0)
+    span = ring.promote_pinned()
+    pre_onset = [frame for frame in span if frame.seq < 40]
+    assert pre_onset, "the span reaches back before the clear-user frames"
+    for frame in pre_onset:
+        peak = int(np.max(np.abs(np.frombuffer(frame.pcm, dtype="<i2").astype(np.int64))))
+        assert peak < 2000, "the pre-onset region is the cancelled stream, not the raw cold-start audio"
+        assert frame.raw is not None and int(np.max(np.abs(np.frombuffer(
+            frame.raw, dtype="<i2").astype(np.int64)))) >= 2000, "raw is kept but never promoted"
+
+
 def test_a_rolling_trim_can_never_overwrite_a_pinned_span() -> None:
     ring, clock = a_pinned_ring()
     for index in range(20, 120):  # two more seconds: the window is only 0.4 s

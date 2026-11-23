@@ -416,14 +416,20 @@ class ConversationController:
         """
         self._muted.clear()
 
-    def note_onset(self, seq: int | None = None, *, level_floor: float | None = None) -> bool:
+    def note_onset(self, seq: int | None = None, *, level_floor: float | None = None,
+                   onset_audio_ms: float | None = None) -> bool:
         """Speech onset: pin the span, from the onset back over the run of speech it belongs
         to, plus :data:`voxa.capture.PRE_ROLL_SECONDS` before it.
 
         Called by the UI and the bench when the barge-in gate opens. Pinning is what stops a
         rolling trim from overwriting an utterance that is still being judged.
+
+        ``onset_audio_ms`` (roadmap task 6 re-plan, f177) is the run of the user's OWN sound the
+        onset rule had to hold before confirming; the pin starts at the suspect onset that run
+        began at, over the cleaned (post-AEC) frames, so the first word of an interruption that
+        started with her playback is not lost behind the confirming frame.
         """
-        return self.capture.pin(seq, level_floor=level_floor)
+        return self.capture.pin(seq, level_floor=level_floor, onset_audio_ms=onset_audio_ms)
 
     def note_rejected(self) -> None:
         """A candidate the classifier did not accept: its audio stays for the evidence window.

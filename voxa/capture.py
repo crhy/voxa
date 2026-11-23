@@ -140,6 +140,7 @@ class CaptureRing:
         *,
         level_floor: float | None = None,
         pre_roll_seconds: float | None = None,
+        onset_audio_ms: float | None = None,
     ) -> bool:
         """Pin the span of a speech onset: the onset frame, back through the elevated frames
         that belong to the same run of speech, plus the pre-roll before it.
@@ -151,6 +152,17 @@ class CaptureRing:
         the first word of an interruption that began before the gate had time to open. Pass
         ``None`` for no walk-back: the span is exactly onset minus pre-roll. The walk-back can
         never reach past the retained window, so a pinned span stays bounded.
+
+        ``onset_audio_ms`` (roadmap task 6 re-plan, f177) is how much of the run of the user's
+        OWN sound the onset rule had to hold before it confirmed, in milliseconds of audio
+        (``voxa/onset.py``, ``OnsetOutcome.onset_audio_ms``). The onset frame is late by exactly
+        that much: the first word of a barge-in that started together with her playback landed
+        BEFORE the gate had enough unexplained sound to open. Walking the onset back to where
+        that run of unexplained sound began - the suspect onset - is what recovers the first
+        word, and it never walks into her own echo, because her echo is EXPLAINED sound the
+        onset rule never counted. The span then starts at the suspect onset minus the pre-roll,
+        over the CLEANED (post-AEC, post-mask) frames the ring already holds - never the raw
+        ring, whose cold-start recovery f133 measured re-introduces echo.
         """
         pre_roll = self.pre_roll_seconds if pre_roll_seconds is None else pre_roll_seconds
         with self._lock:
@@ -161,6 +173,9 @@ class CaptureRing:
                 # The onset frame itself is already gone (the span was pinned late): pin what
                 # is left rather than nothing, so the rest of the utterance survives.
                 onset = self._frames[0]
+            if onset_audio_ms:
+                # f177: start the turn at the suspect onset, not the (late) confirming frame.
+                onset = self._suspect_onset(onset, float(onset_audio_ms))
             # Walk back over the run of speech the onset belongs to.
             index = self._index_of(onset.seq)
             while level_floor is not None and index > 0:
@@ -250,6 +265,22 @@ class CaptureRing:
             if frame.seq == seq:
                 return frame
         return None
+
+    def _suspect_onset(self, onset: Frame, onset_audio_ms: float) -> Frame:
+        """The frame where the run of the user's OWN sound that ``onset`` confirmed began.
+
+        The onset rule confirms only after ``onset_audio_ms`` of unexplained sound, so the
+        confirming frame is that much LATE (roadmap task 6 re-plan, f177). The frames between
+        the suspect onset and the confirming frame are the first word of the barge-in - the run
+        of sound the speaker path could NOT explain, which is by construction the user's voice,
+        never her echo. Walking back to it is bounded by the retained window, so the span stays
+        bounded and never reaches into silence or into an EXPLAINED echo before the run.
+        """
+        run_start_t = onset.t_s - max(0.0, onset_audio_ms) / 1000.0
+        index = self._index_of(onset.seq)
+        while index > 0 and self._frames[index - 1].t_s >= run_start_t:
+            index -= 1
+        return self._frames[index]
 
     def _index_of(self, seq: int) -> int:
         for index, frame in enumerate(self._frames):

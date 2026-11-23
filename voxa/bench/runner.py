@@ -1210,9 +1210,14 @@ class ClipRunner:
             )
             if outcome.onset:
                 # Speech onset: pin the captured span (pre-roll included) before the words are
-                # judged, exactly as voxa/window.py does on the same observation.
+                # judged, exactly as voxa/window.py does on the same observation. f177: the
+                # barge-in turn starts at the suspect onset (the run of the user's OWN sound the
+                # onset rule confirmed), NOT the late confirming frame, so the first word of an
+                # interruption that began with her playback survives - over the CLEANED stream,
+                # never the raw ring (f133 measured raw-ring cold-start recovery re-introduce echo).
                 self.conversation.note_onset(seq=frame,
-                                             level_floor=self.barge.onset_level_floor())
+                                             level_floor=self.barge.onset_level_floor(),
+                                             onset_audio_ms=outcome.onset_audio_ms)
                 self.emit("capture-pin", onset_frame=frame, pin_from=self.conversation.capture.pin_from,
                           span_seconds=round(self.conversation.capture.span_seconds, 3))
             if outcome.gate_opened and outcome.reason == "listening" and self.barge.pending_since == self._now:
