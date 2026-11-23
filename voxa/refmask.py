@@ -339,12 +339,19 @@ class ResidualMask(ReferenceMask):
         # predicted residual holds a second source, and only this class knows its own
         # prediction (EchoPathBaseline's floor would poison the same measurement elsewhere).
         self.residual_margin_db = float("-inf")
+        # Roadmap task 5 re-point (f172): the SAME evidence per band. The frame sums saturate
+        # on the bands this mask has no prediction for (the floor keeps them quiet, the echo
+        # prediction is what is missing), so the gate reads the MEDIAN of the per-band
+        # output-vs-prediction ratios over the bands the mask actually predicts: echo-only
+        # frames sit near 0 dB, a second source lifts many learned bands together.
+        self.band_margin_db = float("-inf")
 
     def reset(self) -> None:
         super().reset()
         self._analysed = 0
         self._last_ref_frame = -(10 ** 9)
         self.residual_margin_db = float("-inf")
+        self.band_margin_db = float("-inf")
 
     def set_running_erle(self, erle_db: float) -> None:
         """The canceller's most recent ERLE (dB): low values deepen the suppression."""
@@ -381,6 +388,16 @@ class ResidualMask(ReferenceMask):
                 out_total_margin / max(echo_total_margin, echo_floor)))
         else:
             self.residual_margin_db = float("-inf")
+        # f172: the per-band version of the same evidence, over the bands this mask holds a
+        # prediction for. A frame is a second source when the MEDIAN learned band stands N dB
+        # over its own prediction - not when the sum does, which unlearned near-silent
+        # predictions inflate to the saturation floor.
+        learned = echo_b > 1e-20
+        if learned.any():
+            ratios = np.maximum(out_b[learned], 1e-20) / echo_b[learned]
+            self.band_margin_db = float(10.0 * np.log10(float(np.median(ratios))))
+        else:
+            self.band_margin_db = float("-inf")
         # One decision per frame: which bands are near-end, and whether the near end holds the
         # whole frame. A band the margin rule protects is near-end speech: its inflated
         # output-vs-reference ratio must NOT teach the echo model, or every later frame of her

@@ -98,3 +98,56 @@ def test_silent_reference_passthrough():
     mask = ResidualMask()
     out = mask.process(mic, ref)
     assert np.array_equal(out, mic)
+
+
+# --- f172 (roadmap task 5 re-point): the mask's margin, per BAND -------------------------------
+# The frame-sum margin (residual_margin_db) saturates on the near-silent predictions of
+# unlearned bands, which is what made f132's her-echo frames report "+6 dB above the predicted
+# residual" constantly. The gate now reads the MEDIAN of the per-band out/prediction ratios
+# over the bands the mask actually predicts.
+
+
+def _run_margin(mic: np.ndarray, ref: np.ndarray, user_from: int | None = None) -> tuple[float, float]:
+    """(band_margin_db, residual_margin_db) once the ratios have settled. ``user_from`` (ms)
+    switches a broadband second source on after the echo-only part has taught the ratios."""
+    mask = ResidualMask()
+    rng = np.random.default_rng(9)
+    for s in range(0, mic.size, SR):
+        frame = slice(s, s + SR)
+        fed = mic[frame]
+        if user_from is not None and s >= user_from * SR // 1000:
+            fed = fed + (rng.uniform(-0.3, 0.3, fed.size) * 0.8).astype(np.float32)
+        mask.process(fed, ref[frame])
+    return mask.band_margin_db, mask.residual_margin_db
+
+
+def test_band_margin_is_honest_on_echo_only():
+    """Residue of the reference only: the learned bands sit at their own prediction, so the
+    median band margin stays near 0 dB - the mirror verdict's margin half must not fire."""
+    mic, ref = residual_only(3 * SR)
+    band, _total = _run_margin(mic, ref)
+    assert np.isfinite(band)
+    assert band < 6.0
+
+
+def test_band_margin_lifts_on_a_broadband_user():
+    """A second source over taught ratios lifts many learned bands together, and the median
+    band margin crosses the protection threshold it is swept at (RESIDUAL_MARGIN_DB = 6)."""
+    mic, ref = residual_only(3 * SR)
+    band, _total = _run_margin(mic, ref, user_from=2)
+    assert np.isfinite(band)
+    assert band >= 6.0
+
+
+def test_band_margin_abstains_where_there_is_no_prediction():
+    """A canceller that left NO residue (f172 clip smoke-0018): every band prediction is
+    zero, so the mask claims NOTHING (margin -inf) instead of saturating at the floor.
+    The frame sums saturate (+60 dB) - and the gate must degrade on the band number."""
+    mic, ref = residual_only(2 * SR)
+    mask = ResidualMask()
+    # Feed the mask an output that stands nowhere near its prediction: nothing learned yet,
+    # echo_b all zero, so the band margin must stay -inf (no claim), never +60.
+    quiet_out = np.zeros_like(mic)
+    for s in range(0, mic.size, SR):
+        mask.process(quiet_out[s:s + SR], ref[s:s + SR])
+    assert mask.band_margin_db == float("-inf")

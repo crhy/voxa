@@ -255,7 +255,13 @@ def attribute(ev: SourceEvidence, baseline_db: float | None = None) -> SourceDec
     if ev.level_ratio is not None:
         tower = min(1.0, max(0.0, ev.level_ratio - 1.0) / (GATE_RATIO - 1.0))
         similarity = max(ev.text_overlap, ev.text_sound)
-        dissimilarity = (1.0 - similarity) if ev.text_letters_measurable else UNKNOWN_DISSIMILARITY
+        dissimilarity = (1.0 - similarity) if ev.text_letters_measurable else (
+            # f172 (roadmap task 5): an EMPTY transcript is not "words nothing like her
+            # sentence" - there are no words at all, no comparison to make. The tower used to
+            # half-count against a placeholder ("unknown, so 50% unlike"), which with the
+            # unexplained residual alone reached "user" and interrupted her on a candidate
+            # that heard nothing. No words: the tower abstains.
+            0.0 if ev.word_count == 0 else UNKNOWN_DISSIMILARITY)
         lift = LEVEL_LIFT * tower * dissimilarity
         if lift:
             add("level", lift)

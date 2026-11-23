@@ -132,6 +132,7 @@ class DoubleTalkGate:
         self._suspect = False
         self._gap_ms = 0.0
         self._echo_ms = 0.0
+        self._echo_gap_ms = 0.0
         self._echo_consistent = False
         self._suspect_rise_ms = 0.0     # audio seen when the joint run raised the suspect
         self._audio_ms = 0.0
@@ -219,12 +220,19 @@ class DoubleTalkGate:
                     self._gap_ms = 0.0
         if cond_echo_frame:
             self._echo_ms += dt
+            self._echo_gap_ms = 0.0
             if not self._echo_consistent and self._echo_ms >= self.joint_ms:
                 self._echo_consistent = True
         else:
             self._echo_ms = 0.0
-            if self._echo_consistent and not self._suspect:
-                self._echo_consistent = False
+            # The MIRROR holds through short gaps exactly like the suspect does: a momentary
+            # coherence dip (a word boundary, a quiet frame) is not evidence of a second
+            # source, it just fails to re-affirm echo. Only a gap past hold_ms clears it.
+            if self._echo_consistent:
+                self._echo_gap_ms += dt
+                if self._echo_gap_ms >= self.hold_ms:
+                    self._echo_consistent = False
+                    self._echo_gap_ms = 0.0
         return self._suspect
 
     def _coherence(self, delay_samples: int | None) -> float | None:

@@ -192,10 +192,12 @@ class ClipRunner:
         wake_word: str = "voxa",
         settings: Settings | None = None,
         mask_params: dict | None = None,
+        dt_params: dict | None = None,
     ) -> None:
         self.asr = asr
         self.echo_mode = echo_mode
         self._mask_params = dict(mask_params or {})
+        self._dt_params = dict(dt_params or {})
         self.settings = settings or Settings().normalized()
         self.wake_word = wake_word
         self.events: list[dict] = []
@@ -223,6 +225,9 @@ class ClipRunner:
         self._locked_ref_offset = 0
         # f169: the voxa-residual mask is handed the locked delay frame by frame (set_delay).
         self._mask_sees_lock = False
+        # f172: is the delay the canceller/mask read a PROVEN lock (never the drifting
+        # DelayTracker estimate)? The joint gate reads coherence only when it is.
+        self._lock_proven = False
         # The cleaned stream of the clip, kept so the runner can transcript what its pipeline
         # delivered to the ASR stage as a whole (what `voxa.bench agree` measures).
         self._clean_stream: list[bytes] = []
@@ -241,7 +246,7 @@ class ClipRunner:
         # that SEES the muted microphone: the conversation's own detector never runs while a
         # reply plays, which left vad_prob "not measured" for every playback frame. The runner
         # feeds the cleaned bytes of every frame to both.
-        self.dt_gate = DoubleTalkGate()
+        self.dt_gate = DoubleTalkGate(**self._dt_params)
         self._clean_vad: VoiceDetector | None = None  # lazy: it loads the Silero model
         self._clean_prob: float | None = None
         self._mask_margin: float | None = None
@@ -480,6 +485,16 @@ class ClipRunner:
             locked = self._delay_lock.delay_frac
             if locked is None:
                 return
+            # f172: "the delay the canceller/mask were handed" is only a MEASURED delay while
+            # the lock itself re-pointed them. While the shipping DelayTracker estimate holds
+            # the reference (visible degraded), the joint gate does not read coherence at all:
+            # the estimate is exactly the 1.5-2.5 ms drift that made f132's coherence half
+            # meaningless. A "hold" (no new update) keeps the last proven state: the lock's
+            # drift line and the canceller's anchors have not moved.
+            if applied == "lock":
+                self._lock_proven = True
+            elif applied == "estimate":
+                self._lock_proven = False
             self._delay_frac = float(locked)
             coarse = int(round(locked))
             if self._mask_sees_lock and self.mask is not None and applied == "lock":
@@ -502,6 +517,7 @@ class ClipRunner:
         locked = self._aligner.locked_delay
         if locked is None:
             return
+        self._lock_proven = bool(self._aligner.refined)
         self._delay_frac = float(locked)
         coarse = int(round(locked))
         self._apply_locked_delay(coarse, locked)
@@ -635,16 +651,31 @@ class ClipRunner:
                   if self.mask is not None and np.isfinite(self.mask.residual_margin_db)
                   else None)
         self._mask_margin = margin
+        # f172: the gate's margin half is the mask's PER-BAND output-vs-prediction ratio (the
+        # median over the bands it predicts), not the frame sums: the sums saturate on the
+        # near-silent predictions of unlearned bands, which is why f132's her-echo frames
+        # reported "+6 dB above the predicted residual" constantly.
+        gate_margin = (float(self.mask.band_margin_db)
+                       if self.mask is not None and np.isfinite(self.mask.band_margin_db)
+                       else None)
+        # f172 (re-plan of parked f132): the coherence half of the gate reads at the LOCKED
+        # delay - the delay_samples the canceller and the residual mask are actually driven at -
+        # never the canceller's own drifting DelayTracker estimate. f132's blocker was that this
+        # gate read a delay that drifted 1.5-2.5 ms, so coherence was low even on pure-echo
+        # frames and the joint verdict could not tell "her echo" from "a second source". f168
+        # shipped the exact render-timeline lock (delay error 0.0727 ms) and f171 ships
+        # LockedResidualMask on that output, so the lock exists: use it, and treat "no lock yet"
+        # as alignment unhealthy (the joint gate stays honest, the caller degrades).
         delay = self._delay_samples if self._delay_samples > 0 else (
             self.canceller.delay_samples if self.canceller is not None else 0)
-        alignment_healthy = bool(delay > 0
+        alignment_healthy = bool(self._lock_proven
                                  or getattr(self.canceller, "delay_managed_internally", False))
         self._clean_prob = prob
         self._dt_suspect = self.dt_gate.observe(
             dt_ms=CHUNK_MS, prob=prob, mic=raw_mic,
             ref=np.asarray(ref, dtype=np.float64),
             delay_samples=delay if delay > 0 else None,
-            residual_over_prediction_db=margin, erle_db=erle_db,
+            residual_over_prediction_db=gate_margin, erle_db=erle_db,
             # An echo still in flight counts as a live reference (the same 400 ms rule the
             # evidence uses): the reference ring keeps holding the delay's audio after the
             # speakers go quiet between words.
@@ -979,6 +1010,9 @@ class ClipRunner:
                 joint_run_ms=round(self.dt_gate.joint_run_ms, 1),
                 mask_margin_db=(None if self._mask_margin is None
                                 else round(self._mask_margin, 2)),
+                band_margin_db=(None if self.dt_gate is None or self.mask is None or
+                                not np.isfinite(self.mask.band_margin_db)
+                                else round(float(self.mask.band_margin_db), 2)),
                 voiced=bool(completed is not None),
                 level=round(level, 1),
                 erle_db=round(erle, 2),
@@ -1214,6 +1248,16 @@ def arg_parser() -> argparse.ArgumentParser:
                         help="residual mask: the ERLE the linear stage is assumed to give (default: MASK_ERLE_TARGET_DB)")
     parser.add_argument("--mask-tail-s", type=float, default=None,
                         help="residual mask: tail window ceiling in s (default: MASK_TAIL_S)")
+    # f172: the joint double-talk gate's thresholds, for the sweep. Unset means the task's
+    # defaults (SPEECH_PLAYBACK_THRESHOLD / RESIDUAL_MARGIN_DB / COHERENCE_ECHO / ERLE_DROP_DB).
+    parser.add_argument("--gate-speech-threshold", type=float, default=None,
+                        help="joint gate: cleaned-signal Silero threshold while TTS plays")
+    parser.add_argument("--gate-margin-db", type=float, default=None,
+                        help="joint gate: per-band output over the predicted residual (dB)")
+    parser.add_argument("--gate-coherence", type=float, default=None,
+                        help="joint gate: coherence at/above this is echo-consistency")
+    parser.add_argument("--gate-erle-drop-db", type=float, default=None,
+                        help="joint gate: running ERLE drop that counts as double talk")
     parser.add_argument("--quiet", action="store_true")
     return parser
 
@@ -1242,8 +1286,17 @@ def run(argv: list[str] | None = None) -> int:
         mask_params["erle_target_db"] = args.mask_erle_target_db
     if args.mask_tail_s is not None:
         mask_params["tail_s"] = args.mask_tail_s
+    dt_params: dict = {}
+    if args.gate_speech_threshold is not None:
+        dt_params["speech_threshold"] = args.gate_speech_threshold
+    if args.gate_margin_db is not None:
+        dt_params["margin_db"] = args.gate_margin_db
+    if args.gate_coherence is not None:
+        dt_params["coherence_echo"] = args.gate_coherence
+    if args.gate_erle_drop_db is not None:
+        dt_params["erle_drop_db"] = args.gate_erle_drop_db
     report = run_clips(args.suite, args.seed, args.echo_mode, args.data_root, args.limit,
-                       args.model, args.quiet, mask_params)
+                       args.model, args.quiet, mask_params, dt_params)
     # Hearing 2 (h01): what each candidate arm really is on this machine, next to the numbers.
     report["run"]["echo_mode_probe"] = dict(probe)
     report["run"]["hybrid_linear"] = ("aec3" if aec3_available() else "voxa")
@@ -1288,7 +1341,8 @@ def render_timeline_measure(loaded: dict, echo_mode: str) -> dict:
 
 
 def run_clips(suite: str, seed: int, echo_mode: str, data_root: Path, limit: int | None,
-              model: str, quiet: bool = False, mask_params: dict | None = None) -> dict:
+              model: str, quiet: bool = False, mask_params: dict | None = None,
+              dt_params: dict | None = None) -> dict:
     """Run every clip of a suite, write the per-clip events, and return the report."""
     suite_dir = data_root / suite
     if not suite_dir.is_dir():
@@ -1306,7 +1360,7 @@ def run_clips(suite: str, seed: int, echo_mode: str, data_root: Path, limit: int
     for index, clip_dir in enumerate(clip_dirs):
         loaded = load_clip(clip_dir)
         runner = ClipRunner(asr=asr, echo_mode=echo_mode, wake_word=wake_word,
-                            mask_params=mask_params)
+                            mask_params=mask_params, dt_params=dt_params)
         summary = runner.run(loaded["mic"], loaded["ref"], loaded["truth"])
         summary["render"] = render_timeline_measure(loaded, echo_mode)
         clip_out = events_root / summary["id"]
@@ -1326,6 +1380,9 @@ def run_clips(suite: str, seed: int, echo_mode: str, data_root: Path, limit: int
     if mask_params:
         # f131: the sweep must be able to cite which knobs each row used.
         report["run"]["mask_params"] = dict(mask_params)
+    if dt_params:
+        # f172: the joint gate sweep cites its thresholds too.
+        report["run"]["gate_params"] = dict(dt_params)
     # Roadmap task 2's CPU gate is about the echo stages, not the recogniser: cpu_core_share divides
     # ASR seconds by wall seconds and can never show what a canceller costs. This is the number the
     # "<= 10 % of one core" gate is actually about, measured on the same clips.

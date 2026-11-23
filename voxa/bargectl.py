@@ -288,19 +288,40 @@ class BargeInController:
         if joint is not None and audio.reference_active:
             if joint:
                 opened = True
-            elif opened and getattr(audio, "joint_echo", False):
+            elif getattr(audio, "joint_echo", False):
                 # Only the gate's MIRROR verdict may suppress the fallback: the microphone held
                 # the delayed reference, so the tower is her own voice. "Not suspect" alone is
                 # indeterminate, and barge-ins the joint window has not confirmed keep the floor.
                 opened = False
                 stats["joint_closed"] = stats.get("joint_closed", 0) + 1
+                if self.pending_since > 0.0:
+                    # f172: the mirror verdict closes a candidate that the fallback level gate
+                    # already opened: the span it is collecting is her echo, and every frame
+                    # of it stays in the capture ring (evidence, never deletion). If a real
+                    # second source follows, the suspect or the fallback opens the window
+                    # again while its audio is still there.
+                    self._clear_candidate()
+                    stats["joint_closed_candidate"] = stats.get("joint_closed_candidate", 0) + 1
         if self.gate.listening and self.pending_since <= 0.0 and not opened:
             # Still her voice (or noise): teach the gate what "normal" is.
             self.gate.note_speaking_level(level01, dt)
         # --- speech onset: milliseconds of audio the speaker path cannot explain -----------------
         self.onset.note_delay(delay_ms)
         onset = self.onset.observe(mic_db, reference_db, dt)
-        if onset.onset and not self._yielded:
+        if onset.onset and not self._yielded and joint is False and audio.reference_active:
+            # f172 (roadmap task 5): the fast yield is reference-aware now. The onset rule says
+            # the microphone towers over what the speaker path could have produced, but the
+            # joint double-talk gate MEASURED this frame and did not find a second source -
+            # the cleaned stream's speech, its margin over the predicted residual and the
+            # reference at the locked delay never held together. The floor stays: the level
+            # gate and the words carry on (the candidate path below), and the suspect may
+            # still raise the yield on a later frame of the same onset.
+            stats["onset_blocked"] = stats.get("onset_blocked", 0) + 1
+            self._trace("onset-blocked", evidence_ms=round(onset.evidence_ms, 1),
+                        margin_db=round(onset.margin_db, 2),
+                        onset_audio_ms=round(onset.onset_audio_ms, 1),
+                        level=round(level01, 4), speaking=self.speaking_text[:60])
+        elif onset.onset and not self._yielded:
             # The fast half of the decision (task A3): stop her playback NOW, before a single
             # word has been transcribed. The words are still being collected, and the outcome
             # that decides what happens to them comes later.
