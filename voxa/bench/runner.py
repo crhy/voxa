@@ -56,7 +56,7 @@ from ..conversation import ConversationController, detect_exit_phrase, strip_wak
 from ..dictation import SpeechSegmenter
 from ..endpoint import is_complete, is_followup
 from ..ownspeech import OwnSpeech
-from ..refmask import ReferenceMask, ResidualMask
+from ..refmask import LockedResidualMask, ReferenceMask, ResidualMask
 from ..voicedetect import SPEECH_PLAYBACK_THRESHOLD, DoubleTalkGate, VoiceDetector
 from . import metrics as metrics_module
 from . import modes
@@ -221,6 +221,8 @@ class ClipRunner:
         # (their own delay search then only refines the room tail); voxa-locked uses set_offset instead.
         self._ref_offset_lock = False
         self._locked_ref_offset = 0
+        # f169: the voxa-residual mask is handed the locked delay frame by frame (set_delay).
+        self._mask_sees_lock = False
         # The cleaned stream of the clip, kept so the runner can transcript what its pipeline
         # delivered to the ASR stage as a whole (what `voxa.bench agree` measures).
         self._clean_stream: list[bytes] = []
@@ -367,7 +369,7 @@ class ClipRunner:
                 self._hybrid_linear = "voxa"
             self.mask = self._residual_mask()
             return
-        if self.echo_mode in modes.LOCKED_MODES:
+        if self.echo_mode in modes.LOCKED_MODES or self.echo_mode in modes.RESIDUAL_MODES:
             # f164 (Hearing 2): every linear arm given Voxa's LOCKED render-timeline delay. The
             # ExactAligner (h02/f163) locks the bulk delay from the render clock and is handed to
             # the arm per frame, so the arm's own delay search only refines the room tail. An arm
@@ -377,10 +379,18 @@ class ClipRunner:
                 self.degraded = f"{self.echo_mode} unavailable: {probe[self.echo_mode]['reason']}"
                 return
             self._aligner = ExactAligner(sample_rate=SR)
-            if self.echo_mode == "voxa-locked":
+            if self.echo_mode in ("voxa-locked", "voxa-residual"):
                 # NLMS reference read at the locked fractional offset (set_offset); span 4096 taps.
                 self.canceller = EchoCanceller(taps=4096, mu=0.7)
-                self.mask = self._residual_mask()
+                if self.echo_mode == "voxa-residual":
+                    # f169 (roadmap task 4 on exact-delay audio): the residual stage runs on
+                    # THIS locked canceller's own output and is handed the same lock, so its
+                    # band ratios, its held tail and its 6 dB near-end rule all see the pair
+                    # the lock proved. The row differs from ``voxa-locked`` by the stage alone.
+                    self.mask = self._exact_residual_mask()
+                    self._mask_sees_lock = True
+                else:
+                    self.mask = self._residual_mask()
             elif self.echo_mode == "aec3-locked":
                 # AEC3 wheel fed that same offset by re-timing its reference at the ring (the wheel
                 # has no delay setter); its estimator then only refines the room tail.
@@ -412,6 +422,13 @@ class ClipRunner:
         }
         params.update(self._mask_params)
         return ResidualMask(rate=SR, **params)
+
+    def _exact_residual_mask(self) -> LockedResidualMask:
+        """f169 (roadmap task 4 on exact-delay audio): the residual stage of the
+        ``voxa-residual`` arm. Its defaults ARE the task's rule (protect_db 6.0; see
+        voxa/refmask.LockedResidualMask); the mask sweep axes still override them through
+        mask_params (run() flags), and the locked delay arrives per frame via set_delay."""
+        return LockedResidualMask(rate=SR, **dict(self._mask_params))
 
     def _estimate_delay(self, mic: np.ndarray, ref: np.ndarray) -> None:
         """Mirror of ``AudioCapture._maybe_estimate_delay`` (audio.py:468) on the simulated clock."""
@@ -478,6 +495,11 @@ class ClipRunner:
         self._delay_frac = float(locked)
         coarse = int(round(locked))
         self._apply_locked_delay(coarse, locked)
+        if self._mask_sees_lock and self.mask is not None:
+            # f169: the residual mask reads its reference at the SAME locked delay the
+            # canceller is driven at - until the lock exists the mask estimates its own lag
+            # (the pre-f169 behaviour), never a half-known one.
+            self.mask.set_delay(locked)
         if self._delay_samples != coarse:
             self._delay_samples = coarse
             self.emit("delay-estimate", delay_samples=coarse,

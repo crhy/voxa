@@ -32,8 +32,13 @@ HEARING2_MODES = ("aec3full", "speex", "dtln", "nkf", "hybrid")
 # search the bulk delay itself. Their availability is the base arm's availability; the locked delay
 # comes from ``voxa.align.ExactAligner`` (h02/f163), which the bench runner hands each arm per frame.
 LOCKED_MODES = ("voxa-locked", "aec3-locked", "speex-locked")
+# f169 (Hearing 2, roadmap task 4 on exact-delay audio): the residual stage driven from the
+# LOCKED linear canceller's own output (voxa/refmask.py LockedResidualMask, reference read at
+# the ExactAligner's locked delay). It rides the ``voxa-locked`` linear arm, so its frontier row
+# differs from that row by the residual stage alone.
+RESIDUAL_MODES = ("voxa-residual",)
 # The full set of hearing-2 arms the CLI offers and the runner wires.
-HEARING2_MODES = HEARING2_MODES + LOCKED_MODES
+HEARING2_MODES = HEARING2_MODES + LOCKED_MODES + RESIDUAL_MODES
 
 
 # ---------------------------------------------------------------------------------------------
@@ -158,6 +163,13 @@ def speex_locked_available() -> tuple[bool, str]:
                   "(reference re-timed outside the MDF, its delay_ctl absent in this Debian build)")
 
 
+def voxa_residual_available() -> tuple[bool, str]:
+    """f169: the residual stage on the locked output. Always runs (pure numpy, like the
+    ``voxa-locked`` arm it extends); its availability IS the locked arm's availability."""
+    return True, ("Voxa's NLMS + ExactAligner locked delay, residual mask on that locked "
+                  "output (reference read at the locked delay; pure Python, no new dependency)")
+
+
 def availability() -> dict[str, dict[str, object]]:
     """Every candidate at once: what runs here and exactly why the rest does not."""
     out: dict[str, dict[str, object]] = {}
@@ -165,7 +177,8 @@ def availability() -> dict[str, dict[str, object]]:
                         ("dtln", dtln_available), ("nkf", nkf_available),
                         ("voxa-locked", voxa_locked_available),
                         ("aec3-locked", aec3_locked_available),
-                        ("speex-locked", speex_locked_available)):
+                        ("speex-locked", speex_locked_available),
+                        ("voxa-residual", voxa_residual_available)):
         ok, reason = probe()
         out[name] = {"available": bool(ok), "reason": reason}
     out["hybrid"] = {"available": True,

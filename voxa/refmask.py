@@ -48,6 +48,12 @@ class ReferenceMask:
         ]
         self.coupling = np.zeros(self.nbands)
         self.ratios = [deque(maxlen=self.mem_frames) for _ in range(self.nbands)]
+        # f169 (roadmap task 4 on the exact-delay output): a stage that KNOWS the echo delay -
+        # Voxa's locked render timeline (voxa/align.py) - never correlation-searches for it. The
+        # reference is read at this offset and the mask's own lag estimate stays OFF, so the
+        # output-vs-reference ratios learn from an exactly aligned pair instead of a guessed one.
+        # None = nobody handed the mask a delay: it estimates its own lag (pre-f169 behaviour).
+        self._exact_lag: int | None = None
         # Roadmap task 2 (tail=True) learns the coupling only from bands where the reference is
         # STRONG (>= a quarter of the loudest band): on the raw microphone, quiet bands are mostly
         # room noise and would poison the ratio. Roadmap task 4 (f131) feeds the mask the AEC's
@@ -86,6 +92,18 @@ class ReferenceMask:
         # left after that prediction. Read-only evidence; nothing here changes the signal.
         self._mic_power = 0.0
         self._echo_power = 0.0
+
+    def set_delay(self, delay_samples: float) -> None:
+        """f169: hand the mask the delay Voxa's render timeline LOCKED (``voxa/align.py``).
+
+        The reference is read at exactly this offset (the mic sample at ``t`` pairs with the
+        reference at ``t - delay``) and the mask's own correlation estimate stays switched off:
+        every ratio, every held tail and every band decision then sees the pair the lock proved,
+        not a lag the mask guessed. It is the delay the canceller was driven at, so the predicted
+        residual is the canceller's residue measured against the SAME alignment.
+        """
+        self.lag = max(0, int(round(float(delay_samples))))
+        self._exact_lag = self.lag
 
     def _estimate_lag(self):
         n = min(len(self.mic_buf), len(self.ref_buf))
@@ -162,7 +180,7 @@ class ReferenceMask:
             self.out_den = np.concatenate([self.out_den, np.zeros(total - len(self.out_den))])
         if total >= self.frame:
             nframes = (total - self.frame) // self.hop + 1
-            if nframes > self.frames_done and (
+            if self._exact_lag is None and nframes > self.frames_done and (
                 self.frames_done == 0 or (nframes - self.frames_done) % 8 == 0
             ):
                 self.lag = self._estimate_lag()
@@ -382,6 +400,42 @@ class ResidualMask(ReferenceMask):
         extra = self.over_ramp * max(0.0, self.erle_target_db - self._erle_db)
         gain = max(self.over * 10.0 ** (-extra / 20.0), 1e-4)
         return np.where(self._frame_user, 1.0, gain)
+
+
+class LockedResidualMask(ResidualMask):
+    """The residual stage on the EXACT-DELAY output (roadmap task 4, task f169).
+
+    The machinery is ``ResidualMask``'s - the predicted residual is the per-band
+    output-vs-reference ratio (median), held at the room's own decay so the tail after TTS is
+    predicted too, protection at ``protect_db`` above it, over-subtraction rising when the
+    running ERLE is low. What f169 adds is the delay it runs ON and the margin the task names:
+
+    * the stage runs on the output of the LOCKED linear canceller (the ``voxa-locked`` arm,
+      f164) and is handed that lock with :meth:`set_delay`: the reference is read at EXACTLY
+      the delay the lock proved and the mask's own correlation lag estimate never runs. f132
+      measured the estimated delay drifting 1.5-2.5 ms, which made every band ratio learn
+      from a mis-ALIGNED pair; f168 shipped a near-exact delay (`align_err_p90_ms` 0.02 ms,
+      `delay_est_err_ms` 0.07 ms), so the predicted residual is now the canceller's own
+      residue measured against the SAME alignment the canceller is driven at;
+    * the protection margin is the roadmap task 4 rule: a band whose output exceeds the
+      predicted residual by >= 6 dB is the near-end speaker and stays untouched (the shipped
+      f131 chain sits at 9.0 dB - measured before the delay could be trusted). The margin
+      still rides on the 98th-percentile prediction, because f131 measured that the residue
+      of an adaptive filter jumps 10-20 dB frame to frame: a median prediction would call
+      those jumps near-end and protect the echo. A band with no prediction at all is
+      protected too - short, quiet or first-onset user audio is never deleted for lacking an
+      echo model (evidence, not deletion);
+    * active through TTS plus the echo tail (``tail_s``); outside that window it never
+      touches anything.
+    """
+
+    def __init__(self, rate=16000, frame=512, hop=256, bands=64, over=0.05,
+                 protect_db=6.0, floor=0.1, memory_s=0.4, tail_s=0.3,
+                 erle_target_db=20.0, over_ramp=0.5, ref_floor=1e-9, rt_s=None):
+        super().__init__(rate=rate, frame=frame, hop=hop, bands=bands, over=over,
+                         protect_db=protect_db, floor=floor, memory_s=memory_s,
+                         tail_s=tail_s, erle_target_db=erle_target_db,
+                         over_ramp=over_ramp, ref_floor=ref_floor, rt_s=rt_s)
 
 
 def user_present(mask: ReferenceMask, threshold_db: float = 3.0) -> bool:
