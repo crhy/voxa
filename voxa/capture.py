@@ -220,7 +220,32 @@ class CaptureRing:
                     if (start is None or frame.seq >= start) and frame.seq not in self._consumed]
             return b"".join(pick)
 
-    def promote_pinned(self) -> list[Frame]:
+    def promote_wait(self, *, joint_suspect: "bool | None" = None, turn_suspect: bool = False,
+                     more_speech_arriving: bool = False) -> bool:
+        """The f181 WAIT on the candidate/promote path: True while a pinned span that was
+        never completed must NOT be handed to the speech-pause rules (the segmenter).
+
+        The same three shipped verdicts f178's endpoint ARBITRATOR reads - the joint
+        double-talk suspect (f173), the turn state (f174: suspect/duck open), and whether
+        gated speech is still arriving (Silero hysteresis on) - now gate the PROMOTION, not
+        just the endpoint. The two frozen-set premature cuts f178 measured are
+        candidate-completion / whole-turn assembly cuts during continuous speech: an
+        open-floor segment's pause floor ran its 2.0 s silence clock while the mic was muted
+        and the user's continuing speech sat UNPROMOTED in this ring. Handed to the segmenter
+        mid-speech, that span assembles a turn that closes while speech is still arriving.
+        So while a wait signal is active, ``promote_pinned`` WAITS: it hands over nothing and
+        marks nothing consumed. The promotion runs at the suspect's close, or at the
+        existing hard cap (the 2.0 s incomplete floor, 3 s / 5 s dictation, 120 s
+        ``MAX_PINNED_SECONDS``) - never a silent drop, never a re-promotion.
+
+        A degraded/INDETERMINATE joint verdict (``joint_suspect is None``, f136's rule)
+        adds NO veto: only a True joint suspect waits.
+        """
+        return bool(joint_suspect is True or turn_suspect or more_speech_arriving)
+
+    def promote_pinned(self, *, joint_suspect: "bool | None" = None,
+                       turn_suspect: bool = False, more_speech_arriving: bool = False,
+                       force: bool = False) -> list[Frame]:
         """Hand the pinned span to the user turn (or the record), exactly once.
 
         The frames keep their sequence ids, and their ids are recorded as consumed, so the
@@ -235,14 +260,33 @@ class CaptureRing:
         handed over without being transcribed or commanded twice is exactly this call - promote
         the pinned span once, keep its ids consumed, and let the caller transcribe what comes
         back (the hearing runner marks it ``dropped="hold"``, never a command from weak audio).
+
+        f181: with no wait signals this is the unchanged f176 primitive. While the caller's
+        verdicts make :meth:`promote_wait` True, the never-completed pinned span is NOT
+        handed to the segmenter mid-speech: the call returns [] and consumes nothing
+        (``promote_waiting()`` answers whether a span is waiting out the suspect). At the
+        suspect's close the same call promotes; the caller's hard cap passes ``force=True``
+        so the wait never turns into a silent drop or a lost span.
         """
         with self._lock:
             if self._pin_from is None:
+                return []
+            if not force and self.promote_wait(joint_suspect=joint_suspect,
+                                               turn_suspect=turn_suspect,
+                                               more_speech_arriving=more_speech_arriving):
                 return []
             fresh = [frame for frame in self._frames if frame.seq >= self._pin_from
                      and frame.seq not in self._consumed]
             self._consumed.update(frame.seq for frame in fresh)
             return fresh
+
+    def promote_waiting(self) -> bool:
+        """A pinned span with frames still owed to the user turn or the record."""
+        with self._lock:
+            if self._pin_from is None:
+                return False
+            return any(frame.seq >= self._pin_from and frame.seq not in self._consumed
+                       for frame in self._frames)
 
     def note_rejected(self, *, now: float | None = None) -> None:
         """A candidate that was not the user: keep its audio for the evidence window, then release.

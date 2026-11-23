@@ -288,6 +288,12 @@ class ClipRunner:
         self._dt_suspect = False
         self._dt_measurable = False
         self._dt_echo = False
+        # Roadmap task 9 re-plan (f181): the promote_wait. While the joint suspect / turn state
+        # / arriving-speech verdicts are open and a never-completed pinned span is still owed,
+        # the events that CLOSE a turn (endpoint/request/exit/ignored) are held - the assembly
+        # cut waits the open suspect out; the closure is never silently dropped.
+        self._promote_defer = False
+        self._promote_held_events: list[tuple[str, dict]] = []
         # The reference power of the last 400 ms, so an echo still in flight counts as a live
         # reference even after the speakers went quiet (the delay is 100-300 ms in these clips).
         self._ref_recent: deque[float] = deque(maxlen=20)
@@ -983,6 +989,20 @@ class ClipRunner:
         silent drop). But no command is run from audio this weak: the method returns after the
         transcript with an ``endpoint`` marked ``dropped="hold"``, never a request/exit/ignored.
         """
+        # Roadmap task 9 re-plan (f181): the promote_wait on the assembly path. When a
+        # never-completed pinned span is still owed AND a wait signal is open (the joint
+        # double-talk suspect f173, the turn state f174, gated speech still arriving), the
+        # turn must not be CLOSED here: an open-floor segment's pause floor ran its silence
+        # clock while the mic was muted and the user's continuing speech sat unpromoted in
+        # the ring - handing that assembly over mid-speech closes a turn while speech is
+        # arriving (f178's two premature cuts). The audio, the transcript, the prefix
+        # bookkeeping and the controller state run exactly as before; only the events that
+        # close the turn wait, to the suspect's close or the hard cap (the clip end, where
+        # the f176 completion promotes the span at last). Never a silent drop, never a
+        # re-promotion: the probe (f178's arbitrator) is untouched.
+        self._promote_defer = bool(promote
+                                   and self.conversation.capture.promote_waiting()
+                                   and self._promote_wait_active())
         self.emit("pause", segment_seconds=round(len(segment) / 32000.0, 3))
         waiting = self.conversation.waiting_for_prompt or self.conversation.keep_prompt
         hint = (self._vocabulary_hint or f"{self.wake_word.strip().capitalize()}.") if not waiting else ""
@@ -1033,7 +1053,7 @@ class ClipRunner:
             heard_with_times=timed_words or None,
             joint_closed_at=self._joint_closed_at if timed_words else None)
         if text is None:
-            self.emit("endpoint", text="", complete=False, dropped="own-speech")
+            self._turn_event("endpoint", text="", complete=False, dropped="own-speech")
             return
         if not text:
             return
@@ -1045,13 +1065,13 @@ class ClipRunner:
             from voxa.attribution import USER as SOURCE_USER
             if attribute(self.last_evidence).source != SOURCE_USER:
                 self.counts["ignored"] += 1
-                self.emit("ignored", text=text, reason="unqualified")
+                self._turn_event("ignored", text=text, reason="unqualified")
                 return
         keep_prompt = self.conversation.keep_prompt
         exit_kind = detect_exit_phrase(text, self.wake_word) if not keep_prompt else None
         followup_open = bool(self._followup_deadline is not None
                              and self._now < self._followup_deadline)
-        self.emit(
+        self._turn_event(
             "endpoint",
             text=text,
             complete=is_complete(text, self.wake_word),
@@ -1064,7 +1084,7 @@ class ClipRunner:
         )
         if exit_kind is not None:
             self.counts["exit"] += 1
-            self.emit("exit", kind=exit_kind, text=text)
+            self._turn_event("exit", kind=exit_kind, text=text)
             if exit_kind == "cancel":
                 self.conversation.waiting_for_prompt = False
                 self._followup_deadline = None
@@ -1077,7 +1097,7 @@ class ClipRunner:
                     self._deliver(text, frame, kind="followup")
                 else:
                     self.counts["ignored"] += 1
-                    self.emit("ignored", text=text)
+                    self._turn_event("ignored", text=text)
                 return
             if remainder:
                 self._deliver(remainder, frame, kind="wake", words=heard["words"],
@@ -1106,13 +1126,13 @@ class ClipRunner:
         # the cleaned stream hold it); only the automatic decision is held off, and it says so.
         if kind == "request" and self._recovering() and self._unqualified_audio():
             self.held_commands += 1
-            self.emit("command-held", text=text, frame=frame, epoch=self.epoch,
+            self._turn_event("command-held", text=text, frame=frame, epoch=self.epoch,
                       reason="recovery-window-unqualified-audio")
             return
         self.requests.append(text)
         self.counts["turns"] += 1
         self.turns.append({"text": text, "kind": kind, "frame": frame})
-        self.emit("request", kind=kind, text=text, words=words or [],
+        self._turn_event("request", kind=kind, text=text, words=words or [],
                   no_speech_prob=no_speech_prob, request_id=len(self.requests) - 1)
 
     # --- the barge-in effects ---------------------------------------------------
@@ -1157,7 +1177,9 @@ class ClipRunner:
         # primitive (voxa/capture.py::CaptureRing.promote_pinned, handoff 6.4): its ids are marked
         # consumed so the same words are never transcribed or commanded twice, then transcribe what
         # is actually still owed to the speech-pause rules (frames the muted loop never segmented).
-        span = [frame for frame in capture.promote_pinned() if frame.seq not in self._segmented]
+        # f181: reaching this IS the hard cap - the wait passes force=True, so it never turns the
+        # HOLD completion into a silent drop.
+        span = [frame for frame in capture.promote_pinned(force=True) if frame.seq not in self._segmented]
         if not span:
             return
         for frame in span:
@@ -1205,8 +1227,11 @@ class ClipRunner:
         # promotion: the pinned span becomes the beginning of the user turn (once), and the
         # microphone that opens next continues the same utterance. The live controller queues
         # those frames for its worker thread (ConversationController.promote_pinned); this
-        # runner drives the same frames through its own SpeechSegmenter instead.
-        promoted = self.conversation.promote_pinned(enqueue=False)
+        # runner drives the same frames through its own SpeechSegmenter instead. f181: this
+        # is the ACCEPTED interruption - the decision is made, so the promote_wait does not
+        # hold it (the f176 contract: the accepted span becomes the turn's beginning now).
+        # The wait applies to the never-completed span, not to an accepted decision.
+        promoted = self.conversation.promote_pinned(enqueue=False, force=True)
         self.emit("capture-promote", frames=[item.seq for item in promoted],
                   span_seconds=round(self.conversation.capture.span_seconds, 3),
                   pin_from=self.conversation.capture.pin_from)
@@ -1233,6 +1258,8 @@ class ClipRunner:
         self._dt_suspect = False
         self._dt_measurable = False
         self._dt_echo = False
+        self._promote_defer = False
+        self._promote_held_events = []
         # Roadmap task 7 (f175): a new clip starts the word-timed playback timeline over - it is
         # evidence about THIS reply's words, and a stale timeline would time-match one clip's
         # heard word to another clip's played word.
@@ -1412,6 +1439,12 @@ class ClipRunner:
             self._apply_barge(outcome)
             if completed is not None:
                 self._finish_utterance(completed, frame)
+            # f181: the suspect's close. With the wait signals quiet again (or the span no
+            # longer owed), the held turn closures run; while the wait holds, they wait.
+            if self._promote_held_events and not (
+                    self.conversation.capture.promote_waiting()
+                    and self._promote_wait_active()):
+                self._flush_promote_held()
         if self.speaking:
             self._speak_finished()
         # Give the echo-path claim back before the next clip builds its own canceller: exactly one
@@ -1426,6 +1459,11 @@ class ClipRunner:
         # 900 ms, an echo-measured onset that blocked the yield, or a HOLD) is still owed a segment
         # transcript - transcribe it once, HOLD, before the whole-stream pass.
         self._finish_unpromoted_pinned_span()
+        # f181 hard cap: the clip ended with the wait still open (the suspect never closed
+        # on the simulated clock) - the held turn closures are still owed to the record, so
+        # they run here, once, and the f176 completion above has already handed the pinned
+        # span over at last. The close is never silently dropped.
+        self._flush_promote_held()
         # One more pass over the whole cleaned stream of the clip: the runner's own transcript of
         # what its pipeline delivered to the ASR stage, independent of where the speech-pause
         # rules cut the utterances. ``voxa.bench agree`` compares this with a direct transcribe
@@ -1555,6 +1593,37 @@ class ClipRunner:
             return False
         prob = getattr(detector, "last_prob", None)
         return prob is not None and float(prob) >= detector.threshold
+
+    # --- the f181 promote_wait ---------------------------------------------------
+
+    def _promote_wait_active(self) -> bool:
+        """The shipped verdicts that make :meth:`voxa.capture.CaptureRing.promote_wait` hold
+        a never-completed pinned span off the user turn: the joint double-talk suspect
+        (f173; a degraded/INDETERMINATE None adds NO veto, f136's rule), the turn state
+        (f174 - this runner never ducks, so False) and the still-arriving gated speech
+        signal the f178 arbitrator already reads. No new inference: the same three numbers.
+        """
+        joint_suspect = (self._dt_suspect if (self._dt_measurable or self._dt_suspect)
+                         else None)
+        return self.conversation.capture.promote_wait(
+            joint_suspect=joint_suspect, turn_suspect=False,
+            more_speech_arriving=self._more_speech_arriving())
+
+    def _turn_event(self, name: str, **fields) -> None:
+        """One event of a turn closure (endpoint/request/exit/ignored): held while the
+        promote_wait defers this completion, emitted unchanged at the close/cap."""
+        if self._promote_defer:
+            self._promote_held_events.append((name, fields))
+        else:
+            self.emit(name, **fields)
+
+    def _flush_promote_held(self) -> None:
+        """The suspect's close, or the hard cap: the held turn closures run in order.
+        Never silently dropped - this is the last line before the clip's record is final.
+        """
+        held, self._promote_held_events = self._promote_held_events, []
+        for name, fields in held:
+            self.emit(name, **fields)
 
 
 def _median(values: list[float]) -> float | None:

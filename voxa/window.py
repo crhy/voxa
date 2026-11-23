@@ -371,6 +371,13 @@ class MainWindow(Adw.ApplicationWindow):
         # the text being spoken now / the piece before it (own-voice check). The decision
         # itself is voxa/bargectl.py, shared with the hearing bench.
         self._barge_ctl = BargeInController(trace=self._barge_trace)
+        # Roadmap task 9 re-plan (f181): a candidate window that closed undecided (HOLD) still
+        # owes its never-completed pinned span to the record - but the handover runs through
+        # the promote_wait (voxa/capture.py::promote_wait), so while the joint suspect / turn
+        # state / arriving-speech verdicts are open the span is NOT handed over mid-speech.
+        # This flag keeps that debt across frames; _hearing_evidence retries the handover at
+        # the suspect's close, and consumed ids mean a retry can never re-promote.
+        self._promote_hold_pending = False
         # Roadmap task 8 (f174): the explicit turn states on the shipped chain. It reads the joint
         # double-talk gate's suspect (f173) to duck her OWN stream, the candidate words to yield,
         # and a false alarm to resume at the last word boundary. Pure/GTK-free (voxa/turngate.py).
@@ -3350,6 +3357,10 @@ class MainWindow(Adw.ApplicationWindow):
                     more_speech_arriving=(detector is not None and prob is not None
                                           and prob >= detector.threshold),
                 )
+                # f181: the verdicts that gate the PROMOTION are refreshed right here, so a
+                # never-completed span owed since a HOLD is handed over on the frame the
+                # suspect closes - no new inference, the same three shipped numbers.
+                self._promote_hold_try()
             return evidence
         except Exception as exc:  # noqa: BLE001 - attribution must never break the conversation
             logging.debug("hearing evidence unavailable: %s", exc)
@@ -3471,6 +3482,16 @@ class MainWindow(Adw.ApplicationWindow):
             # The evidence did not decide: the pin stays open, nothing is stripped, and no
             # command runs from audio this weak (voxa/attribution.py, handoff 6.5).
             self._barge_trace("HOLD", source=outcome.source, confidence=round(outcome.confidence, 2))
+            # Roadmap task 9 re-plan (f181): the candidate window closed undecided, so the
+            # f176 HOLD completion is owed - the never-completed pinned span must still reach
+            # the record (never a silent drop). But the handover runs through the promote_wait:
+            # while the joint suspect / turn state / arriving-speech verdicts are open,
+            # conversation.promote_pinned() hands over nothing. _hearing_evidence refreshes
+            # those verdicts every frame, so the handover lands at the suspect's close; the
+            # ids are consumed once, so a retry never re-promotes.
+            if self.conversation is not None and self.conversation.promote_waiting():
+                self._promote_hold_pending = True
+                self._promote_hold_try()
         if outcome.action == YIELD:
             # The fast half of the decision (task A3): the floor is yielded on the ACOUSTIC
             # onset, before a single word has been transcribed. Everything the interrupted reply
@@ -3528,7 +3549,10 @@ class MainWindow(Adw.ApplicationWindow):
             # The words of the interruption BECOME the request: the pinned span is handed to
             # the user turn once, and the microphone that opens next continues the same
             # utterance (handoff 5.1/6.4 - the user must never have to repeat themselves).
-            promoted = self.conversation.promote_pinned()
+            # f181: this is the ACCEPTED interruption - the decision is made, so the
+            # promote_wait does not hold it (the f176 contract: the accepted span becomes
+            # the turn's beginning now). The wait applies to the never-completed span.
+            promoted = self.conversation.promote_pinned(force=True)
             self._barge_trace("promote", frames=len(promoted),
                               span_seconds=self.conversation.capture.span_seconds)
             self.conversation.unmute()
@@ -3537,6 +3561,27 @@ class MainWindow(Adw.ApplicationWindow):
         self._toast("Interrupted — go ahead.")
         self._set_status("Listening for your request…", busy=True)
         return False
+
+    def _promote_hold_try(self) -> None:
+        """f181: hand the never-completed pinned span to the record at the suspect's close.
+
+        The live twin of the runner's f176 HOLD completion, gated on the promote_wait:
+        ``ConversationController.promote_pinned`` hands nothing over while the joint suspect /
+        turn state / arriving-speech verdicts are open (the evidence the hearing worker pushes
+        every frame via note_endpoint_evidence), so this retry lands the handover when they
+        close. A span that was released or rejected stops being owed, and the debt is cleared
+        with it; consumed ids mean the same span is never promoted twice.
+        """
+        if not self._promote_hold_pending:
+            return
+        if self.conversation is None or not self.conversation.promote_waiting():
+            self._promote_hold_pending = False
+            return
+        promoted = self.conversation.promote_pinned()
+        if promoted:
+            self._promote_hold_pending = False
+            self._barge_trace("promote-hold", frames=len(promoted),
+                              span_seconds=self.conversation.capture.span_seconds)
 
     def _discard_prefetched_reply(self) -> None:
         """Cancel the reply pieces that were prepared ahead of playback.

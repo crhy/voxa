@@ -642,3 +642,120 @@ def test_a_recovered_clip_protected_word_is_counted_kept(tmp_path) -> None:
     assert "userword" in heard, "the completion put the user's word on the segment transcript"
     values = metrics.protected_word_samples([fact])["values"]
     assert values and sum(values) >= 1, "the protected word is counted kept"
+
+
+# ------------------------------------------------------------------ f181 promote_wait
+# f178's two premature cuts are candidate-completion/whole-turn ASSEMBLY cuts during
+# continuous speech: the turn closed while gated speech was still arriving. The fix is not
+# the probe (f178's arbitrator owns that side) but the f176/f177 promote path: while the
+# joint suspect is open, the turn is in a suspect/duck state, or more speech is arriving,
+# the never-completed pinned span is not handed over mid-speech and the turn is not CLOSED
+# - the completion runs at the suspect's close or at the hard cap. Never a silent drop,
+# never a re-promotion, and the degraded joint None path is unchanged (f136's rule).
+
+
+def _owed_span_runner(tmp_path):
+    """A runner holding a never-completed pinned span: 0.6 s of user audio captured while
+    the microphone is MUTED, an onset that pins the span, and no barge-in decision that
+    ever accepted it (the state f176 named; the frame loop never segmented those frames)."""
+    runner = _voxa_only_runner(tmp_path)
+    controller = runner.conversation
+    controller.mute()
+    start = controller.capture._last_seq + 1
+    for offset in range(30):
+        controller.feed(pcm(0.02, USER_LEVEL), float(USER_LEVEL), seq=start + offset)
+    controller.note_onset(seq=start + 10, level_floor=None)
+    assert controller.capture.promote_waiting(), "the pinned span is owed to the record"
+    return runner
+
+
+def _quiet_speech(runner) -> None:
+    """The cleaned-signal detector says speech is NOT arriving (the stub runs on 0.9)."""
+    runner.conversation._voice_detector.last_prob = 0.0
+
+
+def _closures(runner) -> int:
+    """Events that CLOSE a turn: endpoint/request/exit/ignored (the promote_wait holds them)."""
+    return sum(len(events_of(runner, name))
+               for name in ("endpoint", "request", "exit", "ignored"))
+
+
+def test_open_joint_suspect_defers_the_assembly_cut_until_the_close(tmp_path) -> None:
+    runner = _owed_span_runner(tmp_path)
+    runner._dt_suspect, runner._dt_measurable = True, True
+    closures = _closures(runner)
+    runner._finish_utterance(pcm(0.6, USER_LEVEL), 0)
+    assert _closures(runner) == closures, "no assembly cut with the suspect open"
+    assert events_of(runner, "transcript"), "the audio is transcribed at the cut: never a drop"
+    runner._dt_suspect = False
+    _quiet_speech(runner)
+    runner._flush_promote_held()
+    assert _closures(runner) == closures + 1, "the close runs the completion once"
+
+
+def test_more_speech_arriving_defers_the_assembly_cut(tmp_path) -> None:
+    runner = _owed_span_runner(tmp_path)
+    runner._dt_suspect, runner._dt_measurable = False, True  # joint gate measured QUIET
+    closures = _closures(runner)
+    runner._finish_utterance(pcm(0.6, USER_LEVEL), 0)
+    assert _closures(runner) == closures, "arriving speech alone holds the cut"
+    _quiet_speech(runner)  # the run of speech ends: the held closure runs at the close
+    runner._flush_promote_held()
+    assert _closures(runner) == closures + 1
+
+
+def test_a_quiet_joint_gate_completes_the_turn_unchanged(tmp_path) -> None:
+    runner = _owed_span_runner(tmp_path)
+    runner._dt_suspect, runner._dt_measurable = False, True
+    _quiet_speech(runner)
+    closures = _closures(runner)
+    runner._finish_utterance(pcm(0.6, USER_LEVEL), 0)
+    assert _closures(runner) == closures + 1, "no wait signal: the completion is unchanged"
+
+
+def test_the_degraded_joint_none_path_is_unchanged(tmp_path) -> None:
+    # f136's rule: a joint verdict that could not measure (None) adds NO veto.
+    runner = _owed_span_runner(tmp_path)
+    runner._dt_suspect, runner._dt_measurable = False, False
+    _quiet_speech(runner)
+    closures = _closures(runner)
+    runner._finish_utterance(pcm(0.6, USER_LEVEL), 0)
+    assert _closures(runner) == closures + 1, "INDETERMINATE joint adds no wait"
+
+
+def test_a_suspect_that_closes_mid_turn_promotes_exactly_once(tmp_path) -> None:
+    runner = _owed_span_runner(tmp_path)
+    capture = runner.conversation.capture
+    assert capture.promote_pinned(joint_suspect=True) == [], "the open suspect holds the handover"
+    assert capture.promote_waiting(), "the span is still owed, never dropped"
+    promoted = capture.promote_pinned(joint_suspect=False)
+    assert promoted and not capture.promote_waiting(), "the close hands the span over once"
+    assert capture.promote_pinned(joint_suspect=False) == [], "never a re-promotion"
+
+
+def test_the_hard_cap_still_completes_a_span_the_wait_never_closed(tmp_path) -> None:
+    # The stub detector keeps "more speech arriving" ON for the whole clip: the wait never
+    # closes on the clip. The clip end is the hard cap - the held turn closures still run
+    # there (never a silent drop) and the accepted span still reaches the request once.
+    runner, summary, _loaded = run_clip(short_over_reply_clip(tmp_path / "data"))
+    assert summary["requests"], "the accepted span still becomes the request"
+    confirms = events_of(runner, "barge-in-confirm")
+    assert len(confirms) == 1, "the accepted barge-in itself is not deferred (f176 contract)"
+    requests = events_of(runner, "request")
+    heard = confirms[0]["heard"]
+    assert sum(1 for e in requests if heard in e["text"]) == 1, (
+        "the hard cap emitted the held closure exactly once")
+    endpoints = [e for e in events_of(runner, "endpoint") if heard in e.get("text", "")]
+    assert endpoints, "and the turn closure ran at the cap, never silently dropped"
+
+
+def test_the_live_controller_promote_path_waits_out_the_suspect(tmp_path) -> None:
+    controller, _asr = make_controller()
+    controller.feed(pcm(0.02, USER_LEVEL), float(USER_LEVEL), seq=0)
+    controller.note_onset(seq=0, level_floor=None)
+    controller.note_endpoint_evidence(joint_suspect=True)
+    assert controller.promote_waiting()
+    assert controller.promote_pinned() == [], "the live promote path waits on the joint suspect"
+    assert controller.promote_waiting(), "the span is still owed"
+    assert controller.promote_pinned(force=True), "an accepted decision is never held (f176)"
+    assert not controller.promote_waiting()

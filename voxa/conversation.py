@@ -804,7 +804,7 @@ class ConversationController:
                 logging.debug("word-timed pass failed: %s", exc)
         return self._transcribe(segment, self.prompt_whisper, hint=self._prompt_hint), []
 
-    def promote_pinned(self, *, enqueue: bool = True) -> list[Frame]:
+    def promote_pinned(self, *, enqueue: bool = True, force: bool = False) -> list[Frame]:
         """Make the pinned span the beginning of the user turn, exactly once.
 
         The frames keep their sequence ids and are marked consumed, so the frames that arrive
@@ -817,8 +817,20 @@ class ConversationController:
         ``enqueue=False`` is for a caller that drives the speech-pause rules itself (the hearing
         bench) and wants the frames back to feed them onward instead of putting them on the
         worker queue. Returns the promoted frames, oldest first, ids intact.
+
+        Roadmap task 9 re-plan (f181): the live twin of the promote_wait. The endpoint
+        evidence f178 already pushes here (:meth:`note_endpoint_evidence`, refreshed every
+        frame by the hearing worker) now gates the PROMOTION too, not just the endpoint:
+        while the joint double-talk suspect is open, the turn is in a suspect/duck state, or
+        gated speech is still arriving, a never-completed pinned span is NOT handed over
+        mid-speech - the call returns nothing and consumes nothing, and the same call hands
+        the span over once when the suspect closes. A caller whose decision is already made
+        (the accepted barge-in, the hard cap) passes ``force=True``: the wait never holds an
+        accepted decision, and it never drops a span.
         """
-        frames = self.capture.promote_pinned()
+        frames = self.capture.promote_pinned(
+            joint_suspect=self._joint_suspect, turn_suspect=self._turn_suspect,
+            more_speech_arriving=self._more_speech_arriving, force=force)
         if not frames:
             return frames
         for frame in frames:
@@ -829,6 +841,11 @@ class ConversationController:
             self._turn_prefix_text = f"{self._turn_prefix_text} {self._candidate_text}".strip()
             self._turn_prefix_words = [*self._turn_prefix_words, *self.last_candidate_words]
         return frames
+
+    def promote_waiting(self) -> bool:
+        """A pinned span still owed to the user turn or the record (f181): the promote_wait
+        holds its handover while a shipped verdict is open; this says the span is waiting."""
+        return self.capture.promote_waiting()
 
     def take_turn_prefix(self) -> tuple[str, int, list[dict]]:
         """Take the stable prefix of the turn in progress (empty when the turn started normally).
