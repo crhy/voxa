@@ -3,7 +3,32 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from voxa.voicedetect import DoubleTalkGate, VoiceDetector
+from voxa.voicedetect import DoubleTalkGate, VoiceDetector, silero_hysteresis
+
+
+def test_silero_hysteresis_ends_speech_only_below_off_threshold() -> None:
+    """Roadmap task 6: the off-threshold sits at threshold - 0.15. A probability dip between
+    the two thresholds neither starts nor ends the run of speech, which is what keeps a soft
+    last syllable from cutting the turn short."""
+    on, off_margin = 0.5, 0.15  # off_threshold = 0.35
+    # Silence stays silent until the on-threshold.
+    assert silero_hysteresis(False, 0.30, on, off_margin) is False
+    assert silero_hysteresis(False, 0.49, on, off_margin) is False
+    assert silero_hysteresis(False, 0.50, on, off_margin) is True
+    # Once voiced, a dip under 0.5 but still above 0.35 keeps the run together.
+    assert silero_hysteresis(True, 0.45, on, off_margin) is True
+    assert silero_hysteresis(True, 0.35, on, off_margin) is True
+    # Only below the off-threshold does the speech end.
+    assert silero_hysteresis(True, 0.34, on, off_margin) is False
+    assert silero_hysteresis(True, 0.05, on, off_margin) is False
+
+
+def test_detector_off_threshold_is_threshold_minus_a_tenth() -> None:
+    det = _load_detector()
+    if det is None:
+        pytest.skip("silero model unavailable")
+    assert det.off_threshold == pytest.approx(det.threshold - 0.15)
+
 
 
 def _load_detector():

@@ -6,9 +6,15 @@ import time
 from collections.abc import Callable, Iterator
 
 from .transcription import WhisperService
+from .voicedetect import SILERO_TRAILING_PAD_MS
 
 PRE_ROLL_BYTES = int(0.6 * 16000) * 2  # 0.6 s of 16 kHz 16-bit audio kept before the first loud moment
 DICTATION_CHUNK_SECONDS = 6.0
+# Roadmap task 6: the shortest gap the caller treats as the end of a turn. Silero's off-threshold
+# plus this 200 ms trailing pad keep a soft last syllable or a mid-word breath from cutting the
+# utterance short and eating the user's last word (premature_cutoff_rate).
+TRAILING_PAD_SECONDS = SILERO_TRAILING_PAD_MS / 1000.0
+
 
 
 class SpeechSegmenter:
@@ -68,6 +74,9 @@ class SpeechSegmenter:
         # boundary; scale it with the silence setting so short pauses cut
         # sooner instead of accumulating toward the max-segment cutoff.
         min_content = min(0.8, max(0.3, self.silence_seconds / 2.0))
+        # Never end the turn sooner than the 200 ms trailing pad after the last voiced frame.
+        early_floor = max(self.early_silence_seconds or 0.0, TRAILING_PAD_SECONDS)
+        pause_floor = max(self.silence_seconds, TRAILING_PAD_SECONDS)
         completed: bytes | None = None
         if (
             self.early_check is not None
@@ -75,7 +84,7 @@ class SpeechSegmenter:
             and self.heard_voice
             and duration >= min_content
             and not self.early_checked
-            and now - self.last_voice >= self.early_silence_seconds
+            and now - self.last_voice >= early_floor
         ):
             self.early_checked = True
             if self.early_check(bytes(self.segment)):
@@ -87,7 +96,7 @@ class SpeechSegmenter:
         pause_ready = (
             self.heard_voice
             and duration >= min_content
-            and now - self.last_voice >= self.silence_seconds
+            and now - self.last_voice >= pause_floor
         )
         limit = (
             self.max_segment_seconds()
