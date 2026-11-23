@@ -1200,7 +1200,13 @@ class ClipRunner:
                       audible_ms=round((self._now - self._speak_started_at) * 1000.0, 1),
                       onset_audio_ms=round(outcome.onset_audio_ms, 1),
                       evidence_ms=round(outcome.evidence_ms, 1),
-                      margin_db=round(outcome.margin_db, 2))
+                      margin_db=round(outcome.margin_db, 2),
+                      # f182: this is the pipeline ducking Voxa's OWN stream (the fast acoustic
+                      # yield stops her playback, not a confirmed user turn). The scorer reuses
+                      # this marker so an accepted own-stream duck under an open suspect is not
+                      # counted as a self-interruption (voxatest/hearing.py::measure_case).
+                      self_duck=True,
+                      joint_suspect=outcome.joint_suspect)
             self.barge_yielded = True
             self.conversation.unmute()
             self.conversation.arm_prompt()
@@ -1221,7 +1227,12 @@ class ClipRunner:
         # not an omission. When the onset already yielded the floor, the playback stopped there:
         # a second tts-stop for the same reply would count the same cessation twice.
         if not self.barge_yielded:
-            self.emit("tts-stop", heard=outcome.heard)
+            # f182: this stop halts Voxa's OWN playback - the accepted duck of her own stream
+            # (own_stream effect / joint turn-state), not a stop of a user turn. The scorer
+            # reuses the marker so an own-stream duck under an open suspect is not a
+            # self-interruption; a genuine stop with no user speech at all is still counted.
+            self.emit("tts-stop", heard=outcome.heard, self_duck=True,
+                      joint_suspect=outcome.joint_suspect)
         self.own_speech.finished()
         # The effects voxa/window.py performs on its INTERRUPT branch, plus milestone A's
         # promotion: the pinned span becomes the beginning of the user turn (once), and the
