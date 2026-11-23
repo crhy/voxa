@@ -259,7 +259,15 @@ class ExactAligner:
         # a step stays unconfirmed - never "confident while still on the pre-step delay", which
         # is what h02 measured and f163 must fix.
         candidate = measured_r if measured_r is not None else measured
-        step_evidence = abs(delta) >= self._jump or abs(candidate - predicted) >= self._jump
+        # f163 v4: the candidate only counts as step evidence once the PRE-step path is actually
+        # gone from the newest audio. A recent-window peak that merely correlates - user speech
+        # in a pair clip latching the 400 ms GCC to a short lag while the echo at the locked lag
+        # is still there - is not a step: the old lag stays coherent over the last few tens of ms
+        # and no epoch fires. A real step empties the old lag out of the mic (the render sends
+        # pre-step audio no longer echoed at it), which is exactly when the snap belongs.
+        step_evidence = (abs(delta) >= self._jump or abs(candidate - predicted) >= self._jump) \
+            and not self._coherent(buf_m, buf_r, int(round(predicted)),
+                                   tail=max(256, self._sr // 32))
         if abs(delta) <= self._window:
             # Refine around the prediction (never a jump): phase-lock toward the measurement and
             # let the long-term difference update the drift (the resampler's slope).
