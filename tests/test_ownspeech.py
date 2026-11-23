@@ -215,3 +215,104 @@ def test_word_timed_overlap_feeds_attribution_as_one_weighted_feature():
     # flips a user decision on its own.
     assert base.source == lifted.source
     assert lifted.confidence >= base.confidence
+
+
+# --------------------------------------------------------------------- f175 re-plan: word-timed DROP
+# The parked f134 shipped the EVIDENCE; the re-plan ships the narrow deletion on the exact-delay
+# chain: a word is dropped ONLY when it time-matches one of her played words within the ±window
+# AND the task-5 joint gate was CLOSED at that moment (measured echo, f173). Everything else -
+# the same word elsewhere, the gate open or unmeasurable, a confirmed near-end utterance - is
+# the user's.
+
+def _own_with_playback():
+    own = OwnSpeech()
+    own.started("cancel the download of the recipe")
+    own.note_played_boundaries(
+        [("cancel", 1.0, 0.4), ("the", 1.4, 0.2), ("download", 1.6, 0.5),
+         ("of", 2.1, 0.15), ("the", 2.25, 0.15), ("recipe", 2.4, 0.5)],
+        generation="reply-1",
+    )
+    return own
+
+
+def test_same_word_at_that_instant_drops_elsewhere_in_the_clip_it_is_the_users():
+    own = _own_with_playback()
+    closed = lambda at: True  # the joint gate measured echo at that moment
+    # "cancel" heard at 1.15 lands inside her audible "cancel" (1.0-1.4): echo, dropped.
+    # "recipe" heard at 5.0 is nowhere near her "recipe" (2.4-2.9): the user's, kept.
+    text, share = own.strip("cancel the recipe", protect=["voxa"], evidence="echo",
+                            heard_with_times=[("cancel", 1.15, 1.4), ("the", 1.5, 1.6),
+                                              ("recipe", 5.0, 5.4)],
+                            joint_closed_at=closed)
+    # ("the", 1.5) time-matches her audible "the" too - it goes; "recipe" at 5.0 stays.
+    assert text == "recipe" and share > 0.0
+    # Same word, gate OPEN the whole time: never deleted (an unexplained word is the user's).
+    kept, _ = own.strip("cancel the recipe", protect=["voxa"], evidence="echo",
+                        heard_with_times=[("cancel", 1.15, 1.4), ("the", 1.5, 1.6),
+                                          ("recipe", 5.0, 5.4)],
+                        joint_closed_at=lambda at: False)
+    assert kept == "cancel the recipe"
+    # Gate state MISSING (joint None - the degraded path): unchanged, never deleted.
+    kept, _ = own.strip("cancel the recipe", protect=["voxa"], evidence="echo",
+                        heard_with_times=[("cancel", 1.15, 1.4), ("the", 1.5, 1.6),
+                                          ("recipe", 5.0, 5.4)])
+    assert kept == "cancel the recipe"
+
+
+def test_exact_user_repetition_is_never_deleted_by_the_word_timed_rule():
+    # handoff 5.2/5.3: she read "cancel", the user says "cancel" at exactly that moment, and
+    # the utterance is CONFIRMED near-end (attributed to a second source): kept, period.
+    own = _own_with_playback()
+    text, _share = own.strip("cancel", protect=["voxa"], evidence="echo",
+                             confirmed_user=True,
+                             heard_with_times=[("cancel", 1.15, 1.4)],
+                             joint_closed_at=lambda at: True)
+    assert text == "cancel"
+
+
+def test_protected_command_words_survive_the_barge_in_clip():
+    # A "stop"/"cancel" barge-in while she reads DIFFERENT words: no time-match, no drop -
+    # and even time-matched words stay when the joint gate never closed on echo.
+    own = _own_with_playback()
+    text, _ = own.strip("stop cancel", protect=["voxa"], evidence="echo",
+                        heard_with_times=[("stop", 1.15, 1.4), ("cancel", 1.7, 2.0)],
+                        joint_closed_at=lambda at: False)
+    assert text == "stop cancel"
+    # The rule FIRES around "cancel" (time-match + measured echo): protected or not, it is her
+    # echo at that instant - the task's exact wording: kept UNLESS that exact rule fires.
+    text, _ = own.strip("stop cancel", protect=["voxa"], evidence="echo",
+                        heard_with_times=[("stop", 3.5, 3.8), ("cancel", 1.15, 1.4)],
+                        joint_closed_at=lambda at: True)
+    assert text == "stop"
+
+
+def test_joint_closed_at_is_consulted_per_word_not_per_utterance():
+    # The gate closed only around the FIRST word's moment: only that word is echo.
+    own = _own_with_playback()
+
+    def closed_near(at, near=(1.15, 1.4)):
+        return near[0] - 0.2 <= at <= near[1] + 0.2
+
+    text, _ = own.strip("cancel the download", protect=["voxa"], evidence="echo",
+                        heard_with_times=[("cancel", 1.15, 1.4), ("the", 1.45, 1.6),
+                                          ("download", 1.8, 2.2)],
+                        joint_closed_at=closed_near)
+    # Both "the" (1.45, in range) and "cancel" time-match + closed: out. "download" at 1.8
+    # time-matches her "download" (1.6) but the gate was NOT closed near 1.8: the user's.
+    assert text == "download"
+
+
+def test_word_times_that_do_not_align_with_the_transcript_delete_nothing():
+    own = _own_with_playback()
+    text, share = own.strip("cancel the download", protect=["voxa"], evidence="echo",
+                            heard_with_times=[("cancel", 1.15, 1.4)],  # fewer words than text
+                            joint_closed_at=lambda at: True)
+    assert text == "cancel the download" and share == 0.0
+
+
+def test_degraded_text_only_path_is_unchanged():
+    # No word times at all: the f-era lexical filter keeps working exactly as before (the
+    # degraded path, handoff 6.5), including protected words.
+    own = _own_with_playback()
+    text, _ = own.strip("cancel the download of the recipe", protect=["voxa"], evidence="echo")
+    assert text != "cancel the download of the recipe"

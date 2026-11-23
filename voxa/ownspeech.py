@@ -212,6 +212,55 @@ class OwnSpeech:
         return {"share": matched / len(heard), "matched": matched, "words": len(heard),
                 "longest_run": longest, "window_ms": float(window_ms)}
 
+    def timed_matches(self, heard_with_times, window_ms: float = WORD_WINDOW_MS) -> list[bool]:
+        """Per heard word: does it fuzzy-match one of her played words within ± the window?
+
+        The same onset-to-onset test as :meth:`timed_overlap`, but per word - so a caller can
+        drop exactly the matched words and keep everything else (:meth:`timed_removed`).
+        """
+        heard = [
+            (str(word).strip().casefold(), float(start))
+            for word, start, _end in heard_with_times
+            if str(word).strip()
+        ]
+        if not heard or not self._played:
+            return [False] * len(heard)
+        window = float(window_ms) / 1000.0
+        return [
+            any(_fuzzy_equal(word, played.word) and abs(onset - played.start) <= window
+                for played in self._played)
+            for word, onset in heard
+        ]
+
+    def timed_removed(self, heard_with_times, window_ms: float = WORD_WINDOW_MS,
+                      joint_closed_at=None) -> list[bool]:
+        """The word-timed DROP rule (roadmap task 7 re-plan, task f175 step 3).
+
+        A heard word is removed ONLY when BOTH hold: it fuzzy-matches a word Voxa was audibly
+        reading within ± the window (her echo of THAT word could only land at that moment), AND
+        the joint double-talk gate was CLOSED at that moment - it measured echo, nothing else
+        (:class:`voxa.voicedetect.DoubleTalkGate`'s echo-consistent mirror verdict, shipped by
+        task 5/f173). The gate open or unmeasurable never deletes: an unexplained word is the
+        user's. This is why protected command words ("stop", "cancel", ...) are kept unless the
+        rule fires around their exact moment: a "Stop" the user says while she reads a different
+        word is her own command, not her echo.
+
+        ``joint_closed_at`` maps a heard word's onset (audible time) to the joint gate's state
+        there; missing (None) means never closed.
+        """
+        entries = [(str(word).strip(), float(start))
+                   for word, start, _end in heard_with_times if str(word).strip()]
+        matches = self.timed_matches(
+            [(word, onset, onset) for word, onset in entries], window_ms=window_ms)
+        removed: list[bool] = []
+        for matched, (_word, onset) in zip(matches, entries, strict=True):
+            if not matched:
+                removed.append(False)
+                continue
+            closed = joint_closed_at(float(onset)) if callable(joint_closed_at) else False
+            removed.append(bool(closed))
+        return removed
+
     def _protected(self, protect: list[str] | None) -> set[str]:
         out = set(PROTECTED)
         if protect:
@@ -274,8 +323,16 @@ class OwnSpeech:
         return source == ECHO
 
     def strip(self, heard: str, protect: list[str] | None = None, *, evidence=None,
-              confirmed_user: bool = False) -> tuple[str, float]:
+              confirmed_user: bool = False, heard_with_times=None,
+              joint_closed_at=None, window_ms: float = WORD_WINDOW_MS) -> tuple[str, float]:
         """Remove echo words, but only when the evidence says the span is her own voice.
+
+        Without ``heard_with_times`` this is the degraded text-only path, unchanged: the lexical
+        run decides (logged as degraded by the caller). With word times (roadmap task 7's
+        re-plan) the lexical run stops deleting - it stays a diagnostic in :meth:`features` -
+        and ONLY the word-timed rule does: a word is dropped when it time-matches one of her
+        played words within ± the window AND the joint gate was closed at that moment
+        (:meth:`timed_removed`). A confirmed near-end utterance is never rewritten either way.
 
         Returns ``(text, share)``: the share is the text-overlap feature, reported whether or
         not anything was removed, so a kept user repetition is still visible in the trace.
@@ -286,6 +343,22 @@ class OwnSpeech:
         if not heard_words:
             return (heard, 0.0)
         protect_set = self._protected(protect)
+        if heard_with_times is not None:
+            entries = [(str(word).strip(), start, end)
+                       for word, start, end in heard_with_times if str(word).strip()]
+            if len(entries) == len(heard_words):
+                removed = self.timed_removed(entries, window_ms=window_ms,
+                                             joint_closed_at=joint_closed_at)
+                removed_count = sum(removed)
+                share = removed_count / len(heard_words)
+                if removed_count == 0:
+                    return (heard, share)
+                if not self._may_rewrite(evidence, confirmed_user):
+                    return (heard, share)
+                remaining = [w for w, gone in zip(heard_words, removed, strict=True) if not gone]
+                return (" ".join(remaining), share)
+            # The word times and the transcript disagreed: never delete what cannot be aligned.
+            return (heard, 0.0)
         removed = self._removed(heard_words, protect_set)
         removed_count = sum(removed)
         if removed_count == 0:

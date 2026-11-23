@@ -193,11 +193,20 @@ class ClipRunner:
         settings: Settings | None = None,
         mask_params: dict | None = None,
         dt_params: dict | None = None,
+        word_window_ms: float = 400.0,
     ) -> None:
         self.asr = asr
         self.echo_mode = echo_mode
         self._mask_params = dict(mask_params or {})
         self._dt_params = dict(dt_params or {})
+        # Roadmap task 7 (f175): the +- window (ms) a heard word may sit from one of her played
+        # words and still be a time-matched echo candidate. Swept 200/400/600 in the notes; 400
+        # is the shipped default (the edge-tts boundaries are estimates, so the slack absorbs
+        # synthesis jitter - the delay itself is exact, f168's lock).
+        self._word_window_ms = float(word_window_ms)
+        self._playback_words: list[dict] = []
+        self._joint_history: list[tuple[float, bool]] = []
+        self._timeline_fed = False
         self.settings = settings or Settings().normalized()
         self.wake_word = wake_word
         self.events: list[dict] = []
@@ -750,6 +759,38 @@ class ClipRunner:
         heard = self.conversation.candidate_text()
         return heard, self.conversation.last_candidate_raw
 
+    def _feed_playback_timeline(self) -> None:
+        """Feed the word-timed playback timeline once per clip (roadmap task 7, f175).
+
+        Fed at the first moment BOTH sides are ready, not at speak-start: the truth's playback
+        words are edge-tts boundaries on the REFERENCE stream, and only the locked delay f168
+        shipped can shift them into the microphone's time - the time the recogniser's word times
+        live in. By the time an utterance finishes the lock has proven itself on every shipping
+        clip; while it has not, 0.0 is the shift the pipeline itself is reading (degraded).
+        """
+        if self._timeline_fed or not self._playback_words:
+            return
+        shift = (float(self._delay_frac) / SR) if self._delay_frac else 0.0
+        self.own_speech.note_played_boundaries(
+            [(w["word"], float(w["onset_s"]) + shift,
+              max(0.0, float(w["offset_s"]) - float(w["onset_s"])))
+             for w in self._playback_words],
+            generation=self._spoken_text,
+        )
+        self._timeline_fed = True
+
+    def _joint_closed_at(self, onset: float) -> bool:
+        """Was the joint gate CLOSED at the moment this word was heard (echo was the only
+        explanation)? The clip's per-frame gate history answers it; nearest frame wins; an
+        unmeasurable gate is never closed (the drop rule needs a measured mirror, f173)."""
+        best_gap: float | None = None
+        closed = False
+        for t, verdict in self._joint_history:
+            gap = abs(t - float(onset))
+            if best_gap is None or gap < best_gap:
+                best_gap, closed = gap, verdict
+        return bool(closed)
+
     # --- one finished utterance -------------------------------------------------
 
     def _finish_utterance(self, segment: bytes, frame: int) -> None:
@@ -776,11 +817,30 @@ class ClipRunner:
             heard = self.asr.transcribe_words(segment, hint)
         self.emit("transcript", **heard)
         self.transcript_texts.append(heard["text"])
+        # Roadmap task 7 (f175): the word-timed overlap. The recogniser's word times are
+        # segment-relative, so shift them onto the clip's clock; the played timeline is in the
+        # microphone's time because the locked delay f168 shipped shifts it there. The share is
+        # ONE capped evidence weight (voxa/attribution.py); the only words this path may delete
+        # are ones that time-match one of her played words at a moment the joint gate CLOSED on
+        # echo - the drop rule f175 ships, handoff 5.2/5.3 respected.
+        self._feed_playback_timeline()
+        timed_words: list[tuple[str, float, float]] = []
+        if heard.get("words"):
+            seg_start = self._now - len(segment) / SR
+            timed_words = [(w["word"], seg_start + float(w["onset_s"]),
+                            seg_start + float(w["offset_s"]))
+                           for w in heard["words"]]
+        if timed_words and self.own_speech.played_words():
+            timed = self.own_speech.timed_overlap(timed_words, window_ms=self._word_window_ms)
+            if self.last_evidence is not None:
+                self.last_evidence.word_timed_overlap = timed["share"]
         # The own-speech filter is gated on the AUDIO evidence for this span, and a turn that
         # began with a promoted span is confirmed user: its words are never rewritten by a text
         # match (voxa/attribution.py, handoff 5.3).
-        text = self.conversation._filter_own_speech(heard["text"], evidence=self.last_evidence,
-                                                    confirmed_user=bool(prefix_text))
+        text = self.conversation._filter_own_speech(
+            heard["text"], evidence=self.last_evidence, confirmed_user=bool(prefix_text),
+            heard_with_times=timed_words or None,
+            joint_closed_at=self._joint_closed_at if timed_words else None)
         if text is None:
             self.emit("endpoint", text="", complete=False, dropped="own-speech")
             return
@@ -924,6 +984,12 @@ class ClipRunner:
         self._dt_suspect = False
         self._dt_measurable = False
         self._dt_echo = False
+        # Roadmap task 7 (f175): a new clip starts the word-timed playback timeline over - it is
+        # evidence about THIS reply's words, and a stale timeline would time-match one clip's
+        # heard word to another clip's played word.
+        self.own_speech = OwnSpeech(clock=self._clock)
+        self._playback_words = list((truth.get("playback") or {}).get("words") or [])
+        self._joint_history = []
         wake = self.wake_word
         self.conversation = ConversationController(
             wake_whisper=self.asr,
@@ -997,6 +1063,10 @@ class ClipRunner:
                          if captured is not None and not self.conversation.muted else None)
             detector = self.conversation._voice_detector
             prob = float(detector.last_prob) if detector is not None else 0.0
+            # Roadmap task 7 (f175): the word-timed drop rule asks whether the joint gate was
+            # CLOSED (echo was the only explanation) at the moment a heard word landed - so the
+            # gate's per-frame verdict is kept for the clip, not just emitted.
+            self._joint_history.append((self._now, bool(self.dt_gate.echo_consistent)))
             self.emit(
                 "frame",
                 vad=bool(prob >= detector.threshold) if detector is not None else None,
@@ -1258,6 +1328,11 @@ def arg_parser() -> argparse.ArgumentParser:
                         help="joint gate: coherence at/above this is echo-consistency")
     parser.add_argument("--gate-erle-drop-db", type=float, default=None,
                         help="joint gate: running ERLE drop that counts as double talk")
+    # f175 (roadmap task 7): the +- window (ms) of the word-timed own-speech evidence; swept
+    # 200/400/600 in the notes. Unset means the shipped default (ownspeech.WORD_WINDOW_MS).
+    parser.add_argument("--word-window-ms", type=float, default=400.0,
+                        help="word-timed evidence: +- window in ms for a heard word to match a "
+                             "played word (default %(default)s)")
     parser.add_argument("--quiet", action="store_true")
     return parser
 
@@ -1296,7 +1371,7 @@ def run(argv: list[str] | None = None) -> int:
     if args.gate_erle_drop_db is not None:
         dt_params["erle_drop_db"] = args.gate_erle_drop_db
     report = run_clips(args.suite, args.seed, args.echo_mode, args.data_root, args.limit,
-                       args.model, args.quiet, mask_params, dt_params)
+                       args.model, args.quiet, mask_params, dt_params, args.word_window_ms)
     # Hearing 2 (h01): what each candidate arm really is on this machine, next to the numbers.
     report["run"]["echo_mode_probe"] = dict(probe)
     report["run"]["hybrid_linear"] = ("aec3" if aec3_available() else "voxa")
@@ -1342,7 +1417,8 @@ def render_timeline_measure(loaded: dict, echo_mode: str) -> dict:
 
 def run_clips(suite: str, seed: int, echo_mode: str, data_root: Path, limit: int | None,
               model: str, quiet: bool = False, mask_params: dict | None = None,
-              dt_params: dict | None = None) -> dict:
+              dt_params: dict | None = None,
+              word_window_ms: float | None = None) -> dict:
     """Run every clip of a suite, write the per-clip events, and return the report."""
     suite_dir = data_root / suite
     if not suite_dir.is_dir():

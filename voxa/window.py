@@ -391,6 +391,13 @@ class MainWindow(Adw.ApplicationWindow):
         # Echo filter: remembers what Voxa is saying so a mic transcript that is
         # (part of) her own sentence is dropped, not heard as the user (issue #88).
         self.own_speech = OwnSpeech()
+        # Roadmap task 7 (f175): the ± window (ms) of the word-timed evidence - a heard word may
+        # sit this far from the word her speakers were audible reading and still be a time-matched
+        # echo candidate (ownspeech.WORD_WINDOW_MS; swept 200/400/600 on the bench).
+        self._word_window_ms = 400.0
+        # The wall-clock moment the current reply began reaching the speakers: the anchor the
+        # edge-tts word offsets (which begin at 0 with the reply) are filed against.
+        self._reply_audible_anchor: float | None = None
         # The conversation turn whose user message was just pushed, so a stale
         # finish/error callback can't untangle history built by a newer turn.
         self._pending_user_generation: int | None = None
@@ -3074,7 +3081,7 @@ class MainWindow(Adw.ApplicationWindow):
             "on_started": lambda: idle(self._for_session(token, self._set_status), "Speaking…", True),
             "on_done": lambda: idle(self._for_session(token, self._on_conversation_speech_done), reply_id),
             "on_error": lambda error: idle(self._for_session(token, self._on_conversation_speech_error), error),
-            "on_words": lambda words: idle(self.shell.set_word_timeline, words),
+            "on_words": lambda words: self._on_reply_words(words, str(reply_id)),
         }
         if self._live_client is not None and self.settings.face_mode == "live":
             # Thinking models and several tool replies use the whole-reply path instead of the
@@ -3083,7 +3090,35 @@ class MainWindow(Adw.ApplicationWindow):
             # while the selector still said High.  Asking SpeechService for a complete audio file
             # lets the neural server receive this utterance before playback as well.
             speech_callbacks["before_play"] = self._live_before_play
+        # Roadmap task 7 (f175): anchor the word-timed playback timeline when the reply starts
+        # (the same anchor the shell's lip-sync clock gets); the edge-tts word offsets below are
+        # reply-relative. The ± window absorbs the synthesis lead-in and the sink latency that
+        # the render timeline measures for the canceller - the evidence is a capped weight, not
+        # a decision, and a mis-anchored word simply never time-matches.
+        self._reply_audible_anchor = time.monotonic()
         self.speech.speak(text, self.settings.tts_rate, self._reply_voice(), **speech_callbacks)
+
+    def _on_reply_words(self, words, generation: str) -> None:
+        """Edge-tts word boundaries of a reply: lip-sync AND the word-timed playback timeline.
+
+        Roadmap task 7 (f175): the SAME word Voxa's speakers were audible reading at the moment
+        a transcript word lands is echo EVIDENCE (voxa/ownspeech.py); the same word elsewhere
+        in the clip is the user's. Never a decision here, never a deletion from this path.
+        """
+        idle(self.shell.set_word_timeline, words)
+        if not words:
+            return
+        anchor = self._reply_audible_anchor
+        if anchor is None:
+            anchor = time.monotonic()
+        try:
+            self.own_speech.note_played_boundaries(
+                [(word, anchor + float(offset), duration)
+                 for word, offset, duration in words],
+                generation=generation,
+            )
+        except Exception as exc:  # noqa: BLE001 - evidence never breaks a reply
+            logging.debug("word-timed playback timeline failed: %s", exc)
 
     def _conversation_idle_status(self) -> str:
         return (
@@ -3260,6 +3295,21 @@ class MainWindow(Adw.ApplicationWindow):
                 mic_level=float(self._latest_level / 4000.0),
                 own_level=float(self._barge_ctl.gate.baseline),
             )
+            # Roadmap task 7 (f175): the WORD-TIMED overlap as ONE capped evidence weight, next
+            # to f173's joint verdicts - never a deletion here, and the degraded path (no
+            # candidate words, no reference) is unchanged: without both clocks meeting there is
+            # simply no share to report. The candidate's word times are span-relative; the
+            # capture ring's own arrival stamp is the anchor (voxa/capture.py).
+            if self.conversation is not None:
+                words = getattr(self.conversation, "last_candidate_words", None)
+                base = getattr(self.conversation, "last_candidate_span_start", None)
+                if words and base is not None and self.own_speech.played_words():
+                    timed = self.own_speech.timed_overlap(
+                        [(w["word"], base + float(w["onset_s"]),
+                          base + float(w["offset_s"])) for w in words],
+                        window_ms=self._word_window_ms,
+                    )
+                    evidence.word_timed_overlap = timed["share"]
             if self.conversation is not None:
                 # The own-speech filter reads the decision, so a span the audio attributes to a
                 # second source is never rewritten by a text match (handoff 5.3).
@@ -3306,6 +3356,27 @@ class MainWindow(Adw.ApplicationWindow):
             candidate=self._barge_candidate,
             evidence=self._hearing_evidence,
         ))
+
+    def _resolve_that_one(self):
+        """The word her speakers were audible reading the moment the floor was taken.
+
+        Roadmap task 7 (f175, ``voxa/ownspeech.item_being_read``): the anaphor "that one" a user
+        says over a reply refers to the item on her tongue at the interruption - the same
+        word-timed timeline that times the echo answers it. None when the reply was never
+        anchored (no words were played) or nothing was audible at that instant.
+        """
+        anchor = self._reply_audible_anchor
+        if anchor is None:
+            return None
+        try:
+            position = float(self.speech.position() or 0.0)
+        except Exception:  # noqa: BLE001 - a stopped or mock service has no position
+            position = 0.0
+        try:
+            return self.own_speech.item_being_read(anchor + position)
+        except Exception as exc:  # noqa: BLE001 - resolution is evidence, never a crash
+            logging.debug("that-one resolution failed: %s", exc)
+            return None
 
     def _on_hearing_decision(self, outcome: BargeOutcome) -> None:
         """The hearing thread's only act: put the decision on the frame clock's queue.
@@ -3368,6 +3439,13 @@ class MainWindow(Adw.ApplicationWindow):
             # not yet spoken, the live-face buffer, and every callback that holds the generation
             # being invalidated. What happens to her WORDS is decided later, by the transcript.
             generation = self._hearing.invalidate()
+            # Roadmap task 7 (f175): the word-timed timeline also answers "what was she AUDIBLE
+            # READING when the floor was taken?" - so an anaphoric "that one" from the user
+            # resolves to the item on her tongue at that moment, not to a model's guess.
+            that_one = self._resolve_that_one()
+            if that_one is not None:
+                self._barge_trace("that-one", word=that_one.word,
+                                  path="yield")
             self._barge_trace("yield", generation=generation,
                               onset_audio_ms=round(outcome.onset_audio_ms, 1),
                               evidence_ms=round(outcome.evidence_ms, 1),
@@ -3393,6 +3471,11 @@ class MainWindow(Adw.ApplicationWindow):
         if outcome.action != "interrupt":
             return
         self._barge_trace("INTERRUPT")
+        # Roadmap task 7 (f175): the same anaphor resolution as the yield path - the word her
+        # speakers were audible reading is the referent of a "that one" said at the takeover.
+        that_one = self._resolve_that_one()
+        if that_one is not None:
+            self._barge_trace("that-one", word=that_one.word, path="interrupt")
         self.own_speech.finished()
         self.speech.stop()
         self._live_reset()
@@ -4471,6 +4554,9 @@ class MainWindow(Adw.ApplicationWindow):
             self._hearing.reply_started(piece)
             self._turn.note_reply(piece)
             self.own_speech.started(piece)
+            # Roadmap task 7 (f175): each prepared piece is its own edge-tts word-boundary
+            # origin (offsets restart at 0), so the word-timed timeline is anchored per piece.
+            self._reply_audible_anchor = time.monotonic()
         else:
             # The evidence restarts per piece: speaker onset is the loudest moment.
             self._hearing.piece_started()

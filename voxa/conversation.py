@@ -326,6 +326,9 @@ class ConversationController:
         self.last_candidate_raw = ""
         # Word timings of that same candidate pass, when the transcription service reports them.
         self.last_candidate_words: list[dict] = []
+        # Roadmap task 7 (f175): the arrival time the candidate's word times are relative to
+        # (the capture ring's clock), so the word-timed playback timeline can meet them.
+        self.last_candidate_span_start: float | None = None
         # The candidate's own words, so promoting the span can carry them into the turn once.
         self._candidate_text = ""
         # What the capture path currently knows about the source of the microphone (a
@@ -531,7 +534,8 @@ class ConversationController:
             logging.debug("voice detector failed; using the loudness rule: %s", exc)
             return level >= self.threshold
 
-    def _filter_own_speech(self, text: str, *, evidence=None, confirmed_user: bool = False) -> str | None:
+    def _filter_own_speech(self, text: str, *, evidence=None, confirmed_user: bool = False,
+                           heard_with_times=None, joint_closed_at=None) -> str | None:
         """Strip echoes of Voxa's own voice from a transcript.
 
         Returns the text to use, or ``None`` when the whole utterance is her own voice (drop it).
@@ -542,6 +546,10 @@ class ConversationController:
         utterance already established as the user's: either one of them stops a text match from
         rewriting anything (handoff 5.3 - the user may repeat Voxa's words on purpose). The
         overlap is still measured and kept in :attr:`last_filter_features` as a diagnostic.
+        With ``heard_with_times`` (roadmap task 7's re-plan, f175) the deletion narrows to the
+        word-timed rule: only a word that time-matches one of her played words while the joint
+        double-talk gate measured echo is dropped; without word times the text path is
+        unchanged (the degraded path, handoff 6.5).
         """
         if self.own_speech is None or not self.own_speech.active():
             return text
@@ -553,7 +561,9 @@ class ConversationController:
                 logging.debug("ignored her own words: %s", text)
                 return None
             stripped, _share = self.own_speech.strip(text, protect=[self.wake_word],
-                                                     evidence=ev, confirmed_user=confirmed_user)
+                                                     evidence=ev, confirmed_user=confirmed_user,
+                                                     heard_with_times=heard_with_times,
+                                                     joint_closed_at=joint_closed_at)
             return stripped
         except Exception as exc:  # noqa: BLE001 - echo filter must never lose speech
             logging.debug("own-speech filter failed: %s", exc)
@@ -686,11 +696,13 @@ class ConversationController:
         if not segment:
             self.last_candidate_raw = ""
             self.last_candidate_words = []
+            self.last_candidate_span_start = self.capture.span_start_time()
             return ""
         cached = self._candidate_cache
         if cached is not None and cached[0] == start and cached[1] == end:
             return cached[2]
         raw, words = self._transcribe_span(segment)
+        self.last_candidate_span_start = self.capture.span_start_time()
         self.last_candidate_raw = raw or ""
         self.last_candidate_words = words
         # The candidate is judged on the WHOLE transcript: her own words are not stripped out of

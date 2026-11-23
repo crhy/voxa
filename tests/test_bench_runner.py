@@ -114,7 +114,12 @@ def make_fixture(tmp_path: Path) -> tuple[Path, dict, dict]:
                              np.zeros(len(reply) - int(3.4 * 16000), dtype=np.float32)])
     write_clip(root, "tiny", "tiny-0001-dt_middle-00", reply, played, {
         "id": "tiny-0001-dt_middle-00", "scenario": "dt_middle", "expect": "keep",
-        "playback": {"text": "The weather is clear today.", "onset_s": 0.0, "offset_s": 1.8},
+        "playback": {"text": "The weather is clear today.", "onset_s": 0.0, "offset_s": 1.8,
+                     "words": [{"word": "The", "onset_s": 0.2, "offset_s": 0.5},
+                               {"word": "weather", "onset_s": 0.5, "offset_s": 0.9},
+                               {"word": "is", "onset_s": 0.9, "offset_s": 1.05},
+                               {"word": "clear", "onset_s": 1.05, "offset_s": 1.35},
+                               {"word": "today", "onset_s": 1.35, "offset_s": 1.8}]},
     })
     return root, {"id": "tiny-0000-nst-00"}, {"id": "tiny-0001-dt_middle-00"}
 
@@ -380,3 +385,33 @@ def test_the_voxa_mode_runs_the_shipping_lock_and_matches_the_locked_arm(tmp_pat
     # the shipping path locks the delay exactly like the comparison arm: identical frames
     assert len(errors["voxa"]) == len(errors["voxa-locked"])
     assert np.array_equal(errors["voxa"], errors["voxa-locked"])
+
+
+def test_the_word_timed_timeline_is_fed_from_the_truth_once_per_clip(tmp_path: Path) -> None:
+    """f175: the clip's playback words (edge-tts boundaries) become the word-timed timeline,
+    fed once per clip with the LOCKED delay shift; the joint gate's per-frame verdicts are kept
+    so the drop rule can ask whether it was closed at a heard word's moment."""
+    root, _clip, other = make_fixture(tmp_path)
+    loaded = load_clip(root / "tiny" / "tiny-0001-dt_middle-00")
+    runner = ClipRunner(asr=StubASR(), echo_mode="off", wake_word="voxa",
+                        word_window_ms=400.0)
+    runner.run(loaded["mic"], loaded["ref"], loaded["truth"])
+    played = runner.own_speech.played_words()
+    assert played and {w.word for w in played} >= {"the", "weather", "today"}
+    assert runner._timeline_fed
+    # echo_mode off: no lock, so the shift is 0.0 and the spans keep the truth's times.
+    weather = next(w for w in played if w.word == "weather")
+    assert weather.start == 0.5 and weather.end == 0.9
+    # Every frame recorded a joint verdict for the drop rule to consult.
+    assert len(runner._joint_history) == runner._frame + 1
+    first_t, first_closed = runner._joint_history[0]
+    assert runner._joint_closed_at(first_t) is bool(first_closed)
+
+
+def test_the_word_window_flag_reaches_the_runner_and_the_report(tmp_path: Path) -> None:
+    from voxa.bench import runner as runner_module
+    parser = runner_module.arg_parser()
+    args = parser.parse_args(["--suite", "smoke", "--word-window-ms", "200"])
+    assert args.word_window_ms == 200.0
+    r = ClipRunner(asr=StubASR(), echo_mode="off", word_window_ms=200.0)
+    assert r._word_window_ms == 200.0

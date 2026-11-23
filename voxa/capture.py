@@ -317,3 +317,18 @@ class CaptureRing:
             if not frames:
                 return 0, -1
             return frames[0].seq, frames[-1].seq
+
+    def span_start_time(self) -> float | None:
+        """The arrival time of the oldest frame ``snapshot()`` would return (None: no span).
+
+        Roadmap task 7 (f175): the recogniser's word times are segment-relative; a caller that
+        wants them on the same clock as the word-timed playback timeline needs this anchor.
+        """
+        with self._lock:
+            frames = [frame for frame in self._frames
+                      if (self._pin_from is None or frame.seq >= self._pin_from)
+                      and frame.seq not in self._consumed]
+            if not frames:
+                return None
+            return float(frames[0].t_s)
+
