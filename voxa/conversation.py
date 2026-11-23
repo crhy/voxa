@@ -14,7 +14,8 @@ from . import spellings
 from .agent.intents import is_start_dictation
 from .capture import CaptureRing, Frame
 from .dictation import DICTATION_CHUNK_SECONDS, segment_stream
-from .endpoint import EndpointPolicy, SmartTurn, ends_dangling, is_complete, is_followup, smart_turn_model_path
+from .endpoint import (EndpointPolicy, SmartTurn, arbitrate_endpoint, ends_dangling, is_complete,
+                       is_followup, smart_turn_model_path)
 from .transcription import WhisperService
 from .vocabulary import build_hint, refresh_app_names
 
@@ -291,6 +292,14 @@ class ConversationController:
                 self._smart_turn = engine
             else:
                 logging.debug("smart turn model unavailable: %s", engine.error)
+        # f178: the shipped joint double-talk suspect (f173) and the explicit turn
+        # state (f174), pushed by the live path (voxa/window.py) so the endpoint
+        # probe can gate is_complete on them - never on the Smart Turn probability
+        # alone. ``None`` joint suspect = INDETERMINATE/degraded, which adds no
+        # veto (f136's pure-model behaviour is preserved on the degraded path).
+        self._joint_suspect: bool | None = None
+        self._turn_suspect = False
+        self._more_speech_arriving = False
         self.on_woken = on_woken
         self.on_prompt = on_prompt
         self.on_status = on_status
@@ -542,6 +551,20 @@ class ConversationController:
             return segment
         return None
 
+    def note_endpoint_evidence(self, *, joint_suspect: "bool | None" = None,
+                               turn_suspect: bool = False,
+                               more_speech_arriving: bool = False) -> None:
+        """Push the shipped joint double-talk suspect (f173) and turn state (f174)
+        to the endpoint probe, so it can gate ``is_complete`` on them (f178).
+
+        Called from the live hearing worker (voxa/window.py), the same place that
+        already drains the joint frame ring; no inference runs here. A ``None``
+        joint suspect means INDETERMINATE/degraded and adds no veto.
+        """
+        self._joint_suspect = joint_suspect
+        self._turn_suspect = turn_suspect
+        self._more_speech_arriving = more_speech_arriving
+
     def _endpoint_probe(self, segment: bytes) -> "bool | None":
         """Roadmap task 9: is the WHOLE turn heard so far acoustically finished?
 
@@ -549,7 +572,9 @@ class ConversationController:
         conjunction, filler or preposition (report 186) vetoes a "complete"
         answer, because a first valid command match is not completeness. The
         small always-loaded model does the text check, exactly like
-        :meth:`_early_check`.
+        :meth:`_early_check`. The f178 endpoint ARBITRATOR then gates that verdict
+        on the shipped joint suspect / turn state / still-arriving speech, without
+        ever retuning the model probability.
         """
         if self._smart_turn is None:
             return None
@@ -562,7 +587,11 @@ class ConversationController:
         except Exception as exc:  # noqa: BLE001 - a probe must not lose the turn
             logging.debug("endpoint probe transcript failed: %s", exc)
             return True
-        return not ends_dangling(text)
+        model_verdict = not ends_dangling(text)
+        return arbitrate_endpoint(model_verdict,
+                                  joint_suspect=self._joint_suspect,
+                                  turn_suspect=self._turn_suspect,
+                                  more_speech_arriving=self._more_speech_arriving)
 
     def _voice_check(self, pcm: bytes, level: float) -> bool:
         """Detector verdict for one chunk; falls back to the loudness rule on error.

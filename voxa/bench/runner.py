@@ -54,7 +54,8 @@ from ..capture import Frame
 from ..config import Settings
 from ..conversation import ConversationController, detect_exit_phrase, strip_wake_word
 from ..dictation import SpeechSegmenter
-from ..endpoint import EndpointPolicy, SmartTurn, ends_dangling, smart_turn_model_path
+from ..endpoint import (EndpointPolicy, SmartTurn, arbitrate_endpoint, ends_dangling,
+                        smart_turn_model_path)
 from ..endpoint import is_complete, is_followup
 from ..ownspeech import OwnSpeech
 from ..refmask import LockedResidualMask, ReferenceMask, ResidualMask
@@ -1347,11 +1348,17 @@ class ClipRunner:
         return bool(is_complete(text, self.wake_word))
 
     def _endpoint_probe(self, segment: bytes) -> bool | None:
-        """Roadmap task 9: Smart Turn v3.1 over the WHOLE turn heard so far.
+        """Roadmap task 9: Smart Turn v3.1 over the WHOLE turn heard so far, then
+        the f178 endpoint ARBITRATOR.
 
         The model's own threshold (0.5) decides; a transcript ending on a
         conjunction, filler or preposition (report 186) vetoes even a "complete"
-        verdict, because the first valid command match is NOT completeness.
+        verdict, because the first valid command match is NOT completeness. On
+        top of that, the model's "complete" verdict is gated on the shipped joint
+        double-talk suspect (f173) and the still-arriving-speech / turn state: a
+        short pause is NOT cut when a joint suspect is open or more gated speech
+        is arriving (the arbitrator WAITS it out to the 2.0 s incomplete floor,
+        capped). The model probability is never retuned (f136 measured that wall).
         No weights, no verdict: the pause rule the app already had.
         """
         if self._smart_turn is None:
@@ -1363,9 +1370,28 @@ class ClipRunner:
             return False if prob is not None else None
         heard = self.asr.transcribe_words(segment, f"{self.wake_word.strip().capitalize()}.")
         dangling = ends_dangling(heard["text"])
-        self.emit("endpoint-probe", complete=not dangling, prob=round(prob, 3),
-                  text=heard["text"], dangling=dangling)
-        return not dangling
+        model_verdict = not dangling
+        # f178: the shipped joint double-talk verdict the frame already measured.
+        joint_suspect = (self._dt_suspect if (self._dt_measurable or self._dt_suspect)
+                         else None)
+        more_speech_arriving = self._more_speech_arriving()
+        verdict = arbitrate_endpoint(model_verdict, joint_suspect=joint_suspect,
+                                     more_speech_arriving=more_speech_arriving)
+        self.emit("endpoint-probe", complete=verdict, prob=round(prob, 3),
+                  text=heard["text"], dangling=dangling,
+                  model_complete=model_verdict, joint_suspect=joint_suspect,
+                  more_speech_arriving=more_speech_arriving)
+        return verdict
+
+    def _more_speech_arriving(self) -> bool:
+        """The f178 "gated speech is still arriving" signal for the arbitrator: the
+        cleaned-signal Silero is still on (hysteresis open), so the VAD pause is a
+        breath inside a run of speech, not the end of the turn."""
+        detector = self.conversation._voice_detector
+        if detector is None:
+            return False
+        prob = getattr(detector, "last_prob", None)
+        return prob is not None and float(prob) >= detector.threshold
 
 
 def _median(values: list[float]) -> float | None:

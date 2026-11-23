@@ -29,7 +29,7 @@ from voxa.agent.hearing import normalize
 from voxa.agent.intents import is_compound, is_start_dictation, route
 
 __all__ = ["is_complete", "is_followup", "EndpointPolicy", "SmartTurn", "ends_dangling",
-           "patience_factor", "smart_turn_model_path"]
+           "patience_factor", "smart_turn_model_path", "arbitrate_endpoint"]
 
 # A final word from this set promises more is coming ("turn off the", "play
 # some"), so the utterance is not finished even if a tool already matched.
@@ -413,3 +413,57 @@ class SmartTurn:
         if probability is None:
             return None
         return probability > SMART_TURN_THRESHOLD
+
+
+# ---------------------------------------------------------------------------
+# Roadmap task 9 re-plan (f178): the endpoint ARBITRATOR.
+# ---------------------------------------------------------------------------
+
+def arbitrate_endpoint(model_verdict: "bool | None", *,
+                       joint_suspect: "bool | None" = None,
+                       turn_suspect: bool = False,
+                       more_speech_arriving: bool = False) -> "bool | None":
+    """Gate a Smart Turn "complete" verdict on the shipped joint double-talk
+    suspect and the explicit turn state, WITHOUT touching the model's own
+    probability.
+
+    f136 measured that Smart Turn v3.1 alone cannot satisfy both the ep90 timing
+    and the premature-cut-off target on the frozen set: no threshold point
+    satisfies ep90<=1200 AND premature<=0.01 ("the two conditions pull opposite
+    ways"). What it lacked was the joint gate f173 and the turn states f174 now
+    ship. This arbitrator adds only a WAIT: the model's verdict is never
+    retuned, only trusted less when the shipped evidence says MORE speech is
+    still arriving.
+
+    A model ``True`` ("this turn is finished") is not enough to end the turn on a
+    short pause when the joint gate believes the speaker is still mid-utterance:
+    such a pause is a possible breath, not the end of the turn. So when a joint
+    suspect is OPEN, the turn is in a suspect/duck state, or more gated speech is
+    still arriving (Silero hysteresis on / the capture span has not reached its
+    trailing endpoint), the endpointer WAITS the pause out - the 2.0 s incomplete
+    floor, capped at 3 s (5 s in dictation) - instead of firing complete. A quiet
+    joint gate over a text-complete turn still fires normally.
+
+    Honesty constraints, both inherited from f136:
+      * a model with no verdict (``None``) is returned unchanged - the pure
+        always-loaded-pause-rule path is untouched;
+      * a DEGRADED joint verdict (``joint_suspect is None``, INDETERMINATE) adds
+        no veto, so f136's pure-model behaviour is preserved on the degraded
+        path; only a definite ``True`` suspect (or the turn/more-speech flags)
+        can hold the turn open.
+
+    Returns the verdict to feed the pause floor: ``True`` fires at the minimum
+    silence floor, ``False`` waits the incomplete floor, ``None`` keeps the pause
+    rule the app already had.
+    """
+    if model_verdict is not True:
+        # Incomplete, or no model verdict: the arbitrator never ADDS a cut, so
+        # this is exactly f136's behaviour.
+        return model_verdict
+    # The model says "finished". Trust it only while the shipped joint evidence
+    # agrees nothing more is coming. A definite suspect (not the None/INDETERMINATE
+    # case) is the only joint signal that can veto; the turn state and the
+    # still-arriving-speech flag are the other shipped reasons to wait.
+    if joint_suspect is True or turn_suspect or more_speech_arriving:
+        return False
+    return True

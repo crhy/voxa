@@ -3325,6 +3325,16 @@ class MainWindow(Adw.ApplicationWindow):
                 # The own-speech filter reads the decision, so a span the audio attributes to a
                 # second source is never rewritten by a text match (handoff 5.3).
                 self.conversation.audio_evidence = attribute(evidence)
+                # f178 endpoint ARBITRATOR: gate the Smart Turn "complete" verdict on the shipped
+                # joint suspect (f173), the turn state (f174: her stream is ducked while a suspect
+                # is open) and whether gated speech is still arriving (Silero hysteresis on). This
+                # runs on the hearing worker, next to _joint_verdicts; no inference, no widget.
+                self.conversation.note_endpoint_evidence(
+                    joint_suspect=joint_suspect,
+                    turn_suspect=self._turn.ducked,
+                    more_speech_arriving=(detector is not None and prob is not None
+                                          and prob >= detector.threshold),
+                )
             return evidence
         except Exception as exc:  # noqa: BLE001 - attribution must never break the conversation
             logging.debug("hearing evidence unavailable: %s", exc)
