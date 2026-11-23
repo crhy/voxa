@@ -174,3 +174,64 @@ def test_silence_holds_the_lock():
     for lo in range(0, len(ref), CHUNK):
         aligner.observe((lo + CHUNK) / SR, mic[lo:lo + CHUNK], ref[lo:lo + CHUNK])
     assert aligner.locked_delay == 500.0
+
+
+# ---------------------------------------------------------------------------
+# 7. f163: a step is never reported CONFIDENTLY on the pre-step delay, and it snaps to
+#    the post-step delay instead of sliding halfway across it (the smoke-suite tail
+#    h02 measured: confident frames ~40-70 ms wrong in the reconvergence window).
+# ---------------------------------------------------------------------------
+
+
+def _step_run(step_samples: float, step_t: float, base: float, seconds: float, room_seed: int):
+    ref = broadband(int(seconds * SR))
+    mic = echo_at(ref, lambda t: np.where(t < step_t, base, base + step_samples))
+    mic = np.convolve(mic, room(room_seed))[: len(ref)]
+    aligner = ExactAligner()
+    return aligner, observe(aligner, ref, mic)
+
+
+def test_step_never_confident_on_the_pre_step_delay():
+    # Once the recent window is PAST the step, the pre-step delay may never be reported
+    # confidently again; the reconvergence window itself is honest (the two-path ambiguity
+    # holds the lock and drops confidence).
+    aligner, frames = _step_run(700.0, 2.0, 600.0, 6.0, 11)
+    assert aligner.epochs >= 1
+    wrong = [locked for t, locked, refined in frames
+             if refined and t > 2.15 and abs(locked - 600.0) < 300.0]
+    assert not wrong, wrong  # every past-the-step frame is on the NEW path
+    late = [locked for t, locked, refined in frames if refined and t > 2.6]
+    assert late and all(abs(locked - 1300.0) <= 6.0 for locked in late)
+
+
+def test_small_step_snaps_instead_of_sliding():
+    # +400 samples fits INSIDE the 60 ms window: h02 refined across it (alpha=0.5), which left
+    # frames confident but 10 ms off; the two-hypothesis logic must not slide a step at all.
+    aligner, frames = _step_run(400.0, 2.0, 600.0, 6.0, 12)
+    sliding = [(t, locked) for t, locked, refined in frames
+               if refined and 2.15 < t < 2.5 and 610.0 < locked < 990.0]
+    assert not sliding, sliding
+    late = [(t, locked) for t, locked, refined in frames if refined and t > 2.6]
+    assert late and all(abs(locked - 1000.0) <= 6.0 for _, locked in late)
+
+
+def test_step_on_a_quiet_signal_reanchors_without_lying():
+    # quiet clip (SER -10 dB / -20 dB): the USER is quiet under Voxa's echo, so the mic carries
+    # a near-end copy the aligner must not lock onto; it must still snap the step honestly.
+    for ser_db in (-10.0, -20.0):
+        aligner = ExactAligner()
+        ref = broadband(6 * SR)
+        mic = echo_at(ref, lambda t: np.where(t < 2.0, 350.0, 850.0))
+        mic = np.convolve(mic, room(13))[: len(ref)]
+        rng = np.random.default_rng(9)
+        user = rng.standard_normal(len(ref))
+        user *= (float(np.sqrt(np.mean(mic * mic))) / float(np.sqrt(np.mean(user * user)))
+                 * 10.0 ** (ser_db / 20.0))
+        frames = observe(aligner, ref, mic + user)
+        # the recent (400 ms) window is fully past the step only at t > 2.4: past that, no
+        # confident frame may still sit on the pre-step delay
+        wrong = [locked for t, locked, refined in frames
+                 if refined and t > 2.4 and abs(locked - 350.0) < 250.0]
+        assert not wrong, (ser_db, wrong)
+        late = [locked for t, locked, refined in frames if refined and t > 2.8]
+        assert late and all(abs(locked - 850.0) <= 12.0 for locked in late), ser_db

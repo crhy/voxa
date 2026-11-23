@@ -41,7 +41,8 @@ class ExactAligner:
     def __init__(self, sample_rate: int = 16000, *, predict_s: float | None = None,
                  window_ms: float = 6.0, epoch_ms: float = 8.0, alpha: float = 0.5,
                  slope_alpha: float = 0.05, epoch_confirm: int = 2,
-                 search_ms: float = 400.0, coherence_min: float = COHERENCE_MIN) -> None:
+                 search_ms: float = 400.0, coherence_min: float = COHERENCE_MIN,
+                 recent_ms: float = 400.0, jump_frac: float = 0.25) -> None:
         self._sr = int(sample_rate)
         self._window = max(2, int(round(window_ms / 1000.0 * self._sr)))
         self._epoch = float(epoch_ms) / 1000.0 * self._sr
@@ -50,6 +51,14 @@ class ExactAligner:
         self._epoch_confirm = int(epoch_confirm)
         self._search_ms = float(search_ms)
         self._coherence_min = float(coherence_min)
+        # f163: the GCC measures the RECENT window only (the echo path that is actually on the
+        # mic now), not the whole rolling buffer, so a step's pre-step echo - which dominates a
+        # whole-buffer peak for search_ms after the step - cannot keep reporting the OLD delay
+        # as confident. |delta| >= jump_frac*window is step evidence, not refinement: the lock
+        # snaps to the candidate only once a second frame agrees, and never refines halfway
+        # across a step while claiming confidence.
+        self._recent = int(round(recent_ms / 1000.0 * self._sr))
+        self._jump = max(4, int(round(jump_frac * self._window)))
         self._locked: float | None = None
         self._slope = 0.0          # samples of extra delay per second (the clock drift)
         self._t_locked = 0.0       # seconds the slope is referenced to
@@ -118,7 +127,7 @@ class ExactAligner:
         return float(np.dot(m, r)) ** 2 / (mm * rr) >= self._coherence_min ** 2
 
     def _measure(self, mic: np.ndarray, ref: np.ndarray) -> float | None:
-        """Sub-sample delay from a robust GCC-PHAT over the buffer (room-tail resistant).
+        """Sub-sample delay from a robust GCC-PHAT over the RECENT window (room-tail resistant).
 
         This is the "fine search" of the task: it lands on the DIRECT echo path even when the
         room rings, and its parabolic peak is sub-sample. It is only ever used to refine the
@@ -127,11 +136,20 @@ class ExactAligner:
         in the buffer - a step whose pre- and post-step echoes are both still in the window, or a
         second talkspur - means the delay is not yet resolved, so it reports None and the caller
         holds the drift line rather than locking confidently onto one of them.
+
+        f163: the search runs over the last ``recent_ms`` of the rolling buffer, not the whole
+        buffer. Over the whole buffer a step's pre-step echo stays a top peak for search_ms after
+        the step, so the OLD delay keeps measuring confidently while the mic is already echoing at
+        the new one; over the recent window the pre-step energy ages out and the new path wins as
+        soon as it dominates the recent sound. The two-path ambiguity below still says "not
+        resolved" while the window holds both, which is what keeps the reconvergence honest.
         """
         if mic.size < 1600:
             return None
         n = min(mic.size, ref.size)
         mic, ref = mic[:n], ref[:n]
+        if n > self._recent:
+            mic, ref = mic[n - self._recent:], ref[n - self._recent:]
         max_delay = int(self._search_ms / 1000.0 * self._sr)
         size = 1
         while size < n + max_delay:
@@ -229,7 +247,7 @@ class ExactAligner:
             self._t_locked = self._t_now
             return self.locked_delay
         delta = measured - predicted
-        if abs(delta) <= self._window:
+        if abs(delta) <= self._jump:
             # Refine around the prediction (never a jump): phase-lock toward the measurement and
             # let the long-term difference update the drift (the resampler's slope).
             self._locked = predicted + self._alpha * delta
@@ -246,8 +264,13 @@ class ExactAligner:
             # near-silence peak, not a phase-lock (this is what kept f132's estimate honest).
             self.refined = self._stable >= 2
             return self.locked_delay
-        # GCC-PHAT disagrees by more than the window while the echo is still near the lock: an
-        # epoch, only after the next agreeing measurement confirms it is a real path change.
+        # f163: the recent-window GCC disagrees with the lock by more than a drift-sized
+        # refinement - step evidence, whether or not it fits inside the search window. The two
+        # hypotheses are the lock (pre-step) and the candidate (the render timeline's predicted
+        # post-step delay is exactly this measurement): the lock never slides halfway across a
+        # step, it snaps to the candidate only once the next frame agrees it is a real path
+        # change (an epoch), and every frame in between stays unconfirmed - never "confident
+        # while still on the pre-step delay", which is what h02 measured and f163 must fix.
         if self._pending_n and abs(measured - self._pending_epoch) <= self._window:
             self._locked = float(measured)
             self._t_locked = self._t_now
