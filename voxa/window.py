@@ -2567,6 +2567,11 @@ class MainWindow(Adw.ApplicationWindow):
             self._toast(self._start_failure)
             return False
 
+        # Roadmap task 10: watch the user's output device (read-only). A device, headphone-jack or
+        # Bluetooth-profile change is one explicit epoch: the reference, the canceller and the
+        # latency re-measure together, and no automatic command comes from unqualified audio while
+        # that recovers. Voxa never switches a profile or a device herself.
+        self.audio.start_device_watch()
         self.conversation_active = True
         self._latest_level = 0.0
         self._start_level_updates()
@@ -2620,6 +2625,16 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _on_conversation_prompt(self, text: str) -> bool:
         if not text:
+            return False
+        # Roadmap task 10's recovery rule: inside an epoch's recovery window no automatic command
+        # may come from audio the canceller cannot qualify yet (no delay, no echo model on this
+        # path). The audio itself is kept - she still hears it - only the decision waits.
+        if (self.audio is not None and self.audio.recovering
+                and not self.audio.echo_path_qualified()):
+            self._barge_trace("command-held", text=text[:160], epoch=self.audio.epoch,
+                              reason="recovery-window-unqualified-audio")
+            if self.conversation is not None:
+                self.conversation.arm_prompt()
             return False
         marks = getattr(self, "_cmd_marks", None) or {}
         marks["prompt"] = time.monotonic()
