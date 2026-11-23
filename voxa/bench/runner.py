@@ -827,12 +827,20 @@ class ClipRunner:
 
     # --- one finished utterance -------------------------------------------------
 
-    def _finish_utterance(self, segment: bytes, frame: int) -> None:
+    def _finish_utterance(self, segment: bytes, frame: int, *, promote: bool = True) -> None:
         """The decision ``ConversationController._run`` makes once a segment is complete.
 
         A turn that began with a promoted span keeps its stable prefix: the prefix's words were
         recognised once, from exactly the promoted audio, and only the audio that arrived after
         the span is transcribed here (the same rule the live controller applies).
+
+        ``promote=False`` is the f176 candidate-window completion: a pinned span that the barge-in
+        decision did NOT accept (HOLD, an echo-measured onset that blocked the yield, a candidate
+        whose 900 ms window never completed) is still carried to the speech-pause rules and read by
+        the recogniser, so the pinned span reaches a segment ``transcript`` - the audio is owed to
+        the record (handoff 6.4: an accepted overlap becomes the request exactly once; never a
+        silent drop). But no command is run from audio this weak: the method returns after the
+        transcript with an ``endpoint`` marked ``dropped="hold"``, never a request/exit/ignored.
         """
         self.emit("pause", segment_seconds=round(len(segment) / 32000.0, 3))
         waiting = self.conversation.waiting_for_prompt or self.conversation.keep_prompt
@@ -868,6 +876,14 @@ class ClipRunner:
             timed = self.own_speech.timed_overlap(timed_words, window_ms=self._word_window_ms)
             if self.last_evidence is not None:
                 self.last_evidence.word_timed_overlap = timed["share"]
+        if not promote:
+            # f176: the span was transcribed (its words reach the segment transcript and the
+            # record) but the barge-in decision did not accept it - HOLD, never a silent drop and
+            # never a command from weak audio (handoff 6.5: no automatic commands from unqualified
+            # audio during playback). The own-speech filter never runs here: it only ever DELETES,
+            # and deleting would undo the completion this branch exists to make.
+            self.emit("endpoint", text=heard["text"], complete=False, dropped="hold")
+            return
         # The own-speech filter is gated on the AUDIO evidence for this span, and a turn that
         # began with a promoted span is confirmed user: its words are never rewritten by a text
         # match (voxa/attribution.py, handoff 5.3).
@@ -955,6 +971,45 @@ class ClipRunner:
             return None
         self._segmented.add(frame.seq)
         return self.segmenter.step(frame.pcm, frame.level, frame.t_s)
+
+    def _finish_unpromoted_pinned_span(self) -> None:
+        """f176: carry a pinned span that was never promoted to a segment transcript.
+
+        The candidate window (``BARGE_IN_LISTEN_MS`` 900 ms) can end with the span still pinned
+        and never judged - an echo-measured onset that blocked the yield, a HOLD, or a candidate
+        that simply never collected 900 ms before the clip ended. Those spans were captured while
+        the microphone was MUTED, so the frame loop never fed them to the speech-pause rules
+        (``runner.py:1097``): they reach the whole-stream ``clip-transcript`` but never a segment
+        ``transcript``, and the protected words they carry are lost before the segment transcript
+        (the 8/22 f175 named). Finish them the way handoff 6.4 says: the pinned span is transcribed
+        exactly once (its words reach the record and the metric), stays HOLD - never a command from
+        weak audio and never a silent drop.
+        """
+        capture = self.conversation.capture
+        if capture.pin_from is None:
+            return  # nothing was ever pinned: no span owed to the record
+        if any(event.get("event") == "transcript" for event in self.events):
+            return  # the normal path already transcribed this clip's user audio: completing it
+            # again would transcribe the accepted words twice (and skew the WER/endpoint metrics).
+        # Only a span the AUDIO attributes to a SECOND source is owed a HOLD transcript: a span
+        # the joint gate measured as Voxa's own echo is her voice, and transcribing it would put
+        # her words into the record (echo leak) - exactly what the design rules forbid.
+        from voxa.attribution import ECHO as SOURCE_ECHO, attribute
+        if self.last_evidence is not None and attribute(self.last_evidence).source == SOURCE_ECHO:
+            return
+        # Hand the never-promoted pinned span to the record exactly once via the ONE promotion
+        # primitive (voxa/capture.py::CaptureRing.promote_pinned, handoff 6.4): its ids are marked
+        # consumed so the same words are never transcribed or commanded twice, then transcribe what
+        # is actually still owed to the speech-pause rules (frames the muted loop never segmented).
+        span = [frame for frame in capture.promote_pinned() if frame.seq not in self._segmented]
+        if not span:
+            return
+        for frame in span:
+            self._segmented.add(frame.seq)
+            self.segmenter.step(frame.pcm, frame.level, frame.t_s)
+        segment = self.segmenter.pending()
+        if segment:
+            self._finish_utterance(segment, self._frame, promote=False)
 
     def _apply_barge(self, outcome) -> None:
         if outcome.action == "yield":
@@ -1189,6 +1244,10 @@ class ClipRunner:
         pending = self.segmenter.pending()
         if pending:
             self._finish_utterance(pending, self._frame)
+        # f176: the pinned span that the candidate window never promoted (never completed its
+        # 900 ms, an echo-measured onset that blocked the yield, or a HOLD) is still owed a segment
+        # transcript - transcribe it once, HOLD, before the whole-stream pass.
+        self._finish_unpromoted_pinned_span()
         # One more pass over the whole cleaned stream of the clip: the runner's own transcript of
         # what its pipeline delivered to the ASR stage, independent of where the speech-pause
         # rules cut the utterances. ``voxa.bench agree`` compares this with a direct transcribe

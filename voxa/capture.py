@@ -205,13 +205,21 @@ class CaptureRing:
                     if (start is None or frame.seq >= start) and frame.seq not in self._consumed]
             return b"".join(pick)
 
-    def promote(self) -> list[Frame]:
-        """Hand the pinned span to the user turn, exactly once.
+    def promote_pinned(self) -> list[Frame]:
+        """Hand the pinned span to the user turn (or the record), exactly once.
 
         The frames keep their sequence ids, and their ids are recorded as consumed, so the
         caller that later receives the same frames again (or the next frames of the same
         turn) can append only what is new. The pin stays open: a request longer than the
         window keeps growing in this same span instead of losing its start.
+
+        f176 (handoff 6.4) is why this is the ONE promotion primitive: the candidate window
+        (``BARGE_IN_LISTEN_MS``) can end on a pinned span the barge-in decision never accepted
+        (an echo-measured onset that blocked the yield, a HOLD, a candidate that never collected
+        900 ms before the clip ended). That span is still owed to the record, and the way it is
+        handed over without being transcribed or commanded twice is exactly this call - promote
+        the pinned span once, keep its ids consumed, and let the caller transcribe what comes
+        back (the hearing runner marks it ``dropped="hold"``, never a command from weak audio).
         """
         with self._lock:
             if self._pin_from is None:

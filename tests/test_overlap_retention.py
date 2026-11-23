@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import math
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -292,7 +293,7 @@ def test_snapshot_reads_a_copy_and_never_consumes_the_span() -> None:
     second = ring.snapshot()
     assert first == second and first
     assert [frame.seq for frame in ring.pinned()][:3] == [10, 11, 12]
-    assert ring.promote() and ring.snapshot() == b"", "the next read sees only audio not yet promoted"
+    assert ring.promote_pinned() and ring.snapshot() == b"", "the next read sees only audio not yet promoted"
 
 
 def test_a_rejected_candidate_is_released_after_its_evidence_window() -> None:
@@ -434,3 +435,103 @@ def test_a_twelve_second_request_over_a_reply_survives_the_ring(tmp_path) -> Non
     capture = runner.conversation.capture
     assert capture.pinned()[0].seq <= ids[0], "the pinned span still starts at the request's start"
     assert capture.dropped_frames < first_user, "nothing the user had already spoken is thrown away"
+
+
+# ------------------------------------------------------------------ f176 pair-candidate completion
+# A pinned candidate span the 900 ms window never promoted (an echo-measured onset that blocked the
+# yield, a HOLD, or a candidate that never collected 900 ms before the clip ended) is transcribed
+# exactly once into a segment transcript and stays HOLD - never a silent drop, never a command from
+# weak audio (handoff 6.4/6.5). These drive the runner's completion path with the stub recogniser.
+
+
+def _voxa_only_runner(tmp_path):
+    """A runner over a clip where Voxa reads a reply and the user never interrupts: no user audio
+    ever reaches a segment transcript, so the pinned-span completion path is unexercised."""
+    mic = signal(3.0, ECHO_LEVEL)
+    ref = signal(3.0, ECHO_LEVEL)
+    clip = write_clip(Path(tmp_path) / "data", "tiny", "tiny-0002-voxa_only-00", mic, ref, {
+        "id": "tiny-0002-voxa_only-00", "scenario": "voxa", "expect": "none",
+        "playback": {"text": "The weather is clear today.", "onset_s": 0.0, "offset_s": 3.0},
+        "user": None,
+    })
+    runner, _summary, _loaded = run_clip(clip)
+    assert not events_of(runner, "transcript"), "no user speech reached a segment transcript"
+    return runner
+
+
+def test_a_pinned_candidate_that_never_completes_is_transcribed_not_dropped(tmp_path) -> None:
+    runner = _voxa_only_runner(tmp_path)
+    controller = runner.conversation
+    controller.mute()
+    start = controller.capture._last_seq + 1
+    for offset in range(30):  # 0.6 s of the user over the reply, muted: never segmented
+        controller.feed(pcm(0.02, USER_LEVEL), float(USER_LEVEL), seq=start + offset)
+    controller.note_onset(seq=start + 10, level_floor=None)
+    assert controller.capture.pin_from is not None, "the onset pins the candidate span"
+    before_requests = len(events_of(runner, "request"))
+    runner._finish_unpromoted_pinned_span()
+    transcripts = events_of(runner, "transcript")
+    assert transcripts, "the never-completed span reaches a segment transcript (never a silent drop)"
+    holds = [e for e in events_of(runner, "endpoint") if e.get("dropped") == "hold"]
+    assert holds, "and the transcript is marked HOLD, never a completed utterance"
+    assert len(events_of(runner, "request")) == before_requests, "no command runs from audio this weak"
+
+
+def test_the_completion_promotes_the_pinned_span_exactly_once(tmp_path) -> None:
+    runner = _voxa_only_runner(tmp_path)
+    controller = runner.conversation
+    controller.mute()
+    start = controller.capture._last_seq + 1
+    for offset in range(20):
+        controller.feed(pcm(0.02, USER_LEVEL), float(USER_LEVEL), seq=start + offset)
+    controller.note_onset(seq=start + 5, level_floor=None)
+    runner._finish_unpromoted_pinned_span()
+    first = len(events_of(runner, "transcript"))
+    assert first == 1
+    runner._finish_unpromoted_pinned_span()
+    assert len(events_of(runner, "transcript")) == first, "the span is transcribed exactly once"
+
+
+def test_a_completed_clip_is_never_re_transcribed_by_the_completion(tmp_path) -> None:
+    # short_over_reply_clip interrupts and already transcribed its user audio: the completion must
+    # not transcribe the accepted words a second time (that would skew the WER/endpoint metrics).
+    runner, _summary, _loaded = run_clip(short_over_reply_clip(tmp_path / "data"))
+    before = len(events_of(runner, "transcript"))
+    assert before >= 1
+    runner._finish_unpromoted_pinned_span()
+    assert len(events_of(runner, "transcript")) == before
+
+
+def test_promote_false_finish_emits_a_transcript_but_never_a_request(tmp_path) -> None:
+    runner, _summary, _loaded = run_clip(short_over_reply_clip(tmp_path / "data"))
+    before_requests = len(events_of(runner, "request"))
+    runner._finish_utterance(pcm(0.6, USER_LEVEL), 0, promote=False)
+    assert len(events_of(runner, "transcript")) >= 1
+    assert len(events_of(runner, "request")) == before_requests, "HOLD never becomes a command"
+    assert any(e.get("dropped") == "hold" for e in events_of(runner, "endpoint"))
+
+
+def test_a_recovered_clip_protected_word_is_counted_kept(tmp_path) -> None:
+    """The segment transcript the completion adds carries the user's words into the record, so the
+    metric that reads the segment transcripts (``protected_word_samples``) counts them kept. The
+    stub recogniser maps the pinned user audio to ``userword``; a real one would put the command."""
+    from voxa.bench import metrics
+
+    runner = _voxa_only_runner(tmp_path)
+    controller = runner.conversation
+    controller.mute()
+    start = controller.capture._last_seq + 1
+    for offset in range(20):
+        controller.feed(pcm(0.02, USER_LEVEL), float(USER_LEVEL), seq=start + offset)
+    controller.note_onset(seq=start + 5, level_floor=None)
+    runner._finish_unpromoted_pinned_span()
+    # Build a metric fact whose user truth is the short answer the completion transcribed.
+    truth = {"id": "tiny-0002-voxa_only-00", "scenario": "short", "expect": "keep",
+             "playback": {"text": "x", "onset_s": 0.0, "offset_s": 3.0},
+             "user": {"onset_s": 0.0, "offset_s": 0.4,
+                      "words": [{"word": "userword", "onset_s": 0.0, "offset_s": 0.02}]}}
+    fact = metrics.clip_facts(truth, runner.events, None)
+    heard = metrics._heard_words(fact)
+    assert "userword" in heard, "the completion put the user's word on the segment transcript"
+    values = metrics.protected_word_samples([fact])["values"]
+    assert values and sum(values) >= 1, "the protected word is counted kept"

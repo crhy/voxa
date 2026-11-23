@@ -440,7 +440,7 @@ class ConversationController:
         of the span being transcribed again or the same audio queued twice. Returns the number
         of frames promoted (0 when nothing is pinned).
         """
-        frames = self.capture.promote()
+        frames = self.capture.promote_pinned()
         for frame in frames:
             self._enqueue(frame.pcm, frame.level)
         return len(frames)
@@ -744,7 +744,7 @@ class ConversationController:
         bench) and wants the frames back to feed them onward instead of putting them on the
         worker queue. Returns the promoted frames, oldest first, ids intact.
         """
-        frames = self.capture.promote()
+        frames = self.capture.promote_pinned()
         if not frames:
             return frames
         for frame in frames:
