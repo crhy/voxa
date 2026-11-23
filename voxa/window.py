@@ -81,6 +81,9 @@ from .hearing import HearingDirector, HearingSample  # noqa: E402
 from .onset import level_dbfs, power_dbfs  # noqa: E402
 from .attribution import MIN_REFERENCE_POWER, SourceEvidence, attribute  # noqa: E402
 from .attribution import EchoPathBaseline as _EchoPathBaseline  # noqa: E402
+from .voicedetect import (SPEECH_PLAYBACK_THRESHOLD, DoubleTalkGate,  # noqa: E402
+                          VoiceDetector)
+from .jointgate import feed_joint_frames  # noqa: E402
 from .catalog import CatalogUnavailable, load_catalog, refresh_and_cache, refresh_due  # noqa: E402
 from .config import ConfigStore  # noqa: E402
 from .controller import AssistantController, ControllerPorts  # noqa: E402
@@ -3193,13 +3196,35 @@ class MainWindow(Adw.ApplicationWindow):
         except Exception:  # noqa: BLE001 - tracing must never disturb the conversation
             pass
 
+    def _joint_verdicts(self) -> tuple[bool | None, bool | None, float | None]:
+        """Feed the barge-in joint double-talk gate the frames the capture staged, on the HEARING
+        thread (roadmap task 5, f173; handoff 6.8: no inference in the audio callback, none on GTK).
+
+        The bench's ``voxa`` arm is the reference: cleaned-stream Silero at the raised playback
+        threshold, the residual mask's per-band margin over its OWN prediction at the LOCKED delay,
+        and the gate's coherence/ERLE-drop read at that same delay. The same ``DoubleTalkGate`` the
+        bench drives; ``voxa/jointgate.feed_joint_frames`` runs the feeding so the live path and
+        the bench cannot drift apart. The capture only stored the bytes (voxa/audio.py
+        ``_note_joint_frame``), so the model runs here, where the candidate transcript runs too.
+        """
+        frames = self.audio.drain_joint_frames()
+        if not frames:
+            # Nothing new to judge this frame: degrade, do not report a stale latch.
+            return None, None, None
+        gate = getattr(self, "_dt_gate", None)
+        if gate is None:
+            self._dt_gate = gate = DoubleTalkGate()
+            self._clean_vad = VoiceDetector(threshold=SPEECH_PLAYBACK_THRESHOLD)
+        return feed_joint_frames(gate, self._clean_vad, frames)
+
     def _hearing_evidence(self) -> SourceEvidence | None:
         """The source-attribution evidence for this moment (voxa/attribution.py, handoff 6.3).
 
         Three numbers the capture path already measured - the reference's power, how much of the
         microphone the echo path explains, and the residual it leaves - plus the VAD probability
-        of the cleaned signal. Nothing here touches an audio device or runs a model: the GTK thread
-        only reads state (handoff 6.8: no inference on this thread).
+        of the cleaned signal and the joint double-talk gate's verdict (roadmap task 5, f173). This
+        runs on the hearing worker, not the GTK thread: the model (cleaned-stream Silero) and the
+        gate's coherence run there, exactly as the candidate transcript does (handoff 6.8).
         """
         try:
             ref_power, explained, residual = self.audio.echo_measurements()
@@ -3208,12 +3233,19 @@ class MainWindow(Adw.ApplicationWindow):
                         if self.conversation is not None else None)
             prob = float(detector.last_prob) if (detector is not None and detector.last_prob is not None
                                                 and detector.probs) else None
+            joint_suspect, joint_echo, over_prediction = self._joint_verdicts()
             evidence = SourceEvidence(
                 reference_active=bool(ref_power > MIN_REFERENCE_POWER),
                 reference_power=float(ref_power),
                 echo_explained_db=explained,
                 residual_db=residual,
                 residual_margin_db=margin,
+                # Roadmap task 5: the mask's margin over its OWN prediction, and the joint gate's
+                # voice-only verdicts - None when this frame could not measure (INDETERMINATE: the
+                # caller keeps the level gate and says so).
+                residual_over_prediction_db=over_prediction,
+                joint_suspect=joint_suspect,
+                joint_echo=joint_echo,
                 vad_prob=prob,
                 # A delay of 0 means the echo path was never fitted: unqualified audio, no decision.
                 alignment_healthy=bool(self.audio.delay_samples > 0

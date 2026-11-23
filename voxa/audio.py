@@ -4,15 +4,15 @@ import contextlib
 import logging
 import threading
 import time
+from collections import deque
 from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
 
 from .align import ExactDelayLock
-from .anc import (Aec3Canceller, EchoCanceller, aec3_available, claim_aec_owner,
-                  erle_db, estimate_delay,
-                  release_aec_owner)
+from .anc import (Aec3Canceller, EchoCanceller, MIN_REFERENCE_POWER, aec3_available,
+                  claim_aec_owner, erle_db, estimate_delay, release_aec_owner)
 from .refmask import LockedResidualMask
 from .timeline import CaptureClock, RenderTimeline
 
@@ -41,6 +41,10 @@ def _ensure_gstreamer() -> Any:
 # Reference samples we keep: the last 3 seconds at 16 kHz.
 REFERENCE_SECONDS = 3
 REFERENCE_RATE = 16000
+# Roadmap task 5 (f173): the barge-in joint gate reads the cleaned stream the capture produced.
+# The capture thread only STORES the frames (the canceller/mask already ran); the model (Silero)
+# and the coherence run on the hearing worker, which drains this bounded ring. 100 x 20 ms = 2 s.
+JOINT_FRAMES = 100
 
 
 def webrtc_available() -> bool:
@@ -244,6 +248,15 @@ class AudioCapture:
         self._residual_mask: LockedResidualMask | None = None
         self._delay_lock_logged = False   # the exact lock's first success: logged once
         self._delay_degraded_logged = False  # the fallback estimate taking over: logged once
+        # Roadmap task 5 (f173): the joint double-talk gate's inputs, staged by the CAPTURE thread
+        # and consumed by the HEARING WORKER. The capture never runs a model here: it stores the
+        # cleaned/mic/reference bytes plus the delay, band margin and ERLE the canceller and the
+        # residual mask already measured. The hearing worker drains this bounded ring, runs the
+        # cleaned-stream Silero and the DoubleTalkGate coherence, and returns the joint verdicts to
+        # window._hearing_evidence (handoff 6.8: no inference in the audio callback, none on GTK).
+        self._joint_frames: deque[tuple] = deque(maxlen=JOINT_FRAMES)
+        self._joint_lock = threading.Lock()
+        self._joint_dropped = 0
         self._start_args: tuple | None = None
         # Roadmap task 2: the device the microphone is on and the device the sound goes out on.
         # Different devices mean different clocks, which is what AEC3's drift handling wants to know.
@@ -593,6 +606,7 @@ class AudioCapture:
         self._delay_ref = []
         self._delay_lock = None  # a fresh capture or mode change is an explicit epoch
         self._residual_mask = None  # the GStreamer DSP owns the whole echo path, stage included
+        self._reset_joint_frames()  # the webrtc route feeds no joint frames: drop any NLMS residue
         self._ref_ring = None
         self.pipeline = pipeline
         # One AEC owner: the GStreamer DSP owns the echo path for as long as this pipeline lives.
@@ -695,8 +709,65 @@ class AudioCapture:
             self._mic_counter += len(pcm) // 2
             return pcm
         cleaned = self._residual_stage(cleaned, pcm, window)
+        # f173: stage the frame the joint double-talk gate will read on the hearing worker. No
+        # model runs here: the bytes plus the delay/margin/ERLE the canceller and mask measured.
+        self._note_joint_frame(cleaned, pcm, window)
         self._mic_counter += len(pcm) // 2
         return cleaned
+
+    def _note_joint_frame(self, cleaned: bytes, mic_bytes: bytes, ref: np.ndarray) -> None:
+        """Roadmap task 5 (f173): park one cleaned frame for the barge-in joint gate.
+
+        The capture thread has no business running a model (handoff 6.8), so this only keeps the
+        three sample streams the DoubleTalkGate needs plus the scalars the shipping chain already
+        measured: the delay the lock drove the canceller at, the residual mask's per-band margin
+        over its OWN prediction at that delay, and the running ERLE of the cleaned output. The
+        hearing worker drains the ring (``drain_joint_frames``), runs the cleaned-stream Silero and
+        the gate there, and hands the joint verdicts back to ``window._hearing_evidence``.
+        """
+        if self.canceller is None or not self._canceller_enabled:
+            return
+        try:
+            mic = np.frombuffer(mic_bytes, dtype="<i2").astype(np.float64) / 32768.0
+            out = np.frombuffer(cleaned, dtype="<i2").astype(np.float64) / 32768.0
+            erle = erle_db(mic, out)
+            mask = self._residual_mask
+            margin = (float(mask.band_margin_db)
+                      if mask is not None and np.isfinite(mask.band_margin_db) else None)
+            delay = int(self.canceller.delay_samples)
+            # The gate's coherence half reads only where the lock PROVED the frame (the exact
+            # render-timeline delay), never a drifting estimate - f132's blocker, f168 shipped the
+            # lock. AEC3 owns its delay internally, so it always counts as healthy.
+            align_healthy = bool(self.delay_confident
+                                 or getattr(self.canceller, "delay_managed_internally", False))
+            ref_power = float(np.mean(np.asarray(ref, dtype=np.float64) ** 2))
+            ref_active = bool(ref_power > MIN_REFERENCE_POWER)
+            with self._joint_lock:
+                if len(self._joint_frames) == self._joint_frames.maxlen:
+                    self._joint_dropped += 1
+                self._joint_frames.append((cleaned, mic_bytes,
+                                           np.asarray(ref, dtype=np.float64),
+                                           delay if delay > 0 else None, margin, erle,
+                                           align_healthy, ref_active))
+        except Exception as exc:  # noqa: BLE001 - the tap must never break the recording
+            log.debug("joint-evidence tap skipped: %s", exc)
+
+    def drain_joint_frames(self) -> list[tuple]:
+        """Take every frame staged since the last drain (the hearing worker consumes them).
+
+        The capture appends under the lock and the worker drains it whole, so each frame is fed to
+        the gate exactly once and contiguously; a full ring drops the oldest (a counted drop, the
+        degraded path), never a silent loss of the start of a turn.
+        """
+        with self._joint_lock:
+            frames = list(self._joint_frames)
+            self._joint_frames.clear()
+        return frames
+
+    def _reset_joint_frames(self) -> None:
+        """A capture/mode epoch is a new echo path: drop frames staged under the old one."""
+        with self._joint_lock:
+            self._joint_frames.clear()
 
     def _residual_stage(self, cleaned: bytes, mic_bytes: bytes, ref: np.ndarray) -> bytes:
         """Roadmap task 4 on the EXACT-DELAY output (task f171, issue #72).
@@ -893,6 +964,7 @@ class AudioCapture:
             self._delay_ref = []
             self._delay_lock = None  # a mode change is an explicit epoch
             self._residual_mask = None  # no canceller output to put a stage on
+            self._reset_joint_frames()
             self._ref_ring = None
             self._ref_anchor = None
             if self._ref_pipeline is not None:
@@ -914,6 +986,7 @@ class AudioCapture:
             self._delay_ref = []
             self._delay_lock = None  # a mode change is an explicit epoch
             self._residual_mask = None  # no canceller output to put a stage on
+            self._reset_joint_frames()
             self._ref_ring = None
             self._ref_anchor = None
             if self._ref_pipeline is not None:
@@ -942,6 +1015,7 @@ class AudioCapture:
             self._delay_mic = []
             self._delay_ref = []
             self._delay_lock = None  # a mode change is an explicit epoch
+            self._reset_joint_frames()
             self._ref_ring = None
             return
         if self._ref_ring is None:
