@@ -206,6 +206,53 @@ different directions:
   is no longer each arm's own estimate - it is ExactAligner's single lock, handed to every arm. It is
   no longer an arm-vs-arm figure at all here; it measures the lock.
 
+## The shipping path runs the lock itself (task f168, issue #72)
+
+f164 left the lock in the bench; f168 puts it in production: `voxa/audio.py`'s capture path now feeds
+`EchoCanceller.set_offset(coarse=round(lock), frac=lock)` from `voxa/align.ExactDelayLock` while the
+:class:`ExactAligner` lock is proven, keeps the shipping `DelayTracker` estimate as the fallback while
+it is not (visible degraded state, never a silent raw pass-through), and treats route/rate changes as
+explicit `epoch()`s. The bench's `voxa` echo mode instantiates the SAME component, so the table below
+is production's number, not a separate arm's; the f164 `voxa-locked` row above stays as the
+comparison. Regenerate:
+
+```
+/Voxa/.venv/bin/python3 -m voxa.bench run --suite full --seed 0 --echo-mode voxa --out \
+  .voxa-bench/f168-voxa-full.json --no-gates --quiet
+/Voxa/.venv/bin/python3 -m voxa.bench run --suite smoke --seed 0 --echo-mode voxa --out \
+  .voxa-bench/f168-voxa-smoke.json
+/Voxa/.venv/bin/python3 tools/hearing_frontier_table.py --label "voxa (shipping lock)" \
+  .voxa-bench/f168-voxa-full.json
+```
+
+### Full suite (480 clips, seed 0)
+
+| mode | erle_fst_median_db (dB) | erle_fst_p10_db (dB) | nearend_atten_dt_db (dB) | echo_leak_word_rate (frac) | dt_wer_penalty_pts (pts) | user_recall_nst (frac) | delay_est_err_ms (ms) | cpu_core_share (cores) | erle_music_loss_db (dB) | echo_ms_per_audio_s | echo_core_share | this machine |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| voxa (shipping lock) | 7.12 [6.27, 7.73] | -4.84 [-5.19, -4.59] | 9.42 [8.41, 10.45] | 0.1928 [0.1814, 0.2044] | 142.83 [118.48, 171.98] | 0.9507 [0.9351, 0.9640] | 0.0727 [0.0707, 0.0752] | 0.0816 [0.0786, 0.0847] | 0.1192 [0.0786, 0.1621] | 81.3 | 0.162 |  |
+
+### Smoke (52 clips, seed 0) - the fast arm check
+
+| mode | erle_fst_median_db (dB) | erle_fst_p10_db (dB) | nearend_atten_dt_db (dB) | echo_leak_word_rate (frac) | dt_wer_penalty_pts (pts) | user_recall_nst (frac) | delay_est_err_ms (ms) | cpu_core_share (cores) | erle_music_loss_db (dB) | echo_ms_per_audio_s | echo_core_share | this machine |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| voxa (shipping lock) | 15.24 [13.88, 16.40] | -1.53 [-2.86, -0.49] | 5.90 [3.63, 8.61] | 0.1111 [0.0714, 0.1508] | 129.69 [72.20, 198.86] | 0.9545 [0.9091, 0.9909] | 0.0649 [0.0584, 46.4126] | 0.0719 [0.0625, 0.0808] | 0.3141 [0.1284, 0.5235] | 63.7 | 0.135 |  |
+
+### What shipping the lock does (full suite; before = the h01 `voxa` row, after = this row)
+
+* `delay_est_err_ms` 9.29 -> **0.0727 ms** [0.0707, 0.0752]: the shipping delay is ExactAligner's
+  lock, identical to f164's `voxa-locked` arm (0.0727, same interval) - shipping IS the arm now.
+* `align_err_p90_ms` 0.0205 ms smoke [0.0195, 0.0218] / 0.0215 ms full: the render-timeline
+  alignment the lock refines against stays far inside task 1's 2.0 ms floor.
+* `erle_fst_median_db` 6.92 -> 7.12 dB (inside f164's locked band 7.62), `erle_fst_p10_db`
+  -5.00 -> -4.84 dB, `echo_leak_word_rate` 0.1911 -> 0.1928, `nearend_atten_dt_db` 9.37 -> 9.42,
+  `user_recall_nst` 0.9507 unchanged - the linear stage is where the locked arm leaves it.
+* `reconverge_s` 0.1196 (f163's run) -> 0.1267 [0.0943, 0.1651], CIs overlap; `drift_erle_loss_db`
+  6.68 -> 6.73 (CI overlap); `cpu_core_share` 0.0790 -> 0.0816 (CI overlap, the lock's extra pass
+  already counted since h02).
+* No other metric moves outside the CI of f163's default-mode full run
+  (`.voxa-bench/f163-full.json`): every metric's interval overlaps, so the shipping wiring
+  regresses nothing beyond noise on top of the lock the bench already measured.
+
 ## Frozen-file note
 
 `voxa/bench/render.py`, `voxa/bench/metrics.py` and the clip set are untouched by this task; no

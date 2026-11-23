@@ -56,12 +56,16 @@ name = "align_err_p90_ms"
 unit = "ms"
 direction = "<="
 threshold = 2.0
-# roadmap task 1's gate number, from that task's file (not a baseline ratchet): the render timeline's
-# predicted play time against the sink's real one, P90 over clips of the P90 over chunks. Measured on
-# a simulated sink of 40 ms latency and 1 ms per-buffer scheduling jitter, 20 ms capture latency
-# (voxa/bench/sinksim.py): 0.92 ms [0.913, 0.929] over the 42 smoke clips that have playback. The same
-# instrument with the sink never queried - the pre-task-1 assumption that the buffer being written is
-# audible now - reports 43 ms with no jitter and 147 ms with it.
+# roadmap task 1's gate number, from that task's file (not a baseline ratchet; pinned by
+# tests/test_bench_metrics.py): the render timeline's predicted play time against the sink's real
+# one, P90 over clips of the P90 over chunks. Measured on a simulated sink of 40 ms latency and
+# 1 ms per-buffer scheduling jitter, 20 ms capture latency (voxa/bench/sinksim.py): 0.92 ms
+# [0.913, 0.929] over the 42 smoke clips that have playback. The same instrument with the sink
+# never queried - the pre-task-1 assumption that the buffer being written is audible now - reports
+# 43 ms with no jitter and 147 ms with it.
+# f168 (shipping lock, default mode): smoke 0.0205 ms ci [0.0195, 0.0218], full 0.0215 - two orders
+# under this floor. The line does not move here: it is task 1's proposed gate number, not a B5
+# baseline ratchet, and task 1 owns moving it (the ratchet note at the top of this file).
 
 [[metric]]
 name = "fst_transcript_rate"
@@ -205,6 +209,12 @@ direction = "<="
 threshold = 17.357955
 # baseline 5.8 ms ci [0.011, 17.358] (11 delay estimates): the estimate is right when it is made at all -
 # it is made on 11 of 48 clips only (roadmap task 3 makes it continuous).
+# f168: the shipping lock measures 0.0649 ms on smoke (value) but its 95 % bootstrap CI reaches
+# 46.4126 ms (the honest reconvergence-window frames of f163 on the few clips that step), and the
+# ratchet rule keeps the STRICTER of the current 17.357955 and that bound - the line does not move.
+# The full-suite figure is 0.0727 ms [0.0707, 0.0752] (docs/hearing/frontier.md, f168 row); the
+# smoke tail is what a threshold ratchet must survive, so the next tightening belongs to a task
+# that narrows that tail, and never loosen it.
 # target: <= 1 ms std per take (roadmap B4's real-corpus gate; task 3 re-estimates every utterance).
 
 [[metric]]
