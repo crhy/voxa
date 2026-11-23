@@ -1596,14 +1596,21 @@ class ClipRunner:
         return verdict
 
     def _more_speech_arriving(self) -> bool:
-        """The f178 "gated speech is still arriving" signal for the arbitrator: the
-        cleaned-signal Silero is still on (hysteresis open), so the VAD pause is a
-        breath inside a run of speech, not the end of the turn."""
+        """The f183 "gated speech is still arriving" signal for the arbitrator: the
+        cleaned-signal Silero HYSTERESIS is still open (a run of speech began and has not
+        yet fallen ``off_margin`` below its threshold), so the VAD pause is a breath or a
+        soft-syllable dip INSIDE a run of speech, not the end of the turn.
+
+        f178 read only the instantaneous ``last_prob >= threshold``: the echo-tail clip's
+        mid-word dip (cleaned Silero 0.492 then 0.372, both under the 0.5 threshold but above
+        the 0.35 hysteresis floor) fell under it, so the degraded (joint-None) pure-model probe
+        closed the turn early while more speech was still arriving. The hysteresis state keeps
+        such a pause withheld to the next pause / hard cap, while a genuine pause (below the
+        hysteresis floor) still lets f136's pure-model path fire on a quiet turn."""
         detector = self.conversation._voice_detector
         if detector is None:
             return False
-        prob = getattr(detector, "last_prob", None)
-        return prob is not None and float(prob) >= detector.threshold
+        return bool(getattr(detector, "voiced", False))
 
     # --- the f181 promote_wait ---------------------------------------------------
 

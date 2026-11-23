@@ -67,6 +67,11 @@ class StubDetector:
         self.last_prob = 0.9
         return True
 
+    @property
+    def voiced(self) -> bool:
+        """Hysteresis state of an always-voiced stream (f183's widened arriving signal)."""
+        return self.last_prob >= self.threshold
+
 
 @pytest.fixture(autouse=True)
 def _stub_detector(monkeypatch):

@@ -452,6 +452,15 @@ def arbitrate_endpoint(model_verdict: "bool | None", *,
         path; only a definite ``True`` suspect (or the turn/more-speech flags)
         can hold the turn open.
 
+    f183 (this slice): the ``more_speech_arriving`` flag the caller feeds is now the
+    cleaned-signal Silero HYSTERESIS state, not the instantaneous on-threshold. On the
+    degraded (joint-``None``) path there is no joint veto at all, so a Smart Turn
+    ``complete`` over a pause is closed ONLY by this flag - a mid-word/soft-syllable dip
+    inside a still-continuing run of speech (the echo-tail clip's 0.492/0.372 under the 0.5
+    threshold but above the 0.35 hysteresis floor) keeps it ``True``, withholding the frame-
+    207 complete to the next pause / hard cap, while a genuine pause (below the hysteresis
+    floor) clears it and lets f136's pure-model path still fire on a quiet turn.
+
     Returns the verdict to feed the pause floor: ``True`` fires at the minimum
     silence floor, ``False`` waits the incomplete floor, ``None`` keeps the pause
     rule the app already had.

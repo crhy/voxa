@@ -3354,8 +3354,13 @@ class MainWindow(Adw.ApplicationWindow):
                 self.conversation.note_endpoint_evidence(
                     joint_suspect=joint_suspect,
                     turn_suspect=self._turn.ducked,
-                    more_speech_arriving=(detector is not None and prob is not None
-                                          and prob >= detector.threshold),
+                    # f183: the widened "speech still arriving" signal is the Silero
+                    # HYSTERESIS state over the cleaned stream, not the instantaneous
+                    # on-threshold: a mid-word/soft-syllable dip inside a run of speech keeps
+                    # the Smart Turn "complete" withheld (the degraded joint-None path with
+                    # genuinely quiet speech, below the hysteresis floor, still fires - f136).
+                    more_speech_arriving=bool(detector is not None
+                                              and getattr(detector, "voiced", False)),
                 )
                 # f181: the verdicts that gate the PROMOTION are refreshed right here, so a
                 # never-completed span owed since a HOLD is handed over on the frame the

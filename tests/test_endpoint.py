@@ -257,6 +257,22 @@ def test_arbitrator_degraded_none_joint_path_unchanged() -> None:
     assert arbitrate_endpoint(True) is True
 
 
+def test_arbitrator_degraded_none_with_arriving_speech_withholds() -> None:
+    # f183: on the degraded (joint-None) path there is NO joint veto, so the ONLY thing
+    # that can withhold a Smart Turn "complete" is the widened cleaned-signal Silero
+    # hysteresis. A complete over a mid-word dip inside a still-continuing run of speech
+    # (the echo-tail clip's frame-207 probe: joint None, prob 0.706, speech arriving) is
+    # withheld to the next pause / hard cap, not fired.
+    assert arbitrate_endpoint(True, joint_suspect=None, more_speech_arriving=True) is False
+
+
+def test_arbitrator_degraded_none_quiet_speech_still_fires() -> None:
+    # f136's pure behaviour preserved: a degraded joint-None verdict over a GENUINELY quiet
+    # cleaned stream (hysteresis closed - the pause is the end of the turn, not a dip) still
+    # fires complete. The widening withholds only while a run of speech is still open.
+    assert arbitrate_endpoint(True, joint_suspect=None, more_speech_arriving=False) is True
+
+
 def test_arbitrator_never_adds_a_cut() -> None:
     # The arbitrator only ever HOLDS a turn open; it never turns an incomplete /
     # no-verdict answer into a fire.

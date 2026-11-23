@@ -67,6 +67,16 @@ class VoiceDetector:
         """Speech ends only below this probability (the hysteresis floor)."""
         return self.threshold - self.off_margin
 
+    @property
+    def voiced(self) -> bool:
+        """The Silero hysteresis state: True while a run of cleaned-signal speech is still
+        open (it rose at ``threshold`` and has not yet fallen the ``off_margin`` below it).
+        This is the f183 "gated speech is still arriving" signal for the endpoint arbitrator:
+        a mid-word/soft-syllable probability dip inside a run of speech keeps this True, so a
+        Smart Turn "complete" verdict over such a pause is withheld to the next pause / hard cap,
+        while a genuine pause (below the hysteresis floor) clears it and lets the turn close."""
+        return self._voiced
+
     def reset(self) -> None:
         self.h = np.zeros((1, 1, 128), dtype="float32")
         self.c = np.zeros((1, 1, 128), dtype="float32")

@@ -30,6 +30,24 @@ def test_detector_off_threshold_is_threshold_minus_a_tenth() -> None:
     assert det.off_threshold == pytest.approx(det.threshold - 0.15)
 
 
+def test_detector_voiced_reports_the_hysteresis_run() -> None:
+    # f183: the endpoint arbitrator's widened "speech still arriving" signal is the Silero
+    # hysteresis STATE, not the instantaneous on-threshold. A run that rose at the threshold
+    # and dips inside it stays voiced (a soft last syllable / mid-word breath); only a fall
+    # below the off-threshold closes it. The detector must surface that state on .voiced.
+    det = _load_detector()
+    if det is None:
+        pytest.skip("silero model unavailable")
+    det.reset()
+    assert det.voiced is False, "no speech has begun"
+    det._voiced = silero_hysteresis(False, 0.80, det.threshold, det.off_margin)
+    assert det.voiced is True, "speech rose at the on-threshold"
+    det._voiced = silero_hysteresis(det._voiced, 0.45, det.threshold, det.off_margin)
+    assert det.voiced is True, "a mid-word dip stays voiced - f183 withholds the cut"
+    det._voiced = silero_hysteresis(det._voiced, 0.20, det.threshold, det.off_margin)
+    assert det.voiced is False, "a genuine pause closes the run - f136 still completes"
+
+
 
 def _load_detector():
     try:

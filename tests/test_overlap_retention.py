@@ -45,6 +45,12 @@ class StubDetector:
         self.last_prob = 0.9
         return True
 
+    @property
+    def voiced(self) -> bool:
+        """The hysteresis state of an always-voiced stream: the run of speech is open while
+        the cleaned probability is at/over the threshold (f183's widened arriving signal)."""
+        return self.last_prob >= self.threshold
+
 
 @pytest.fixture(autouse=True)
 def _stub_detector(monkeypatch):
@@ -759,3 +765,37 @@ def test_the_live_controller_promote_path_waits_out_the_suspect(tmp_path) -> Non
     assert controller.promote_waiting(), "the span is still owed"
     assert controller.promote_pinned(force=True), "an accepted decision is never held (f176)"
     assert not controller.promote_waiting()
+
+
+# ------------------------------------------------------------------ f183 probe withhold
+# f181 left one frozen-set premature row open: the DEGRADED (joint-None) pure-model probe on
+# smoke-0023-dt_echo_tail-01. A joint None adds no veto (f136), so the ONLY signal that can
+# withhold its complete=True (frame 207, prob 0.706) is the "more speech arriving" flag -
+# and f178 read it off the instantaneous cleaned-Silero on-threshold, which the clip's
+# 0.492/0.372 mid-word dip fell under. f183 widens that signal to the Silero HYSTERESIS
+# state (VoiceDetector.voiced), so a dip inside a still-continuing run of speech is read as
+# arriving and the complete waits to the next pause / hard cap - while a genuinely quiet
+# cleaned stream (hysteresis closed) still lets f136's pure-model path fire.
+
+
+def test_more_speech_arriving_reads_the_silero_hysteresis_not_the_threshold(tmp_path) -> None:
+    runner = _voxa_only_runner(tmp_path)
+
+    class _Dip:
+        """A mid-word dip inside a run of speech: probability UNDER the on-threshold (f178's
+        old signal called it quiet) but the hysteresis run is still open (voiced)."""
+        threshold = 0.5
+        last_prob = 0.372
+        voiced = True
+
+    runner.conversation._voice_detector = _Dip()
+    assert runner._more_speech_arriving() is True, "a dip inside an arriving run still arrives"
+
+    class _Quiet:
+        """Genuinely quiet: the hysteresis closed, so the pause really is the turn's end."""
+        threshold = 0.5
+        last_prob = 0.10
+        voiced = False
+
+    runner.conversation._voice_detector = _Quiet()
+    assert runner._more_speech_arriving() is False, "a genuinely quiet cleaned stream completes"
