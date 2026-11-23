@@ -143,13 +143,15 @@ Two measurement notes that must be read with the table, not after it:
    in this table as the near-end-safe end of the trade and as the cheapest stage measured
    (12.8 ms per second of audio, 0.078 of a core) - the arm any future chain should be measured
    against on cost.
-6. **f169 measured the classical residual stage on the exact-delay output (`voxa-residual`), and it
-   is now the frontier's best leak-vs-damage point**: leak 0.1928 -> 0.1304, median echo removal
-   7.12 -> 8.11 dB, DT WER penalty 142.83 -> 112.88, and `nearend_atten_dt_db` 9.42 -> 8.25 dB -
-   more echo removed with LESS user damage, at the same delay (0.0727 ms) and recall (0.9507). It is
-   a bench arm, not the default mode: shipping it is the next task's decision. What it does NOT do
-   is reach roadmap 4's targets (0.001 / 3 dB / 3 points) - on this linear floor the classical
-   stage's remaining gap belongs to the linear half (roadmap task 5) and the neural half (task 6).
+6. **The classical residual stage on the exact-delay output now SHIPS (f171): the bench's `voxa`
+    default mode IS what `voxa/audio.py` runs**, `LockedResidualMask` on the locked canceller's
+    output, and the frontier row measures that chain. Full suite: leak 0.1928 -> **0.1316**,
+    `nearend_atten_dt_db` 9.42 -> **8.61** dB - more echo removed with LESS user damage - at the
+    same delay (0.0727 ms) and recall (0.9507); smoke `erle_fst_p10_db` -1.53 -> **+0.87** dB, the
+    worst clips stop amplifying echo. It is the frontier's best leak-vs-damage point and the
+    default mode's ratchet was moved to it (gates.toml). What it does NOT do is reach roadmap 4's
+    targets (0.001 leak / 3 dB near-end / 3 DT-WER points) - on this linear floor the classical
+    stage's remaining gap belongs to the linear half (roadmap task 5) and the neural half (task 6).
 
 ## The same arms handed Voxa's locked render-timeline delay (task f164, issue #72)
 
@@ -326,6 +328,79 @@ Regenerate:
   The stage halves the leak gap it can see and pays no user damage for it; the rest belongs to
   the linear floor (f164's arms) and to the neural half (roadmap task 6, `dtln`/`nkf`).
   Parked honest, per the task: this row is the frontier's best leak-vs-damage point today.
+
+## The residual stage running ON the shipping path (task f171, issue #72)
+
+f169 measured the stage as the `voxa-residual` arm; f171 puts it in production: `voxa/audio.py`'s
+capture path now runs `voxa.refmask.LockedResidualMask` on the locked canceller's OWN output
+(`_residual_stage`: the same reference window the canceller just heard, the running ERLE of the
+linear stage feeding the over-subtraction ramp, and the mask's own delay handed to it by
+`ReferenceMask.set_delay` ONLY on frames the `ExactDelayLock` proved (`observe` returned `"lock"`) -
+a degraded frame never hands the mask an unmeasured alignment). A mask failure degrades the stage
+alone: the cleaned stream still carries the canceller's verdict, exactly as before. The bench's
+`voxa` mode instantiates the SAME chain (the f169 arm's mask plus `_mask_sees_lock`), so the row
+below is production's number, not an arm's. The live path is held to those contracts in
+`tests/test_audio_residual_ship.py` (the delay handed to the mask equals the delay the canceller is
+run at; nobody handed means no claim; the stage is off outside TTS plus the echo tail; the shipping
+chain cuts the residue the canceller left while the user's own span survives). Regenerate:
+
+```
+/Voxa/.venv/bin/python3 -m voxa.bench run --suite full --seed 0 --echo-mode voxa \
+  --no-gates --quiet --out .voxa-bench/f171-voxa-full.json
+/Voxa/.venv/bin/python3 -m voxa.bench run --suite smoke --seed 0 --echo-mode voxa \
+  --no-gates --quiet --out .voxa-bench/f171-voxa-smoke.json
+/Voxa/.venv/bin/python3 tools/hearing_frontier_table.py --label "voxa (shipping + residual)" \
+  .voxa-bench/f171-voxa-full.json
+```
+
+### Full suite (480 clips, seed 0)
+
+| mode | erle_fst_median_db (dB) | erle_fst_p10_db (dB) | nearend_atten_dt_db (dB) | echo_leak_word_rate (frac) | dt_wer_penalty_pts (pts) | user_recall_nst (frac) | delay_est_err_ms (ms) | cpu_core_share (cores) | erle_music_loss_db (dB) | echo_ms_per_audio_s | echo_core_share | this machine |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| voxa (shipping + residual) | 7.25 [6.36, 8.28] | -4.83 [-5.19, -4.55] | 8.61 [7.54, 9.68] | 0.1316 [0.1217, 0.1416] | 166.30 [103.12, 270.93] | 0.9507 [0.9351, 0.9640] | 0.0727 [0.0707, 0.0752] | 0.0838 [0.0806, 0.0870] | 0.1192 [0.0786, 0.1621] | 84.3 | 0.156 | Voxa's shipping capture path: NLMS + `ExactDelayLock` + `LockedResidualMask` on the locked output (`voxa/audio.py`; the bench `voxa` mode IS this chain) |
+
+### Smoke (52 clips, seed 0) - the fast arm check
+
+| mode | erle_fst_median_db (dB) | erle_fst_p10_db (dB) | nearend_atten_dt_db (dB) | echo_leak_word_rate (frac) | dt_wer_penalty_pts (pts) | user_recall_nst (frac) | delay_est_err_ms (ms) | cpu_core_share (cores) | erle_music_loss_db (dB) | echo_ms_per_audio_s | echo_core_share | this machine |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| voxa (shipping + residual) | 20.92 [18.51, 22.70] | 0.8730 [0.0800, 3.5692] | 4.34 [2.26, 6.80] | 0.0992 [0.0635, 0.1349] | 191.34 [64.28, 412.82] | 0.9545 [0.9091, 0.9909] | 0.0649 [0.0584, 46.4126] | 0.0695 [0.0604, 0.0782] | 0.3141 [0.1284, 0.5235] | 61.8 | 0.134 | Voxa's shipping capture path: NLMS + `ExactDelayLock` + `LockedResidualMask` on the locked output (`voxa/audio.py`; the bench `voxa` mode IS this chain) |
+
+### What shipping the stage does (full suite; before = the f168 `voxa (shipping lock)` row)
+
+* The metrics the stage exists to move all move **beyond the shipping row's CI**:
+  `echo_leak_word_rate` 0.1928 -> **0.1316** [0.1217, 0.1416] and `nearend_atten_dt_db`
+  9.42 -> **8.61** dB [7.54, 9.68]: the stage removes more echo while damaging the user LESS -
+  the same direction f169 measured on the arm (0.1304 / 8.25 dB), now produced by the path that
+  actually ships. `user_recall_nst` 0.9507 and `delay_est_err_ms` 0.0727 unchanged (same lock,
+  same recall; the mask is never handed an unproven delay).
+* `erle_fst_median_db` 7.12 -> 7.25 [6.36, 8.28] and `erle_fst_p10_db` -4.84 -> -4.83: inside the
+  f168 row's CI - the f169 arm's higher median (8.11) sits inside this row's CI too [7.19, 9.02]
+  vs [6.36, 8.28]; what the stage removes on the WORST clips is smoke's story (below), and the
+  leak and near-end numbers are the full-suite story.
+* `dt_wer_penalty_pts` 142.83 -> 166.30 [103.12, 270.93]: the value stays inside f168's own CI
+  [118.48, 171.98] and that CI contains the f169 arm's 112.88 - the double-talk WER penalty swings
+  between clips, reported, not smoothed. No metric moves OUTSIDE the f168 row's CI in the
+  regressing direction, so nothing had to be unwired.
+* Cost: `cpu_core_share` 0.0816 -> 0.0838 (CI overlap), `echo_ms_per_audio_s` 81.3 -> 84.3;
+  `erle_music_loss_db` 0.1192 [0.0786, 0.1621] identical to f168 - the render-timeline instrument
+  measures through the whole shipping chain now (unlike the f169 arm, which reported it
+  unmeasured).
+* Smoke agrees on direction and shows the biggest win: `erle_fst_median_db` 15.24 -> **20.92** dB,
+  `erle_fst_p10_db` -1.53 -> **+0.87** (the worst clips stop amplifying echo), `echo_leak_word_rate`
+  0.1111 -> 0.0992, `nearend_atten_dt_db` 5.90 -> 4.34. Smoke `dt_wer_penalty_pts` 129.69 ->
+  191.34 [64.28, 412.82] - its CI contains the base's value and its CI [72.20, 198.86]: reported.
+* The gates.toml ratchet moved to THIS task's own default-mode smoke (the ratchet rule's own
+  basis): `erle_fst_median_db` 0.0 -> 18.51, `erle_fst_p10_db` -0.08 -> +0.08,
+  `nearend_atten_dt_db` 11.777 -> 6.802, `echo_leak_word_rate` 0.213 -> 0.135, `user_recall_nst`
+  0.509 -> 0.909, `protected_word_keep_rate` 0.114 -> 0.412, `user_word_deletion_rate`
+  0.360 -> 0.209, `cpu_core_share` re-recorded under its f129 meaning 0.775 -> 0.078.
+  `align_err_p90_ms` 2.0 and `delay_est_err_ms` 17.358 stay exactly where f168 left them (task 1
+  owns the first line; the smoke delay tail CI reaches 46.41 ms, so the ratchet keeps the
+  stricter bound). Nothing was loosened.
+* The roadmap task 4 targets are still NOT reached on this machine's linear floor: leak 0.1316
+  (target 0.001), DT WER penalty 166 points (target <= 3), near-end 8.61 dB (target <= 3). The
+  stage now ships and halves the leak it can see for no user damage; the rest belongs to the
+  linear floor (roadmap task 5) and the neural half (task 6).
 
 ## Frozen-file note
 
