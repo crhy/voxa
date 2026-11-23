@@ -247,7 +247,17 @@ class ExactAligner:
             self._t_locked = self._t_now
             return self.locked_delay
         delta = measured - predicted
-        if abs(delta) <= self._jump:
+        # f163: a disagreement larger than a drift-sized refinement is STEP EVIDENCE, whether or
+        # not it fits inside the search window. The two hypotheses are the lock (the pre-step
+        # path) and the candidate (the render timeline's predicted post-step delay is exactly
+        # this recent-window measurement): the frame refines as h02 did (the canceller needs to
+        # get BACK to the echo, and h02's reconverge numbers depend on it), the candidate is
+        # kept, and a second agreeing frame snaps the lock to it as an epoch. Every frame across
+        # a step stays unconfirmed - never "confident while still on the pre-step delay", which
+        # is what h02 measured and f163 must fix.
+        step_evidence = abs(delta) >= self._jump or (
+            self._pending_n and abs(measured - self._pending_epoch) <= self._jump)
+        if abs(delta) <= self._window:
             # Refine around the prediction (never a jump): phase-lock toward the measurement and
             # let the long-term difference update the drift (the resampler's slope).
             self._locked = predicted + self._alpha * delta
@@ -256,21 +266,28 @@ class ExactAligner:
             self._slope = self._slope + self._slope_alpha * (inst_slope - self._slope)
             self._t_locked = self._t_now
             self.drift_ppm = self._slope / self._sr * 1e6
-            self._pending_n = 0
-            self._stable += 1
             self.confidence = 1.0
+            if step_evidence:
+                if self._pending_n and abs(measured - self._pending_epoch) <= self._jump:
+                    self._locked = float(measured)
+                    self._t_locked = self._t_now
+                    self._slope = 0.0
+                    self.epochs += 1
+                    self._pending_n = 0
+                else:
+                    self._pending_epoch = float(measured)
+                    self._pending_n = 1
+                self._stable = 0
+            else:
+                self._pending_n = 0
+                self._stable += 1
             # A lock is only trustworthy once it has refined inside the narrow window on
             # CONSECUTIVE frames: a single in-window hit is a first lock / a spurious
             # near-silence peak, not a phase-lock (this is what kept f132's estimate honest).
             self.refined = self._stable >= 2
             return self.locked_delay
-        # f163: the recent-window GCC disagrees with the lock by more than a drift-sized
-        # refinement - step evidence, whether or not it fits inside the search window. The two
-        # hypotheses are the lock (pre-step) and the candidate (the render timeline's predicted
-        # post-step delay is exactly this measurement): the lock never slides halfway across a
-        # step, it snaps to the candidate only once the next frame agrees it is a real path
-        # change (an epoch), and every frame in between stays unconfirmed - never "confident
-        # while still on the pre-step delay", which is what h02 measured and f163 must fix.
+        # Out of the search window: h02's epoch path, re-anchored only on a second agreeing
+        # frame (the two-frame re-anchor guard stays).
         if self._pending_n and abs(measured - self._pending_epoch) <= self._window:
             self._locked = float(measured)
             self._t_locked = self._t_now
