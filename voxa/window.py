@@ -95,6 +95,7 @@ from .conversation import (  # noqa: E402
     strip_wake_word,
 )
 from .dictation import DictationController  # noqa: E402
+from .endpoint import EndpointPolicy  # noqa: E402
 from .echo import (  # noqa: E402
     default_monitor_source,
     remove_leftover_devices,
@@ -2433,6 +2434,14 @@ class MainWindow(Adw.ApplicationWindow):
             on_status=lambda text: idle(self._on_dictation_status, text),
             on_auto_stop=lambda: idle(self._auto_stop_recording),
             on_error=lambda text: idle(self._toast, text),
+            # Roadmap task 9: dictation gets the same acoustic endpoint decision,
+            # with its own 5 s cap; the probe and weights come from the controller
+            # that already holds them.
+            endpoint_probe=(self.conversation._endpoint_probe
+                            if self.conversation is not None
+                            and getattr(self.conversation, "_smart_turn", None) is not None
+                            else None),
+            endpoint_policy=EndpointPolicy(self.settings.endpoint_patience, dictation=True),
         )
         self.dictation.start()
         try:
@@ -2525,6 +2534,8 @@ class MainWindow(Adw.ApplicationWindow):
             early_silence_ms=self.settings.early_silence_ms,
             early_final_pass=self.settings.early_final_pass,
             voice_detector=self.settings.voice_detector,
+            smart_turn_model=self.settings.smart_turn_model,
+            endpoint_patience=self.settings.endpoint_patience,
             on_woken=lambda: idle(session(self._on_conversation_woken)),
             on_prompt=lambda text: idle(session(self._on_conversation_prompt), text),
             on_status=lambda text: idle(session(self._set_status), text, True),

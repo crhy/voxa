@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from voxa.endpoint import is_complete, is_followup
+from voxa.endpoint import EndpointPolicy, SmartTurn, ends_dangling, is_complete, is_followup, patience_factor
 
 COMPLETE = [
     "voxa open gmail",
@@ -149,3 +149,68 @@ def test_followup_false_rows() -> None:
 
 def test_followup_table_meets_minimum_size() -> None:
     assert len(FOLLOWUP_TRUE) + len(FOLLOWUP_FALSE) >= 20
+
+
+DANGLING_TRUE = [
+    "turn off the",
+    "you proposed to",
+    "he passed through",
+    "I want a",
+    "came so",
+    "play some",
+    "open gmail and",
+    "play music on",
+    "what",
+    "I'll take it from",
+]
+
+DANGLING_FALSE = [
+    "open gmail",
+    "turn it up",
+    "what time is it",
+    "she said",
+    "close the window",
+]
+
+
+def test_ends_dangling_true_rows() -> None:
+    for text in DANGLING_TRUE:
+        assert ends_dangling(text), text
+
+
+def test_ends_dangling_false_rows() -> None:
+    for text in DANGLING_FALSE:
+        assert not ends_dangling(text), text
+
+
+def test_patience_factors() -> None:
+    assert patience_factor("default") == 1.0
+    assert patience_factor("longer") == 1.5
+    assert patience_factor("longest") == 2.0
+    assert patience_factor("nonsense") == 1.0
+    assert patience_factor("") == 1.0
+
+
+def test_endpoint_policy_timings() -> None:
+    policy = EndpointPolicy("default")
+    assert policy.trigger_seconds == 0.25
+    assert policy.complete_seconds == 0.5
+    assert policy.incomplete_wait_seconds == 2.0
+    assert policy.cap_seconds == 3.0
+    assert EndpointPolicy("longer").trigger_seconds == 0.375
+    assert EndpointPolicy("longest").cap_seconds == 6.0
+    assert EndpointPolicy("default", dictation=True).cap_seconds == 5.0
+    assert EndpointPolicy("longer", dictation=True).cap_seconds == 7.5
+
+
+def test_smart_turn_without_weights_gives_no_verdict(tmp_path) -> None:
+    turn = SmartTurn(str(tmp_path / "missing.onnx"))
+    assert not turn.available
+    assert turn.probability(b"\0\0" * 1600) is None
+    assert turn.is_complete(b"\0\0" * 1600) is None
+
+
+def test_smart_turn_shared_returns_one_session(tmp_path) -> None:
+    a = SmartTurn.shared(str(tmp_path / "missing.onnx"))
+    b = SmartTurn.shared(str(tmp_path / "missing.onnx"))
+    assert a is b
