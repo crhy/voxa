@@ -29,8 +29,11 @@
 name = "erle_fst_median_db"
 unit = "dB"
 direction = ">="
-threshold = 0.0
-# baseline 0.0 ci [0.0, 0.0] (372 far-end frames): the canceller removes NOTHING on Voxa's own echo.
+threshold = 18.51
+# f171 (residual mask shipped in the default mode): smoke 20.92 dB ci [18.51, 22.695] - the ratchet
+# moves to the CI bound on the bad side of THIS task's own default-mode smoke run
+# (.voxa-bench/f171-voxa-smoke.json); the old bound was the B5 baseline's 0.0 [0.0, 0.0] (the
+# canceller alone removed nothing on Voxa's own echo).
 # target: >= 25 dB converged (roadmap task 2; task 3 holds it under +/-100 ppm drift, task 10 under a
 # device change).
 
@@ -38,17 +41,20 @@ threshold = 0.0
 name = "erle_fst_p10_db"
 unit = "dB"
 direction = ">="
-threshold = -0.08
-# baseline -0.038 ci [-0.08, -0.01]: the worst 10 % of far-end frames get slightly MORE energy, not less.
+threshold = 0.08
+# f171: smoke +0.873 dB ci [0.08, 3.569] - the worst 10 % of far-end frames stop AMPLIFYING echo
+# (the B5 baseline was -0.038 ci [-0.08, -0.01]: every clip at this percentile got slightly more
+# energy, not less). Tightened to this task's own default-mode smoke CI bound.
 # target: >= 15 dB (roadmap task 2's P10 gate).
 
 [[metric]]
 name = "nearend_atten_dt_db"
 unit = "dB"
 direction = "<="
-threshold = 11.77651
-# baseline 8.637 ci [5.9698, 11.7765] (31 double-talk clips): the user's own voice is pushed down 8.6 dB
-# while her echo is left untouched - the worst thing the pipeline does today.
+threshold = 6.802177
+# f171: smoke 4.34 dB ci [2.257, 6.802] - removing MORE echo while damaging the user LESS (the B5
+# baseline pushed the user's own voice down 8.6 dB while her echo went untouched: 8.637 ci
+# [5.9698, 11.7765]). Tightened to this task's own default-mode smoke CI bound.
 # target: <= 3 dB (roadmap task 2's near-end attenuation gate).
 
 [[metric]]
@@ -80,7 +86,10 @@ threshold = 0.0
 name = "echo_leak_word_rate"
 unit = "fraction"
 direction = "<="
-threshold = 0.213043
+threshold = 0.134921
+# f171: smoke 0.0992 ci [0.0635, 0.1349] - the residual stage halves the echo words surviving in the
+# cleaned stream (the B5 baseline was 0.1652 ci [0.1174, 0.213], 230 words). Tightened to this
+# task's own default-mode smoke CI bound (.voxa-bench/f171-voxa-smoke.json).
 # baseline 0.1652 ci [0.1174, 0.213] (230 words in the cleaned stream): 16.5 % of the words the pipeline
 # hands on are Voxa's own echo. target: <= 0.001 (roadmap task 4: "echo-leak words <= 0.1 %"), then
 # halved again by task 7's word-timed own-speech filter.
@@ -140,17 +149,21 @@ threshold = 1.0
 name = "protected_word_keep_rate"
 unit = "fraction"
 direction = ">="
-threshold = 0.113636
-# baseline 0.2273 ci [0.1136, 0.3636] (44 protected words): 10 of 44 words that must never be stripped
-# survive today. target: 1.0 (roadmap task 7: "protected words 100 % kept").
+threshold = 0.411765
+# f171: smoke 0.549 ci [0.4118, 0.6863] (51 protected words) - the stage's rules (protect bands that
+# stand >= 6 dB above the predicted residue; protect every band with no prediction) keep more of the
+# words that must never be stripped (the B5 baseline kept 10 of 44: 0.2273 ci [0.1136, 0.3636]).
+# Tightened to this task's own default-mode smoke CI bound.
+# target: 1.0 (roadmap task 7: "protected words 100 % kept").
 
 [[metric]]
 name = "user_recall_nst"
 unit = "fraction"
 direction = ">="
-threshold = 0.509091
-# baseline 0.6091 ci [0.5091, 0.6909] (110 user words on near-end-only clips): the canceller and the
-# reference mask eat 39 % of the user's words even when NOTHING is playing to cancel.
+threshold = 0.909091
+# f171: smoke 0.9545 ci [0.9091, 0.9909] (110 user words on near-end-only clips) - the mask's
+# protection rules hold the user even when NOTHING is playing to cancel (the B5 baseline ate 39 % of
+# her words: 0.6091 ci [0.5091, 0.6909]). Tightened to this task's own default-mode smoke CI bound.
 # target: >= 0.99 (handoff 8.4: at least 99 % user-onset recall in the declared normal-use range).
 
 [[metric]]
@@ -238,7 +251,7 @@ direction = "<="
 name = "cpu_core_share"
 unit = "cores"
 direction = "<="
-threshold = 0.775161
+threshold = 0.078245
 # The metric changed meaning in task f129 (see the docstring at voxa/bench/metrics.py
 # cpu_core_share_samples and tasks/notes-f129-voxa-hear-t2-aec3.md): it measured ASR seconds over
 # wall seconds, which the gate it carries ("<= 10 % of one core", roadmap task 2) has never been
@@ -247,6 +260,8 @@ threshold = 0.775161
 # meaning, it only still passes because echo stages are far below it. Under the new meaning the
 # DEFAULT mode (voxa NLMS + mask) measures 0.xxx in the f129 baseline run; tighten this line to
 # that bound when the next task re-records the baseline.
+# f171 re-records the default mode WITH the shipped mask: smoke 0.0695 cores ci [0.0604, 0.0782]
+# (.voxa-bench/f171-voxa-smoke.json) - tightened to that CI bound, as the comment above asked.
 # target: <= 0.1 core (roadmap task 2: "<= 10 % of one core"; task 12 allows <= 0.25 for an experiment).
 # (The old ASR-based reading of 0.731 ci [0.6840, 0.7752] from three identical runs is still in
 # run.asr_processing_seconds / run.asr_audio_seconds if anyone needs it.)
@@ -295,9 +310,11 @@ direction = ">="
 name = "user_word_deletion_rate"
 unit = "fraction"
 direction = "<="
-threshold = 0.360104
-# baseline 0.3161 ci [0.272, 0.3601] (386 user words): 32 % of the user's known words are gone before
-# the recogniser sees them. target: 0 - the programme's goal is "hears EVERY word"; roadmap task 7 holds
+threshold = 0.208543
+# f171: smoke 0.1683 ci [0.1382, 0.2085] (398 user words) - the stage's protection rules delete less
+# of the user's known words before the recogniser sees them (the B5 baseline deleted 32 %: 0.3161 ci
+# [0.272, 0.3601]). Tightened to this task's own default-mode smoke CI bound.
+# target: 0 - the programme's goal is "hears EVERY word"; roadmap task 7 holds
 # the double-talk recall drop to <= 0.5 point while it strips echo.
 
 [[metric]]

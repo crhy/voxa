@@ -439,7 +439,7 @@ def test_the_render_instrument_feeds_the_alignment_and_music_metrics() -> None:
 def toy_facts() -> list[dict]:
     return [
         clip(truth(scenario="fst", playback=playing("the weather is clear", 0.0, 3.6)),
-             frames(180, ref_power=0.001)),
+             frames(180, ref_power=0.001, erle_db=20.0, clean_level_db=-60.0)),
         clip(truth(scenario="nst", expect="keep", user=speaking("the library opens", 1.0, 2.0)),
              frames(120) + [{"event": "transcript", "t_s": 2.4, "text": "the library opens",
                              "words": timed("the library opens", 0.0, 1.0)},
