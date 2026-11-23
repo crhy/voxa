@@ -126,8 +126,8 @@ class ExactAligner:
             return False
         return float(np.dot(m, r)) ** 2 / (mm * rr) >= self._coherence_min ** 2
 
-    def _measure(self, mic: np.ndarray, ref: np.ndarray) -> float | None:
-        """Sub-sample delay from a robust GCC-PHAT over the RECENT window (room-tail resistant).
+    def _measure(self, mic: np.ndarray, ref: np.ndarray, recent: bool = False) -> float | None:
+        """Sub-sample delay from a robust GCC-PHAT over the buffer (room-tail resistant).
 
         This is the "fine search" of the task: it lands on the DIRECT echo path even when the
         room rings, and its parabolic peak is sub-sample. It is only ever used to refine the
@@ -137,18 +137,19 @@ class ExactAligner:
         second talkspur - means the delay is not yet resolved, so it reports None and the caller
         holds the drift line rather than locking confidently onto one of them.
 
-        f163: the search runs over the last ``recent_ms`` of the rolling buffer, not the whole
-        buffer. Over the whole buffer a step's pre-step echo stays a top peak for search_ms after
-        the step, so the OLD delay keeps measuring confidently while the mic is already echoing at
-        the new one; over the recent window the pre-step energy ages out and the new path wins as
-        soon as it dominates the recent sound. The two-path ambiguity below still says "not
-        resolved" while the window holds both, which is what keeps the reconvergence honest.
+        f163: ``recent=True`` runs the SAME gated search over the last ``recent_ms`` of the
+        rolling buffer only. Over the whole buffer a step's pre-step echo stays a top peak for
+        search_ms after the step, so the OLD delay keeps measuring confidently while the mic is
+        already echoing at the new one; over the recent window the pre-step energy ages out and
+        the new path wins as soon as it dominates the recent sound - that early flip is the step
+        EVIDENCE the observer uses to snap the epoch, while the whole-buffer measurement keeps
+        feeding the refinement and the drift slope exactly as h02's numbers were built on.
         """
         if mic.size < 1600:
             return None
         n = min(mic.size, ref.size)
         mic, ref = mic[:n], ref[:n]
-        if n > self._recent:
+        if recent and n > self._recent:
             mic, ref = mic[n - self._recent:], ref[n - self._recent:]
         max_delay = int(self._search_ms / 1000.0 * self._sr)
         size = 1
@@ -238,7 +239,7 @@ class ExactAligner:
             self.confidence = 1.0
             return self.locked_delay
         predicted = self._predict_now(self._t_now)
-        measured = self._measure(buf_m, buf_r)
+        measured = self._measure(buf_m, buf_r, recent=False)
         if measured is None:
             # A window with no clean echo (silent / near-end dominated): keep the lock on the
             # drift line, never jump to a guess.
@@ -246,17 +247,19 @@ class ExactAligner:
             self._locked = predicted
             self._t_locked = self._t_now
             return self.locked_delay
+        measured_r = self._measure(buf_m, buf_r, recent=True)
         delta = measured - predicted
         # f163: a disagreement larger than a drift-sized refinement is STEP EVIDENCE, whether or
         # not it fits inside the search window. The two hypotheses are the lock (the pre-step
         # path) and the candidate (the render timeline's predicted post-step delay is exactly
-        # this recent-window measurement): the frame refines as h02 did (the canceller needs to
-        # get BACK to the echo, and h02's reconverge numbers depend on it), the candidate is
+        # this recent-window measurement, which flips to the new path search_ms earlier than the
+        # whole-buffer peak can): the frame refines as h02 did (the canceller needs to get BACK
+        # to the echo, and h02's reconverge/drift numbers are built on that), the candidate is
         # kept, and a second agreeing frame snaps the lock to it as an epoch. Every frame across
         # a step stays unconfirmed - never "confident while still on the pre-step delay", which
         # is what h02 measured and f163 must fix.
-        step_evidence = abs(delta) >= self._jump or (
-            self._pending_n and abs(measured - self._pending_epoch) <= self._jump)
+        candidate = measured_r if measured_r is not None else measured
+        step_evidence = abs(delta) >= self._jump or abs(candidate - predicted) >= self._jump
         if abs(delta) <= self._window:
             # Refine around the prediction (never a jump): phase-lock toward the measurement and
             # let the long-term difference update the drift (the resampler's slope).
@@ -268,15 +271,22 @@ class ExactAligner:
             self.drift_ppm = self._slope / self._sr * 1e6
             self.confidence = 1.0
             if step_evidence:
-                if self._pending_n and abs(measured - self._pending_epoch) <= self._jump:
-                    self._locked = float(measured)
+                if self._pending_n and abs(candidate - self._pending_epoch) <= self._jump:
+                    self._locked = float(candidate)
                     self._t_locked = self._t_now
-                    self._slope = 0.0
+                    # A delay STEP changes the echo path, not the clock: the drift slope is
+                    # kept (h02's out-of-window epoch zeroes it because there the device may
+                    # have moved too; here the clock did not).
                     self.epochs += 1
                     self._pending_n = 0
                 else:
-                    self._pending_epoch = float(measured)
+                    self._pending_epoch = float(candidate)
                     self._pending_n = 1
+                self._stable = 0
+            elif measured_r is None:
+                # The recent window cannot resolve the path yet (a second path still ringing,
+                # a quiet moment): refinement continues but the lock is NOT re-proven - a
+                # frame is never confident on a delay the recent sound cannot confirm.
                 self._stable = 0
             else:
                 self._pending_n = 0
