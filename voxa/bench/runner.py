@@ -216,6 +216,10 @@ class ClipRunner:
         self._delay_samples = 0
         self._delay_frac = 0.0  # Hearing 2: the fractional locked delay (the read offset)
         self._aligner: ExactAligner | None = None  # Hearing 2: exact lock, mode voxa
+        # f164: speex-locked / aec3-locked take Voxa's locked bulk delay as a reference-ring offset
+        # (their own delay search then only refines the room tail); voxa-locked uses set_offset instead.
+        self._ref_offset_lock = False
+        self._locked_ref_offset = 0
         # The cleaned stream of the clip, kept so the runner can transcript what its pipeline
         # delivered to the ASR stage as a whole (what `voxa.bench agree` measures).
         self._clean_stream: list[bytes] = []
@@ -360,6 +364,31 @@ class ClipRunner:
                 self._hybrid_linear = "voxa"
             self.mask = self._residual_mask()
             return
+        if self.echo_mode in modes.LOCKED_MODES:
+            # f164 (Hearing 2): every linear arm given Voxa's LOCKED render-timeline delay. The
+            # ExactAligner (h02/f163) locks the bulk delay from the render clock and is handed to
+            # the arm per frame, so the arm's own delay search only refines the room tail. An arm
+            # whose base dependency is missing keeps its name and says why (run() already exits 2).
+            self.mode_probe = probe[self.echo_mode]
+            if not probe[self.echo_mode]["available"]:
+                self.degraded = f"{self.echo_mode} unavailable: {probe[self.echo_mode]['reason']}"
+                return
+            self._aligner = ExactAligner(sample_rate=SR)
+            if self.echo_mode == "voxa-locked":
+                # NLMS reference read at the locked fractional offset (set_offset); span 4096 taps.
+                self.canceller = EchoCanceller(taps=4096, mu=0.7)
+                self.mask = self._residual_mask()
+            elif self.echo_mode == "aec3-locked":
+                # AEC3 wheel fed that same offset by re-timing its reference at the ring (the wheel
+                # has no delay setter); its estimator then only refines the room tail.
+                self.canceller = Aec3Canceller(double_talk_guard=False)
+                self.mask = self._residual_mask()
+                self._ref_offset_lock = True
+            else:  # speex-locked: reference re-timed OUTSIDE the MDF (its delay_ctl is absent here).
+                self.canceller = modes.make_linear("speex", sample_rate=SR)
+                self._speex_settings = getattr(self.canceller, "settings", None)
+                self._ref_offset_lock = True
+            return
         ok, reason = bool(probe[self.echo_mode]["available"]), str(probe[self.echo_mode]["reason"])
         self.mode_probe = probe[self.echo_mode]
         if not ok:
@@ -422,15 +451,32 @@ class ClipRunner:
             return
         self._delay_frac = float(locked)
         coarse = int(round(locked))
-        self.canceller.set_offset(coarse, 0.0, locked, 0.0, locked)
+        self._apply_locked_delay(coarse, locked)
         if self._delay_samples != coarse:
             self._delay_samples = coarse
             self.emit("delay-estimate", delay_samples=coarse,
                       delay_ms=round(coarse / SR * 1000.0, 1),
                       kind="epoch" if self._aligner.epochs else "lock",
                       drift_ppm=round(self._aligner.drift_ppm, 1),
-                      offset_samples=round(locked, 2),
-                      confidence=round(self._aligner.confidence, 3))
+                       offset_samples=round(locked, 2),
+                       confidence=round(self._aligner.confidence, 3))
+
+    def _apply_locked_delay(self, coarse: int, frac: float) -> None:
+        """Hearing 2 (f164): hand the arm's own delay search the bulk delay Voxa already knows, so
+        it only refines the room tail. Each arm takes it the way ITS library reaches:
+
+        * ``voxa-locked`` (``EchoCanceller``) reads its reference at the locked FRACTIONAL offset
+          (``set_offset`` is the drift resampler; the filter never rebuilds);
+        * ``speex-locked`` / ``aec3-locked`` have no delay setter this build exposes, so the locked
+          bulk delay is applied by re-timing the reference the canceller is fed - a ring offset in
+          :func:`voxa.audio.mix_chunk`, where the reference history lives.
+        """
+        if self._ref_offset_lock:
+            self._locked_ref_offset = max(0, coarse)
+            return
+        c = self.canceller
+        if c is not None and hasattr(c, "set_offset"):
+            c.set_offset(coarse, 0.0, frac, 0.0, frac)
 
     def _clean_frame(self, mic_bytes: bytes, ref: np.ndarray) -> tuple[bytes, float, float, float, float]:
         """Cleaned chunk for this frame, the dB the canceller removed, the mask's gain in dB, and
@@ -450,7 +496,8 @@ class ClipRunner:
                 self._observe_echo_delay(mic / 32768.0, ref)
             else:
                 self._estimate_delay(mic, ref)
-            mic_bytes = mix_chunk(mic_bytes, self.ref_ring, self._mic_counter, self.canceller, 0)
+            mic_bytes = mix_chunk(mic_bytes, self.ref_ring, self._mic_counter, self.canceller,
+                                  self._locked_ref_offset)
         self._mic_counter += len(mic_bytes) // 2
         cleaned = np.frombuffer(mic_bytes, dtype="<i2").astype(np.float32)
         erle = erle_removed_db(mic, cleaned) if self.canceller is not None else 0.0

@@ -28,6 +28,12 @@ LINEAR_MODES = ("voxa", "aec3", "aec3full", "speex")
 MODES = ("voxa", "webrtc", "aec3", "off")
 # New arms this task adds; the old arms keep their existing code paths.
 HEARING2_MODES = ("aec3full", "speex", "dtln", "nkf", "hybrid")
+# f164 (Hearing 2): every linear arm given Voxa's LOCKED render-timeline delay instead of letting it
+# search the bulk delay itself. Their availability is the base arm's availability; the locked delay
+# comes from ``voxa.align.ExactAligner`` (h02/f163), which the bench runner hands each arm per frame.
+LOCKED_MODES = ("voxa-locked", "aec3-locked", "speex-locked")
+# The full set of hearing-2 arms the CLI offers and the runner wires.
+HEARING2_MODES = HEARING2_MODES + LOCKED_MODES
 
 
 # ---------------------------------------------------------------------------------------------
@@ -125,11 +131,41 @@ def nkf_available() -> tuple[bool, str]:
     return True, f"NKF-AEC {found[0]}"
 
 
+def voxa_locked_available() -> tuple[bool, str]:
+    """f164: Voxa's NLMS handed her locked render-timeline delay. Always runs (pure Python), the
+    same stage as ``voxa`` but with the bulk delay locked instead of searched by the filter."""
+    return True, ("Voxa's NLMS + ExactAligner locked delay "
+                  "(reference read at the locked offset, span covers the room tail)")
+
+
+def aec3_locked_available() -> tuple[bool, str]:
+    """f164: the installed AEC3 wheel fed that same locked offset (the reference re-timed before it
+    reaches the wheel, whose own estimator then only refines the room tail)."""
+    if not aec3_available():
+        return False, ("aec3-locked needs the pywebrtc-audio AEC3 wheel "
+                       "(the aec3 arm's dependency); not importable here")
+    return True, ("WebRTC AEC3 wheel fed Voxa's locked render-timeline delay "
+                  "(reference re-timed outside the wheel, span covers the room tail)")
+
+
+def speex_locked_available() -> tuple[bool, str]:
+    """f164: the SpeexDSP MDF given a reference re-timed OUTSIDE it (this build has no DELAY
+    request, so the shift happens in front of the MDF rather than being handed to it)."""
+    ok, why = speex_available()
+    if not ok:
+        return False, "speex-locked needs the libspeexdsp MDF: " + why
+    return True, ("libspeexdsp MDF fed Voxa's locked render-timeline delay "
+                  "(reference re-timed outside the MDF, its delay_ctl absent in this Debian build)")
+
+
 def availability() -> dict[str, dict[str, object]]:
     """Every candidate at once: what runs here and exactly why the rest does not."""
     out: dict[str, dict[str, object]] = {}
     for name, probe in (("aec3full", aec3full_available), ("speex", speex_available),
-                        ("dtln", dtln_available), ("nkf", nkf_available)):
+                        ("dtln", dtln_available), ("nkf", nkf_available),
+                        ("voxa-locked", voxa_locked_available),
+                        ("aec3-locked", aec3_locked_available),
+                        ("speex-locked", speex_locked_available)):
         ok, reason = probe()
         out[name] = {"available": bool(ok), "reason": reason}
     out["hybrid"] = {"available": True,
@@ -330,6 +366,9 @@ class SpeexCanceller:
 def make_linear(mode: str, *, delay: int = 0, sample_rate: int = SR):
     """The linear stage of a bench echo mode, or None when the mode asked for no linear stage."""
     if mode == "speex":
+        return SpeexCanceller(sample_rate, delay=delay)
+    if mode == "speex-locked":
+        # f164: the same MDF; the runner re-times its reference with the locked delay (set_delay).
         return SpeexCanceller(sample_rate, delay=delay)
     if mode == "aec3full":
         raise RuntimeError("aec3full has no shim: " + aec3full_available()[1])
