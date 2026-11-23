@@ -143,6 +143,13 @@ Two measurement notes that must be read with the table, not after it:
    in this table as the near-end-safe end of the trade and as the cheapest stage measured
    (12.8 ms per second of audio, 0.078 of a core) - the arm any future chain should be measured
    against on cost.
+6. **f169 measured the classical residual stage on the exact-delay output (`voxa-residual`), and it
+   is now the frontier's best leak-vs-damage point**: leak 0.1928 -> 0.1304, median echo removal
+   7.12 -> 8.11 dB, DT WER penalty 142.83 -> 112.88, and `nearend_atten_dt_db` 9.42 -> 8.25 dB -
+   more echo removed with LESS user damage, at the same delay (0.0727 ms) and recall (0.9507). It is
+   a bench arm, not the default mode: shipping it is the next task's decision. What it does NOT do
+   is reach roadmap 4's targets (0.001 / 3 dB / 3 points) - on this linear floor the classical
+   stage's remaining gap belongs to the linear half (roadmap task 5) and the neural half (task 6).
 
 ## The same arms handed Voxa's locked render-timeline delay (task f164, issue #72)
 
@@ -252,6 +259,73 @@ comparison. Regenerate:
 * No other metric moves outside the CI of f163's default-mode full run
   (`.voxa-bench/f163-full.json`): every metric's interval overlaps, so the shipping wiring
   regresses nothing beyond noise on top of the lock the bench already measured.
+
+## The residual stage on the exact-delay output (task f169, issue #72)
+
+h01's named next measurement was "recover `aec3`'s 0.0498 leak without its 24.96 dB of user
+damage". With the delay near-exact (f168: `delay_est_err_ms` 0.0727 ms, `align_err_p90_ms`
+0.0215 ms) the coherence test between reference and microphone finally measures something
+(f132: it measured nothing while the estimated delay drifted 1.5-2.5 ms), so f169 runs the
+classical residual stage on what the lock leaves: the f164 `voxa-locked` linear arm PLUS
+`voxa.refmask.LockedResidualMask` on that locked output - the f131 mask machinery with (a) the
+delay the lock proved handed to it frame by frame (`ReferenceMask.set_delay`: the reference read
+at the locked offset, the mask's own correlation lag estimate switched off) and (b) the roadmap
+task 4 protection margin, a band whose output exceeds the predicted residual by >= 6 dB is the
+near-end speaker and stays untouched. The margin still rides on f131's 98th-percentile
+prediction: the residue of an adaptive filter jumps 10-20 dB frame to frame, and a median
+prediction calls those jumps near-end and protects the echo (measured here: median+6 dB
+collapsed `erle_fst_p10_db` to -0.685 on smoke). A band with no prediction at all is protected
+too - short, quiet or first-onset user audio is never deleted for lacking an echo model.
+Regenerate:
+
+```
+/Voxa/.venv/bin/python3 -m voxa.bench run --suite full --seed 0 --echo-mode voxa-residual \
+  --no-gates --quiet --out .voxa-bench/f169-voxa-residual-full.json
+/Voxa/.venv/bin/python3 -m voxa.bench run --suite smoke --seed 0 --echo-mode voxa-residual \
+  --no-gates --quiet --out .voxa-bench/f169-voxa-residual-smoke.json
+/Voxa/.venv/bin/python3 tools/hearing_frontier_table.py .voxa-bench/f169-voxa-residual-full.json
+```
+
+### Full suite (480 clips, seed 0)
+
+| mode | erle_fst_median_db (dB) | erle_fst_p10_db (dB) | nearend_atten_dt_db (dB) | echo_leak_word_rate (frac) | dt_wer_penalty_pts (pts) | user_recall_nst (frac) | delay_est_err_ms (ms) | cpu_core_share (cores) | erle_music_loss_db (dB) | echo_ms_per_audio_s | echo_core_share | this machine |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| voxa-residual | 8.11 [7.19, 9.02] | -4.86 [-5.22, -4.58] | 8.25 [7.27, 9.30] | 0.1304 [0.1208, 0.1412] | 112.88 [96.06, 134.18] | 0.9507 [0.9351, 0.9640] | 0.0727 [0.0707, 0.0752] | 0.0827 [0.0798, 0.0858] | unmeasured | 82.2 | 0.382 | Voxa's NLMS + ExactAligner locked delay, residual mask on that locked output (reference read at the locked delay; pure Python, no new dependency) |
+
+### Smoke (52 clips, seed 0) - the fast arm check
+
+| mode | erle_fst_median_db (dB) | erle_fst_p10_db (dB) | nearend_atten_dt_db (dB) | echo_leak_word_rate (frac) | dt_wer_penalty_pts (pts) | user_recall_nst (frac) | delay_est_err_ms (ms) | cpu_core_share (cores) | erle_music_loss_db (dB) | echo_ms_per_audio_s | echo_core_share | this machine |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| voxa-residual | 21.21 [18.94, 22.82] | 1.19 [0.12, 3.70] | 4.45 [2.41, 6.91] | 0.0833 [0.0516, 0.1190] | 288.66 [53.69, 706.65] | 0.9545 [0.9091, 0.9909] | 0.0649 [0.0584, 46.4126] | 0.0715 [0.0620, 0.0806] | unmeasured | 63.2 | 0.283 | Voxa's NLMS + ExactAligner locked delay, residual mask on that locked output (reference read at the locked delay; pure Python, no new dependency) |
+
+### What the residual stage does (full suite; before = the f168 shipping-lock row above)
+
+* The four metrics the stage exists to move all move **beyond the shipping row's CI**:
+  `echo_leak_word_rate` 0.1928 -> **0.1304** [0.1208, 0.1412], `erle_fst_median_db` 7.12 ->
+  **8.11** dB, `dt_wer_penalty_pts` 142.83 -> **112.88**, and - the part AEC3 never managed -
+  `nearend_atten_dt_db` 9.42 -> **8.25** dB: removing more echo while damaging the user LESS.
+* `user_recall_nst` 0.9507 and `delay_est_err_ms` 0.0727 unchanged (same lock, same recall);
+  `cpu_core_share` 0.0816 -> 0.0827 (CI overlap), `echo_core_share` 0.162 -> 0.382 (the mask is
+  the cost: 82.2 ms per second of audio).
+* **Nothing regresses outside the f168 row's CI** - every other metric's interval overlaps
+  (`.voxa-bench/f168-voxa-full.json` compared, seed 0, same clips). Against the frozen B5
+  baseline the arm still carries the SAME pre-existing default-mode failures f168 recorded
+  (backchannel_resume, drift_erle, ep90, false_bargein, fst_transcript, interrupt_stop,
+  self_command, self_pause, `nearend_atten_dt_db` 5.19 -> 8.24 - inherited from the linear
+  stage, which this task only lowers from 9.42).
+* Smoke agrees on direction, and the short clips show the biggest win: `erle_fst_median_db`
+  15.24 -> 21.21 dB, `erle_fst_p10_db` -1.53 -> **+1.19** (the worst clips stop amplifying
+  echo), `echo_leak_word_rate` 0.1111 -> 0.0833, `nearend_atten_dt_db` 5.90 -> 4.45.
+  Smoke `dt_wer_penalty_pts` 129.69 -> 288.66 stays inside the base's own CI [72.20, 198.86]
+  with a CI [53.69, 706.65] that contains the base's value - reported, not smoothed.
+* `erle_music_loss_db` reports unmeasured: the render-timeline instrument
+  (`voxa/bench/sinksim`) runs in modes that drive Voxa's own canceller for its alignment test,
+  exactly as with the f164 `*-locked` arms - it is the arm's contract, not a skipped clip.
+* The roadmap task 4 targets are **not** reached on this machine's linear floor: leak 0.1304
+  (target 0.001), DT WER penalty 112.9 points (target <= 3), near-end 8.25 dB (target <= 3).
+  The stage halves the leak gap it can see and pays no user damage for it; the rest belongs to
+  the linear floor (f164's arms) and to the neural half (roadmap task 6, `dtln`/`nkf`).
+  Parked honest, per the task: this row is the frontier's best leak-vs-damage point today.
 
 ## Frozen-file note
 
