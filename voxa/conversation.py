@@ -188,6 +188,20 @@ class ConversationHistory:
         if self._turns:
             self._turns.pop()
 
+    def truncate_last_assistant(self, kept: str) -> bool:
+        """Rewrite the last assistant turn to what was actually audibly played (roadmap task 8).
+
+        On a confirmed interruption the LLM context must describe only the words Voxa actually
+        said out loud, not the whole reply she meant to speak. The caller computes ``kept`` with
+        ``voxa.bargein.truncate_to_heard``; this just rewrites that turn in place. Returns whether
+        an assistant turn was found to rewrite.
+        """
+        for turn in reversed(self._turns):
+            if turn.get("role") == "assistant":
+                turn["content"] = kept
+                return True
+        return False
+
     def clear(self) -> None:
         self._turns.clear()
 

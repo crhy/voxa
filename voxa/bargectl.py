@@ -82,6 +82,11 @@ class BargeOutcome:
     onset_audio_ms: float = 0.0
     evidence_ms: float = 0.0
     margin_db: float = 0.0
+    # Roadmap task 8 (f174): the joint double-talk gate's suspect verdict for the frame this
+    # decision was made on - True suspect, False measured echo, None could-not-measure. The window
+    # uses it to DUCK her own stream on the suspect (never on a measured echo, never on a degraded
+    # frame) before deciding to yield.
+    joint_suspect: bool | None = None
     # Stamped by ``voxa/hearing.py`` with the generation this decision belongs to: a decision
     # that crossed a yield is not applied at all (see ``HearingDirector.accept``).
     generation: int = 0
@@ -335,7 +340,8 @@ class BargeInController:
                         level=round(level01, 4), speaking=self.speaking_text[:60])
             return BargeOutcome(YIELD, reason="onset", level=level01, onset=True, gate_opened=True,
                                 onset_audio_ms=onset.onset_audio_ms,
-                                evidence_ms=onset.evidence_ms, margin_db=onset.margin_db)
+                                evidence_ms=onset.evidence_ms, margin_db=onset.margin_db,
+                                joint_suspect=joint)
         if self.pending_since <= 0.0:
             if not opened:
                 return BargeOutcome(IGNORED, reason="gate-closed", level=level01)
@@ -376,7 +382,7 @@ class BargeInController:
             self._clear_candidate()
             return BargeOutcome(HOLD, reason="uncertain", heard=heard, raw=raw, level=level01,
                                 source=decision.source, confidence=decision.confidence,
-                                degraded=decision.degraded)
+                                degraded=decision.degraded, joint_suspect=joint)
         own = decision.source == ECHO
         if (
             not own
@@ -397,11 +403,11 @@ class BargeInController:
             self._clear_candidate()
             return BargeOutcome(OWN_VOICE, heard=heard, raw=raw, level=level01,
                                 source=decision.source, confidence=decision.confidence,
-                                degraded=decision.degraded)
+                                degraded=decision.degraded, joint_suspect=joint)
         self.gate.reset()
         self._clear_candidate()
         self.speaking_since = 0.0
         return BargeOutcome(INTERRUPT, heard=heard, raw=raw, level=level01,
                             listening_seconds=self.clock() - started,
                             source=decision.source, confidence=decision.confidence,
-                            degraded=decision.degraded)
+                            degraded=decision.degraded, joint_suspect=joint)

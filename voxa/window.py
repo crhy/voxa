@@ -77,6 +77,8 @@ from .agent.tools.web import get_session  # noqa: E402
 from .anc import Aec3Canceller, EchoCanceller as AncCanceller, aec3_available  # noqa: E402
 from .audio import AudioCapture, AudioDevice, webrtc_available  # noqa: E402
 from .bargectl import BargeInController, HOLD, YIELD  # noqa: E402
+from .bargein import TurnStateMachine, decide_bargein  # noqa: E402, F401  (task-8 classifier names, used by voxa/turngate.py)
+from .turngate import LiveTurnDirector  # noqa: E402
 from .hearing import HearingDirector, HearingSample  # noqa: E402
 from .onset import level_dbfs, power_dbfs  # noqa: E402
 from .attribution import MIN_REFERENCE_POWER, SourceEvidence, attribute  # noqa: E402
@@ -368,6 +370,10 @@ class MainWindow(Adw.ApplicationWindow):
         # the text being spoken now / the piece before it (own-voice check). The decision
         # itself is voxa/bargectl.py, shared with the hearing bench.
         self._barge_ctl = BargeInController(trace=self._barge_trace)
+        # Roadmap task 8 (f174): the explicit turn states on the shipped chain. It reads the joint
+        # double-talk gate's suspect (f173) to duck her OWN stream, the candidate words to yield,
+        # and a false alarm to resume at the last word boundary. Pure/GTK-free (voxa/turngate.py).
+        self._turn = LiveTurnDirector(TurnStateMachine())
         # Task A3: the decision, the evidence windows and the candidate transcript run on the
         # hearing thread; this thread submits frames and receives decisions. The thread lives for
         # the window's whole life (it polls a bounded queue, idle when nothing is queued) so the
@@ -3050,6 +3056,7 @@ class MainWindow(Adw.ApplicationWindow):
     def _conversation_speak(self, text: str) -> None:
         typing.LAST_REPLY = text
         self._hearing.reply_started(text)
+        self._turn.note_reply(text)
         self.own_speech.started(text)
         if self.conversation is not None:
             self.conversation.mute()
@@ -3331,10 +3338,25 @@ class MainWindow(Adw.ApplicationWindow):
             # audio of this possible interruption cannot be trimmed away while the words are
             # still being judged (voxa/capture.py, handoff 6.4).
             self.conversation.note_onset(level_floor=self._barge_ctl.onset_level_floor())
+        # Roadmap task 8 (f174): the joint double-talk gate (f173) is the reversible-duck rule.
+        # Its suspect lowers Voxa's OWN stream (12 dB ramp, never the system volume, never the mic)
+        # and records the sample position; a frame the gate MEASURED as echo gives the floor back at
+        # the word boundary. A frame it could not measure (None, INDETERMINATE) changes nothing, so
+        # the degraded path is unchanged (handoff 6.5:233, brief design rule).
+        if outcome.joint_suspect is True:
+            self._turn.suspect(self.speech)
+        elif outcome.joint_suspect is False and self._turn.ducked:
+            self._turn.reject(self.speech)
         if outcome.action == "own-voice":
             if self.conversation is not None:
                 # Rejected, not deleted: the span stays for its evidence window.
                 self.conversation.note_rejected()
+            # Task 8 REJECT: this was her echo (or a backchannel), not a second source. Give the
+            # ducked floor back at the last word boundary and rewind the assistant context.
+            kept = self._turn.resume_turn(self.speech, spoken_reply=typing.LAST_REPLY,
+                                          played_words=self.own_speech.played_words())
+            if kept is not None:
+                self._conversation_history.truncate_last_assistant(kept)
         if outcome.action == HOLD:
             # The evidence did not decide: the pin stays open, nothing is stripped, and no
             # command runs from audio this weak (voxa/attribution.py, handoff 6.5).
@@ -3354,6 +3376,12 @@ class MainWindow(Adw.ApplicationWindow):
             self.speech.stop()
             self._discard_prefetched_reply()
             self._live_reset()
+            # Task 8 CONFIRM effect: the assistant context describes only the words she audibly
+            # played before the floor was taken (report 76:76).
+            kept = self._turn.yield_turn(self.speech, spoken_reply=typing.LAST_REPLY,
+                                         played_words=self.own_speech.played_words())
+            if kept is not None:
+                self._conversation_history.truncate_last_assistant(kept)
             if self.conversation is not None:
                 # The microphone opens now: the user must never have to repeat themselves, and
                 # the words still being spoken into it are the same utterance the pinned span
@@ -3368,6 +3396,12 @@ class MainWindow(Adw.ApplicationWindow):
         self.own_speech.finished()
         self.speech.stop()
         self._live_reset()
+        # Task 8 CONFIRM effect: the words of the interruption become the request, and the
+        # assistant turn is truncated to the words she audibly played before she stopped.
+        kept = self._turn.yield_turn(self.speech, spoken_reply=typing.LAST_REPLY,
+                                     played_words=self.own_speech.played_words())
+        if kept is not None:
+            self._conversation_history.truncate_last_assistant(kept)
         if self.conversation is not None:
             # The words of the interruption BECOME the request: the pinned span is handed to
             # the user turn once, and the microphone that opens next continues the same
@@ -4435,6 +4469,7 @@ class MainWindow(Adw.ApplicationWindow):
         piece = item_text or text
         if piece:
             self._hearing.reply_started(piece)
+            self._turn.note_reply(piece)
             self.own_speech.started(piece)
         else:
             # The evidence restarts per piece: speaker onset is the loudest moment.
