@@ -144,6 +144,68 @@ Two measurement notes that must be read with the table, not after it:
    (12.8 ms per second of audio, 0.078 of a core) - the arm any future chain should be measured
    against on cost.
 
+## The same arms handed Voxa's locked render-timeline delay (task f164, issue #72)
+
+H01's linear arms each search for the echo delay inside their own filter span (Voxa's NLMS via GCC-PHAT,
+AEC3 via the wheel's baked-in delay estimator, SpeexDSP MDF inside its own span - it cannot take a delay
+in this Debian build, `delay_ctl` is absent from its switch). f164 re-runs each of them with the delay
+handed to it: Voxa's own ExactAligner (h02) locks the render-timeline delay once from the
+`mic.wav`/`ref.wav` pair, and the bench hands that delay to the arm - a fractional `set_offset` read for
+Voxa's NLMS, and a reference-ring offset for the AEC3 and SpeexDSP wheels (the reference is re-timed
+*outside* the wheel, which has no delay knob, so the wheel only ever sees an already-aligned pair).
+Everything else is identical to the arms above. Regenerate:
+
+```
+/Voxa/.venv/bin/python3 -m voxa.bench run --suite full --seed 0 --echo-mode <mode> --out \
+  .voxa-bench/f164-<mode>-full.json --no-gates --quiet
+```
+for each of `voxa-locked`, `aec3-locked`, `speex-locked`, then
+`/Voxa/.venv/bin/python3 tools/hearing_frontier_table.py .voxa-bench/f164-<mode>-full.json`.
+
+### Full suite (480 clips, seed 0)
+
+| mode | erle_fst_median_db (dB) | erle_fst_p10_db (dB) | nearend_atten_dt_db (dB) | echo_leak_word_rate (frac) | dt_wer_penalty_pts (pts) | user_recall_nst (frac) | delay_est_err_ms (ms) | cpu_core_share (cores) | erle_music_loss_db (dB) | echo_ms_per_audio_s | echo_core_share | this machine |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| voxa-locked | 7.62 [6.75, 8.44] | -4.76 [-5.07, -4.45] | 9.33 [8.35, 10.35] | 0.1968 [0.1845, 0.2082] | 125.93 [108.90, 144.40] | 0.9507 [0.9351, 0.9640] | 0.0727 [0.0707, 0.0752] | 0.0822 [0.0794, 0.0852] | unmeasured | 81.4 | 0.355 | Voxa's NLMS + ExactAligner locked delay (reference read at the locked offset, span covers the room tail) |
+| aec3-locked | 5.17 [4.50, 6.03] | -5.26 [-5.50, -4.98] | 12.12 [10.46, 13.99] | 0.1488 [0.1387, 0.1597] | 143.03 [106.17, 189.01] | 0.9267 [0.9075, 0.9447] | 0.0727 [0.0707, 0.0752] | 0.0479 [0.0467, 0.0492] | unmeasured | 48.6 | 0.265 | WebRTC AEC3 wheel fed Voxa's locked render-timeline delay (reference re-timed outside the wheel, span covers the room tail) |
+| speex-locked | 7.00 [6.75, 7.25] | 1.40 [1.32, 1.49] | 1.53 [1.07, 1.95] | 0.3243 [0.3096, 0.3384] | 136.54 [89.32, 208.68] | 0.9507 [0.9351, 0.9640] | 0.0727 [0.0707, 0.0752] | 0.0286 [0.0279, 0.0294] | unmeasured | 28.5 | 0.178 | libspeexdsp MDF fed Voxa's locked render-timeline delay (reference re-timed outside the MDF, its delay_ctl absent in this Debian build) |
+
+### Smoke (52 clips, seed 0) - the fast arm check
+
+| mode | erle_fst_median_db (dB) | erle_fst_p10_db (dB) | nearend_atten_dt_db (dB) | echo_leak_word_rate (frac) | dt_wer_penalty_pts (pts) | user_recall_nst (frac) | delay_est_err_ms (ms) | cpu_core_share (cores) | erle_music_loss_db (dB) | echo_ms_per_audio_s | echo_core_share | this machine |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| voxa-locked | 15.87 [14.05, 16.78] | -1.44 [-2.86, -0.06] | 6.72 [4.38, 9.62] | 0.0992 [0.0635, 0.1349] | 128.11 [70.04, 202.02] | 0.9545 [0.9091, 0.9909] | 0.0649 [0.0584, 46.4126] | 0.0745 [0.0643, 0.0840] | unmeasured | 64.8 | 0.261 | Voxa's NLMS + ExactAligner locked delay (reference read at the locked offset, span covers the room tail) |
+| aec3-locked | 15.76 [10.90, 18.25] | -4.09 [-5.10, -3.31] | 16.62 [10.55, 22.90] | 0.0556 [0.0278, 0.0873] | 117.29 [61.92, 202.50] | 0.9091 [0.8545, 0.9545] | 0.0649 [0.0584, 46.4126] | 0.0437 [0.0393, 0.0480] | unmeasured | 41.1 | 0.203 | WebRTC AEC3 wheel fed Voxa's locked render-timeline delay (reference re-timed outside the wheel, span covers the room tail) |
+| speex-locked | 6.20 [5.74, 6.75] | 1.26 [1.12, 1.59] | 0.8685 [-0.5045, 2.1173] | 0.2500 [0.2024, 0.3016] | 147.07 [52.14, 306.56] | 0.9455 [0.9000, 0.9818] | 0.0649 [0.0584, 46.4126] | 0.0273 [0.0246, 0.0297] | unmeasured | 25.6 | 0.139 | libspeexdsp MDF fed Voxa's locked render-timeline delay (reference re-timed outside the MDF, its delay_ctl absent in this Debian build) |
+
+### What the locked delay does (full suite, locked vs the h01 arm above it)
+
+Handing each linear arm the delay it would otherwise have to search for changes all three, in three
+different directions:
+
+* **SpeexDSP is the winner, and it closes exactly the gap h01 named.** Median echo removal
+  2.14 -> **7.00 dB** (and `erle_fst_p10` 0.62 -> **1.40 dB**, now positive on every clip band), leak
+  0.4669 -> 0.3243, while near-end preservation stays safe: `nearend_atten_dt_db` -0.59 -> 1.53 dB,
+  recall still 0.9507. With Voxa's delay given to it, SpeexDSP's MDF stops flailing inside its own
+  filter span and starts cancelling; at 28.5 ms per second of audio (0.178 of a core) it is now a real
+  linear arm rather than only the near-end-safe end of the trade.
+* **AEC3 spends echo removal to buy back the user.** Median echo removal collapses 31.43 -> **5.17 dB**
+  and leak worsens 0.0498 -> 0.1488, but the user-attenuation that made AEC3 a non-candidate halves:
+  24.96 -> **12.12 dB**. With the reference already at the locked offset the wheel's baked-in delay
+  estimator is no longer the thing holding the pair together, and the near-end damage it leaned on
+  mostly goes away. This is the lower bound on a wheel-fed AEC3 that h01 warned about, not the ceiling:
+  `aec3full` (EchoCanceller3Config reachable) is still the row that would reclaim the echo removal.
+* **Voxa's own NLMS barely moves** (6.92 -> 7.62 dB median, leak 0.1911 -> 0.1968) because it already
+  tracked this delay via GCC-PHAT; the change is `delay_est_err_ms` 9.29 -> **0.0727 ms**, now the
+  ExactAligner's lock rather than the canceller's own tracker, and the cost rises 65.6 -> 81.4 ms per
+  second of audio (0.118 -> 0.355 of a core) because the lock runs an extra full-correlation pass.
+
+* Smoke again agrees on ordering (voxa-locked and aec3-locked near-identical ~15.8 dB median,
+  speex-locked lowest) but flatters the numbers exactly as above; the full suite is what to quote.
+* `delay_est_err_ms` is now the *same* number for all three locked arms (0.0727 ms) because the delay
+  is no longer each arm's own estimate - it is ExactAligner's single lock, handed to every arm. It is
+  no longer an arm-vs-arm figure at all here; it measures the lock.
+
 ## Frozen-file note
 
 `voxa/bench/render.py`, `voxa/bench/metrics.py` and the clip set are untouched by this task; no
