@@ -748,6 +748,25 @@ class ClipRunner:
             # level_ratio is left to bargectl: it is the one that knows the level of the sound
             # that OPENED the gate, not of the frame that happens to do the judging.
         )
+        # Roadmap task 7 (f175): mirror the LIVE path (voxa/window.py::_hearing_evidence) exactly:
+        # the word-timed overlap is ONE capped weight on the SAME evidence the joint verdicts
+        # ride, computed from the last candidate the pipeline transcribed (its words carry the
+        # capture ring's own arrival anchor). The degraded path is unchanged: no candidate words
+        # or no played timeline -> no share, exactly as live.
+        if self._playback_words and not self._timeline_fed and self._delay_frac:
+            # Feed the timeline as soon as the LOCKED delay exists - before any candidate needs
+            # it - so the evidence weight sees spans in microphone time from the first frame.
+            self._feed_playback_timeline()
+        if self.conversation is not None and self.own_speech.played_words():
+            words = getattr(self.conversation, "last_candidate_words", None)
+            base = getattr(self.conversation, "last_candidate_span_start", None)
+            if words and base is not None:
+                timed = self.own_speech.timed_overlap(
+                    [(w["word"], base + float(w["onset_s"]),
+                      base + float(w["offset_s"])) for w in words],
+                    window_ms=self._word_window_ms,
+                )
+                evidence.word_timed_overlap = timed["share"]
         self.last_evidence = evidence
         return evidence
 
@@ -757,6 +776,21 @@ class ClipRunner:
         ``candidate_text`` (conversation.py:585) transcribes the rolling window and consumes it.
         """
         heard = self.conversation.candidate_text()
+        # Roadmap task 7 (f175): the fresh candidate also refreshes the word-timed weight on
+        # the evidence bargectl is about to judge (the same object this frame's _evidence
+        # returned): a word that lands while her speakers were audible reading THAT word is
+        # echo EVIDENCE - one capped weight, never a decision, and joint None keeps the
+        # degraded path exactly as it was.
+        if self.last_evidence is not None and self.own_speech.played_words():
+            base = self.conversation.last_candidate_span_start
+            words = self.conversation.last_candidate_words
+            if words and base is not None:
+                timed = self.own_speech.timed_overlap(
+                    [(w["word"], base + float(w["onset_s"]),
+                      base + float(w["offset_s"])) for w in words],
+                    window_ms=self._word_window_ms,
+                )
+                self.last_evidence.word_timed_overlap = timed["share"]
         return heard, self.conversation.last_candidate_raw
 
     def _feed_playback_timeline(self) -> None:
