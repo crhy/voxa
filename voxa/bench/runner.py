@@ -43,7 +43,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ..align import ExactAligner
+from ..align import ExactAligner, ExactDelayLock
 from ..anc import (MIN_REFERENCE_POWER, Aec3Canceller, EchoCanceller,
                    aec3_available, estimate_delay)
 from ..audio import AudioCapture, ReferenceRing, mix_chunk, webrtc_available
@@ -216,6 +216,7 @@ class ClipRunner:
         self._delay_samples = 0
         self._delay_frac = 0.0  # Hearing 2: the fractional locked delay (the read offset)
         self._aligner: ExactAligner | None = None  # Hearing 2: exact lock, mode voxa
+        self._delay_lock: ExactDelayLock | None = None  # f168: the shipping lock (mode voxa)
         # f164: speex-locked / aec3-locked take Voxa's locked bulk delay as a reference-ring offset
         # (their own delay search then only refines the room tail); voxa-locked uses set_offset instead.
         self._ref_offset_lock = False
@@ -306,12 +307,14 @@ class ClipRunner:
                 # filter spans 256 ms (taps) and the step runs fast enough to track the +-200 ppm
                 # read-point movers inside one clip (mu).
                 self.canceller = EchoCanceller(taps=4096, mu=0.7)
-                # Hearing 2 (task h02): Voxa's own render timeline makes the echo delay KNOWN, so
-                # it is LOCKED, not re-estimated every 0.5 s. The ExactAligner predicts from the
-                # render clock + reported latencies, refines sub-sample only around the prediction,
-                # and holds the lock on a drift line (the fractional-delay resampler). The canceller
-                # reads its reference at the locked fractional offset; the filter is never rebuilt.
-                self._aligner = ExactAligner(sample_rate=SR)
+                # Hearing 2 (task h02), shipped into production by f168: Voxa's own render
+                # timeline makes the echo delay KNOWN, so it is LOCKED, not re-estimated every
+                # 0.5 s. The bench now measures the SAME shipping path AudioCapture runs:
+                # ExactDelayLock (voxa/align.py) re-points the canceller's reference from the
+                # proven lock, and only while the lock cannot prove itself does the honest
+                # DelayTracker estimate keep it pointed (visible degraded, never raw audio).
+                self._delay_lock = ExactDelayLock(sample_rate=SR, canceller=self.canceller)
+                self._aligner = self._delay_lock.aligner
             self._delay_done = False
         elif self.echo_mode == "webrtc":
             if not webrtc_available():
@@ -442,8 +445,31 @@ class ClipRunner:
         """Hearing 2 (task h02): lock the echo delay from the render timeline, refine it sub-sample
         only around the prediction, and hold it on the drift line (the fractional-delay resampler).
         The canceller keeps its filter: its reference is read at the locked fractional offset every
-        frame - never re-estimated per sentence, never rebuilt."""
+        frame - never re-estimated per sentence, never rebuilt.
+
+        f168: mode ``voxa`` runs the SHIPPING lock (:class:`voxa.align.ExactDelayLock`): the lock
+        itself - proven or falling back to the estimate - re-points the canceller, exactly as
+        ``AudioCapture._maybe_estimate_delay`` does, so the ``voxa`` row of the frontier is
+        production's number and not a private arm. The ``*-locked`` comparison arms (f164) keep
+        the bare :class:`ExactAligner` handed to them per frame."""
         if self._aligner is None or self.ref_ring is None or ref.size == 0:
+            return
+        if self._delay_lock is not None:
+            self._delay_lock.observe(self._now, mic01, ref)
+            locked = self._delay_lock.delay_frac
+            if locked is None:
+                return
+            self._delay_frac = float(locked)
+            coarse = int(round(locked))
+            if self._delay_samples != coarse:
+                self._delay_samples = coarse
+                self.emit("delay-estimate", delay_samples=coarse,
+                          delay_ms=round(coarse / SR * 1000.0, 1),
+                          kind="epoch" if self._aligner.epochs else "lock",
+                          drift_ppm=round(self._aligner.drift_ppm, 1),
+                          offset_samples=round(locked, 2),
+                          degraded=bool(self._delay_lock.degraded),
+                          confidence=round(self._aligner.confidence, 3))
             return
         self._aligner.observe(self._now, mic01, ref)
         locked = self._aligner.locked_delay

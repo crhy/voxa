@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from voxa.align import ExactAligner
+from voxa.align import ExactAligner, ExactDelayLock
+from voxa.anc import EchoCanceller
 
 SR = 16000
 CHUNK = SR * 20 // 1000  # the 20 ms frame the runner observes
@@ -235,3 +236,88 @@ def test_step_on_a_quiet_signal_reanchors_without_lying():
         assert not wrong, (ser_db, wrong)
         late = [locked for t, locked, refined in frames if refined and t > 2.8]
         assert late and all(abs(locked - 850.0) <= 12.0 for locked in late), ser_db
+
+
+# ---------------------------------------------------------------------------
+# 8. f168: the SHIPPING lock (:class:`voxa.align.ExactDelayLock`) - the lock drives the
+#    canceller while proven, the estimate keeps it pointed while NOT (visible degraded),
+#    and a route/rate change is an explicit epoch.
+# ---------------------------------------------------------------------------
+
+
+def _feed(lock: ExactDelayLock, ref: np.ndarray, mic: np.ndarray) -> list[str]:
+    """Feed mic/ref in 20 ms chunks through the lock, return the applied states."""
+    states = []
+    for lo in range(0, len(ref), CHUNK):
+        hi = lo + CHUNK
+        states.append(lock.observe(hi / SR, mic[lo:hi], ref[lo:hi]))
+    return states
+
+
+def test_shipping_lock_points_the_canceller_while_proven():
+    ref = broadband(2 * SR)
+    mic = np.convolve(echo_at(ref, lambda t: 500.0), room(21))[: len(ref)]
+    canceller = EchoCanceller(sample_rate=SR, taps=2048, mu=0.7)
+    lock = ExactDelayLock(sample_rate=SR, canceller=canceller)
+    states = _feed(lock, ref, mic)
+    assert "lock" in states
+    assert not lock.degraded                      # the LAST state was the lock: not degraded
+    assert lock.delay_confident and lock.delay_samples > 0
+    assert abs(lock.delay_samples - 500.0) <= 6.0  # the canceller got the LOCK's offset
+    assert canceller.delay_samples == lock.delay_samples
+
+
+def test_route_change_epoch_reanchors_the_lock_and_estimate_together():
+    ref = broadband(2 * SR)
+    mic = np.convolve(echo_at(ref, lambda t: 500.0), room(22))[: len(ref)]
+    lock = ExactDelayLock(sample_rate=SR)
+    _feed(lock, ref, mic)
+    assert lock.delay_confident
+    lock.epoch()  # an explicit route/rate change, like voxa.audio mode switches do
+    assert not lock.delay_confident               # nothing is proven since the epoch
+    assert lock.delay_frac is None and lock.delay_samples == 0
+    # a fresh epoch re-anchors (bounded search then refine) - it never lies about being proven
+    states = _feed(lock, ref, mic)
+    assert states[0] == "hold"                    # buffer too short to lock on the first frame
+    assert "lock" in states
+    assert abs(lock.delay_samples - 500.0) <= 6.0
+
+
+def test_lock_survives_a_mid_clip_step_as_an_epoch():
+    ref = broadband(6 * SR)
+    mic = np.convolve(echo_at(ref, lambda t: np.where(t < 2.0, 600.0, 1500.0)),
+                      room(23))[: len(ref)]
+    lock = ExactDelayLock(sample_rate=SR)
+    _feed(lock, ref, mic)
+    assert lock.aligner.epochs >= 1               # the step re-anchored the lock
+    assert lock.delay_confident                   # and re-proved itself after the step
+    assert abs(lock.delay_samples - 1500.0) <= 6.0
+    assert not lock.degraded                      # the lock (not the estimate) is driving
+
+
+def test_fallback_estimate_is_visible_while_the_lock_is_unproven():
+    # The aligner is made unable to prove the path (coherence gate shut); the canceller must
+    # STILL be pointed by the shipping estimate, visibly degraded - never left blind, never
+    # raw - and the lock's confidence stays False honestly.
+    ref = broadband(2 * SR)
+    mic = np.convolve(echo_at(ref, lambda t: 500.0), room(24))[: len(ref)]
+    canceller = EchoCanceller(sample_rate=SR, taps=2048, mu=0.7)
+    lock = ExactDelayLock(sample_rate=SR, canceller=canceller)
+    lock.aligner = ExactAligner(coherence_min=0.999)  # the lock can never prove itself
+    states = _feed(lock, ref, mic)
+    assert "estimate" in states and "lock" not in states
+    assert lock.degraded and not lock.delay_confident
+    assert abs(canceller.delay_samples - 500.0) <= 8.0  # the estimate kept it pointed
+
+
+def test_confidence_fields_never_crash_on_silence_or_near_end_only():
+    lock = ExactDelayLock(sample_rate=SR)
+    states = _feed(lock, np.zeros(SR), np.zeros(SR))     # pure silence
+    assert states and set(states) == {"hold"}
+    assert lock.delay_frac is None and not lock.delay_confident
+    assert lock.delay_samples == 0 and not lock.degraded
+    rng = np.random.default_rng(25)
+    user = rng.standard_normal(SR) * 0.1                 # the user speaks, no echo anywhere
+    states = _feed(lock, user, user)
+    assert set(states) <= {"hold", "estimate", "lock"}
+    assert np.isfinite(lock.drift_ppm)

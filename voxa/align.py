@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from .anc import SILENT_REFERENCE_POWER, gccphat_delay
+from .anc import SILENT_REFERENCE_POWER, DelayTracker, gccphat_delay
 
 COHERENCE_MIN = 0.12  # overlap correlation at the locked lag: echo present, not a near-end accident
 
@@ -320,3 +320,79 @@ class ExactAligner:
             self._t_locked = self._t_now
             self.confidence = 0.5 * self.confidence
         return self.locked_delay
+
+
+class ExactDelayLock:
+    """The shipping wiring of the exact delay (issue #72, task f168): lock, honest fallback.
+
+    Production capture (``voxa.audio.AudioCapture``) and the bench's ``voxa`` echo mode now
+    drive the canceller's reference through ONE component, so the bench measures the shipping
+    path instead of a private arm:
+
+    * while the :class:`ExactAligner` lock is proven (refined inside its narrow window on
+      consecutive frames), the canceller is re-pointed at the locked fractional offset -
+      :meth:`voxa.anc.EchoCanceller.set_offset` anchors are the drift resampler, so the filter,
+      convergence and double-talk state never rebuild, per sentence or otherwise;
+    * while the lock cannot prove itself, the shipping :class:`voxa.anc.DelayTracker` estimate
+      keeps the reference pointed and ``degraded`` is visible to the app: the canceller is never
+      left blind and the microphone is never silently passed through raw;
+    * :meth:`epoch` is the explicit route/rate-change reset. A sentence's silence and echo tail
+      never are: the lock holds on its drift line and the estimate stays open across the pauses.
+
+    ``observe`` returns the state it applied - "lock", "estimate" or "hold" - so the caller can
+    log the transition exactly once instead of smearing it into the steady-state stream.
+    """
+
+    def __init__(self, sample_rate: int = 16000, canceller=None) -> None:
+        self._sr = int(sample_rate)
+        self.canceller = canceller
+        self.aligner = ExactAligner(sample_rate=self._sr)
+        self.tracker = DelayTracker(sample_rate=self._sr)
+        self.degraded = False  # the estimate (not the lock) last re-pointed the canceller
+        self.applied = False   # any offset has ever been fed to the canceller
+
+    def epoch(self) -> None:
+        """An explicit route/rate change: re-anchor the lock and the estimate together."""
+        self.aligner = ExactAligner(sample_rate=self._sr)
+        self.tracker = DelayTracker(sample_rate=self._sr)
+        self.degraded = False
+        self.applied = False
+
+    @property
+    def delay_frac(self) -> float | None:
+        """The locked reference read offset in samples (fractional), or None before any lock."""
+        return self.aligner.locked_delay
+
+    @property
+    def delay_samples(self) -> int:
+        """The integer offset the stages and metrics report (0 = never aligned)."""
+        return self.aligner.delay_samples
+
+    @property
+    def delay_confident(self) -> bool:
+        """True only while the lock has refined inside its narrow window (never on a guess)."""
+        return bool(self.aligner.refined)
+
+    @property
+    def drift_ppm(self) -> float:
+        return self.aligner.drift_ppm
+
+    def observe(self, t_s: float, mic, ref) -> str:
+        """Feed one aligned (microphone, reference) frame sampled at ``t_s``; re-point the
+        canceller's reference through the lock when proven, the estimate when not."""
+        self.aligner.observe(t_s, mic, ref)
+        if self.aligner.refined and self.aligner.locked_delay is not None:
+            locked = float(self.aligner.locked_delay)
+            if self.canceller is not None:
+                self.canceller.set_offset(int(round(locked)), 0.0, locked, 0.0, locked)
+            self.degraded = False
+            self.applied = True
+            return "lock"
+        update = self.tracker.observe(mic, np.asarray(ref, dtype=np.float32))
+        if update is not None:
+            if self.canceller is not None:
+                self.canceller.set_offset(update["delay_samples"], *update["anchors"])
+            self.degraded = True
+            self.applied = True
+            return "estimate"
+        return "hold"

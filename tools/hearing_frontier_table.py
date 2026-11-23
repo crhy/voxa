@@ -7,6 +7,12 @@ voxa/bench/metrics.py computed them, plus the mode's own latency and dependency 
 
 usage: tools/hearing_frontier_table.py [report.json ...]
        (default: .voxa-bench/frontier-*-full.json, then frontier-*-smoke.json)
+
+f168: a report whose mode NAME would collide with a row already in the table (the shipping
+``voxa`` mode now IS the exact lock - one mode, one row per run) can be labeled for the
+table with ``--label``: the row prints that label instead of the report's ``echo_mode``
+(e.g. ``--label "voxa (shipping lock)"``), keeping the numbers machine-generated while the
+frontier can compare them against the f164 ``voxa-locked`` comparison arm.
 """
 
 from __future__ import annotations
@@ -58,9 +64,9 @@ def dependency_size(report: dict) -> str:
     return "" if sizes is None else json.dumps(sizes, sort_keys=True)
 
 
-def row(path: Path) -> str:
+def row(path: Path, label: str | None = None) -> str:
     report = json.loads(path.read_text())
-    mode = report.get("echo_mode", path.stem.split("-")[1])
+    mode = label or report.get("echo_mode", path.stem.split("-")[1])
     cells = [fmt(report.get("metrics", {}).get(m)) for m in METRICS]
     per_audio_ms, core_share = latency_ms(report)
     probe = report.get("run", {}).get("echo_mode_probe", {}).get(mode, {})
@@ -71,6 +77,10 @@ def row(path: Path) -> str:
 
 
 def main(argv: list[str]) -> int:
+    label = None
+    if argv[1:2] == ["--label"]:
+        label = argv[2]
+        argv = [argv[0]] + argv[3:]
     paths = [Path(a) for a in argv[1:]]
     if not paths:
         paths = sorted(glob.glob(".voxa-bench/frontier-*-full.json"))
@@ -81,7 +91,7 @@ def main(argv: list[str]) -> int:
     print(header)
     print("|" + "---|" * (len(METRICS) + 3))
     for path in paths:
-        print(row(path))
+        print(row(path, label))
     return 0
 
 

@@ -9,7 +9,8 @@ from typing import Any
 
 import numpy as np
 
-from .anc import (Aec3Canceller, DelayTracker, EchoCanceller, aec3_available, claim_aec_owner,
+from .align import ExactDelayLock
+from .anc import (Aec3Canceller, EchoCanceller, aec3_available, claim_aec_owner,
                   estimate_delay,
                   release_aec_owner)
 from .timeline import CaptureClock, RenderTimeline
@@ -234,7 +235,9 @@ class AudioCapture:
         self._delay_done = True
         self._delay_mic: list = []
         self._delay_ref: list = []
-        self._delay_tracker: DelayTracker | None = None
+        self._delay_lock: ExactDelayLock | None = None
+        self._delay_lock_logged = False   # the exact lock's first success: logged once
+        self._delay_degraded_logged = False  # the fallback estimate taking over: logged once
         self._start_args: tuple | None = None
         # Roadmap task 2: the device the microphone is on and the device the sound goes out on.
         # Different devices mean different clocks, which is what AEC3's drift handling wants to know.
@@ -353,7 +356,7 @@ class AudioCapture:
         self._delay_done = self.canceller is None
         self._delay_mic = []
         self._delay_ref = []
-        self._delay_tracker = None  # a fresh capture or mode change is an explicit epoch
+        self._delay_lock = None  # a fresh capture or mode change is an explicit epoch
         self._ref_ring = (ReferenceRing(REFERENCE_SECONDS * REFERENCE_RATE)
                            if (self.reference_source or self.own_reference) else None)
         if self.reference_source:
@@ -579,7 +582,7 @@ class AudioCapture:
         self._delay_done = True
         self._delay_mic = []
         self._delay_ref = []
-        self._delay_tracker = None  # a fresh capture or mode change is an explicit epoch
+        self._delay_lock = None  # a fresh capture or mode change is an explicit epoch
         self._ref_ring = None
         self.pipeline = pipeline
         # One AEC owner: the GStreamer DSP owns the echo path for as long as this pipeline lives.
@@ -685,12 +688,16 @@ class AudioCapture:
         return cleaned
 
     def _maybe_estimate_delay(self, pcm: bytes) -> None:
-        """Track the echo delay and the clock drift continuously (roadmap task 3).
+        """Track the echo delay and the clock drift continuously (roadmap task 3), through
+        the exact lock issue #72/task f168 shipped: the render timeline's :class:`ExactAligner`
+        lock (roadmap Hearing 2) drives the canceller's reference while it is proven, and the
+        task-3 estimate (:class:`voxa.anc.DelayTracker`) keeps it pointed while it is not -
+        visibly degraded, never silently.
 
-        A GCC-PHAT over the first 0.5 s of every TTS utterance gives the coarse offset,
-        re-estimated every 0.5 s after that: the slope of the estimates is the clock drift in
-        ppm (above 50 ppm the drift flag latches and the interpolated offsets resample the
-        reference), and an abrupt jump is an explicit epoch the drift never sees. The
+        The GCC-PHAT fallback over the first 0.5 s of every TTS utterance gives the coarse
+        offset, re-estimated every 0.5 s after that: the slope of the estimates is the clock
+        drift in ppm (above 50 ppm the drift flag latches and the interpolated offsets resample
+        the reference), and an abrupt jump is an explicit epoch the drift never sees. The
         canceller NEVER rebuilds per sentence: only its reference offset is re-pointed, its
         filter, convergence and double-talk state carry across utterances."""
         if self._delay_done:
@@ -701,20 +708,31 @@ class AudioCapture:
             # is done: nothing to build, AEC3 is never replaced by the NLMS canceller.
             self._delay_done = True
             return
-        if self._delay_tracker is None:
-            self._delay_tracker = DelayTracker(sample_rate=REFERENCE_RATE)
+        if self._delay_lock is None:
+            self._delay_lock = ExactDelayLock(
+                sample_rate=REFERENCE_RATE, canceller=self.canceller)
         window = self._reference_window(len(pcm) // 2)
         if window is None:
             return
         mic = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
-        update = self._delay_tracker.observe(mic, np.asarray(window, dtype=np.float32))
-        if update is None:
-            return
-        self.canceller.set_offset(update["delay_samples"], *update["anchors"])
-        if update["kind"] != "track":
-            log.info("echo delay %s: %d samples (%.3f s), drift %.1f ppm", update["kind"],
-                     update["delay_samples"], update["delay_samples"] / REFERENCE_RATE,
-                     update["drift_ppm"])
+        update = self._delay_lock.observe(
+            self._mic_counter / REFERENCE_RATE, mic, np.asarray(window, dtype=np.float32))
+        if update == "lock":
+            if not self._delay_lock_logged:
+                log.info("echo delay: exact lock at %.3f ms (drift %.1f ppm)",
+                         float(self._delay_lock.delay_frac) / REFERENCE_RATE * 1000.0,
+                         self._delay_lock.drift_ppm)
+                self._delay_lock_logged = True
+        elif update == "estimate":
+            if not self._delay_degraded_logged:
+                log.info("echo delay: exact lock not yet confident; the estimated delay "
+                         "drives the reference (degraded: lock unproven, never raw audio)")
+                self._delay_degraded_logged = True
+            est = self._delay_lock.tracker.last_update
+            if est is not None and est["kind"] != "track":
+                log.info("echo delay %s: %d samples (%.3f s), drift %.1f ppm", est["kind"],
+                         est["delay_samples"], est["delay_samples"] / REFERENCE_RATE,
+                         est["drift_ppm"])
 
     @staticmethod
     def _rms(pcm: bytes) -> float:
@@ -766,6 +784,22 @@ class AudioCapture:
         """The delay the echo path was fitted with (0 = never estimated: alignment unhealthy)."""
         return self.canceller.delay_samples if self.canceller is not None else 0
 
+    @property
+    def delay_frac(self) -> float:
+        """The fractional reference read offset the lock holds (0.0 = never locked)."""
+        return float(self._delay_lock.delay_frac) if (
+            self._delay_lock is not None and self._delay_lock.delay_frac is not None) else 0.0
+
+    @property
+    def delay_confident(self) -> bool:
+        """True only while the exact lock has proven itself (never on the fallback estimate)."""
+        return bool(self._delay_lock is not None and self._delay_lock.delay_confident)
+
+    @property
+    def delay_degraded(self) -> bool:
+        """True while the reference is driven by the estimate because the lock is unproven."""
+        return bool(self._delay_lock is not None and self._delay_lock.degraded)
+
     def stop(self) -> None:
         gst = _ensure_gstreamer() if (self.pipeline is not None or self._ref_pipeline is not None) else None
         pipeline, self.pipeline = self.pipeline, None
@@ -804,7 +838,7 @@ class AudioCapture:
             self._delay_done = True
             self._delay_mic = []
             self._delay_ref = []
-            self._delay_tracker = None  # a mode change is an explicit epoch
+            self._delay_lock = None  # a mode change is an explicit epoch
             self._ref_ring = None
             self._ref_anchor = None
             if self._ref_pipeline is not None:
@@ -824,7 +858,7 @@ class AudioCapture:
             self._delay_done = True
             self._delay_mic = []
             self._delay_ref = []
-            self._delay_tracker = None  # a mode change is an explicit epoch
+            self._delay_lock = None  # a mode change is an explicit epoch
             self._ref_ring = None
             self._ref_anchor = None
             if self._ref_pipeline is not None:
@@ -846,7 +880,7 @@ class AudioCapture:
             self._delay_done = False
             self._delay_mic = []
             self._delay_ref = []
-            self._delay_tracker = None  # a mode change is an explicit epoch
+            self._delay_lock = None  # a mode change is an explicit epoch
             self._ref_ring = None
             return
         if self._ref_ring is None:
@@ -857,4 +891,4 @@ class AudioCapture:
         self._delay_done = False
         self._delay_mic = []
         self._delay_ref = []
-        self._delay_tracker = None  # a fresh capture or mode change is an explicit epoch
+        self._delay_lock = None  # a fresh capture or mode change is an explicit epoch

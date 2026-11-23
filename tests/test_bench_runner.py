@@ -308,3 +308,75 @@ def test_barge_in_decision_rejects_her_own_words_and_takes_offline_words_serious
     open_the_gate(control, clock, "Voxa, go offline")
     offline = judge(control, clock, 0.65, "Voxa, go offline")
     assert offline.action == OFFLINE
+
+
+# --------------------------------------------------------------------------- f168: the voxa mode
+# measures the SHIPPING path (voxa.align.ExactDelayLock), and the f164 locked arms stay as
+# the comparison. On a synthetic clip with a known bulk delay + clock drift the two must
+# hand the canceller the SAME locked delay, frame for frame.
+
+def _broadband(n: int, seed: int) -> np.ndarray:
+    """A broadband reference: a delay cannot be measured from pure tones."""
+    rng = np.random.default_rng(seed)
+    white = rng.standard_normal(n)
+    spec = np.fft.rfft(white)
+    freqs = np.fft.rfftfreq(n, 1 / 16000.0)
+    spec *= 1.0 / np.sqrt(1.0 + (freqs / 1500.0) ** 2)
+    ref = np.fft.irfft(spec, n)
+    return (0.5 * ref / np.max(np.abs(ref))).astype(np.float64)
+
+
+def _room(seed: int, tail_s: float = 0.02) -> np.ndarray:
+    """Room impulse response: a direct spike then a decaying tail."""
+    rng = np.random.default_rng(seed)
+    n = int(tail_s * 16000)
+    tail = rng.standard_normal(n) * np.exp(-np.arange(n) / (0.008 * 16000))
+    h = 0.3 * tail / np.sqrt(np.sum(tail ** 2))
+    h[0] += 1.0
+    return h.astype(np.float64)
+
+
+def _echo_at(ref: np.ndarray, delay_fn) -> np.ndarray:
+    """ref delayed by ``delay_fn(t_seconds)`` samples (linear interp -> fractional lag)."""
+    n = len(ref)
+    t = np.arange(n) / 16000.0
+    idx = np.arange(n, dtype=np.float64) - np.asarray(delay_fn(t), dtype=np.float64)
+    return np.interp(idx, np.arange(n, dtype=np.float64), ref, left=0.0, right=0.0)
+
+
+def test_the_voxa_mode_runs_the_shipping_lock_and_matches_the_locked_arm(tmp_path: Path) -> None:
+    """f168: mode ``voxa`` is production's path (lock drives the canceller while proven, the
+    estimate is only the honest fallback), and it must land the known delay as precisely as
+    the ``voxa-locked`` arm - same lock, same numbers, no private bench alignment."""
+    root = tmp_path / "data"
+
+    def delay(t):  # 100 ms bulk delay + 300 ppm clock drift: known ground truth
+        return 1600.0 + 300.0 / 1e6 * 16000 * t
+
+    ref_src = _broadband(int(3.0 * 16000), 8)
+    mic = np.convolve(_echo_at(ref_src, delay), _room(9))[: len(ref_src)]
+    rng = np.random.default_rng(10)
+    user = np.zeros(len(ref_src))
+    user[int(1.6 * 16000):] = 0.05 * rng.standard_normal(len(ref_src) - int(1.6 * 16000))
+    clip_dir = write_clip(root, "lock", "lock-0000-echo-00",
+                          (mic + user).astype(np.float32), ref_src.astype(np.float32), {
+                              "id": "lock-0000-echo-00", "scenario": "echo", "expect": "keep",
+                              "playback": {"text": "The weather is clear today.",
+                                           "onset_s": 0.0, "offset_s": 3.0}})
+    loaded = load_clip(clip_dir)
+
+    errors = {}
+    for mode in ("voxa", "voxa-locked"):
+        runner = ClipRunner(asr=StubASR(), echo_mode=mode, wake_word="voxa")
+        summary = runner.run(loaded["mic"], loaded["ref"], loaded["truth"])
+        assert summary["echo_mode"] == mode
+        frames = [event for event in events_of(runner, "frame") if event.get("delay_confident")]
+        assert frames, mode
+        est = np.array([event["delay_samples"] for event in frames], dtype=np.float64)
+        truth = np.array([delay(event["t_s"]) for event in frames], dtype=np.float64)
+        errors[mode] = est - truth
+        assert max(abs(errors[mode])) <= 5.0, (mode, max(abs(errors[mode])))  # <= 0.31 ms
+        assert events_of(runner, "delay-estimate"), mode
+    # the shipping path locks the delay exactly like the comparison arm: identical frames
+    assert len(errors["voxa"]) == len(errors["voxa-locked"])
+    assert np.array_equal(errors["voxa"], errors["voxa-locked"])
