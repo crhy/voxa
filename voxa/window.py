@@ -81,7 +81,7 @@ from .bargein import TurnStateMachine, decide_bargein  # noqa: E402, F401  (task
 from .turngate import LiveTurnDirector  # noqa: E402
 from .hearing import HearingDirector, HearingSample  # noqa: E402
 from .onset import level_dbfs, power_dbfs  # noqa: E402
-from .attribution import MIN_REFERENCE_POWER, SourceEvidence, attribute  # noqa: E402
+from .attribution import ECHO, MIN_REFERENCE_POWER, SourceEvidence, attribute  # noqa: E402
 from .attribution import EchoPathBaseline as _EchoPathBaseline  # noqa: E402
 from .voicedetect import (SPEECH_PLAYBACK_THRESHOLD, DoubleTalkGate,  # noqa: E402
                           VoiceDetector)
@@ -2630,6 +2630,24 @@ class MainWindow(Adw.ApplicationWindow):
         self._set_status("Listening for your request…", busy=True)
         return False
 
+    def _prompt_is_self_echo(self, text: str) -> bool:
+        """f184: is this prompt candidate Voxa's OWN echo at playback time (unqualified)?
+
+        True only while her voice is a live source AND the attribution over the span says her echo.
+        A protected command word, or any attribution that is not her echo (a clean second source, or
+        the degraded joint-``None`` path the own-speech filter leaves unchanged), is the user's turn
+        and must run. The bench mirrors this in ``ClipRunner._self_command_held``."""
+        if self.own_speech is None or not self.own_speech.active():
+            return False  # not her playback or its tail: a genuine user turn is never held
+        protect = self.own_speech._protected([self.settings.wake_word])
+        from voxa.ownspeech import normalise
+        if any(word in protect for word in normalise(text)):
+            return False  # a protected command word is the user's own command
+        evidence = getattr(self.conversation, "audio_evidence", None)
+        if evidence is None:
+            return False  # no span evidence: the degraded joint-None path is unchanged
+        return getattr(evidence, "source", None) == ECHO
+
     def _on_conversation_prompt(self, text: str) -> bool:
         if not text:
             return False
@@ -2640,6 +2658,19 @@ class MainWindow(Adw.ApplicationWindow):
                 and not self.audio.echo_path_qualified()):
             self._barge_trace("command-held", text=text[:160], epoch=self.audio.epoch,
                               reason="recovery-window-unqualified-audio")
+            if self.conversation is not None:
+                self.conversation.arm_prompt()
+            return False
+        # Roadmap task 10 extended (f184): the SAME hold at her OWN playback / echo tail, not just
+        # the recovery window. A candidate the attribution attributes to her own ECHO while her voice
+        # is a live source must never open a turn/request/command. A genuinely user-spoken command
+        # still runs: a protected command word, or an attribution that is not her echo (a second
+        # source, or the degraded joint-None path the own-speech filter already left alone). Audio is
+        # kept, only the decision waits, and the prompt is armed - exactly the recovery shape above.
+        if self._prompt_is_self_echo(text):
+            self._barge_trace("self-command-held", text=text[:160],
+                              epoch=(self.audio.epoch if self.audio is not None else 0),
+                              reason="unqualified-echo-at-playback")
             if self.conversation is not None:
                 self.conversation.arm_prompt()
             return False
