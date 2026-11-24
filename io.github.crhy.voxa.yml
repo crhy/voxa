@@ -192,13 +192,14 @@ modules:
       - type: dir
         path: icons
         dest: icons
-      # Roadmap task 9: Smart Turn v3.1 (BSD-2, pipecat-ai/smart-turn on Hugging
+      # Roadmap task 9: Smart Turn v3.1 (BSD-2, pipecat-ai/smart-turn-v3 on Hugging
       # Face), the 8 MB ONNX endpoint classifier voxa/endpoint.py runs on the whole
-      # turn at a pause; voxa ships it so the endpoint needs no network.
+      # turn at a pause; voxa ships it so the endpoint needs no network. The v3.1
+      # CPU build moved from pipecat-ai/smart-turn to pipecat-ai/smart-turn-v3.
       - type: file
-        url: https://huggingface.co/pipecat-ai/smart-turn/resolve/main/smart-turn-v3.1-cpu.onnx
+        url: https://huggingface.co/pipecat-ai/smart-turn-v3/resolve/main/smart-turn-v3.1-cpu.onnx
         sha256: fb68d55c2d542ce79e44b12013bfd571e90df8594ab096d757198e851b0c6594
-        dest: models/smart-turn-v3.1-cpu.onnx
+        dest: models
     build-commands:
       - install -d /app/lib/voxa
       - install -Dm755 voxa.py /app/lib/voxa/voxa.py
