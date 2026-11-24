@@ -179,6 +179,20 @@ class DoubleTalkGate:
         self._echo_ms = 0.0
         self._echo_gap_ms = 0.0
         self._echo_consistent = False
+        # ``_half_*`` (f188, issue #72): the TWO of the three joint streams that speak about
+        # the sound itself - residual margin over the prediction AND inconsistency with the
+        # reference at the LOCKED delay - held together for joint_ms. That is the joint
+        # evidence building toward the suspect (the seam that reassigned smoke-0020's real
+        # barge-in to echo at COHERENCE_ECHO 0.2 - f187's missed_bargein regression): while it
+        # claims the span no echo frames accumulate, so an echo mirror that has not latched
+        # yet cannot contradict it. It never UNDOES an echo mirror that latched FIRST (the
+        # smoke-0039 pause: the mirror locked on 0.78-0.87 coherence, and her own re-heard
+        # "Thank you" residue burst later - the residue, not the verdict, is the failure).
+        # The THIRD stream (Silero speech) is not in the half: quiet residual bursts hold no
+        # half-latch and raise no suspect (the triple and the hold are untouched).
+        self._half_ms = 0.0
+        self._half_gap_ms = 0.0
+        self._half_latched = False
         self._suspect_rise_ms = 0.0     # audio seen when the joint run raised the suspect
         self._audio_ms = 0.0
         self._mic = np.zeros(0, dtype=np.float64)
@@ -263,7 +277,26 @@ class DoubleTalkGate:
                 if self._gap_ms >= self.hold_ms:
                     self._suspect = False
                     self._gap_ms = 0.0
-        if cond_echo_frame:
+        # f188: while the joint evidence claims the span - the triple running, or its residual+
+        # inconsistency half held for joint_ms - no echo frames accumulate: the mirror may not
+        # latch behind joint evidence that contradicts it. It never loosens the suspect: the
+        # triple and its 300 ms hold above are untouched; only what the echo mirror may CLAIM
+        # (before it latched) changes.
+        cond_half = bool(cond_b and cond_c)
+        if cond_half:
+            self._half_ms += dt
+            self._half_gap_ms = 0.0
+            if not self._half_latched and self._half_ms >= self.joint_ms:
+                self._half_latched = True
+        else:
+            self._half_ms = 0.0
+            if self._half_latched:
+                self._half_gap_ms += dt
+                if self._half_gap_ms >= self.hold_ms:
+                    self._half_latched = False
+                    self._half_gap_ms = 0.0
+        joint_claims = bool(self._suspect or self._half_latched or self._joint_ms > 0.0)
+        if cond_echo_frame and not joint_claims:
             self._echo_ms += dt
             self._echo_gap_ms = 0.0
             if not self._echo_consistent and self._echo_ms >= self.joint_ms:
@@ -313,7 +346,18 @@ class DoubleTalkGate:
     def echo_consistent(self) -> bool:
         """The mirror verdict: this span IS the delayed reference (high coherence, nothing of
         its own). It is the only finding allowed to SUPPRESS the caller's fallback gate -
-        "not suspect" alone is indeterminate, never evidence of echo."""
+        "not suspect" alone is indeterminate, never evidence of echo.
+
+        f188 (issue #72): the mirror never contradicts a LIVE suspect - the SAME gate that
+        raised the joint three-stream verdict cannot also hand the caller an echo verdict for
+        that span (the seam that reassigned a genuine user barge-in, frozen smoke-0020, to
+        echo once COHERENCE_ECHO narrowed to 0.2). The residual+inconsistency HALF only stops
+        the mirror from LATCHING (see ``observe``); an echo mirror that latched first stands,
+        because on a pause clip that evidence is the canceller's residue, not a second source
+        (frozen smoke-0039's re-heard "Thank you").
+        """
+        if self._suspect:
+            return False
         return self._echo_consistent
 
     @property
