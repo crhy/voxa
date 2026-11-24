@@ -188,3 +188,45 @@ full suite (h03 fetched DTLN-aec and NKF-AEC weights/code and wired both behind 
 is still reported unmeasured with its reason rather than passed off as measured. The new code is
 `voxa/bench/modes.py`, the arm wiring in `voxa/bench/runner.py`, `tools/hearing_frontier_table.py` and
 the tests in `tests/test_echo_modes_speex.py` / `tests/test_echo_modes_probe.py`.
+
+## h04 shipped: DTLN-aec is now Voxa's live echo stage (issue #72)
+
+h04 promotes the h03 winner to the shipping default. The `dtln` bench arm and the live capture path
+are now the **same code** — `voxa/dtln.py`'s streaming `DtlnCanceller`, the far-end reference being the
+exact samples Voxa plays (`delay_managed_internally`), 16 kHz, block 512 / shift 128, LSTM state kept
+across `process` calls. The weights ship as **ONNX run through `onnxruntime`** (`voxa/data/dtln/`,
+MIT, provenance in that folder's `SOURCES.md`), not the LiteRT `.tflite` h03 measured; they are the same
+model, and the whole-file `run_aec.py` reconstruction through ONNX reproduces the repo's
+`*_processed.wav` (double-talk corr 1.00000, max |diff| 4.8e-4), so every h03 DTLN number carries over.
+`dtln` is the default `echo_mode`; when onnxruntime or a weight is missing the app logs once and falls
+back to Voxa's own NLMS `voxa` stage (see `docs/hearing/H04-DTLN.md`).
+
+How to regenerate these rows: `/Voxa/.venv/bin/python3 -m voxa.bench run --suite full --seed 0
+--echo-mode dtln --out .voxa-bench/frontier-dtln-full.json --no-gates --quiet`, then
+`/Voxa/.venv/bin/python3 tools/hearing_frontier_table.py .voxa-bench/frontier-dtln-full.json`
+(the smoke rows the same way with `--suite smoke`).
+
+### Live stage on the full suite (480 clips, seed 0) — next to h03's measured DTLN arm
+
+| mode | erle_fst_median_db | erle_fst_p10_db | nearend_atten_dt_db | echo_leak_word_rate | dt_wer_penalty_pts | user_recall_nst | delay_est_err_ms | cpu_core_share | echo_ms_per_audio_s | echo_core_share | what it is |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| dtln (h04 live, ONNX) | 24.39 [23.72, 25.00] | 2.26 [1.73, 2.82] | 7.85 [6.76, 9.03] | 0.0742 [0.0666, 0.0818] | 125.07 [81.21, 197.50] | 0.9291 [0.9111, 0.9459] | 10.98 [7.56, 14.48] | 0.0996 [0.0983, 0.1007] | 99.9 | 0.369 | `voxa/dtln.py` DTLN-aec 512 ONNX via onnxruntime, single-thread |
+| dtln (h03, LiteRT) | 24.41 [23.72, 25.03] | 2.19 [1.74, 2.87] | 7.86 [6.77, 9.04] | 0.0786 [0.0708, 0.0862] | 98.64 [80.89, 120.47] | 0.9339 [0.9159, 0.9495] | 10.98 [7.56, 14.48] | 0.0894 [0.0881, 0.0907] | 90.2 | 0.232 | DTLN-aec 512 weights via `ai_edge_litert` |
+
+The live ONNX stage lands on h03's measured row inside every bootstrap interval (median ERLE 24.39 vs
+24.41, user attenuation 7.85 vs 7.86, echo leak 0.0742 vs 0.0786). The cost column moves a little
+(0.0996 vs 0.0894 cores, 99.9 vs 90.2 ms/audio-s): `onnxruntime` single-threaded is a touch heavier than
+LiteRT on this CPU, still well under the two real-time incumbents' neighbours and far under NKF-AEC. The
+live stage is what the app runs, so the app *is* the h03 winner.
+
+### Live stage on smoke (52 clips, seed 0) — the fast arm check
+
+| mode | erle_fst_median_db | nearend_atten_dt_db | echo_leak_word_rate | user_recall_nst | cpu_core_share | echo_ms_per_audio_s | echo_core_share |
+|---|---|---|---|---|---|---|---|
+| dtln (h04 live, ONNX) | 16.15 [11.76, 20.34] | 8.04 [4.64, 11.30] | 0.0754 [0.0476, 0.1071] | 0.9455 [0.9000, 0.9818] | 0.0937 [0.0915, 0.0961] | 94.4 | 0.344 |
+| dtln (h03, LiteRT) | 16.14 [11.87, 20.31] | 8.07 [4.68, 11.33] | 0.0794 [0.0516, 0.1111] | 0.9455 [0.9000, 0.9818] | 0.0771 [0.0749, 0.0794] | 77.6 | 0.322 |
+
+Latency (step 4, this CPU, onnxruntime single-thread, the live setting): per-block p50 0.55 ms / p99
+1.01 ms idle, p50 1.09 ms / p99 2.00 ms under full-machine load — the stream advances 8.00 ms per block,
+so the stage never falls behind. `tests/test_dtln_stage.py::test_per_block_latency_stays_under_the_frame_shift`
+asserts p99 < the frame shift.

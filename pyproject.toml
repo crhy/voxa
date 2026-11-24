@@ -44,6 +44,9 @@ include = ["voxa*"]
 
 [tool.setuptools.package-data]
 voxatest = ["data/*.json", "data/samples/*"]
+# The DTLN-aec echo stage weights (Hearing 2 h04): the two ONNX files, their MIT licence and the
+# provenance note travel with the voxa package (voxa/dtln.py resolves them under voxa/data/dtln).
+voxa = ["data/dtln/*.onnx", "data/dtln/LICENSE.DTLN-aec.txt", "data/dtln/SOURCES.md"]
 
 [tool.setuptools.dynamic]
 # Name the package initializer explicitly.  The repository also has a legacy

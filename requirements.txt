@@ -10,3 +10,7 @@ yt-dlp-ejs==0.8.0
 # Voxa falls back to her own NLMS canceller and says so. Apache-2.0, prebuilt wheels for Linux
 # x86_64/aarch64; it statically links WebRTC AEC3 (verified by symbol table, see voxa/anc.py).
 pywebrtc-audio>=0.2,<0.3
+# DTLN-aec neural echo stage (Hearing 2 h04, the default echo_mode). Imported lazily by voxa/dtln.py:
+# without onnxruntime or the shipped weights Voxa falls back to her own NLMS canceller and says so.
+# MIT, prebuilt manylinux wheels; the weights themselves are in voxa/data/dtln (see SOURCES.md there).
+onnxruntime>=1.30,<2

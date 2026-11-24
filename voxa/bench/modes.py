@@ -20,6 +20,7 @@ from pathlib import Path
 import numpy as np
 
 from ..anc import aec3_available
+from ..dtln import DtlnCanceller, dtln_available as _dtln_stage_available
 
 SR = 16000
 
@@ -98,23 +99,14 @@ def third_party_dir() -> Path:
 
 
 def dtln_available() -> tuple[bool, str]:
-    """DTLN-aec (neural, 16 kHz): stage 1 (mask) + stage 2 (time-domain enhancement), the official
-    ``.tflite`` weights run with the LiteRT runtime (``ai_edge_litert``). Both are fetched here now."""
-    try:
-        import ai_edge_litert.interpreter  # noqa: F401
-    except Exception as exc:  # noqa: BLE001
-        return False, f"ai_edge_litert (TFLite runtime) not importable: {exc}"
-    root = third_party_dir() / "DTLN-aec" / "pretrained_models"
-    model = _dtln_model_size()
-    found = sorted(root.glob(f"dtln_aec_{model}_*.tflite")) if root.is_dir() else []
-    if len(found) < 2:
-        return False, (f"DTLN-aec weights for model '{model}' not found under {root} "
-                       "(fetch breizhn/DTLN-aec pretrained_models)")
-    return True, f"DTLN-aec {model} weights via ai_edge_litert"
+    """DTLN-aec (neural, 16 kHz): the shipping live echo stage in :mod:`voxa.dtln`, run here through
+    the SAME code the app uses (ONNX + onnxruntime), so the bench number is the app number."""
+    return _dtln_stage_available()
 
 
 def _dtln_model_size() -> str:
-    return os.environ.get("VOXA_DTLN_MODEL", "512")
+    from ..dtln import _model_size
+    return _model_size()
 
 
 def nkf_available() -> tuple[bool, str]:
@@ -335,133 +327,9 @@ class SpeexCanceller:
         return float(self._converged)
 
 
-# ---------------------------------------------------------------------------------------------
-# DTLN-aec: the dual-signal-transform LSTM AEC (breizhn/DTLN-aec, MIT), the official .tflite stage-1
-# (frequency mask) + stage-2 (time-domain enhancement) pair, run with ai_edge_litert. Streaming
-# reconstruction mirrors upstream run_aec.py (block_len 512, block_shift 128, 16 kHz); validated here
-# against the repo's own *_processed.wav (max |diff| 7e-4). The output is returned aligned to the
-# microphone with a fixed 128-sample reconstruction delay (the model needs 128 samples of lookahead),
-# which the bench's energy-ratio metrics tolerate.
-# ---------------------------------------------------------------------------------------------
-
-_DTLN_BLOCK_LEN, _DTLN_BLOCK_SHIFT = 512, 128
-_DTLN_PAD = _DTLN_BLOCK_LEN - _DTLN_BLOCK_SHIFT
-
-
-class DTLNCanceller:
-    continuous = True
-    delay_managed_internally = True     # DTLN learns the echo delay; the bench hands it raw mic/ref
-    filter_span_ms = _DTLN_BLOCK_LEN / SR * 1000.0
-
-    def __init__(self, sample_rate: int = SR, model: str | None = None) -> None:
-        if int(sample_rate) != SR:
-            raise ValueError(f"the bench DTLN arm runs at {SR} Hz, not {sample_rate}")
-        import ai_edge_litert.interpreter as tflite
-        root = third_party_dir() / "DTLN-aec" / "pretrained_models"
-        model = model or _dtln_model_size()
-        self._i1 = tflite.Interpreter(model_path=str(root / f"dtln_aec_{model}_1.tflite"))
-        self._i1.allocate_tensors()
-        self._i2 = tflite.Interpreter(model_path=str(root / f"dtln_aec_{model}_2.tflite"))
-        self._i2.allocate_tensors()
-        self._id1 = self._i1.get_input_details(); self._od1 = self._i1.get_output_details()
-        self._id2 = self._i2.get_input_details(); self._od2 = self._i2.get_output_details()
-        self._s1 = np.zeros(self._id1[1]["shape"], "float32")
-        self._s2 = np.zeros(self._id2[1]["shape"], "float32")
-        self._inb = np.zeros(_DTLN_BLOCK_LEN, "float32")
-        self._inb_l = np.zeros(_DTLN_BLOCK_LEN, "float32")
-        self._outb = np.zeros(_DTLN_BLOCK_LEN, "float32")
-        self._fifo_m = np.zeros(0, "float32")
-        self._fifo_r = np.zeros(0, "float32")
-        self._consumed = 0
-        self._out_all = np.zeros(0, "float32")
-        self._returned = 0
-        self._last_mic_power = 0.0
-        self._last_residual_power = 0.0
-
-    def process(self, mic, ref) -> np.ndarray:
-        mic = np.asarray(mic, "float32"); ref = np.asarray(ref, "float32")
-        n = min(mic.size, ref.size)
-        if n == 0:
-            return np.zeros(0, "float32")
-        self._last_mic_power = float(np.mean(mic.astype(np.float64) ** 2))
-        self._fifo_m = np.concatenate([self._fifo_m, mic[:n]])
-        self._fifo_r = np.concatenate([self._fifo_r, ref[:n]])
-        while self._consumed + _DTLN_BLOCK_SHIFT <= self._fifo_m.size + _DTLN_PAD:
-            lo = self._consumed - _DTLN_PAD
-            hi = lo + _DTLN_BLOCK_SHIFT
-            left = max(0, -lo)
-            def _win(buf):
-                seg = buf[max(lo, 0):hi] if hi > 0 else np.zeros(0, "float32")
-                return np.concatenate([np.zeros(left, "float32"), seg])[:_DTLN_BLOCK_SHIFT]
-            self._inb[:-_DTLN_BLOCK_SHIFT] = self._inb[_DTLN_BLOCK_SHIFT:]
-            self._inb[-_DTLN_BLOCK_SHIFT:] = _win(self._fifo_m)
-            self._inb_l[:-_DTLN_BLOCK_SHIFT] = self._inb_l[_DTLN_BLOCK_SHIFT:]
-            self._inb_l[-_DTLN_BLOCK_SHIFT:] = _win(self._fifo_r)
-            self._consumed += _DTLN_BLOCK_SHIFT
-            fft = np.fft.rfft(self._inb)
-            self._i1.set_tensor(self._id1[0]["index"], np.abs(fft).reshape(1, 1, -1).astype("float32"))
-            self._i1.set_tensor(self._id1[2]["index"],
-                                np.abs(np.fft.rfft(self._inb_l)).reshape(1, 1, -1).astype("float32"))
-            self._i1.set_tensor(self._id1[1]["index"], self._s1)
-            self._i1.invoke()
-            mask = self._i1.get_tensor(self._od1[0]["index"])
-            self._s1 = self._i1.get_tensor(self._od1[1]["index"])
-            est = np.fft.irfft(fft * mask).reshape(1, 1, -1).astype("float32")
-            self._i2.set_tensor(self._id2[1]["index"], self._s2)
-            self._i2.set_tensor(self._id2[0]["index"], est)
-            self._i2.set_tensor(self._id2[2]["index"], self._inb_l.reshape(1, 1, -1).astype("float32"))
-            self._i2.invoke()
-            ob = self._i2.get_tensor(self._od2[0]["index"])
-            self._s2 = self._i2.get_tensor(self._od2[1]["index"])
-            self._outb[:-_DTLN_BLOCK_SHIFT] = self._outb[_DTLN_BLOCK_SHIFT:]
-            self._outb[-_DTLN_BLOCK_SHIFT:] = 0.0
-            self._outb += np.squeeze(ob)
-            if self._consumed - _DTLN_PAD - _DTLN_BLOCK_SHIFT >= 0:
-                self._out_all = np.concatenate([self._out_all, self._outb[:_DTLN_BLOCK_SHIFT]])
-        # return exactly len(mic), aligned to the mic but delayed by one block_shift so every
-        # returned sample is fully reconstructed (stage-2 output for position k needs input k+128).
-        want = self._returned + n
-        start = want - n - _DTLN_BLOCK_SHIFT
-        need = want - _DTLN_BLOCK_SHIFT
-        out = np.zeros(n, "float32")
-        lo = max(start, 0); hi = min(need, self._out_all.size)
-        if hi > lo:
-            out[(lo - start):(hi - start)] = self._out_all[lo:hi]
-        self._returned = want
-        self._last_residual_power = float(np.mean(out.astype(np.float64) ** 2)) if out.size else self._last_residual_power
-        return out
-
-    def close(self) -> None:
-        pass
-
-    def note_double_talk(self, hold_ms: float) -> None:
-        """DTLN has no external double-talk control; the call is recorded, never silently dropped."""
-        self._double_talk_notes = getattr(self, "_double_talk_notes", 0) + 1
-
-    @property
-    def mic_power_db(self) -> float:
-        return 10.0 * float(np.log10(self._last_mic_power)) if self._last_mic_power > 1e-20 else -120.0
-
-    @property
-    def residual_power_db(self) -> float:
-        return 10.0 * float(np.log10(self._last_residual_power)) if self._last_residual_power > 1e-20 else -120.0
-
-    @property
-    def echo_explained_db(self) -> float:
-        if self._last_mic_power <= 1e-20:
-            return -120.0
-        ex = max(self._last_mic_power - self._last_residual_power, 0.0)
-        return 10.0 * float(np.log10(ex / self._last_mic_power)) if ex > 1e-20 else -120.0
-
-    @property
-    def delay_samples(self) -> int:
-        return 0
-
-    @property
-    def converged_db(self) -> float:
-        return 0.0
-
-
+# DTLN-aec (breizhn, MIT) is now the live echo stage: the bench arm builds the SAME canceller the
+# app runs (voxa.dtln.DtlnCanceller, ONNX + onnxruntime), so the bench number IS the app number.
+# h03 measured it through LiteRT/.tflite; h04 ships it as voxa/data/dtln/*.onnx. See H04-DTLN.md.
 # ---------------------------------------------------------------------------------------------
 # NKF-AEC (fjiang9/NKF-AEC, the official ICASSP-2023 PyTorch reference): a neural Kalman filter that
 # estimates the echo path per STFT bin and subtracts it. It is a LINEAR canceller (no residual
@@ -690,7 +558,7 @@ def make_linear(mode: str, *, delay: int = 0, sample_rate: int = SR):
         ok, why = dtln_available()
         if not ok:
             raise RuntimeError("dtln unavailable: " + why)
-        return DTLNCanceller(sample_rate)
+        return DtlnCanceller(sample_rate)
     if mode == "nkf":
         ok, why = nkf_available()
         if not ok:
