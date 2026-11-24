@@ -714,6 +714,18 @@ _TRAVEL_OPTIONS = re.compile(
     r"(?:\s+(?:what are my options|what can i do|options|what now).*)?",
     re.IGNORECASE,
 )
+_HOTEL_OPTIONS = re.compile(
+    r"(?:"
+    r"(?:find|book|get|grab|reserve|need|want|look for|search for)\s+"
+    r"(?:(?:a|an|some|the)\s+)?"
+    r"(?:hotel|motel)(?:\s+rooms?)?\b"
+    r"|(?:a|the)\s+(?:hotel|motel)(?:\s+rooms?)?\b"
+    r")"
+    r"(?:\s+(?:in|near|around|at)\s+(?P<city>.+?))?"
+    r"(?:\s+(?:from|on)\s+(?P<check_in>.+?)(?:\s+(?:to|until|till)\s+(?P<check_out>.+?))?)?"
+    r"(?:\s+(?:for|with)\s+(?P<guests>\d+|one|two|three|four|five|six|seven|eight)\s+(?:guests?|people|adults?|nights?))?",
+    re.IGNORECASE,
+)
 _DOC_EXTRACT = re.compile(
     r"(?:"
     r"what (?:are|is) the (?:dates?|amounts?|details?|important details?)"
@@ -1255,6 +1267,7 @@ ROUTED_TOOLS = frozenset(
         "travel_doc_list",
         "travel_doc_when",
         "travel_options",
+        "hotel_options",
         "backup_now",
         "backup_last",
         "sort_folder_preview",
@@ -1633,6 +1646,14 @@ def _route_command(text: str) -> ToolCall | None:
         tail = event_plan.group("tail").strip()
         when = re.sub(r"^(?:for|on)\s+", "", tail, flags=re.IGNORECASE).strip()
         return call("event_plan", event=event, when=when)
+    hotel = _HOTEL_OPTIONS.fullmatch(s)
+    if hotel:
+        found = hotel.groupdict()
+        hotel_args = {"city": (found["city"] or "").strip()}
+        for hotel_key in ("check_in", "check_out", "guests"):
+            if (found[hotel_key] or "").strip():
+                hotel_args[hotel_key] = found[hotel_key].strip()
+        return call("hotel_options", **hotel_args)
     for _cal_add in (_CAL_ADD1, _CAL_ADD2, _CAL_ADD3, _CAL_ADD4):
         _cal_m = _cal_add.fullmatch(s)
         if _cal_m and _cal_m.group("when") and split_when(_cal_m.group("when"), date.today()) is not None:

@@ -31,6 +31,7 @@ from voxa.agent.tools.help import help_tools
 from voxa.agent.tools.hidden_files import hidden_files_tools
 from voxa.agent.tools.home import home_tools
 from voxa.agent.tools.lists import list_tools
+from voxa.agent.tools.hotel import hotel_tools
 from voxa.agent.tools.livetv import livetv_tools
 from voxa.agent.tools.local import local_tools
 from voxa.agent.tools.localmusic import local_music_tools
@@ -88,6 +89,7 @@ def default_registry() -> ToolRegistry:
         *trip_tools(),
         *travel_doc_tools(),
         *rebook_tools(),
+        *hotel_tools(),
         *slides_tools(),
         *project_steps_tools(),
         *databackup_tools(),

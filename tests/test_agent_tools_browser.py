@@ -288,6 +288,7 @@ def test_registry_lists_all_tools():
             "home_set",
             "home_status",
             "home_turn",
+            "hotel_options",
             "image_search",
             "install_app",
             "list_add",
