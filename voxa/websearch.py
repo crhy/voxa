@@ -15,6 +15,10 @@ from dataclasses import dataclass
 from datetime import date
 
 SEARCH_URL = "https://html.duckduckgo.com/html/"
+# The html/ endpoint now answers these POSTs with a 202 anti-bot "anomaly" page (no results) on
+# this machine (rhY, issue #130). The lite/ endpoint answers a plain GET with real results and
+# needs no JS, so it is the primary path and html/ is only the fallback.
+LITE_URL = "https://lite.duckduckgo.com/lite/"
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) Voxa"
 TIMEOUT_SECONDS = 10
 MAX_RESULTS = 5
@@ -197,7 +201,48 @@ def parse_results(page: str) -> list[SearchResult]:
     return results
 
 
+_LITE_LINK = re.compile(
+    r"<a\b(?P<attrs>[^>]*class=[\"']result-link[\"'][^>]*)>(?P<title>.*?)</a>", re.S
+)
+_LITE_HREF = re.compile(r"href=[\"'](?P<href>[^\"']*)[\"']")
+_LITE_SNIPPET = re.compile(
+    r"<td\b[^>]*class=[\"']result-snippet[\"'][^>]*>(?P<snap>.*?)</td>", re.S
+)
+
+
+def parse_lite_results(page: str) -> list[SearchResult]:
+    """Parse lite.duckduckgo.com/lite/?q= HTML: 'result-link' anchors and 'result-snippet' cells."""
+    results: list[SearchResult] = []
+    for link in _LITE_LINK.finditer(page):
+        href = _LITE_HREF.search(link.group("attrs"))
+        if not href:
+            continue
+        snippet = _LITE_SNIPPET.search(page, link.end())
+        results.append(
+            SearchResult(
+                _clean(link.group("title")),
+                _real_url(href.group("href")),
+                _clean(snippet.group("snap")) if snippet else "",
+            )
+        )
+        if len(results) >= MAX_RESULTS:
+            break
+    return results
+
+
 def search(query: str) -> list[SearchResult]:
+    lite = urllib.parse.urlencode({"q": query})
+    try:
+        request = urllib.request.Request(
+            f"{LITE_URL}?{lite}", headers={"User-Agent": USER_AGENT}
+        )
+        with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:  # noqa: S310 - fixed https URL
+            results = parse_lite_results(response.read().decode("utf-8", "replace"))
+        if results:
+            return results
+    except OSError:
+        pass
+    # Fallback: the html/ endpoint, which works from some networks and returns the old markup.
     data = urllib.parse.urlencode({"q": query}).encode()
     request = urllib.request.Request(SEARCH_URL, data=data, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:  # noqa: S310 - fixed https URL

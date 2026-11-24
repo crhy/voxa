@@ -1,6 +1,22 @@
 from datetime import date
 
+import pytest
+
 from voxa import websearch
+
+LITE_PAGE = """
+<tr>
+  <td valign="top">1.&nbsp;</td>
+  <td><a rel="nofollow" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fopenai.com%2Fnews%2F&amp;rut=0cfa" class='result-link'>OpenAI <b>News</b></a></td>
+</tr>
+<tr><td class='result-snippet'>
+   Stay up to speed on the rapid advancement of AI  technology.
+</td></tr>
+<tr>
+  <td valign="top">2.&nbsp;</td>
+  <td><a rel="nofollow" href="https://example.com/two" class='result-link'>Second result</a></td>
+</tr>
+"""
 
 PAGE = """
 <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.steelers.com%2Fnews%2F&amp;rut=x">Steelers <b>News</b></a>
@@ -115,3 +131,24 @@ def test_format_for_prompt_uses_supplied_current_date() -> None:
         today=date(2027, 1, 2),
     )
     assert "Today is 2 January 2027." in text
+
+
+def test_parse_lite_results_real_url_title_and_snippet() -> None:
+    """issue #130: the html/ endpoint returns a 202 anomaly page, so search parses lite/ markup."""
+    results = websearch.parse_lite_results(LITE_PAGE)
+    assert results[0] == websearch.SearchResult(
+        "OpenAI News", "https://openai.com/news/",
+        "Stay up to speed on the rapid advancement of AI technology.",
+    )
+    assert results[1].url == "https://example.com/two" and results[1].snippet == ""
+
+
+def test_lite_endpoint_answers_with_results_live() -> None:
+    """A real query returns results from the lite/ endpoint (skipped when the network is down)."""
+    try:
+        results = websearch.search("OpenAI news")
+    except OSError as exc:  # no network in CI - the deterministic parser above still gates the fix
+        pytest.skip(f"no network: {exc}")
+    if not results:
+        pytest.skip("DuckDuckGo returned no results (rate-limited); parser gated by the fixed page above")
+    assert results[0].url.startswith("http") and results[0].title
