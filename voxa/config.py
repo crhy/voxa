@@ -13,7 +13,7 @@ from .hardware import parse_device_id
 
 FACE_MODES = ("live", "prerendered", "still")
 WEB_SEARCH_MODES = ("auto", "always", "never")
-ECHO_MODES = ("voxa", "aec3", "webrtc", "off")
+ECHO_MODES = ("dtln", "voxa", "aec3", "webrtc", "off")
 # The exchanges voxa/agent/exchange.py knows how to talk to (issue #46).
 EXCHANGE_NAMES = ("kraken", "coinbase", "bitstamp")
 DEFAULT_TTS_RATE = 230
@@ -101,13 +101,15 @@ class Settings:
     home_location: str = ""
     # Subtract the computer's own sound (Voxa's voice, music) from the microphone.
     echo_cancel: bool = True
-    # How to remove the computer's own sound: "voxa" = Voxa's own canceller (listens to the output's
-    # monitor; adds no device and never changes the audio output), "aec3" = WebRTC AEC3 running in
-    # this process against Voxa's own render (roadmap task 2; falls back to "voxa" without the
-    # pywebrtc-audio binding), "webrtc" = the WebRTC echo canceller inside the GStreamer capture
-    # pipeline (experimental), "off" = none.
+    # How to remove the computer's own sound: "dtln" = the DTLN-aec neural echo stage (Hearing 2 h04;
+    # the strongest measured candidate - 24.41 dB echo removal for 7.86 dB of user damage; falls back
+    # to "voxa" when onnxruntime or the shipped weights are missing), "voxa" = Voxa's own canceller
+    # (listens to the output's monitor; adds no device and never changes the audio output), "aec3" =
+    # WebRTC AEC3 running in this process against Voxa's own render (roadmap task 2; falls back to
+    # "voxa" without the pywebrtc-audio binding), "webrtc" = the WebRTC echo canceller inside the
+    # GStreamer capture pipeline (experimental), "off" = none.
     # ``echo_cancel`` is a deprecated alias: False maps to "off".
-    echo_mode: str = "webrtc"  # removes music and video sound before she listens; off when unavailable
+    echo_mode: str = "dtln"  # removes music and video sound before she listens; off when unavailable
     # Milliseconds the lips run ahead of the reported audio position (compensates sound-card and display delay).
     lip_sync_lead_ms: int = 160
     tts_rate: int = DEFAULT_TTS_RATE

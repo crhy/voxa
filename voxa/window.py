@@ -95,6 +95,7 @@ from .agent.tools import briefing as briefing_tool  # noqa: E402
 from .agent.tools import interpreter as interpreter_tools  # noqa: E402
 from .agent.tools.web import get_session  # noqa: E402
 from .anc import Aec3Canceller, EchoCanceller as AncCanceller, aec3_available  # noqa: E402
+from .dtln import DtlnCanceller, dtln_available  # noqa: E402
 from .audio import AudioCapture, AudioDevice, webrtc_available  # noqa: E402
 from .bargectl import BargeInController, HOLD, YIELD  # noqa: E402
 from .bargein import TurnStateMachine, decide_bargein  # noqa: E402, F401  (task-8 classifier names, used by voxa/turngate.py)
@@ -157,6 +158,8 @@ from .ui.shell import AssistantShell, build_header  # noqa: E402
 from .ui.state import AssistantModel, AssistantState  # noqa: E402
 from .ui.styles import install_styles  # noqa: E402
 from .ui.welcome_dialog import WelcomeDialog  # noqa: E402
+
+log = logging.getLogger("voxa.window")
 
 WHISPER_MODELS = ["tiny", "base", "small", "medium", "large-v3", "turbo"]
 # Conversation mode's wake-word phase runs continuously in the background, so
@@ -605,17 +608,27 @@ class MainWindow(Adw.ApplicationWindow):
         self._apply_echo_mode()
 
     def _on_echo_row_changed(self, row: Adw.ComboRow, _property) -> None:
-        modes = ["voxa", "off"]
-        if webrtc_available():
-            modes.insert(1, "webrtc")
+        modes = self._echo_mode_choices()
         self._save_echo_mode(modes[min(row.get_selected(), len(modes) - 1)])
+
+    def _echo_mode_choices(self) -> list[str]:
+        """The echo modes this machine offers, in the order the picker lists them. dtln is the
+        default (Hearing 2 h04) and appears only when the neural stage can actually run here."""
+        modes = ["voxa", "off"]
+        if aec3_available():
+            modes.insert(1, "aec3")
+        if webrtc_available():
+            modes.insert(len(modes) - 1, "webrtc")
+        if dtln_available()[0]:
+            modes.insert(0, "dtln")
+        return modes
 
     def _apply_echo_mode(self) -> None:
         mode = getattr(self.settings, "echo_mode", "voxa")
         if mode == "aec3":
             self.audio.set_echo_mode("aec3", self._choose_reference_source())
-        elif mode == "voxa":
-            self.audio.set_echo_mode("voxa", self._choose_reference_source())
+        elif mode in ("voxa", "dtln"):
+            self.audio.set_echo_mode(mode, self._choose_reference_source())
         elif mode == "webrtc":
             self.audio.set_echo_mode("webrtc", self._choose_reference_source())
         else:
@@ -1227,11 +1240,13 @@ class MainWindow(Adw.ApplicationWindow):
             self._echo_leftovers_checked = True
             threading.Thread(target=remove_leftover_devices, name="echo-cleanup", daemon=True).start()
         mode = getattr(self.settings, "echo_mode", "voxa")
-        if mode in ("voxa", "aec3"):
+        if mode in ("voxa", "aec3", "dtln"):
             # Our canceller. Roadmap task 1: the reference is Voxa's own render, taken from the render
             # timeline; no stream on the speakers is in it, so the test voice cannot be cancelled and
             # another application's music cannot corrupt the fit. Task 2 only changes the backend:
-            # "aec3" is WebRTC AEC3 in this process, "voxa" is Voxa's own NLMS filter.
+            # "aec3" is WebRTC AEC3 in this process, "voxa" is Voxa's own NLMS filter, and "dtln"
+            # (Hearing 2 h04) is the DTLN-aec neural stage over Voxa's own render - falling back to
+            # "voxa" when onnxruntime or the shipped weights are missing (never crashing the capture).
             if os.environ.get("VOXA_ECHO_REFERENCE", "own-render") == "monitor":
                 self.audio.reference_source = self._choose_reference_source()
                 self.audio.reference_decision = getattr(self, "_reference_decision", None)
@@ -1242,7 +1257,12 @@ class MainWindow(Adw.ApplicationWindow):
             release = getattr(self.audio.canceller, "close", None)
             if release is not None:
                 release()
-            self.audio.canceller = Aec3Canceller() if mode == "aec3" else AncCanceller()
+            if mode == "dtln" and not dtln_available()[0]:
+                log.info("DTLN echo stage unavailable (%s): using Voxa's own canceller",
+                         dtln_available()[1])
+                mode = "voxa"
+            self.audio.canceller = (Aec3Canceller() if mode == "aec3"
+                                    else DtlnCanceller() if mode == "dtln" else AncCanceller())
             self.audio.apply_clock_drift()
             if mode != "aec3":
                 # Start from the hearing profile saved for this speaker and microphone, if it still fits.
@@ -5284,26 +5304,26 @@ class MainWindow(Adw.ApplicationWindow):
         mic_row.connect("notify::selected", update_mic_tooltip)
         listening_group.add(mic_row)
 
-        echo_modes = ["voxa", "off"]
-        echo_labels = ["Voxa's canceller", "Off"]
-        if aec3_available():
-            echo_modes.insert(1, "aec3")
-            echo_labels.insert(1, "WebRTC AEC3 (recommended)")
-        if webrtc_available():
-            echo_modes.insert(len(echo_modes) - 1, "webrtc")
-            echo_labels.insert(len(echo_labels) - 1, "WebRTC (GStreamer pipeline)")
-        echo_choice = getattr(self.settings, "echo_mode", "voxa")
+        echo_modes = self._echo_mode_choices()
+        echo_labels = {
+            "dtln": "DTLN neural echo cancellation (recommended)",
+            "voxa": "Voxa's canceller",
+            "aec3": "WebRTC AEC3",
+            "webrtc": "WebRTC (GStreamer pipeline)",
+            "off": "Off",
+        }
+        echo_choice = getattr(self.settings, "echo_mode", "dtln")
         if echo_choice not in echo_modes:
-            echo_choice = "voxa"
+            echo_choice = "dtln" if "dtln" in echo_modes else "voxa"
         echo_row = Adw.ComboRow(
             title="Adaptive noise cancellation",
             subtitle=(
                 "Removes the computer's own sound — Voxa's voice, music — from what she hears. "
-                "Your voice is never altered. WebRTC (recommended test) uses the WebRTC echo "
-                "canceller inside the capture pipeline."
+                "Your voice is never altered. The neural stage (recommended) removes echo with a "
+                "small on-device model; without it Voxa's own canceller is used."
             ),
         )
-        echo_row.set_model(Gtk.StringList.new(echo_labels))
+        echo_row.set_model(Gtk.StringList.new([echo_labels[m] for m in echo_modes]))
         echo_row.set_selected(echo_modes.index(echo_choice))
         echo_row.connect("notify::selected", self._on_echo_row_changed)
         listening_group.add(echo_row)
@@ -5539,11 +5559,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.settings.ollama_url = endpoint_row.get_text().strip()
         self.settings.strata_url = strata_row.get_text().strip()
         self.settings.auto_speak = auto_speak_row.get_active()
-        echo_modes = ["voxa", "off"]
-        if aec3_available():
-            echo_modes.insert(1, "aec3")
-        if webrtc_available():
-            echo_modes.insert(len(echo_modes) - 1, "webrtc")
+        echo_modes = self._echo_mode_choices()
         self.settings.echo_mode = echo_modes[min(echo_row.get_selected(), len(echo_modes) - 1)]
         self.settings.web_search = WEB_SEARCH_VALUES[min(web_search_row.get_selected(), len(WEB_SEARCH_VALUES) - 1)]
         self.settings.wake_word = wake_word_row.get_text().strip()

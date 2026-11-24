@@ -207,6 +207,11 @@ modules:
       # included, then strip __pycache__ so the payload stays clean.
       - cp -r voxa /app/lib/voxa/
       - find /app/lib/voxa -name __pycache__ -prune -exec rm -rf {} +
+      # The DTLN-aec echo stage weights (Hearing 2 h04) ride in voxa/data/dtln and are loaded by
+      # voxa/dtln.py. Fail the build if packaging ever drops them (the app would silently fall back
+      # to Voxa's own NLMS canceller, not the neural stage the Flatpak is meant to ship).
+      - test -f /app/lib/voxa/voxa/data/dtln/dtln_aec_512_1.onnx
+      - test -f /app/lib/voxa/voxa/data/dtln/dtln_aec_512_2.onnx
       - install -Dm755 packaging/flatpak/voxa /app/bin/voxa
       - install -Dm755 packaging/flatpak/voxa-host-node /app/bin/voxa-host-node
       - install -Dm755 packaging/flatpak/voxa-backup /app/bin/voxa-backup

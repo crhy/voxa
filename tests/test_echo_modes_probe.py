@@ -39,10 +39,18 @@ def test_an_arm_that_cannot_run_here_refuses_instead_of_substituting(mode, capsy
 
 
 @pytest.mark.parametrize("mode", ("aec3full", "dtln", "nkf"))
-def test_the_linear_factory_raises_the_same_reason(mode):
-    with pytest.raises(RuntimeError) as exc:
-        modes.make_linear(mode)
-    assert "unavailable" in str(exc.value) or "no " in str(exc.value)
+def test_the_linear_factory_agrees_with_the_probe(mode):
+    """A measurable arm hands back a real canceller; an unmeasurable one raises the probe's reason.
+
+    h03 fetched/built dtln and nkf, so they now build; aec3full stays refused (its shim needs
+    Abseil headers this box lacks). The factory must track the probe, not a hardcoded list."""
+    if modes.availability()[mode]["available"]:
+        cand = modes.make_linear(mode)
+        assert hasattr(cand, "process") and hasattr(cand, "close")
+    else:
+        with pytest.raises(RuntimeError) as exc:
+            modes.make_linear(mode)
+        assert "unavailable" in str(exc.value) or "no " in str(exc.value)
 
 
 def test_speex_is_the_candidate_this_machine_can_actually_measure():

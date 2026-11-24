@@ -13,4 +13,7 @@ pywebrtc-audio>=0.2,<0.3
 # Smart Turn v3.1 endpoint model (roadmap hearing task 9): the 8 MB ONNX classifier voxa/endpoint.py
 # runs on the whole turn at a pause. Imported lazily; without it the pause rules fall back to the
 # 700 ms silence they had before. MIT, prebuilt manylinux wheels.
+# DTLN-aec neural echo stage (Hearing 2 h04, the default echo_mode). Imported lazily by voxa/dtln.py:
+# without onnxruntime or the shipped weights Voxa falls back to her own NLMS canceller and says so.
+# MIT, prebuilt manylinux wheels; the weights themselves are in voxa/data/dtln (see SOURCES.md there).
 onnxruntime>=1.30,<2

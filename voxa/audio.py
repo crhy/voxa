@@ -18,6 +18,7 @@ from .anc import (Aec3Canceller, EchoCanceller, MIN_REFERENCE_POWER, aec3_availa
 from .echo import OUTPUT_SPEAKERS, DeviceWatcher, OutputSnapshot, output_tuning
 from .refmask import LockedResidualMask
 from .timeline import CaptureClock, RenderTimeline
+from .dtln import DtlnCanceller, dtln_available
 
 Gst: Any = None  # Initialized lazily so importing this module needs no GStreamer or PyGObject.
 
@@ -1226,6 +1227,11 @@ class AudioCapture:
         """
         if isinstance(mode, bool):
             mode = "voxa" if mode else "off"
+        if mode == "dtln" and not dtln_available()[0]:
+            # Hearing 2 h04: the neural stage is the default, but a machine without onnxruntime or
+            # the shipped weights falls back to Voxa's own canceller and says so exactly once.
+            log.info("DTLN echo stage unavailable (%s): using Voxa's own canceller", dtln_available()[1])
+            mode = "voxa"
         if mode == "aec3" and not aec3_available():
             log.info("AEC3 echo cancellation unavailable (pywebrtc-audio not installed): "
                      "using Voxa's own canceller")
@@ -1258,7 +1264,7 @@ class AudioCapture:
                 self.stop()
                 self.start(device_id, on_audio, on_level, on_error)
             return
-        if mode not in ("voxa", "aec3"):
+        if mode not in ("voxa", "aec3", "dtln"):
             self.pulse_source = None
             self.reference_source = None
             self.canceller = None
@@ -1278,7 +1284,8 @@ class AudioCapture:
             return
         self.pulse_source = None
         self.reference_source = reference_source
-        wanted = Aec3Canceller if mode == "aec3" else EchoCanceller
+        wanted = Aec3Canceller if mode == "aec3" else (
+            DtlnCanceller if mode == "dtln" else EchoCanceller)
         if not isinstance(self.canceller, wanted):
             # Exactly one canceller owns the echo path: give the old one up before the new one claims it.
             release_aec_owner(self.canceller)

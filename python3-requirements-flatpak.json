@@ -264,6 +264,23 @@
             ]
         },
         {
+            "name": "python3-onnxruntime",
+            "buildsystem": "simple",
+            "build-commands": [
+                "pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"onnxruntime==1.31.0\" --no-build-isolation"
+            ],
+            "sources": [
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/0d/ac/67ebbaab4b3083f2a6b27ee6c4aa400c7f8d6c72b5499aac7e4cd6ba74f5/onnxruntime-1.31.0-cp313-cp313-manylinux_2_28_x86_64.whl",
+                    "sha256": "37fd78cee5160c7a43a1730ccb3682ffd880af9c9e80385d625c0c2f8b125809",
+                    "only-arches": [
+                        "x86_64"
+                    ]
+                }
+            ]
+        },
+        {
             "name": "python3-pywebrtc-audio",
             "buildsystem": "simple",
             "build-commands": [

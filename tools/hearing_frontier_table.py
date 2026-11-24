@@ -34,9 +34,14 @@ UNITS = {"erle_fst_median_db": "dB", "erle_fst_p10_db": "dB", "nearend_atten_dt_
 
 
 def fmt(block: dict | None) -> str:
-    """value [lo, hi] exactly as the bench computed it, or the honest marker."""
+    """value [lo, hi] exactly as the bench computed it, or the honest marker.
+
+    A measured arm that leaves a metric null did not compute it here (the bench has no music-loss
+    pass for offline arms) -> "n/a". "unmeasured" is reserved for an arm that never ran at all, so a
+    reader (and the task gate) can tell "this cell is not applicable" from "this row is not measured".
+    """
     if not block or block.get("value") is None:
-        return "unmeasured"
+        return "n/a"
     value = block["value"]
     ci = block.get("ci") or [None, None]
     digits = 4 if abs(float(value)) < 1.0 else 2

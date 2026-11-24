@@ -20,6 +20,7 @@ from pathlib import Path
 import numpy as np
 
 from ..anc import aec3_available
+from ..dtln import DtlnCanceller, dtln_available as _dtln_stage_available
 
 SR = 16000
 
@@ -109,31 +110,30 @@ def third_party_dir() -> Path:
 
 
 def dtln_available() -> tuple[bool, str]:
-    """DTLN-aec (neural, 16 kHz stage 1 + 48 kHz stage 2). onnxruntime is installed here, so the
-    only missing piece is the official pretrained model, which has to be downloaded."""
-    try:
-        import onnxruntime  # noqa: F401
-    except Exception as exc:  # noqa: BLE001
-        return False, f"onnxruntime not importable: {exc}"
-    root = third_party_dir() / "DTLN-aec"
-    found = sorted(root.glob("**/*.onnx")) + sorted(root.glob("**/*.tflite")) if root.is_dir() else []
-    if not found:
-        return False, (f"onnxruntime is installed but no DTLN-aec weights under {root} "
-                       "(breizhn/DTLN-aec ships .tflite only; this host has no tflite-runtime "
-                       "wheel for Python 3.14 and no network to fetch one)")
-    return True, f"DTLN-aec weights {found[0]}"
+    """DTLN-aec (neural, 16 kHz): the shipping live echo stage in :mod:`voxa.dtln`, run here through
+    the SAME code the app uses (ONNX + onnxruntime), so the bench number is the app number."""
+    return _dtln_stage_available()
+
+
+def _dtln_model_size() -> str:
+    from ..dtln import _model_size
+    return _model_size()
 
 
 def nkf_available() -> tuple[bool, str]:
-    """NKF-AEC (open neural Kalman filter, small). Its published code is MATLAB/Octave plus
-    weights; there is no CPU inference path here to time."""
-    root = third_party_dir() / "NKF-AEC"
-    found = sorted(root.glob("**/*.onnx")) if root.is_dir() else []
-    if not found:
-        return False, (f"no NKF-AEC weights/code under {root}; upstream (LebaneseNanoElectronics/"
-                       "NKF-AEC) publishes MATLAB + .mat weights and no CPU-friendly streaming "
-                       "reference implementation, so real-time on this CPU cannot be measured")
-    return True, f"NKF-AEC {found[0]}"
+    """NKF-AEC (open neural Kalman filter, small). Code + pretrained weights fetched from
+    github.com/fjiang9/NKF-AEC (the official repo: a PyTorch streaming-capable reference), run on
+    this CPU with torch."""
+    try:
+        import torch  # noqa: F401
+    except Exception as exc:  # noqa: BLE001
+        return False, f"torch not importable: {exc}"
+    root = third_party_dir() / "NKF-AEC-fjiang9" / "src"
+    ckpt = root / "nkf_epoch70.pt"
+    if not ckpt.is_file():
+        return False, (f"no NKF-AEC weights at {ckpt}; upstream (fjiang9/NKF-AEC) publishes the "
+                       "PyTorch reference + nkf_epoch70.pt (LebaneseNanoElectronics/NKF-AEC is 404)")
+    return True, f"NKF-AEC weights {ckpt} via torch"
 
 
 def voxa_locked_available() -> tuple[bool, str]:
@@ -376,6 +376,227 @@ class SpeexCanceller:
         return float(self._converged)
 
 
+# DTLN-aec (breizhn, MIT) is now the live echo stage: the bench arm builds the SAME canceller the
+# app runs (voxa.dtln.DtlnCanceller, ONNX + onnxruntime), so the bench number IS the app number.
+# h03 measured it through LiteRT/.tflite; h04 ships it as voxa/data/dtln/*.onnx. See H04-DTLN.md.
+# ---------------------------------------------------------------------------------------------
+# NKF-AEC (fjiang9/NKF-AEC, the official ICASSP-2023 PyTorch reference): a neural Kalman filter that
+# estimates the echo path per STFT bin and subtracts it. It is a LINEAR canceller (no residual
+# suppressor). The Kalman loop is frame-by-frame with persistent per-bin and GRU state, so it streams
+# exactly; the net definition replicates upstream so nkf_epoch70.pt loads unchanged. STFT/ISTFT use a
+# hop-256 (1024-point) overlap-add at 16 kHz.
+# ---------------------------------------------------------------------------------------------
+
+_NKF_NFFT, _NKF_HOP = 1024, 256
+_NKF_NBIN = _NKF_NFFT // 2 + 1
+_NKF_WIN = np.hanning(_NKF_NFFT + 1)[:-1].astype("float32")   # periodic hann, matches torch
+
+
+def _nkf_classes():
+    import torch
+    import torch.nn as nn
+
+    class ComplexGRU(nn.Module):
+        def __init__(self, input_size, hidden_size, num_layers=1, batch_first=True, bias=True,
+                     dropout=0, bidirectional=False):
+            super().__init__()
+            self.gru_r = nn.GRU(input_size, hidden_size, num_layers, bias=bias,
+                                batch_first=batch_first, dropout=dropout, bidirectional=bidirectional)
+            self.gru_i = nn.GRU(input_size, hidden_size, num_layers, bias=bias,
+                                batch_first=batch_first, dropout=dropout, bidirectional=bidirectional)
+
+        def forward(self, x, h_rr=None, h_ir=None, h_ri=None, h_ii=None):
+            Frr, h_rr = self.gru_r(x.real, h_rr)
+            Fir, h_ir = self.gru_r(x.imag, h_ir)
+            Fri, h_ri = self.gru_i(x.real, h_ri)
+            Fii, h_ii = self.gru_i(x.imag, h_ii)
+            y = torch.complex(Frr - Fii, Fri + Fir)
+            return y, h_rr, h_ir, h_ri, h_ii
+
+    class ComplexDense(nn.Module):
+        def __init__(self, in_channel, out_channel, bias=True):
+            super().__init__()
+            self.linear_real = nn.Linear(in_channel, out_channel, bias=bias)
+            self.linear_imag = nn.Linear(in_channel, out_channel, bias=bias)
+
+        def forward(self, x):
+            y_real = self.linear_real(x.real)
+            y_imag = self.linear_imag(x.imag)
+            return torch.complex(y_real, y_imag)
+
+    class ComplexPReLU(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.prelu = torch.nn.PReLU()
+
+        def forward(self, x):
+            return torch.complex(self.prelu(x.real), self.prelu(x.imag))
+
+    class KGNet(nn.Module):
+        def __init__(self, L, fc_dim, rnn_layers, rnn_dim):
+            super().__init__()
+            self.L = L; self.rnn_layers = rnn_layers; self.rnn_dim = rnn_dim
+            self.fc_in = nn.Sequential(ComplexDense(2 * L + 1, fc_dim, bias=True), ComplexPReLU())
+            self.complex_gru = ComplexGRU(fc_dim, rnn_dim, rnn_layers, bidirectional=False)
+            self.fc_out = nn.Sequential(ComplexDense(rnn_dim, fc_dim, bias=True), ComplexPReLU(),
+                                        ComplexDense(fc_dim, L, bias=True))
+
+        def init_hidden(self, batch_size, device):
+            self.h_rr = torch.zeros(self.rnn_layers, batch_size, self.rnn_dim).to(device=device)
+            self.h_ir = torch.zeros(self.rnn_layers, batch_size, self.rnn_dim).to(device=device)
+            self.h_ri = torch.zeros(self.rnn_layers, batch_size, self.rnn_dim).to(device=device)
+            self.h_ii = torch.zeros(self.rnn_layers, batch_size, self.rnn_dim).to(device=device)
+
+        def forward(self, input_feature):
+            feat = self.fc_in(input_feature).unsqueeze(1)
+            rnn_out, self.h_rr, self.h_ir, self.h_ri, self.h_ii = self.complex_gru(
+                feat, self.h_rr, self.h_ir, self.h_ri, self.h_ii)
+            return self.fc_out(rnn_out).permute(0, 2, 1)
+
+    class NKF(nn.Module):
+        def __init__(self, L=4):
+            super().__init__()
+            self.L = L
+            self.kg_net = KGNet(L=L, fc_dim=18, rnn_layers=1, rnn_dim=18)
+
+    return NKF
+
+
+class NkfCanceller:
+    continuous = True
+    delay_managed_internally = False    # the bench hands NKF the measured end-to-end delay
+    delay_ctl_supported = True
+    filter_span_ms = 4 * _NKF_HOP / SR * 1000.0   # L=4 frames of echo path
+
+    def __init__(self, sample_rate: int = SR) -> None:
+        if int(sample_rate) != SR:
+            raise ValueError(f"the bench NKF arm runs at {SR} Hz, not {sample_rate}")
+        import torch
+        self._torch = torch
+        NKF = _nkf_classes()
+        self._dev = torch.device("cpu")
+        self._net = NKF(L=4).to(self._dev).eval()
+        ckpt = third_party_dir() / "NKF-AEC-fjiang9" / "src" / "nkf_epoch70.pt"
+        self._net.load_state_dict(torch.load(str(ckpt), map_location="cpu"), strict=True)
+        L, F = self._net.L, _NKF_NBIN
+        self._h_prior = torch.zeros(F, L, 1, dtype=torch.complex64, device=self._dev)
+        self._h_post = torch.zeros(F, L, 1, dtype=torch.complex64, device=self._dev)
+        self._net.kg_net.init_hidden(F, self._dev)
+        self._xh = np.zeros((F, L), "complex64")
+        self._buf_m = np.zeros(0, "float32")
+        self._buf_r = np.zeros(0, "float32")
+        self._frame = 0
+        self._ola = np.zeros(0, "float32")    # overlap-add output, indexed by input position
+        self._oden = np.zeros(0, "float64")
+        self._emitted = -_NKF_NFFT   # output lags input by one full frame (see process)
+        self._delay = 0
+        self._last_mic_power = 0.0
+        self._last_residual_power = 0.0
+
+    def set_delay(self, delay_samples: int) -> None:
+        self._delay = max(0, int(delay_samples))
+
+    def _run_frame(self, x_spec, y_spec):
+        torch = self._torch
+        self._xh = np.concatenate([self._xh[:, 1:], x_spec[:, None]], axis=1)
+        xt = torch.from_numpy(self._xh).to(self._dev)
+        y = torch.from_numpy(y_spec).to(self._dev)
+        dh = self._h_post - self._h_prior
+        e = y - (xt.unsqueeze(1) @ self._h_prior).squeeze(-1).squeeze(-1)
+        feat = torch.cat([xt, e.unsqueeze(1), dh.squeeze(-1)], dim=1)
+        with torch.no_grad():
+            kg = self._net.kg_net(feat).squeeze(-1)
+        self._h_post = self._h_prior + (kg * e.unsqueeze(1)).unsqueeze(-1)
+        echo = (xt.unsqueeze(1) @ self._h_post).squeeze()
+        self._h_prior = self._h_post.clone()
+        self._frame += 1
+        return (y - echo).cpu().numpy().reshape(-1)
+
+    def process(self, mic, ref) -> np.ndarray:
+        mic = np.asarray(mic, "float32"); ref = np.asarray(ref, "float32")
+        n = min(mic.size, ref.size)
+        if n == 0:
+            return np.zeros(0, "float32")
+        self._last_mic_power = float(np.mean(mic.astype(np.float64) ** 2))
+        self._buf_m = np.concatenate([self._buf_m, mic[:n]])
+        self._buf_r = np.concatenate([self._buf_r, ref[:n]])
+        while self._frame * _NKF_HOP + _NKF_NFFT <= self._buf_m.size:
+            s0 = self._frame * _NKF_HOP
+            r0 = s0 - self._delay
+            rlo = max(0, r0)
+
+            def _spec(buf, lo, hi, lead=0):
+                seg = buf[lo:hi]
+                if seg.size < hi - lo:
+                    seg = np.concatenate([seg, np.zeros(hi - lo - seg.size, "float32")])
+                if lead > 0:
+                    seg = np.concatenate([np.zeros(lead, "float32"), seg])[:hi - lo]
+                return np.fft.rfft(seg * _NKF_WIN, n=_NKF_NFFT).astype("complex64")
+            clean = self._run_frame(_spec(self._buf_r, rlo, rlo + _NKF_NFFT, max(0, -r0)),
+                                    _spec(self._buf_m, s0, s0 + _NKF_NFFT))
+            time_sig = (np.fft.irfft(clean, n=_NKF_NFFT) * _NKF_WIN).reshape(-1).astype("float32")
+            need = s0 + _NKF_NFFT
+            if self._ola.size < need:
+                self._ola = np.concatenate([self._ola, np.zeros(need - self._ola.size, "float32")])
+                self._oden = np.concatenate([self._oden, np.zeros(need - self._oden.size, "float64")])
+            self._ola[s0:s0 + _NKF_NFFT] += time_sig
+            self._oden[s0:s0 + _NKF_NFFT] += _NKF_WIN.astype("float64") ** 2
+        # Emit the output delayed by one full frame (D = NFFT) so every returned sample is fully
+        # covered by the hop-256 / 1024-point periodic-Hann overlap-add. A sample p is only
+        # reconstructed once EVERY window covering it has been added, i.e. once the last covering
+        # frame (s0 = (p // HOP) * HOP) has run: p covered iff p < self._frame * HOP. The bench
+        # hands samples in 320-sample chunks but the STFT frame is 1024, so a chunk's newest
+        # samples are never yet covered when it must be returned. Running the output one full
+        # frame late makes "covered" and "returned" coincide (the same math as offline, delayed
+        # 64 ms; the first NFFT output samples are silence). Emitting them early shatters the
+        # output (ERLE 26 dB, recall collapse seen in the smoke before this fix).
+        col = 1.5   # COLA constant of the hop-256 / 1024-point periodic-hann overlap-add
+        covered = self._frame * _NKF_HOP
+        out = np.zeros(n, "float32")
+        lo = max(self._emitted, 0)
+        hi = min(self._emitted + n, covered)
+        if hi > lo:
+            if self._ola.size < hi:
+                grow = hi - self._ola.size
+                self._ola = np.concatenate([self._ola, np.zeros(grow, "float32")])
+                self._oden = np.concatenate([self._oden, np.zeros(grow, "float64")])
+            out[lo - self._emitted:hi - self._emitted] = (
+                self._ola[lo:hi] / np.maximum(self._oden[lo:hi], col))
+        self._emitted += n
+        self._last_residual_power = float(np.mean(out.astype(np.float64) ** 2)) if out.size else self._last_residual_power
+        return out.astype("float32")
+
+    def close(self) -> None:
+        pass
+
+    def note_double_talk(self, hold_ms: float) -> None:
+        """NKF has no external double-talk control; the call is recorded, never silently dropped."""
+        self._double_talk_notes = getattr(self, "_double_talk_notes", 0) + 1
+
+    @property
+    def mic_power_db(self) -> float:
+        return 10.0 * float(np.log10(self._last_mic_power)) if self._last_mic_power > 1e-20 else -120.0
+
+    @property
+    def residual_power_db(self) -> float:
+        return 10.0 * float(np.log10(self._last_residual_power)) if self._last_residual_power > 1e-20 else -120.0
+
+    @property
+    def echo_explained_db(self) -> float:
+        if self._last_mic_power <= 1e-20:
+            return -120.0
+        ex = max(self._last_mic_power - self._last_residual_power, 0.0)
+        return 10.0 * float(np.log10(ex / self._last_mic_power)) if ex > 1e-20 else -120.0
+
+    @property
+    def delay_samples(self) -> int:
+        return int(self._delay)
+
+    @property
+    def converged_db(self) -> float:
+        return 0.0
+
+
 def make_linear(mode: str, *, delay: int = 0, sample_rate: int = SR):
     """The linear stage of a bench echo mode, or None when the mode asked for no linear stage."""
     if mode == "speex":
@@ -386,7 +607,13 @@ def make_linear(mode: str, *, delay: int = 0, sample_rate: int = SR):
     if mode == "aec3full":
         raise RuntimeError("aec3full has no shim: " + aec3full_available()[1])
     if mode == "dtln":
-        raise RuntimeError("dtln has no weights: " + dtln_available()[1])
+        ok, why = dtln_available()
+        if not ok:
+            raise RuntimeError("dtln unavailable: " + why)
+        return DtlnCanceller(sample_rate)
     if mode == "nkf":
-        raise RuntimeError("nkf has no CPU implementation: " + nkf_available()[1])
+        ok, why = nkf_available()
+        if not ok:
+            raise RuntimeError("nkf unavailable: " + why)
+        return NkfCanceller(sample_rate)
     return None
