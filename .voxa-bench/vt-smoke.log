@@ -1,0 +1,226 @@
+Offline audio: 20 cases x 1 variant(s) [clean] seed 0, wake word "voxa", test voice en-US-GuyNeural, bench data /home/rhy/voxa-bench-data
+Whisper model base loaded in 0.4 s (one model for the whole run)
+[1/20] 1 (general) variant clean: "What is the capital of France?"
+  clean: heard "What is the capital of France?" -> no tool (1.47s wall, 6.06s audio)
+[2/20] 2 (general) variant clean: "Who was the first president of the United States?"
+  clean: heard "Who was the first president of the United States?" -> no tool (1.47s wall, 7.08s audio)
+[3/20] 3 (general) variant clean: "How do you make lemonade?"
+  clean: heard "How do you make lemonade?" -> no tool (2.93s wall, 5.56s audio)
+[4/20] 4 (general) variant clean: "What is the tallest mountain in the world?"
+  clean: heard "What is the tallest mountain in the world?" -> no tool (1.97s wall, 6.38s audio)
+[5/20] 5 (general) variant clean: "Who wrote the play Hamlet?"
+  clean: heard "Who wrote the play Hamlet?" -> no tool (1.66s wall, 5.62s audio)
+[6/20] 6 (math) variant clean: "What is 5 times 4?"
+  clean: heard "What is 5 times 4?" -> calculate (1.57s wall, 5.74s audio)
+[7/20] 7 (memory) variant clean: "Remember that my cat is named Mittens."
+  clean: heard "Remember that my cat is named Middens." -> remember_fact (1.56s wall, 6.70s audio)
+[8/20] 8 (instructions) variant clean: "Set a timer for 10 minutes."
+  clean: heard "Set a timer for 10 minutes." -> set_timer (1.50s wall, 6.22s audio)
+[9/20] 9 (reasoning) variant clean: "If all dogs are mammals, are poodles mammals?"
+  clean: heard "If all dogs are mammals, are poodles mammals?" -> no tool (1.61s wall, 7.32s audio)
+[10/20] 10 (science) variant clean: "What is the chemical symbol for water?"
+  clean: heard "What is the chemical symbol for water?" -> no tool (1.52s wall, 6.48s audio)
+[11/20] 1 (math) variant clean: "What is the square root of 144?"
+  clean: heard "What is the square root of 144?" -> calculate (1.65s wall, 6.96s audio)
+[12/20] 2 (math) variant clean: "Multiply 7 by 8."
+  clean: heard "Multiply 7x8." -> no tool (1.67s wall, 5.80s audio)
+[13/20] 3 (math) variant clean: "Divide 100 by 4."
+  clean: heard "Divide 100 by 4." -> calculate (1.58s wall, 6.12s audio)
+[14/20] 4 (math) variant clean: "Add 15 and 20."
+  clean: heard "Add 15 and 20." -> calculate (1.54s wall, 5.58s audio)
+[15/20] 5 (math) variant clean: "Subtract 10 from 50."
+  clean: heard "Subtract 10 from 50" -> calculate (1.57s wall, 6.00s audio)
+[16/20] 7 (time) variant clean: "What is the current date?"
+  clean: heard "What is the current date?" -> no tool (1.68s wall, 5.42s audio)
+[17/20] 9 (reasoning) variant clean: "If it rains, should I take an umbrella?"
+  clean: heard "If it rains, should I take an umbrella?" -> no tool (1.85s wall, 6.50s audio)
+[18/20] 10 (science) variant clean: "What gas do plants absorb?"
+  clean: heard "What gas do plants absorb?" -> no tool (1.87s wall, 6.04s audio)
+[19/20] 1 (memory) variant clean: "Remember that my favorite color is blue."
+  clean: heard "Remember that my favorite color is blue." -> remember_fact (1.73s wall, 6.70s audio)
+[20/20] 2 (math) variant clean: "What is the sum of five and seven?"
+  clean: heard "What is the sum of 5 and 7?" -> calculate (1.61s wall, 6.22s audio)
+@@VOXATEST {"event": "case_result", "index": 1, "total": 20, "id": "1", "category": "general", "prompt": "What is the capital of France?", "status": "PASS", "reply": "", "heard": "What is the capital of France?", "layer": "ok", "notes": "Offline audio (google-tts, variant clean): heard \"What is the capital of France?\"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.47}
+@@VOXATEST {"event": "case_result", "index": 2, "total": 20, "id": "2", "category": "general", "prompt": "Who was the first president of the United States?", "status": "PASS", "reply": "", "heard": "Who was the first president of the United States?", "layer": "ok", "notes": "Offline audio (google-tts, variant clean): heard \"Who was the first president of the United States?\"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.47}
+@@VOXATEST {"event": "case_result", "index": 3, "total": 20, "id": "3", "category": "general", "prompt": "How do you make lemonade?", "status": "PASS", "reply": "", "heard": "How do you make lemonade?", "layer": "ok", "notes": "Offline audio (google-tts, variant clean): heard \"How do you make lemonade?\"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 2.93}
+@@VOXATEST {"event": "case_result", "index": 4, "total": 20, "id": "4", "category": "general", "prompt": "What is the tallest mountain in the world?", "status": "PASS", "reply": "", "heard": "What is the tallest mountain in the world?", "layer": "ok", "notes": "Offline audio (google-tts, variant clean): heard \"What is the tallest mountain in the world?\"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.97}
+@@VOXATEST {"event": "case_result", "index": 5, "total": 20, "id": "5", "category": "general", "prompt": "Who wrote the play Hamlet?", "status": "PASS", "reply": "", "heard": "Who wrote the play Hamlet?", "layer": "ok", "notes": "Offline audio (google-tts, variant clean): heard \"Who wrote the play Hamlet?\"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.66}
+@@VOXATEST {"event": "case_result", "index": 6, "total": 20, "id": "6", "category": "math", "prompt": "What is 5 times 4?", "status": "PASS", "reply": "", "heard": "What is 5 times 4?", "layer": "ok", "notes": "Offline audio (google-tts, variant clean): heard \"What is 5 times 4?\"; router did calculate. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.57}
+@@VOXATEST {"event": "case_result", "index": 7, "total": 20, "id": "7", "category": "memory", "prompt": "Remember that my cat is named Mittens.", "status": "FAIL", "reply": "", "heard": "Remember that my cat is named Middens.", "layer": "misheard", "notes": "Offline audio (google-tts, variant clean): heard \"Remember that my cat is named Middens.\"; router did remember_fact. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.56}
+@@VOXATEST {"event": "case_result", "index": 8, "total": 20, "id": "8", "category": "instructions", "prompt": "Set a timer for 10 minutes.", "status": "PASS", "reply": "", "heard": "Set a timer for 10 minutes.", "layer": "ok", "notes": "Offline audio (google-tts, variant clean): heard \"Set a timer for 10 minutes.\"; router did set_timer. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.5}
+@@VOXATEST {"event": "case_result", "index": 9, "total": 20, "id": "9", "category": "reasoning", "prompt": "If all dogs are mammals, are poodles mammals?", "status": "PASS", "reply": "", "heard": "If all dogs are mammals, are poodles mammals?", "layer": "ok", "notes": "Offline audio (google-tts, variant clean): heard \"If all dogs are mammals, are poodles mammals?\"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.61}
+@@VOXATEST {"event": "case_result", "index": 10, "total": 20, "id": "10", "category": "science", "prompt": "What is the chemical symbol for water?", "status": "PASS", "reply": "", "heard": "What is the chemical symbol for water?", "layer": "ok", "notes": "Offline audio (google-tts, variant clean): heard \"What is the chemical symbol for water?\"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.52}
+@@VOXATEST {"event": "case_result", "index": 11, "total": 20, "id": "1", "category": "math", "prompt": "What is the square root of 144?", "status": "PASS", "reply": "", "heard": "What is the square root of 144?", "layer": "ok", "notes": "Offline audio (google-tts, variant clean): heard \"What is the square root of 144?\"; router did calculate. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.65}
+@@VOXATEST {"event": "case_result", "index": 12, "total": 20, "id": "2", "category": "math", "prompt": "Multiply 7 by 8.", "status": "FAIL", "reply": "", "heard": "Multiply 7x8.", "layer": "misheard", "notes": "Offline audio (google-tts, variant clean): heard \"Multiply 7x8.\"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.67}
+@@VOXATEST {"event": "case_result", "index": 13, "total": 20, "id": "3", "category": "math", "prompt": "Divide 100 by 4.", "status": "PASS", "reply": "", "heard": "Divide 100 by 4.", "layer": "ok", "notes": "Offline audio (google-tts, variant clean): heard \"Divide 100 by 4.\"; router did calculate. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.58}
+@@VOXATEST {"event": "case_result", "index": 14, "total": 20, "id": "4", "category": "math", "prompt": "Add 15 and 20.", "status": "PASS", "reply": "", "heard": "Add 15 and 20.", "layer": "ok", "notes": "Offline audio (google-tts, variant clean): heard \"Add 15 and 20.\"; router did calculate. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.54}
+@@VOXATEST {"event": "case_result", "index": 15, "total": 20, "id": "5", "category": "math", "prompt": "Subtract 10 from 50.", "status": "PASS", "reply": "", "heard": "Subtract 10 from 50", "layer": "ok", "notes": "Offline audio (google-tts, variant clean): heard \"Subtract 10 from 50\"; router did calculate. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.57}
+@@VOXATEST {"event": "case_result", "index": 16, "total": 20, "id": "7", "category": "time", "prompt": "What is the current date?", "status": "PASS", "reply": "", "heard": "What is the current date?", "layer": "ok", "notes": "Offline audio (google-tts, variant clean): heard \"What is the current date?\"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.68}
+@@VOXATEST {"event": "case_result", "index": 17, "total": 20, "id": "9", "category": "reasoning", "prompt": "If it rains, should I take an umbrella?", "status": "PASS", "reply": "", "heard": "If it rains, should I take an umbrella?", "layer": "ok", "notes": "Offline audio (google-tts, variant clean): heard \"If it rains, should I take an umbrella?\"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.85}
+@@VOXATEST {"event": "case_result", "index": 18, "total": 20, "id": "10", "category": "science", "prompt": "What gas do plants absorb?", "status": "PASS", "reply": "", "heard": "What gas do plants absorb?", "layer": "ok", "notes": "Offline audio (google-tts, variant clean): heard \"What gas do plants absorb?\"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.87}
+@@VOXATEST {"event": "case_result", "index": 19, "total": 20, "id": "1", "category": "memory", "prompt": "Remember that my favorite color is blue.", "status": "PASS", "reply": "", "heard": "Remember that my favorite color is blue.", "layer": "ok", "notes": "Offline audio (google-tts, variant clean): heard \"Remember that my favorite color is blue.\"; router did remember_fact. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.73}
+@@VOXATEST {"event": "case_result", "index": 20, "total": 20, "id": "2", "category": "math", "prompt": "What is the sum of five and seven?", "status": "PASS", "reply": "", "heard": "What is the sum of 5 and 7?", "layer": "ok", "notes": "Offline audio (google-tts, variant clean): heard \"What is the sum of 5 and 7?\"; router did calculate. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.61}
+Total: 20
+Passed: 18
+Failed: 2
+Errors: 0
+Average score: 95.55
+
+PASS [general] 1: score 100 (1.5s) - no transcript
+  Voxa heard: What is the capital of France?
+  comprehension: layer=ok hearing=1.0000 routed=n/a
+  offline: variant clean engine google-tts rate 250 noise none wall 1.467 s (reply grading n/a)
+  notes: Offline audio (google-tts, variant clean): heard "What is the capital of France?"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "What is the capital of France?", "ok": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [general] 2: score 100 (1.5s) - no transcript
+  Voxa heard: Who was the first president of the United States?
+  comprehension: layer=ok hearing=1.0000 routed=n/a
+  offline: variant clean engine google-tts rate 250 noise none wall 1.475 s (reply grading n/a)
+  notes: Offline audio (google-tts, variant clean): heard "Who was the first president of the United States?"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "Who was the first president of the United States?", "ok": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [general] 3: score 100 (2.9s) - no transcript
+  Voxa heard: How do you make lemonade?
+  comprehension: layer=ok hearing=1.0000 routed=n/a
+  offline: variant clean engine google-tts rate 250 noise none wall 2.931 s (reply grading n/a)
+  notes: Offline audio (google-tts, variant clean): heard "How do you make lemonade?"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "How do you make lemonade?", "ok": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [general] 4: score 100 (2.0s) - no transcript
+  Voxa heard: What is the tallest mountain in the world?
+  comprehension: layer=ok hearing=1.0000 routed=n/a
+  offline: variant clean engine google-tts rate 250 noise none wall 1.97 s (reply grading n/a)
+  notes: Offline audio (google-tts, variant clean): heard "What is the tallest mountain in the world?"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "What is the tallest mountain in the world?", "ok": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [general] 5: score 100 (1.7s) - no transcript
+  Voxa heard: Who wrote the play Hamlet?
+  comprehension: layer=ok hearing=1.0000 routed=n/a
+  offline: variant clean engine google-tts rate 250 noise none wall 1.66 s (reply grading n/a)
+  notes: Offline audio (google-tts, variant clean): heard "Who wrote the play Hamlet?"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "Who wrote the play Hamlet?", "ok": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [math] 6: score 100 (1.6s) - no transcript
+  Voxa heard: What is 5 times 4?
+  comprehension: layer=ok hearing=1.0000 routed=n/a
+  offline: variant clean engine google-tts rate 250 noise none wall 1.571 s (reply grading n/a)
+  notes: Offline audio (google-tts, variant clean): heard "What is 5 times 4?"; router did calculate. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {"expression": "What is 5 times 4"}, "heard": "What is 5 times 4?", "ok": true, "route": "offline-audio", "tool": "calculate", "variant": "clean"}
+FAIL [memory] 7: score 86 (1.6s) - no transcript
+  Voxa heard: Remember that my cat is named Middens.
+  comprehension: layer=misheard hearing=0.8571 routed=n/a
+  offline: variant clean engine google-tts rate 250 noise none wall 1.557 s (reply grading n/a)
+  notes: Offline audio (google-tts, variant clean): heard "Remember that my cat is named Middens."; router did remember_fact. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {"fact": "my cat is named Middens"}, "heard": "Remember that my cat is named Middens.", "ok": true, "route": "offline-audio", "tool": "remember_fact", "variant": "clean"}
+PASS [instructions] 8: score 100 (1.5s) - no transcript
+  Voxa heard: Set a timer for 10 minutes.
+  comprehension: layer=ok hearing=1.0000 routed=n/a
+  offline: variant clean engine google-tts rate 250 noise none wall 1.504 s (reply grading n/a)
+  notes: Offline audio (google-tts, variant clean): heard "Set a timer for 10 minutes."; router did set_timer. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {"duration": "10 minutes"}, "heard": "Set a timer for 10 minutes.", "ok": true, "route": "offline-audio", "tool": "set_timer", "variant": "clean"}
+PASS [reasoning] 9: score 100 (1.6s) - no transcript
+  Voxa heard: If all dogs are mammals, are poodles mammals?
+  comprehension: layer=ok hearing=1.0000 routed=n/a
+  offline: variant clean engine google-tts rate 250 noise none wall 1.606 s (reply grading n/a)
+  notes: Offline audio (google-tts, variant clean): heard "If all dogs are mammals, are poodles mammals?"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "If all dogs are mammals, are poodles mammals?", "ok": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [science] 10: score 100 (1.5s) - no transcript
+  Voxa heard: What is the chemical symbol for water?
+  comprehension: layer=ok hearing=1.0000 routed=n/a
+  offline: variant clean engine google-tts rate 250 noise none wall 1.519 s (reply grading n/a)
+  notes: Offline audio (google-tts, variant clean): heard "What is the chemical symbol for water?"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "What is the chemical symbol for water?", "ok": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [math] 1: score 100 (1.6s) - no transcript
+  Voxa heard: What is the square root of 144?
+  comprehension: layer=ok hearing=1.0000 routed=n/a
+  offline: variant clean engine google-tts rate 250 noise none wall 1.646 s (reply grading n/a)
+  notes: Offline audio (google-tts, variant clean): heard "What is the square root of 144?"; router did calculate. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {"expression": "What is the square root of 144"}, "heard": "What is the square root of 144?", "ok": true, "route": "offline-audio", "tool": "calculate", "variant": "clean"}
+FAIL [math] 2: score 25 (1.7s) - no transcript
+  Voxa heard: Multiply 7x8.
+  comprehension: layer=misheard hearing=0.2500 routed=n/a
+  offline: variant clean engine google-tts rate 250 noise none wall 1.667 s (reply grading n/a)
+  notes: Offline audio (google-tts, variant clean): heard "Multiply 7x8."; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "Multiply 7x8.", "ok": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [math] 3: score 100 (1.6s) - no transcript
+  Voxa heard: Divide 100 by 4.
+  comprehension: layer=ok hearing=1.0000 routed=n/a
+  offline: variant clean engine google-tts rate 250 noise none wall 1.576 s (reply grading n/a)
+  notes: Offline audio (google-tts, variant clean): heard "Divide 100 by 4."; router did calculate. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {"expression": "Divide 100 by 4"}, "heard": "Divide 100 by 4.", "ok": true, "route": "offline-audio", "tool": "calculate", "variant": "clean"}
+PASS [math] 4: score 100 (1.5s) - no transcript
+  Voxa heard: Add 15 and 20.
+  comprehension: layer=ok hearing=1.0000 routed=n/a
+  offline: variant clean engine google-tts rate 250 noise none wall 1.541 s (reply grading n/a)
+  notes: Offline audio (google-tts, variant clean): heard "Add 15 and 20."; router did calculate. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {"expression": "Add 15 and 20"}, "heard": "Add 15 and 20.", "ok": true, "route": "offline-audio", "tool": "calculate", "variant": "clean"}
+PASS [math] 5: score 100 (1.6s) - no transcript
+  Voxa heard: Subtract 10 from 50
+  comprehension: layer=ok hearing=1.0000 routed=n/a
+  offline: variant clean engine google-tts rate 250 noise none wall 1.566 s (reply grading n/a)
+  notes: Offline audio (google-tts, variant clean): heard "Subtract 10 from 50"; router did calculate. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {"expression": "Subtract 10 from 50"}, "heard": "Subtract 10 from 50", "ok": true, "route": "offline-audio", "tool": "calculate", "variant": "clean"}
+PASS [time] 7: score 100 (1.7s) - no transcript
+  Voxa heard: What is the current date?
+  comprehension: layer=ok hearing=1.0000 routed=n/a
+  offline: variant clean engine google-tts rate 250 noise none wall 1.683 s (reply grading n/a)
+  notes: Offline audio (google-tts, variant clean): heard "What is the current date?"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "What is the current date?", "ok": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [reasoning] 9: score 100 (1.8s) - no transcript
+  Voxa heard: If it rains, should I take an umbrella?
+  comprehension: layer=ok hearing=1.0000 routed=n/a
+  offline: variant clean engine google-tts rate 250 noise none wall 1.848 s (reply grading n/a)
+  notes: Offline audio (google-tts, variant clean): heard "If it rains, should I take an umbrella?"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "If it rains, should I take an umbrella?", "ok": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [science] 10: score 100 (1.9s) - no transcript
+  Voxa heard: What gas do plants absorb?
+  comprehension: layer=ok hearing=1.0000 routed=n/a
+  offline: variant clean engine google-tts rate 250 noise none wall 1.87 s (reply grading n/a)
+  notes: Offline audio (google-tts, variant clean): heard "What gas do plants absorb?"; router did nothing. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "What gas do plants absorb?", "ok": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [memory] 1: score 100 (1.7s) - no transcript
+  Voxa heard: Remember that my favorite color is blue.
+  comprehension: layer=ok hearing=1.0000 routed=n/a
+  offline: variant clean engine google-tts rate 250 noise none wall 1.732 s (reply grading n/a)
+  notes: Offline audio (google-tts, variant clean): heard "Remember that my favorite color is blue."; router did remember_fact. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {"fact": "my favorite color is blue"}, "heard": "Remember that my favorite color is blue.", "ok": true, "route": "offline-audio", "tool": "remember_fact", "variant": "clean"}
+PASS [math] 2: score 100 (1.6s) - no transcript
+  Voxa heard: What is the sum of 5 and 7?
+  comprehension: layer=ok hearing=1.0000 routed=n/a
+  offline: variant clean engine google-tts rate 250 noise none wall 1.608 s (reply grading n/a)
+  notes: Offline audio (google-tts, variant clean): heard "What is the sum of 5 and 7?"; router did calculate. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {"expression": "What is the sum of 5 and 7"}, "heard": "What is the sum of 5 and 7?", "ok": true, "route": "offline-audio", "tool": "calculate", "variant": "clean"}
+
+Comprehension
+  hearing_word_accuracy  0.9554  (20 cases)
+  routed_tool_accuracy   null  (0 cases with an expected tool)
+  layers: not_heard 0, misheard 2, misrouted 0, misanswered 0, ok 18
+  per category:
+    general: cases 5 hearing 1.0000 routed null
+    instructions: cases 1 hearing 1.0000 routed null
+    math: cases 7 hearing 0.8929 routed null
+    memory: cases 2 hearing 0.9285 routed null
+    reasoning: cases 2 hearing 1.0000 routed null
+    science: cases 2 hearing 1.0000 routed null
+    time: cases 1 hearing 1.0000 routed null
+  CONFUSIONS (top 30):
+    1x  eight -> 7x8
+    1x  mittens -> middens
+Hearing suite (timed interruptions, short answers, repetitions, pauses, quiet speech)
+  interrupt_recall           null
+  keep_accuracy              null
+  stop_latency_p50_ms        null
+  stop_latency_p95_ms        null
+  premature_rate             null
+  self_interrupt_count       null
+  request_word_retention     null
+  cases [{'case_id': '1', 'category': 'general', 'prompt': 'What is the capital of France?', 'heard': 'What is the capital of France?', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'ok', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': '2', 'category': 'general', 'prompt': 'Who was the first president of the United States?', 'heard': 'Who was the first president of the United States?', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'ok', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': '3', 'category': 'general', 'prompt': 'How do you make lemonade?', 'heard': 'How do you make lemonade?', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'ok', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': '4', 'category': 'general', 'prompt': 'What is the tallest mountain in the world?', 'heard': 'What is the tallest mountain in the world?', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'ok', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': '5', 'category': 'general', 'prompt': 'Who wrote the play Hamlet?', 'heard': 'Who wrote the play Hamlet?', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'ok', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': '6', 'category': 'math', 'prompt': 'What is 5 times 4?', 'heard': 'What is 5 times 4?', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'ok', 'expected_tool': '', 'tools_ran': ['calculate'], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': '7', 'category': 'memory', 'prompt': 'Remember that my cat is named Mittens.', 'heard': 'Remember that my cat is named Middens.', 'hearing_word_accuracy': 0.8571, 'hearing_word_accuracy_best_record': 0.8571, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': ['remember_fact'], 'routed': None, 'passed': False, 'error': '', 'confusions': [['mittens', 'middens']]}, {'case_id': '8', 'category': 'instructions', 'prompt': 'Set a timer for 10 minutes.', 'heard': 'Set a timer for 10 minutes.', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'ok', 'expected_tool': '', 'tools_ran': ['set_timer'], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': '9', 'category': 'reasoning', 'prompt': 'If all dogs are mammals, are poodles mammals?', 'heard': 'If all dogs are mammals, are poodles mammals?', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'ok', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': '10', 'category': 'science', 'prompt': 'What is the chemical symbol for water?', 'heard': 'What is the chemical symbol for water?', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'ok', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': '1', 'category': 'math', 'prompt': 'What is the square root of 144?', 'heard': 'What is the square root of 144?', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'ok', 'expected_tool': '', 'tools_ran': ['calculate'], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': '2', 'category': 'math', 'prompt': 'Multiply 7 by 8.', 'heard': 'Multiply 7x8.', 'hearing_word_accuracy': 0.25, 'hearing_word_accuracy_best_record': 0.25, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['eight', '7x8']]}, {'case_id': '3', 'category': 'math', 'prompt': 'Divide 100 by 4.', 'heard': 'Divide 100 by 4.', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'ok', 'expected_tool': '', 'tools_ran': ['calculate'], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': '4', 'category': 'math', 'prompt': 'Add 15 and 20.', 'heard': 'Add 15 and 20.', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'ok', 'expected_tool': '', 'tools_ran': ['calculate'], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': '5', 'category': 'math', 'prompt': 'Subtract 10 from 50.', 'heard': 'Subtract 10 from 50', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'ok', 'expected_tool': '', 'tools_ran': ['calculate'], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': '7', 'category': 'time', 'prompt': 'What is the current date?', 'heard': 'What is the current date?', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'ok', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': '9', 'category': 'reasoning', 'prompt': 'If it rains, should I take an umbrella?', 'heard': 'If it rains, should I take an umbrella?', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'ok', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': '10', 'category': 'science', 'prompt': 'What gas do plants absorb?', 'heard': 'What gas do plants absorb?', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'ok', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': '1', 'category': 'memory', 'prompt': 'Remember that my favorite color is blue.', 'heard': 'Remember that my favorite color is blue.', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'ok', 'expected_tool': '', 'tools_ran': ['remember_fact'], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': '2', 'category': 'math', 'prompt': 'What is the sum of five and seven?', 'heard': 'What is the sum of 5 and 7?', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'ok', 'expected_tool': '', 'tools_ran': ['calculate'], 'routed': None, 'passed': True, 'error': '', 'confusions': []}]  yielded None/None  kept None/None  complete requests None/None  premature None/None
+  per cell:
+  per overlap:
+  per expect:
+
+Offline audio (no speakers, no microphone)
+  variants clean  seed 0  TTS engine(s) google-tts
+  cases 20  audio 124.5 s  wall 33.999 s  (3.662x audio time)
+  wall time per case: median 1.607 s  p95 2.018 s  max 2.931 s
+  hearing_word_accuracy 0.9554  routed_tool_accuracy null
+  reply grading: n/a (nothing is spoken offline)
+JSON report: .voxa-bench/vt-smoke.json
+Text report: /home/rhy/strata-fleet/opencode-home/state/voxatest/reports/run_20261124_051050_075387_4650_11bf97ca.txt
+Failure report: VOXATEST_FAILURES.md

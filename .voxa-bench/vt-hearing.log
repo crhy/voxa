@@ -1,0 +1,687 @@
+Offline audio: 68 cases x 1 variant(s) [clean] seed 0, wake word "voxa", test voice en-US-GuyNeural, bench data /home/rhy/voxa-bench-data
+Whisper model base loaded in 0.6 s (one model for the whole run)
+[1/68] h-barge-onset-0 (hearing-bargein) variant clean: "stop"
+  onset 0.0 s yielded True stop 6280.0 ms retention 0.0 requests ['This is Charlie, with the high-blum 702-3'] (3.429s wall)
+[2/68] h-barge-onset-1 (hearing-bargein) variant clean: "no, the other one"
+  onset 0.0 s yielded True stop 3880.0 ms retention 0.0 requests ['What?'] (2.488s wall)
+[3/68] h-barge-onset-2 (hearing-bargein) variant clean: "volume down"
+  onset 0.0 s yielded True stop 1720.0 ms retention 0.0 requests [] (1.32s wall)
+[4/68] h-barge-onset-3 (hearing-bargein) variant clean: "stop listening"
+  onset 0.0 s yielded True stop 2580.0 ms retention 0.0 requests ['Thank you.'] (2.048s wall)
+[5/68] h-barge-first_syllable-0 (hearing-bargein) variant clean: "stop"
+  onset 0.379 s yielded True stop 3161.5 ms retention 0.0 requests ["It's a bit of a challenge with..."] (1.506s wall)
+[6/68] h-barge-first_syllable-1 (hearing-bargein) variant clean: "no, the other one"
+  onset 0.379 s yielded True stop 1421.5 ms retention 0.25 requests ["So, what's the next one?"] (1.859s wall)
+[7/68] h-barge-first_syllable-2 (hearing-bargein) variant clean: "volume down"
+  onset 0.379 s yielded True stop 1241.5 ms retention 0.0 requests ['The f**k you, pal.'] (1.496s wall)
+[8/68] h-barge-first_syllable-3 (hearing-bargein) variant clean: "stop listening"
+  onset 0.379 s yielded True stop 1461.5 ms retention 0.0 requests ['and'] (17.237s wall)
+[9/68] h-barge-middle-0 (hearing-bargein) variant clean: "stop"
+  onset 3.154 s yielded False stop None ms retention 0.0 requests [] (4.308s wall)
+[10/68] h-barge-middle-1 (hearing-bargein) variant clean: "no, the other one"
+  onset 3.154 s yielded False stop None ms retention 0.0 requests ['The weather is getting...'] (1.411s wall)
+[11/68] h-barge-middle-2 (hearing-bargein) variant clean: "volume down"
+  onset 3.154 s yielded False stop None ms retention 0.0 requests ['better in 10.'] (1.41s wall)
+[12/68] h-barge-middle-3 (hearing-bargein) variant clean: "stop listening"
+  onset 3.154 s yielded False stop None ms retention 0.0 requests ['the weather is'] (1.374s wall)
+[13/68] h-barge-last_word-0 (hearing-bargein) variant clean: "stop"
+  onset 5.362 s yielded False stop None ms retention 0.0 requests ['whatever in Chan.'] (1.479s wall)
+[14/68] h-barge-last_word-1 (hearing-bargein) variant clean: "no, the other one"
+  onset 5.362 s yielded True stop 917.9 ms retention 0.0 requests ['Whether in 10.0 is sunny with a high of 702 degrees.'] (1.977s wall)
+[15/68] h-barge-last_word-2 (hearing-bargein) variant clean: "volume down"
+  onset 5.362 s yielded False stop None ms retention 0.0 requests ["and then we'll have a better feeling."] (1.262s wall)
+[16/68] h-barge-last_word-3 (hearing-bargein) variant clean: "stop listening"
+  onset 5.362 s yielded False stop None ms retention 0.0 requests ['better fit.'] (1.321s wall)
+[17/68] h-barge-music-0 (hearing-bargein) variant clean: "stop"
+  onset 1.635 s yielded True stop 284.7 ms retention 0.0 requests ['5, 2, 1'] (0.989s wall)
+[18/68] h-barge-music-1 (hearing-bargein) variant clean: "volume down"
+  onset 2.78 s yielded False stop None ms retention 0.0 requests ["I think they don't tell me that."] (1.475s wall)
+[19/68] h-barge-music-2 (hearing-bargein) variant clean: "that one"
+  onset 0.0 s yielded False stop None ms retention 0.0 requests [] (0.559s wall)
+[20/68] h-barge-music-3 (hearing-bargein) variant clean: "stop listening"
+  onset 0.196 s yielded True stop 763.8 ms retention 0.0 requests ['People can die, murder bodies.'] (1.146s wall)
+[21/68] h-stop-her-stop-1 (hearing-selfword) variant clean: "stop"
+  onset 1.379 s yielded True stop 321.1 ms retention 0.0 requests ['This is real life.'] (1.511s wall)
+[22/68] h-stop-her-stop-2 (hearing-selfword) variant clean: "stop"
+  onset 0.0 s yielded False stop None ms retention 0.0 requests [] (0.081s wall)
+[23/68] h-stop-her-dictation (hearing-selfword) variant clean: "stop dictation"
+  onset 3.17 s yielded False stop None ms retention 0.0 requests ["and I'm going to finish up the time of the day.", 'Station'] (1.426s wall)
+[24/68] h-stop-her-cancel (hearing-selfword) variant clean: "cancel that"
+  onset 0.716 s yielded False stop None ms retention 0.0 requests [] (0.423s wall)
+[25/68] h-answer-yes (hearing-answer) variant clean: "yes"
+  onset 3.804 s yielded False stop None ms retention 0.0 requests ['you want me to open. Yes.'] (1.502s wall)
+[26/68] h-answer-no (hearing-answer) variant clean: "no"
+  onset 3.804 s yielded False stop None ms retention 0.0 requests ['Who comes to me?'] (1.63s wall)
+[27/68] h-answer-that (hearing-answer) variant clean: "that one"
+  onset 3.308 s yielded False stop None ms retention 0.0 requests ["Let's do one more."] (1.49s wall)
+[28/68] h-answer-other (hearing-answer) variant clean: "no, the other one"
+  onset 3.308 s yielded False stop None ms retention 0.0 requests ['One, two, one, oh. No, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no'] (2.965s wall)
+[29/68] h-answer-blue (hearing-answer) variant clean: "blue"
+  onset 2.983 s yielded False stop None ms retention 0.0 requests ['is the color.'] (1.338s wall)
+[30/68] h-answer-voice2 (hearing-answer) variant clean: "yes"
+  onset 3.804 s yielded False stop None ms retention 0.0 requests ['you want me.'] (1.537s wall)
+[31/68] h-repeat-lib-over-1 (hearing-repeat) variant clean: "The library opens at nine in the morning."
+  onset 1.871 s yielded False stop None ms retention 0.375 requests ["I'm in the morning."] (2.273s wall)
+[32/68] h-repeat-lib-over-2 (hearing-repeat) variant clean: "The library opens at nine in the morning."
+  onset 3.18 s yielded False stop None ms retention 0.25 requests ['nightly performance. Very open, behind the morning.'] (1.831s wall)
+[33/68] h-repeat-blue-over (hearing-repeat) variant clean: "blue"
+  onset 1.266 s yielded False stop None ms retention 0.0 requests [] (0.857s wall)
+[34/68] h-repeat-lib-after (hearing-answer) variant clean: "The library opens at nine in the morning."
+  onset 4.192 s yielded False stop None ms retention 0.0 requests ["That's what we call this."] (1.916s wall)
+[35/68] h-repeat-weather-after (hearing-answer) variant clean: "The weather in San Diego is sunny with a high of seventy two degrees."
+  onset 6.758 s yielded False stop None ms retention 0.0 requests ["and there you'll be, shall we win, say, high-up, 70, 2, 3. The weather in, and there you'll be, shall we win, say, high-up, 72, 3."] (2.317s wall)
+[36/68] h-repeat-blue-after (hearing-answer) variant clean: "blue"
+  onset 2.983 s yielded False stop None ms retention 0.0 requests ['This is the color view.'] (1.566s wall)
+[37/68] h-pause-0 (hearing-pause) variant clean: "voxa set a timer for five minutes and another for ten minutes"
+  onset 2.484 s yielded False stop None ms retention 0.0909 requests ['MaxxSHA time 4.5'] (1.745s wall)
+[38/68] h-pause-1 (hearing-pause) variant clean: "voxa read the first chapter of the book and then save the notes"
+  onset 2.484 s yielded False stop None ms retention 0.25 requests ['Boxer, read the first chapter'] (1.73s wall)
+[39/68] h-pause-2 (hearing-pause) variant clean: "voxa the nearest pharmacy is on fifth avenue and I need the one on third street"
+  onset 2.484 s yielded False stop None ms retention 0.4 requests ['Maximum nearest pharmacy is on 50th Avenue and...'] (1.803s wall)
+[40/68] h-pause-3 (hearing-pause) variant clean: "voxa add milk and bread and eggs to the shopping list"
+  onset 2.484 s yielded False stop None ms retention 0.5 requests ['Voxet and Bill and Red and X to the shopping list.'] (1.537s wall)
+[41/68] h-pause-4 (hearing-pause) variant clean: "voxa open the map for walking directions to the library and print it"
+  onset 2.484 s yielded False stop None ms retention 0.3333 requests ['Max, open the map for walking.'] (1.812s wall)
+[42/68] h-pause-5 (hearing-pause) variant clean: "voxa reminding you at three to call Bob and at five to call Ann"
+  onset 2.484 s yielded False stop None ms retention 0.1538 requests ["Max, I remind you, that's free to call."] (2.671s wall)
+[43/68] h-clause-0 (hearing-continuation) variant clean: "voxa open the browser and go to my music page"
+  onset 2.484 s yielded False stop None ms retention 0.2222 requests ['Max open the browser'] (1.76s wall)
+[44/68] h-clause-1 (hearing-continuation) variant clean: "voxa open the browser and go to my music page"
+  onset 2.484 s yielded False stop None ms retention 0.3333 requests ['Max open the browser and...'] (1.715s wall)
+[45/68] h-clause-2 (hearing-continuation) variant clean: "voxa write a note about the dentist and save it in the notes folder"
+  onset 2.484 s yielded False stop None ms retention 0.0 requests ["Max, I'm right, I'm not about to know anything."] (1.748s wall)
+[46/68] h-clause-3 (hearing-continuation) variant clean: "voxa what is the weather and add it to the dictation"
+  onset 2.484 s yielded False stop None ms retention 0.1 requests ['Max, I was in the weather.'] (2.063s wall)
+[47/68] h-quiet-barge-0 (hearing-quiet) variant clean: "stop"
+  onset 3.154 s yielded False stop None ms retention 0.0 requests ['the weather conditions.'] (1.736s wall)
+[48/68] h-quiet-barge-1 (hearing-quiet) variant clean: "volume down"
+  onset 3.154 s yielded False stop None ms retention 0.0 requests ['in 10, there you got this, study, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay'] (1.9s wall)
+[49/68] h-quiet-barge-2 (hearing-quiet) variant clean: "stop listening"
+  onset 5.362 s yielded False stop None ms retention 0.0 requests ['of weather in. And...'] (1.317s wall)
+[50/68] h-quiet-barge-3 (hearing-quiet) variant clean: "no, the other one"
+  onset 0.0 s yielded True stop 1720.0 ms retention 0.0 requests ['We are getting up 10.'] (1.503s wall)
+[51/68] h-quiet-answer-0 (hearing-quiet) variant clean: "yes"
+  onset 3.804 s yielded False stop None ms retention 0.0 requests ['You want me?'] (1.388s wall)
+[52/68] h-quiet-answer-1 (hearing-quiet) variant clean: "that one"
+  onset 3.308 s yielded False stop None ms retention 0.0 requests ['from the first one.'] (1.4s wall)
+[53/68] h-quiet-answer-2 (hearing-quiet) variant clean: "blue"
+  onset 2.983 s yielded False stop None ms retention 0.0 requests ['Thank you, Charles.'] (1.32s wall)
+[54/68] h-back-0 (hearing-backchannel) variant clean: "yes"
+  onset 3.154 s yielded False stop None ms retention 0.0 requests ['the weather is intense.'] (1.361s wall)
+[55/68] h-back-1 (hearing-backchannel) variant clean: "no"
+  onset 0.196 s yielded True stop 2183.8 ms retention 0.0 requests ['34th time by'] (1.129s wall)
+[56/68] h-back-2 (hearing-backchannel) variant clean: "ok"
+  onset 3.154 s yielded False stop None ms retention 0.0 requests ["We'll have a spin."] (1.553s wall)
+[57/68] h-back-3 (hearing-backchannel) variant clean: "thanks"
+  onset 0.196 s yielded False stop None ms retention 0.0 requests [] (0.647s wall)
+[58/68] h-back-4 (hearing-backchannel) variant clean: "right"
+  onset 3.154 s yielded False stop None ms retention 0.0 requests ['whatever it is.'] (1.391s wall)
+[59/68] h-back-5 (hearing-backchannel) variant clean: "uh-huh"
+  onset 0.196 s yielded True stop 2183.8 ms retention 0.0 requests ['and then you can get out of that.'] (1.131s wall)
+[60/68] h-solo-0 (hearing-self) variant clean: ""
+  onset None s yielded False stop None ms retention None requests ["I'm gonna go to bed."] (1.275s wall)
+[61/68] h-solo-1 (hearing-self) variant clean: ""
+  onset None s yielded False stop None ms retention None requests [] (0.468s wall)
+[62/68] h-solo-2 (hearing-self) variant clean: ""
+  onset None s yielded False stop None ms retention None requests ['Who can take my-'] (1.356s wall)
+[63/68] h-solo-3 (hearing-self) variant clean: ""
+  onset None s yielded False stop None ms retention None requests ["Right then, let's go."] (1.22s wall)
+[64/68] h-solo-4 (hearing-self) variant clean: ""
+  onset None s yielded False stop None ms retention None requests ['you why I am speaking.'] (1.221s wall)
+[65/68] h-solo-5 (hearing-self) variant clean: ""
+  onset None s yielded False stop None ms retention None requests [] (0.466s wall)
+[66/68] h-tail-stop (hearing-tail) variant clean: "stop"
+  onset 6.458 s yielded False stop None ms retention 0.0 requests ['and'] (1.705s wall)
+[67/68] h-tail-other (hearing-tail) variant clean: "no, the other one"
+  onset 3.421 s yielded False stop None ms retention 0.0 requests ["I'm going to be holding you in your little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, No, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no"] (3.348s wall)
+[68/68] h-tail-quiet (hearing-tail) variant clean: "volume down"
+  onset 6.458 s yielded False stop None ms retention 0.0 requests ['the other pin, and...'] (2.433s wall)
+@@VOXATEST {"event": "case_result", "index": 1, "total": 68, "id": "h-barge-onset-0", "category": "hearing-bargein", "prompt": "stop", "status": "PASS", "reply": "", "heard": "This is Charlie, with the high-blum 702-3", "layer": "misheard", "notes": "Hearing (yield, cell normal, echo voxa, onset 0.0 s, 10.0 dB at the mic): she stopped her own playback (stop latency 6280.0 ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 3.43}
+@@VOXATEST {"event": "case_result", "index": 2, "total": 68, "id": "h-barge-onset-1", "category": "hearing-bargein", "prompt": "no, the other one", "status": "PASS", "reply": "", "heard": "What?", "layer": "misheard", "notes": "Hearing (yield, cell normal, echo voxa, onset 0.0 s, 10.0 dB at the mic): she stopped her own playback (stop latency 3880.0 ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 2.49}
+@@VOXATEST {"event": "case_result", "index": 3, "total": 68, "id": "h-barge-onset-2", "category": "hearing-bargein", "prompt": "volume down", "status": "PASS", "reply": "", "heard": "", "layer": "not_heard", "notes": "Hearing (yield, cell normal, echo voxa, onset 0.0 s, 5.0 dB at the mic): she stopped her own playback (stop latency 1720.0 ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.32}
+@@VOXATEST {"event": "case_result", "index": 4, "total": 68, "id": "h-barge-onset-3", "category": "hearing-bargein", "prompt": "stop listening", "status": "PASS", "reply": "", "heard": "Thank you.", "layer": "misheard", "notes": "Hearing (yield, cell normal, echo voxa, onset 0.0 s, 0.0 dB at the mic): she stopped her own playback (stop latency 2580.0 ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 2.05}
+@@VOXATEST {"event": "case_result", "index": 5, "total": 68, "id": "h-barge-first_syllable-0", "category": "hearing-bargein", "prompt": "stop", "status": "PASS", "reply": "", "heard": "It's a bit of a challenge with...", "layer": "misheard", "notes": "Hearing (yield, cell normal, echo voxa, onset 0.379 s, 10.0 dB at the mic): she stopped her own playback (stop latency 3161.5 ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.51}
+@@VOXATEST {"event": "case_result", "index": 6, "total": 68, "id": "h-barge-first_syllable-1", "category": "hearing-bargein", "prompt": "no, the other one", "status": "PASS", "reply": "", "heard": "So, what's the next one?", "layer": "misheard", "notes": "Hearing (yield, cell normal, echo voxa, onset 0.379 s, 10.0 dB at the mic): she stopped her own playback (stop latency 1421.5 ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.86}
+@@VOXATEST {"event": "case_result", "index": 7, "total": 68, "id": "h-barge-first_syllable-2", "category": "hearing-bargein", "prompt": "volume down", "status": "PASS", "reply": "", "heard": "The f**k you, pal.", "layer": "misheard", "notes": "Hearing (yield, cell normal, echo voxa, onset 0.379 s, 5.0 dB at the mic): she stopped her own playback (stop latency 1241.5 ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.5}
+@@VOXATEST {"event": "case_result", "index": 8, "total": 68, "id": "h-barge-first_syllable-3", "category": "hearing-bargein", "prompt": "stop listening", "status": "PASS", "reply": "", "heard": "and", "layer": "misheard", "notes": "Hearing (yield, cell normal, echo voxa, onset 0.379 s, 0.0 dB at the mic): she stopped her own playback (stop latency 1461.5 ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 17.24}
+@@VOXATEST {"event": "case_result", "index": 9, "total": 68, "id": "h-barge-middle-0", "category": "hearing-bargein", "prompt": "stop", "status": "FAIL", "reply": "", "heard": "", "layer": "not_heard", "notes": "Hearing (yield, cell normal, echo voxa, onset 3.154 s, 10.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 4.31}
+@@VOXATEST {"event": "case_result", "index": 10, "total": 68, "id": "h-barge-middle-1", "category": "hearing-bargein", "prompt": "no, the other one", "status": "FAIL", "reply": "", "heard": "The weather is getting...", "layer": "misheard", "notes": "Hearing (yield, cell normal, echo voxa, onset 3.154 s, 10.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.41}
+@@VOXATEST {"event": "case_result", "index": 11, "total": 68, "id": "h-barge-middle-2", "category": "hearing-bargein", "prompt": "volume down", "status": "FAIL", "reply": "", "heard": "better in 10.", "layer": "misheard", "notes": "Hearing (yield, cell normal, echo voxa, onset 3.154 s, 5.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.41}
+@@VOXATEST {"event": "case_result", "index": 12, "total": 68, "id": "h-barge-middle-3", "category": "hearing-bargein", "prompt": "stop listening", "status": "FAIL", "reply": "", "heard": "the weather is", "layer": "misheard", "notes": "Hearing (yield, cell normal, echo voxa, onset 3.154 s, 0.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.37}
+@@VOXATEST {"event": "case_result", "index": 13, "total": 68, "id": "h-barge-last_word-0", "category": "hearing-bargein", "prompt": "stop", "status": "FAIL", "reply": "", "heard": "whatever in Chan.", "layer": "misheard", "notes": "Hearing (yield, cell normal, echo voxa, onset 5.362 s, 10.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.48}
+@@VOXATEST {"event": "case_result", "index": 14, "total": 68, "id": "h-barge-last_word-1", "category": "hearing-bargein", "prompt": "no, the other one", "status": "PASS", "reply": "", "heard": "Whether in 10.0 is sunny with a high of 702 degrees.", "layer": "misheard", "notes": "Hearing (yield, cell normal, echo voxa, onset 5.362 s, 10.0 dB at the mic): she stopped her own playback (stop latency 917.9 ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.98}
+@@VOXATEST {"event": "case_result", "index": 15, "total": 68, "id": "h-barge-last_word-2", "category": "hearing-bargein", "prompt": "volume down", "status": "FAIL", "reply": "", "heard": "and then we'll have a better feeling.", "layer": "misheard", "notes": "Hearing (yield, cell normal, echo voxa, onset 5.362 s, 5.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.26}
+@@VOXATEST {"event": "case_result", "index": 16, "total": 68, "id": "h-barge-last_word-3", "category": "hearing-bargein", "prompt": "stop listening", "status": "FAIL", "reply": "", "heard": "better fit.", "layer": "misheard", "notes": "Hearing (yield, cell normal, echo voxa, onset 5.362 s, 0.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.32}
+@@VOXATEST {"event": "case_result", "index": 17, "total": 68, "id": "h-barge-music-0", "category": "hearing-bargein", "prompt": "stop", "status": "PASS", "reply": "", "heard": "5, 2, 1", "layer": "misheard", "notes": "Hearing (yield, cell normal, echo voxa, onset 1.635 s, 10.0 dB at the mic): she stopped her own playback (stop latency 284.7 ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 0.99}
+@@VOXATEST {"event": "case_result", "index": 18, "total": 68, "id": "h-barge-music-1", "category": "hearing-bargein", "prompt": "volume down", "status": "FAIL", "reply": "", "heard": "I think they don't tell me that.", "layer": "misheard", "notes": "Hearing (yield, cell normal, echo voxa, onset 2.78 s, 5.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.48}
+@@VOXATEST {"event": "case_result", "index": 19, "total": 68, "id": "h-barge-music-2", "category": "hearing-bargein", "prompt": "that one", "status": "FAIL", "reply": "", "heard": "", "layer": "not_heard", "notes": "Hearing (yield, cell normal, echo voxa, onset 0.0 s, 10.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 0.56}
+@@VOXATEST {"event": "case_result", "index": 20, "total": 68, "id": "h-barge-music-3", "category": "hearing-bargein", "prompt": "stop listening", "status": "PASS", "reply": "", "heard": "People can die, murder bodies.", "layer": "misheard", "notes": "Hearing (yield, cell normal, echo voxa, onset 0.196 s, 0.0 dB at the mic): she stopped her own playback (stop latency 763.8 ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.15}
+@@VOXATEST {"event": "case_result", "index": 21, "total": 68, "id": "h-stop-her-stop-1", "category": "hearing-selfword", "prompt": "stop", "status": "PASS", "reply": "", "heard": "This is real life.", "layer": "misheard", "notes": "Hearing (yield, cell normal, echo voxa, onset 1.379 s, 10.0 dB at the mic): she stopped her own playback (stop latency 321.1 ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.51}
+@@VOXATEST {"event": "case_result", "index": 22, "total": 68, "id": "h-stop-her-stop-2", "category": "hearing-selfword", "prompt": "stop", "status": "FAIL", "reply": "", "heard": "", "layer": "not_heard", "notes": "Hearing (yield, cell normal, echo voxa, onset 0.0 s, 10.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 0.08}
+@@VOXATEST {"event": "case_result", "index": 23, "total": 68, "id": "h-stop-her-dictation", "category": "hearing-selfword", "prompt": "stop dictation", "status": "FAIL", "reply": "", "heard": "and I'm going to finish up the time of the day. Station", "layer": "misheard", "notes": "Hearing (yield, cell normal, echo voxa, onset 3.17 s, 5.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.43}
+@@VOXATEST {"event": "case_result", "index": 24, "total": 68, "id": "h-stop-her-cancel", "category": "hearing-selfword", "prompt": "cancel that", "status": "FAIL", "reply": "", "heard": "", "layer": "not_heard", "notes": "Hearing (yield, cell normal, echo voxa, onset 0.716 s, 5.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 0.42}
+@@VOXATEST {"event": "case_result", "index": 25, "total": 68, "id": "h-answer-yes", "category": "hearing-answer", "prompt": "yes", "status": "FAIL", "reply": "", "heard": "you want me to open. Yes.", "layer": "misheard", "notes": "Hearing (answer, cell normal, echo voxa, onset 3.804 s, 5.0 dB at the mic): request incomplete: retention 0.0 of 'yes' -> 'you want me to open. Yes.'. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.5}
+@@VOXATEST {"event": "case_result", "index": 26, "total": 68, "id": "h-answer-no", "category": "hearing-answer", "prompt": "no", "status": "FAIL", "reply": "", "heard": "Who comes to me?", "layer": "misheard", "notes": "Hearing (answer, cell normal, echo voxa, onset 3.804 s, 5.0 dB at the mic): request incomplete: retention 0.0 of 'no' -> 'Who comes to me?'. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.63}
+@@VOXATEST {"event": "case_result", "index": 27, "total": 68, "id": "h-answer-that", "category": "hearing-answer", "prompt": "that one", "status": "FAIL", "reply": "", "heard": "Let's do one more.", "layer": "misheard", "notes": "Hearing (answer, cell normal, echo voxa, onset 3.308 s, 5.0 dB at the mic): request incomplete: retention 0.0 of 'that one' -> \"Let's do one more.\". Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.49}
+@@VOXATEST {"event": "case_result", "index": 28, "total": 68, "id": "h-answer-other", "category": "hearing-answer", "prompt": "no, the other one", "status": "FAIL", "reply": "", "heard": "One, two, one, oh. No, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no", "layer": "misheard", "notes": "Hearing (answer, cell normal, echo voxa, onset 3.308 s, 5.0 dB at the mic): request incomplete: retention 0.0 of 'no the other one' -> 'One, two, one, oh. No, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no'. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 2.96}
+@@VOXATEST {"event": "case_result", "index": 29, "total": 68, "id": "h-answer-blue", "category": "hearing-answer", "prompt": "blue", "status": "FAIL", "reply": "", "heard": "is the color.", "layer": "misheard", "notes": "Hearing (answer, cell normal, echo voxa, onset 2.983 s, 5.0 dB at the mic): request incomplete: retention 0.0 of 'blue' -> 'is the color.'. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.34}
+@@VOXATEST {"event": "case_result", "index": 30, "total": 68, "id": "h-answer-voice2", "category": "hearing-answer", "prompt": "yes", "status": "FAIL", "reply": "", "heard": "you want me.", "layer": "misheard", "notes": "Hearing (answer, cell normal, echo voxa, onset 3.804 s, 5.0 dB at the mic): request incomplete: retention 0.0 of 'yes' -> 'you want me.'. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.54}
+@@VOXATEST {"event": "case_result", "index": 31, "total": 68, "id": "h-repeat-lib-over-1", "category": "hearing-repeat", "prompt": "The library opens at nine in the morning.", "status": "FAIL", "reply": "", "heard": "I'm in the morning.", "layer": "misheard", "notes": "Hearing (yield, cell normal, echo voxa, onset 1.871 s, 10.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 2.27}
+@@VOXATEST {"event": "case_result", "index": 32, "total": 68, "id": "h-repeat-lib-over-2", "category": "hearing-repeat", "prompt": "The library opens at nine in the morning.", "status": "FAIL", "reply": "", "heard": "nightly performance. Very open, behind the morning.", "layer": "misheard", "notes": "Hearing (yield, cell normal, echo voxa, onset 3.18 s, 5.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.83}
+@@VOXATEST {"event": "case_result", "index": 33, "total": 68, "id": "h-repeat-blue-over", "category": "hearing-repeat", "prompt": "blue", "status": "FAIL", "reply": "", "heard": "", "layer": "not_heard", "notes": "Hearing (yield, cell normal, echo voxa, onset 1.266 s, 10.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 0.86}
+@@VOXATEST {"event": "case_result", "index": 34, "total": 68, "id": "h-repeat-lib-after", "category": "hearing-answer", "prompt": "The library opens at nine in the morning.", "status": "FAIL", "reply": "", "heard": "That's what we call this.", "layer": "misheard", "notes": "Hearing (answer, cell normal, echo voxa, onset 4.192 s, 5.0 dB at the mic): request incomplete: retention 0.0 of 'the library opens at nine in the morning' -> \"That's what we call this.\". Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.92}
+@@VOXATEST {"event": "case_result", "index": 35, "total": 68, "id": "h-repeat-weather-after", "category": "hearing-answer", "prompt": "The weather in San Diego is sunny with a high of seventy two degrees.", "status": "FAIL", "reply": "", "heard": "and there you'll be, shall we win, say, high-up, 70, 2, 3. The weather in, and there you'll be, shall we win, say, high-up, 72, 3.", "layer": "misheard", "notes": "Hearing (answer, cell normal, echo voxa, onset 6.758 s, 5.0 dB at the mic): request incomplete: retention 0.0 of 'the weather in san diego is sunny with a high of seventy two degrees' -> \"and there you'll be, shall we win, say, high-up, 70, 2, 3. The weather in, and there you'll be, shall we win, say, high-up, 72, 3.\". Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 2.32}
+@@VOXATEST {"event": "case_result", "index": 36, "total": 68, "id": "h-repeat-blue-after", "category": "hearing-answer", "prompt": "blue", "status": "FAIL", "reply": "", "heard": "This is the color view.", "layer": "misheard", "notes": "Hearing (answer, cell normal, echo voxa, onset 2.983 s, 5.0 dB at the mic): request incomplete: retention 0.0 of 'blue' -> 'This is the color view.'. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.57}
+@@VOXATEST {"event": "case_result", "index": 37, "total": 68, "id": "h-pause-0", "category": "hearing-pause", "prompt": "voxa set a timer for five minutes and another for ten minutes", "status": "FAIL", "reply": "", "heard": "MaxxSHA time 4.5", "layer": "misheard", "notes": "Hearing (keep, cell normal, echo voxa, onset 2.484 s, 5.0 dB at the mic): she lost the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.75}
+@@VOXATEST {"event": "case_result", "index": 38, "total": 68, "id": "h-pause-1", "category": "hearing-pause", "prompt": "voxa read the first chapter of the book and then save the notes", "status": "FAIL", "reply": "", "heard": "Boxer, read the first chapter", "layer": "misheard", "notes": "Hearing (keep, cell normal, echo voxa, onset 2.484 s, 5.0 dB at the mic): she lost the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.73}
+@@VOXATEST {"event": "case_result", "index": 39, "total": 68, "id": "h-pause-2", "category": "hearing-pause", "prompt": "voxa the nearest pharmacy is on fifth avenue and I need the one on third street", "status": "FAIL", "reply": "", "heard": "Maximum nearest pharmacy is on 50th Avenue and...", "layer": "misheard", "notes": "Hearing (keep, cell normal, echo voxa, onset 2.484 s, 5.0 dB at the mic): she lost the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.8}
+@@VOXATEST {"event": "case_result", "index": 40, "total": 68, "id": "h-pause-3", "category": "hearing-pause", "prompt": "voxa add milk and bread and eggs to the shopping list", "status": "PASS", "reply": "", "heard": "Voxet and Bill and Red and X to the shopping list.", "layer": "misheard", "notes": "Hearing (keep, cell normal, echo voxa, onset 2.484 s, 5.0 dB at the mic): she kept the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.54}
+@@VOXATEST {"event": "case_result", "index": 41, "total": 68, "id": "h-pause-4", "category": "hearing-pause", "prompt": "voxa open the map for walking directions to the library and print it", "status": "PASS", "reply": "", "heard": "Max, open the map for walking.", "layer": "misheard", "notes": "Hearing (keep, cell normal, echo voxa, onset 2.484 s, 5.0 dB at the mic): she kept the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.81}
+@@VOXATEST {"event": "case_result", "index": 42, "total": 68, "id": "h-pause-5", "category": "hearing-pause", "prompt": "voxa reminding you at three to call Bob and at five to call Ann", "status": "FAIL", "reply": "", "heard": "Max, I remind you, that's free to call.", "layer": "misheard", "notes": "Hearing (keep, cell normal, echo voxa, onset 2.484 s, 5.0 dB at the mic): she lost the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 2.67}
+@@VOXATEST {"event": "case_result", "index": 43, "total": 68, "id": "h-clause-0", "category": "hearing-continuation", "prompt": "voxa open the browser and go to my music page", "status": "FAIL", "reply": "", "heard": "Max open the browser", "layer": "misheard", "notes": "Hearing (keep, cell normal, echo voxa, onset 2.484 s, 5.0 dB at the mic): she lost the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.76}
+@@VOXATEST {"event": "case_result", "index": 44, "total": 68, "id": "h-clause-1", "category": "hearing-continuation", "prompt": "voxa open the browser and go to my music page", "status": "FAIL", "reply": "", "heard": "Max open the browser and...", "layer": "misheard", "notes": "Hearing (keep, cell normal, echo voxa, onset 2.484 s, 5.0 dB at the mic): she lost the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.72}
+@@VOXATEST {"event": "case_result", "index": 45, "total": 68, "id": "h-clause-2", "category": "hearing-continuation", "prompt": "voxa write a note about the dentist and save it in the notes folder", "status": "FAIL", "reply": "", "heard": "Max, I'm right, I'm not about to know anything.", "layer": "misheard", "notes": "Hearing (keep, cell normal, echo voxa, onset 2.484 s, 5.0 dB at the mic): she lost the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.75}
+@@VOXATEST {"event": "case_result", "index": 46, "total": 68, "id": "h-clause-3", "category": "hearing-continuation", "prompt": "voxa what is the weather and add it to the dictation", "status": "FAIL", "reply": "", "heard": "Max, I was in the weather.", "layer": "misheard", "notes": "Hearing (keep, cell normal, echo voxa, onset 2.484 s, 5.0 dB at the mic): she lost the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 2.06}
+@@VOXATEST {"event": "case_result", "index": 47, "total": 68, "id": "h-quiet-barge-0", "category": "hearing-quiet", "prompt": "stop", "status": "FAIL", "reply": "", "heard": "the weather conditions.", "layer": "misheard", "notes": "Hearing (yield, cell quiet, echo voxa, onset 3.154 s, -5.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.74}
+@@VOXATEST {"event": "case_result", "index": 48, "total": 68, "id": "h-quiet-barge-1", "category": "hearing-quiet", "prompt": "volume down", "status": "FAIL", "reply": "", "heard": "in 10, there you got this, study, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay", "layer": "misheard", "notes": "Hearing (yield, cell quiet, echo voxa, onset 3.154 s, -10.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.9}
+@@VOXATEST {"event": "case_result", "index": 49, "total": 68, "id": "h-quiet-barge-2", "category": "hearing-quiet", "prompt": "stop listening", "status": "FAIL", "reply": "", "heard": "of weather in. And...", "layer": "misheard", "notes": "Hearing (yield, cell quiet, echo voxa, onset 5.362 s, -12.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.32}
+@@VOXATEST {"event": "case_result", "index": 50, "total": 68, "id": "h-quiet-barge-3", "category": "hearing-quiet", "prompt": "no, the other one", "status": "PASS", "reply": "", "heard": "We are getting up 10.", "layer": "misheard", "notes": "Hearing (yield, cell quiet, echo voxa, onset 0.0 s, -5.0 dB at the mic): she stopped her own playback (stop latency 1720.0 ms). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.5}
+@@VOXATEST {"event": "case_result", "index": 51, "total": 68, "id": "h-quiet-answer-0", "category": "hearing-quiet", "prompt": "yes", "status": "FAIL", "reply": "", "heard": "You want me?", "layer": "misheard", "notes": "Hearing (answer, cell quiet, echo voxa, onset 3.804 s, -12.0 dB at the mic): request incomplete: retention 0.0 of 'yes' -> 'You want me?'. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.39}
+@@VOXATEST {"event": "case_result", "index": 52, "total": 68, "id": "h-quiet-answer-1", "category": "hearing-quiet", "prompt": "that one", "status": "FAIL", "reply": "", "heard": "from the first one.", "layer": "misheard", "notes": "Hearing (answer, cell quiet, echo voxa, onset 3.308 s, -10.0 dB at the mic): request incomplete: retention 0.0 of 'that one' -> 'from the first one.'. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.4}
+@@VOXATEST {"event": "case_result", "index": 53, "total": 68, "id": "h-quiet-answer-2", "category": "hearing-quiet", "prompt": "blue", "status": "FAIL", "reply": "", "heard": "Thank you, Charles.", "layer": "misheard", "notes": "Hearing (answer, cell quiet, echo voxa, onset 2.983 s, -15.0 dB at the mic): request incomplete: retention 0.0 of 'blue' -> 'Thank you, Charles.'. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.32}
+@@VOXATEST {"event": "case_result", "index": 54, "total": 68, "id": "h-back-0", "category": "hearing-backchannel", "prompt": "yes", "status": "FAIL", "reply": "", "heard": "the weather is intense.", "layer": "misheard", "notes": "Hearing (keep, cell normal, echo voxa, onset 3.154 s, 5.0 dB at the mic): she lost the turn (self-interruptions 1). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.36}
+@@VOXATEST {"event": "case_result", "index": 55, "total": 68, "id": "h-back-1", "category": "hearing-backchannel", "prompt": "no", "status": "FAIL", "reply": "", "heard": "34th time by", "layer": "misheard", "notes": "Hearing (keep, cell normal, echo voxa, onset 0.196 s, 5.0 dB at the mic): she lost the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.13}
+@@VOXATEST {"event": "case_result", "index": 56, "total": 68, "id": "h-back-2", "category": "hearing-backchannel", "prompt": "ok", "status": "FAIL", "reply": "", "heard": "We'll have a spin.", "layer": "misheard", "notes": "Hearing (keep, cell normal, echo voxa, onset 3.154 s, 5.0 dB at the mic): she lost the turn (self-interruptions 1). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.55}
+@@VOXATEST {"event": "case_result", "index": 57, "total": 68, "id": "h-back-3", "category": "hearing-backchannel", "prompt": "thanks", "status": "PASS", "reply": "", "heard": "", "layer": "not_heard", "notes": "Hearing (keep, cell normal, echo voxa, onset 0.196 s, 5.0 dB at the mic): she kept the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 0.65}
+@@VOXATEST {"event": "case_result", "index": 58, "total": 68, "id": "h-back-4", "category": "hearing-backchannel", "prompt": "right", "status": "FAIL", "reply": "", "heard": "whatever it is.", "layer": "misheard", "notes": "Hearing (keep, cell normal, echo voxa, onset 3.154 s, 5.0 dB at the mic): she lost the turn (self-interruptions 1). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.39}
+@@VOXATEST {"event": "case_result", "index": 59, "total": 68, "id": "h-back-5", "category": "hearing-backchannel", "prompt": "uh-huh", "status": "FAIL", "reply": "", "heard": "and then you can get out of that.", "layer": "misheard", "notes": "Hearing (keep, cell normal, echo voxa, onset 0.196 s, 5.0 dB at the mic): she lost the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.13}
+@@VOXATEST {"event": "case_result", "index": 60, "total": 68, "id": "h-solo-0", "category": "hearing-self", "prompt": "", "status": "FAIL", "reply": "", "heard": "I'm gonna go to bed.", "layer": "not_heard", "notes": "Hearing (keep, cell normal, echo voxa, onset None s, 5.0 dB at the mic): she lost the turn (self-interruptions 1). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.27}
+@@VOXATEST {"event": "case_result", "index": 61, "total": 68, "id": "h-solo-1", "category": "hearing-self", "prompt": "", "status": "PASS", "reply": "", "heard": "", "layer": "not_heard", "notes": "Hearing (keep, cell normal, echo voxa, onset None s, 5.0 dB at the mic): she kept the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 0.47}
+@@VOXATEST {"event": "case_result", "index": 62, "total": 68, "id": "h-solo-2", "category": "hearing-self", "prompt": "", "status": "FAIL", "reply": "", "heard": "Who can take my-", "layer": "not_heard", "notes": "Hearing (keep, cell normal, echo voxa, onset None s, 5.0 dB at the mic): she lost the turn (self-interruptions 1). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.36}
+@@VOXATEST {"event": "case_result", "index": 63, "total": 68, "id": "h-solo-3", "category": "hearing-self", "prompt": "", "status": "FAIL", "reply": "", "heard": "Right then, let's go.", "layer": "not_heard", "notes": "Hearing (keep, cell normal, echo voxa, onset None s, 5.0 dB at the mic): she lost the turn (self-interruptions 1). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.22}
+@@VOXATEST {"event": "case_result", "index": 64, "total": 68, "id": "h-solo-4", "category": "hearing-self", "prompt": "", "status": "FAIL", "reply": "", "heard": "you why I am speaking.", "layer": "not_heard", "notes": "Hearing (keep, cell normal, echo voxa, onset None s, 5.0 dB at the mic): she lost the turn (self-interruptions 1). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.22}
+@@VOXATEST {"event": "case_result", "index": 65, "total": 68, "id": "h-solo-5", "category": "hearing-self", "prompt": "", "status": "PASS", "reply": "", "heard": "", "layer": "not_heard", "notes": "Hearing (keep, cell normal, echo voxa, onset None s, 5.0 dB at the mic): she kept the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 0.47}
+@@VOXATEST {"event": "case_result", "index": 66, "total": 68, "id": "h-tail-stop", "category": "hearing-tail", "prompt": "stop", "status": "FAIL", "reply": "", "heard": "and", "layer": "misheard", "notes": "Hearing (answer, cell normal, echo voxa, onset 6.458 s, 5.0 dB at the mic): request incomplete: retention 0.0 of 'stop' -> 'and'. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 1.71}
+@@VOXATEST {"event": "case_result", "index": 67, "total": 68, "id": "h-tail-other", "category": "hearing-tail", "prompt": "no, the other one", "status": "FAIL", "reply": "", "heard": "I'm going to be holding you in your little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, No, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no", "layer": "misheard", "notes": "Hearing (answer, cell normal, echo voxa, onset 3.421 s, 5.0 dB at the mic): request incomplete: retention 0.0 of 'no the other one' -> \"I'm going to be holding you in your little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, No, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no\". Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 3.35}
+@@VOXATEST {"event": "case_result", "index": 68, "total": 68, "id": "h-tail-quiet", "category": "hearing-tail", "prompt": "volume down", "status": "FAIL", "reply": "", "heard": "the other pin, and...", "layer": "misheard", "notes": "Hearing (answer, cell quiet, echo voxa, onset 6.458 s, -10.0 dB at the mic): request incomplete: retention 0.0 of 'volume down' -> 'the other pin, and...'. Reply grading skipped (n/a): nothing is spoken offline.", "seconds": 2.43}
+Total: 68
+Passed: 18
+Failed: 50
+Errors: 0
+Average score: 29.66
+
+PASS [hearing-bargein] h-barge-onset-0: score 100 (3.4s) - no transcript
+  Voxa heard: This is Charlie, with the high-blum 702-3
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 3.429 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 0.0 s, 10.0 dB at the mic): she stopped her own playback (stop latency 6280.0 ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "This is Charlie, with the high-blum 702-3", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [hearing-bargein] h-barge-onset-1: score 100 (2.5s) - no transcript
+  Voxa heard: What?
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 2.488 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 0.0 s, 10.0 dB at the mic): she stopped her own playback (stop latency 3880.0 ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "What?", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [hearing-bargein] h-barge-onset-2: score 100 (1.3s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.32 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 0.0 s, 5.0 dB at the mic): she stopped her own playback (stop latency 1720.0 ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [hearing-bargein] h-barge-onset-3: score 100 (2.0s) - no transcript
+  Voxa heard: Thank you.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 2.048 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 0.0 s, 0.0 dB at the mic): she stopped her own playback (stop latency 2580.0 ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "Thank you.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [hearing-bargein] h-barge-first_syllable-0: score 100 (1.5s) - no transcript
+  Voxa heard: It's a bit of a challenge with...
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.506 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 0.379 s, 10.0 dB at the mic): she stopped her own playback (stop latency 3161.5 ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "It's a bit of a challenge with...", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [hearing-bargein] h-barge-first_syllable-1: score 100 (1.9s) - no transcript
+  Voxa heard: So, what's the next one?
+  comprehension: layer=misheard hearing=0.2500 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.859 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 0.379 s, 10.0 dB at the mic): she stopped her own playback (stop latency 1421.5 ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "So, what's the next one?", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [hearing-bargein] h-barge-first_syllable-2: score 100 (1.5s) - no transcript
+  Voxa heard: The f**k you, pal.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.496 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 0.379 s, 5.0 dB at the mic): she stopped her own playback (stop latency 1241.5 ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "The f**k you, pal.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [hearing-bargein] h-barge-first_syllable-3: score 100 (17.2s) - no transcript
+  Voxa heard: and
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 17.237 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 0.379 s, 0.0 dB at the mic): she stopped her own playback (stop latency 1461.5 ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "and", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-bargein] h-barge-middle-0: score 0 (4.3s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 4.308 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 3.154 s, 10.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-bargein] h-barge-middle-1: score 0 (1.4s) - no transcript
+  Voxa heard: The weather is getting...
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.411 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 3.154 s, 10.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "The weather is getting...", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-bargein] h-barge-middle-2: score 0 (1.4s) - no transcript
+  Voxa heard: better in 10.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.41 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 3.154 s, 5.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "better in 10.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-bargein] h-barge-middle-3: score 0 (1.4s) - no transcript
+  Voxa heard: the weather is
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.374 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 3.154 s, 0.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "the weather is", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-bargein] h-barge-last_word-0: score 0 (1.5s) - no transcript
+  Voxa heard: whatever in Chan.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.479 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 5.362 s, 10.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "whatever in Chan.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [hearing-bargein] h-barge-last_word-1: score 100 (2.0s) - no transcript
+  Voxa heard: Whether in 10.0 is sunny with a high of 702 degrees.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.977 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 5.362 s, 10.0 dB at the mic): she stopped her own playback (stop latency 917.9 ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "Whether in 10.0 is sunny with a high of 702 degrees.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-bargein] h-barge-last_word-2: score 0 (1.3s) - no transcript
+  Voxa heard: and then we'll have a better feeling.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.262 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 5.362 s, 5.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "and then we'll have a better feeling.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-bargein] h-barge-last_word-3: score 0 (1.3s) - no transcript
+  Voxa heard: better fit.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.321 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 5.362 s, 0.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "better fit.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [hearing-bargein] h-barge-music-0: score 100 (1.0s) - no transcript
+  Voxa heard: 5, 2, 1
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 0.989 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 1.635 s, 10.0 dB at the mic): she stopped her own playback (stop latency 284.7 ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "5, 2, 1", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-bargein] h-barge-music-1: score 0 (1.5s) - no transcript
+  Voxa heard: I think they don't tell me that.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.475 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 2.78 s, 5.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "I think they don't tell me that.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-bargein] h-barge-music-2: score 0 (0.6s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 0.559 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 0.0 s, 10.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [hearing-bargein] h-barge-music-3: score 100 (1.1s) - no transcript
+  Voxa heard: People can die, murder bodies.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.146 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 0.196 s, 0.0 dB at the mic): she stopped her own playback (stop latency 763.8 ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "People can die, murder bodies.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [hearing-selfword] h-stop-her-stop-1: score 100 (1.5s) - no transcript
+  Voxa heard: This is real life.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.511 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 1.379 s, 10.0 dB at the mic): she stopped her own playback (stop latency 321.1 ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "This is real life.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-selfword] h-stop-her-stop-2: score 0 (0.1s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 0.081 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 0.0 s, 10.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-selfword] h-stop-her-dictation: score 0 (1.4s) - no transcript
+  Voxa heard: and I'm going to finish up the time of the day. Station
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.426 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 3.17 s, 5.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "and I'm going to finish up the time of the day. Station", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-selfword] h-stop-her-cancel: score 0 (0.4s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 0.423 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 0.716 s, 5.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-answer] h-answer-yes: score 0 (1.5s) - no transcript
+  Voxa heard: you want me to open. Yes.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.502 s (reply grading n/a)
+  notes: Hearing (answer, cell normal, echo voxa, onset 3.804 s, 5.0 dB at the mic): request incomplete: retention 0.0 of 'yes' -> 'you want me to open. Yes.'. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "you want me to open. Yes.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-answer] h-answer-no: score 0 (1.6s) - no transcript
+  Voxa heard: Who comes to me?
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.63 s (reply grading n/a)
+  notes: Hearing (answer, cell normal, echo voxa, onset 3.804 s, 5.0 dB at the mic): request incomplete: retention 0.0 of 'no' -> 'Who comes to me?'. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "Who comes to me?", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-answer] h-answer-that: score 0 (1.5s) - no transcript
+  Voxa heard: Let's do one more.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.49 s (reply grading n/a)
+  notes: Hearing (answer, cell normal, echo voxa, onset 3.308 s, 5.0 dB at the mic): request incomplete: retention 0.0 of 'that one' -> "Let's do one more.". Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "Let's do one more.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-answer] h-answer-other: score 0 (3.0s) - no transcript
+  Voxa heard: One, two, one, oh. No, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 2.965 s (reply grading n/a)
+  notes: Hearing (answer, cell normal, echo voxa, onset 3.308 s, 5.0 dB at the mic): request incomplete: retention 0.0 of 'no the other one' -> 'One, two, one, oh. No, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no'. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "One, two, one, oh. No, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-answer] h-answer-blue: score 0 (1.3s) - no transcript
+  Voxa heard: is the color.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.338 s (reply grading n/a)
+  notes: Hearing (answer, cell normal, echo voxa, onset 2.983 s, 5.0 dB at the mic): request incomplete: retention 0.0 of 'blue' -> 'is the color.'. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "is the color.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-answer] h-answer-voice2: score 0 (1.5s) - no transcript
+  Voxa heard: you want me.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.537 s (reply grading n/a)
+  notes: Hearing (answer, cell normal, echo voxa, onset 3.804 s, 5.0 dB at the mic): request incomplete: retention 0.0 of 'yes' -> 'you want me.'. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "you want me.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-repeat] h-repeat-lib-over-1: score 38 (2.3s) - no transcript
+  Voxa heard: I'm in the morning.
+  comprehension: layer=misheard hearing=0.3750 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 2.273 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 1.871 s, 10.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {"city": "the morning"}, "heard": "I'm in the morning.", "hearing": true, "route": "offline-audio", "tool": "set_location", "variant": "clean"}
+FAIL [hearing-repeat] h-repeat-lib-over-2: score 25 (1.8s) - no transcript
+  Voxa heard: nightly performance. Very open, behind the morning.
+  comprehension: layer=misheard hearing=0.2500 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.831 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 3.18 s, 5.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "nightly performance. Very open, behind the morning.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-repeat] h-repeat-blue-over: score 0 (0.9s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 0.857 s (reply grading n/a)
+  notes: Hearing (yield, cell normal, echo voxa, onset 1.266 s, 10.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-answer] h-repeat-lib-after: score 0 (1.9s) - no transcript
+  Voxa heard: That's what we call this.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.916 s (reply grading n/a)
+  notes: Hearing (answer, cell normal, echo voxa, onset 4.192 s, 5.0 dB at the mic): request incomplete: retention 0.0 of 'the library opens at nine in the morning' -> "That's what we call this.". Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "That's what we call this.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-answer] h-repeat-weather-after: score 0 (2.3s) - no transcript
+  Voxa heard: and there you'll be, shall we win, say, high-up, 70, 2, 3. The weather in, and there you'll be, shall we win, say, high-up, 72, 3.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 2.317 s (reply grading n/a)
+  notes: Hearing (answer, cell normal, echo voxa, onset 6.758 s, 5.0 dB at the mic): request incomplete: retention 0.0 of 'the weather in san diego is sunny with a high of seventy two degrees' -> "and there you'll be, shall we win, say, high-up, 70, 2, 3. The weather in, and there you'll be, shall we win, say, high-up, 72, 3.". Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "and there you'll be, shall we win, say, high-up, 70, 2, 3. The weather in, and there you'll be, shall we win, say, high-up, 72, 3.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-answer] h-repeat-blue-after: score 0 (1.6s) - no transcript
+  Voxa heard: This is the color view.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.566 s (reply grading n/a)
+  notes: Hearing (answer, cell normal, echo voxa, onset 2.983 s, 5.0 dB at the mic): request incomplete: retention 0.0 of 'blue' -> 'This is the color view.'. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "This is the color view.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-pause] h-pause-0: score 9 (1.7s) - no transcript
+  Voxa heard: MaxxSHA time 4.5
+  comprehension: layer=misheard hearing=0.0909 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.745 s (reply grading n/a)
+  notes: Hearing (keep, cell normal, echo voxa, onset 2.484 s, 5.0 dB at the mic): she lost the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "MaxxSHA time 4.5", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-pause] h-pause-1: score 25 (1.7s) - no transcript
+  Voxa heard: Boxer, read the first chapter
+  comprehension: layer=misheard hearing=0.2500 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.73 s (reply grading n/a)
+  notes: Hearing (keep, cell normal, echo voxa, onset 2.484 s, 5.0 dB at the mic): she lost the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "Boxer, read the first chapter", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-pause] h-pause-2: score 40 (1.8s) - no transcript
+  Voxa heard: Maximum nearest pharmacy is on 50th Avenue and...
+  comprehension: layer=misheard hearing=0.4000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.803 s (reply grading n/a)
+  notes: Hearing (keep, cell normal, echo voxa, onset 2.484 s, 5.0 dB at the mic): she lost the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "Maximum nearest pharmacy is on 50th Avenue and...", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [hearing-pause] h-pause-3: score 100 (1.5s) - no transcript
+  Voxa heard: Voxet and Bill and Red and X to the shopping list.
+  comprehension: layer=misheard hearing=0.5000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.537 s (reply grading n/a)
+  notes: Hearing (keep, cell normal, echo voxa, onset 2.484 s, 5.0 dB at the mic): she kept the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "Voxet and Bill and Red and X to the shopping list.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [hearing-pause] h-pause-4: score 100 (1.8s) - no transcript
+  Voxa heard: Max, open the map for walking.
+  comprehension: layer=misheard hearing=0.3333 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.812 s (reply grading n/a)
+  notes: Hearing (keep, cell normal, echo voxa, onset 2.484 s, 5.0 dB at the mic): she kept the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "Max, open the map for walking.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-pause] h-pause-5: score 15 (2.7s) - no transcript
+  Voxa heard: Max, I remind you, that's free to call.
+  comprehension: layer=misheard hearing=0.1538 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 2.671 s (reply grading n/a)
+  notes: Hearing (keep, cell normal, echo voxa, onset 2.484 s, 5.0 dB at the mic): she lost the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "Max, I remind you, that's free to call.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-continuation] h-clause-0: score 22 (1.8s) - no transcript
+  Voxa heard: Max open the browser
+  comprehension: layer=misheard hearing=0.2222 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.76 s (reply grading n/a)
+  notes: Hearing (keep, cell normal, echo voxa, onset 2.484 s, 5.0 dB at the mic): she lost the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "Max open the browser", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-continuation] h-clause-1: score 33 (1.7s) - no transcript
+  Voxa heard: Max open the browser and...
+  comprehension: layer=misheard hearing=0.3333 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.715 s (reply grading n/a)
+  notes: Hearing (keep, cell normal, echo voxa, onset 2.484 s, 5.0 dB at the mic): she lost the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "Max open the browser and...", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-continuation] h-clause-2: score 0 (1.7s) - no transcript
+  Voxa heard: Max, I'm right, I'm not about to know anything.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.748 s (reply grading n/a)
+  notes: Hearing (keep, cell normal, echo voxa, onset 2.484 s, 5.0 dB at the mic): she lost the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "Max, I'm right, I'm not about to know anything.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-continuation] h-clause-3: score 10 (2.1s) - no transcript
+  Voxa heard: Max, I was in the weather.
+  comprehension: layer=misheard hearing=0.1000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 2.063 s (reply grading n/a)
+  notes: Hearing (keep, cell normal, echo voxa, onset 2.484 s, 5.0 dB at the mic): she lost the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "Max, I was in the weather.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-quiet] h-quiet-barge-0: score 0 (1.7s) - no transcript
+  Voxa heard: the weather conditions.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.736 s (reply grading n/a)
+  notes: Hearing (yield, cell quiet, echo voxa, onset 3.154 s, -5.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "the weather conditions.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-quiet] h-quiet-barge-1: score 0 (1.9s) - no transcript
+  Voxa heard: in 10, there you got this, study, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.9 s (reply grading n/a)
+  notes: Hearing (yield, cell quiet, echo voxa, onset 3.154 s, -10.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "in 10, there you got this, study, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay, pay", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-quiet] h-quiet-barge-2: score 0 (1.3s) - no transcript
+  Voxa heard: of weather in. And...
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.317 s (reply grading n/a)
+  notes: Hearing (yield, cell quiet, echo voxa, onset 5.362 s, -12.0 dB at the mic): she did not stop her own playback (stop latency None ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "of weather in. And...", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [hearing-quiet] h-quiet-barge-3: score 100 (1.5s) - no transcript
+  Voxa heard: We are getting up 10.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.503 s (reply grading n/a)
+  notes: Hearing (yield, cell quiet, echo voxa, onset 0.0 s, -5.0 dB at the mic): she stopped her own playback (stop latency 1720.0 ms). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "We are getting up 10.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-quiet] h-quiet-answer-0: score 0 (1.4s) - no transcript
+  Voxa heard: You want me?
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.388 s (reply grading n/a)
+  notes: Hearing (answer, cell quiet, echo voxa, onset 3.804 s, -12.0 dB at the mic): request incomplete: retention 0.0 of 'yes' -> 'You want me?'. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "You want me?", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-quiet] h-quiet-answer-1: score 0 (1.4s) - no transcript
+  Voxa heard: from the first one.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.4 s (reply grading n/a)
+  notes: Hearing (answer, cell quiet, echo voxa, onset 3.308 s, -10.0 dB at the mic): request incomplete: retention 0.0 of 'that one' -> 'from the first one.'. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "from the first one.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-quiet] h-quiet-answer-2: score 0 (1.3s) - no transcript
+  Voxa heard: Thank you, Charles.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.32 s (reply grading n/a)
+  notes: Hearing (answer, cell quiet, echo voxa, onset 2.983 s, -15.0 dB at the mic): request incomplete: retention 0.0 of 'blue' -> 'Thank you, Charles.'. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "Thank you, Charles.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-backchannel] h-back-0: score 0 (1.4s) - no transcript
+  Voxa heard: the weather is intense.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.361 s (reply grading n/a)
+  notes: Hearing (keep, cell normal, echo voxa, onset 3.154 s, 5.0 dB at the mic): she lost the turn (self-interruptions 1). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "the weather is intense.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-backchannel] h-back-1: score 0 (1.1s) - no transcript
+  Voxa heard: 34th time by
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.129 s (reply grading n/a)
+  notes: Hearing (keep, cell normal, echo voxa, onset 0.196 s, 5.0 dB at the mic): she lost the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "34th time by", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-backchannel] h-back-2: score 0 (1.6s) - no transcript
+  Voxa heard: We'll have a spin.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.553 s (reply grading n/a)
+  notes: Hearing (keep, cell normal, echo voxa, onset 3.154 s, 5.0 dB at the mic): she lost the turn (self-interruptions 1). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "We'll have a spin.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [hearing-backchannel] h-back-3: score 100 (0.6s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 0.647 s (reply grading n/a)
+  notes: Hearing (keep, cell normal, echo voxa, onset 0.196 s, 5.0 dB at the mic): she kept the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-backchannel] h-back-4: score 0 (1.4s) - no transcript
+  Voxa heard: whatever it is.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.391 s (reply grading n/a)
+  notes: Hearing (keep, cell normal, echo voxa, onset 3.154 s, 5.0 dB at the mic): she lost the turn (self-interruptions 1). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "whatever it is.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-backchannel] h-back-5: score 0 (1.1s) - no transcript
+  Voxa heard: and then you can get out of that.
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.131 s (reply grading n/a)
+  notes: Hearing (keep, cell normal, echo voxa, onset 0.196 s, 5.0 dB at the mic): she lost the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "and then you can get out of that.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-self] h-solo-0: score 0 (1.3s) - no transcript
+  Voxa heard: I'm gonna go to bed.
+  comprehension: layer=not_heard hearing=null routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.275 s (reply grading n/a)
+  notes: Hearing (keep, cell normal, echo voxa, onset None s, 5.0 dB at the mic): she lost the turn (self-interruptions 1). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "I'm gonna go to bed.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [hearing-self] h-solo-1: score 100 (0.5s) - no transcript
+  comprehension: layer=not_heard hearing=null routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 0.468 s (reply grading n/a)
+  notes: Hearing (keep, cell normal, echo voxa, onset None s, 5.0 dB at the mic): she kept the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-self] h-solo-2: score 0 (1.4s) - no transcript
+  Voxa heard: Who can take my-
+  comprehension: layer=not_heard hearing=null routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.356 s (reply grading n/a)
+  notes: Hearing (keep, cell normal, echo voxa, onset None s, 5.0 dB at the mic): she lost the turn (self-interruptions 1). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "Who can take my-", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-self] h-solo-3: score 0 (1.2s) - no transcript
+  Voxa heard: Right then, let's go.
+  comprehension: layer=not_heard hearing=null routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.22 s (reply grading n/a)
+  notes: Hearing (keep, cell normal, echo voxa, onset None s, 5.0 dB at the mic): she lost the turn (self-interruptions 1). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "Right then, let's go.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-self] h-solo-4: score 0 (1.2s) - no transcript
+  Voxa heard: you why I am speaking.
+  comprehension: layer=not_heard hearing=null routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.221 s (reply grading n/a)
+  notes: Hearing (keep, cell normal, echo voxa, onset None s, 5.0 dB at the mic): she lost the turn (self-interruptions 1). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "you why I am speaking.", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+PASS [hearing-self] h-solo-5: score 100 (0.5s) - no transcript
+  comprehension: layer=not_heard hearing=null routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 0.466 s (reply grading n/a)
+  notes: Hearing (keep, cell normal, echo voxa, onset None s, 5.0 dB at the mic): she kept the turn (self-interruptions 0). Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-tail] h-tail-stop: score 0 (1.7s) - no transcript
+  Voxa heard: and
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 1.705 s (reply grading n/a)
+  notes: Hearing (answer, cell normal, echo voxa, onset 6.458 s, 5.0 dB at the mic): request incomplete: retention 0.0 of 'stop' -> 'and'. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "and", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-tail] h-tail-other: score 0 (3.3s) - no transcript
+  Voxa heard: I'm going to be holding you in your little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, No, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 3.348 s (reply grading n/a)
+  notes: Hearing (answer, cell normal, echo voxa, onset 3.421 s, 5.0 dB at the mic): request incomplete: retention 0.0 of 'no the other one' -> "I'm going to be holding you in your little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, No, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no". Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "I'm going to be holding you in your little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, little, No, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no, no", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+FAIL [hearing-tail] h-tail-quiet: score 0 (2.4s) - no transcript
+  Voxa heard: the other pin, and...
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  offline: variant clean engine espeak-ng rate None noise none wall 2.433 s (reply grading n/a)
+  notes: Hearing (answer, cell quiet, echo voxa, onset 6.458 s, -10.0 dB at the mic): request incomplete: retention 0.0 of 'volume down' -> 'the other pin, and...'. Reply grading skipped (n/a): nothing is spoken offline.
+  action: {"args": {}, "heard": "the other pin, and...", "hearing": true, "route": "offline-audio", "tool": "", "variant": "clean"}
+
+Comprehension
+  hearing_word_accuracy  0.0526  (68 cases)
+  routed_tool_accuracy   null  (0 cases with an expected tool)
+  layers: not_heard 13, misheard 55, misrouted 0, misanswered 0, ok 0
+  per category:
+    hearing-answer: cases 9 hearing 0.0000 routed null
+    hearing-backchannel: cases 6 hearing 0.0000 routed null
+    hearing-bargein: cases 20 hearing 0.0125 routed null
+    hearing-continuation: cases 4 hearing 0.1639 routed null
+    hearing-pause: cases 6 hearing 0.2880 routed null
+    hearing-quiet: cases 7 hearing 0.0000 routed null
+    hearing-repeat: cases 3 hearing 0.2083 routed null
+    hearing-self: cases 6 hearing null routed null
+    hearing-selfword: cases 4 hearing 0.0000 routed null
+    hearing-tail: cases 3 hearing 0.0000 routed null
+  CONFUSIONS (top 30):
+    2x  at -> thats
+    2x  listening -> weather
+    2x  stop -> and
+    2x  stop -> the
+    2x  stop -> this
+    2x  volume -> the
+    2x  yes -> you
+    1x  a -> high
+    1x  a -> maxxsha
+    1x  add -> i
+    1x  add -> voxet
+    1x  and -> max
+    1x  and -> right
+    1x  and -> you
+    1x  at -> very
+    1x  blue -> is
+    1x  blue -> thank
+    1x  blue -> this
+    1x  bob -> remind
+    1x  bread -> and
+    1x  call -> i
+    1x  degrees -> the
+    1x  dentist -> im
+    1x  dictation -> im
+    1x  dictation -> weather
+    1x  diego -> shall
+    1x  down -> f
+    1x  down -> in
+    1x  down -> other
+    1x  down -> ten
+Hearing suite (timed interruptions, short answers, repetitions, pauses, quiet speech)
+  interrupt_recall           0.4194
+  keep_accuracy              0.2273
+  stop_latency_p50_ms        1720.0000
+  stop_latency_p95_ms        4600.0000
+  premature_rate             0.8000
+  self_interrupt_count       37
+  request_word_retention     0.0190
+  cases 68  yielded 13/31  kept 5/22  complete requests 0/46  premature 8/10
+  per cell:
+    normal: cases 60 recall 0.4444 keep 0.2273 retention 0.0230 p50 1590.8000 ms self-interrupts 30 premature 0.8000
+    quiet: cases 8 recall 0.2500 keep null retention 0.0000 p50 1720.0000 ms self-interrupts 7 premature null
+  per overlap:
+    no_overlap: cases 31 recall null keep 0.2500 retention 0.0000 p50 null ms self-interrupts 19 premature 0.8000
+    overlap: cases 37 recall 0.4194 keep 0.1667 retention 0.0282 p50 1720.0000 ms self-interrupts 18 premature null
+  per expect:
+    answer: cases 15 recall null keep null retention 0.0000 p50 null ms self-interrupts 15 premature null
+    keep: cases 22 recall null keep 0.2273 retention null p50 2183.8000 ms self-interrupts 7 premature 0.8000
+    yield: cases 31 recall 0.4194 keep null retention 0.0282 p50 1461.5000 ms self-interrupts 15 premature null
+
+Offline audio (no speakers, no microphone)
+  variants clean  seed 0  TTS engine(s) espeak-ng
+  cases 68  audio 510.7 s  wall 124.617 s  (4.098x audio time)
+  wall time per case: median 1.502 s  p95 3.214 s  max 17.237 s
+  hearing_word_accuracy 0.0526  routed_tool_accuracy null
+  reply grading: n/a (nothing is spoken offline)
+JSON report: .voxa-bench/vt-hearing.json
+Text report: /home/rhy/strata-fleet/opencode-home/state/voxatest/reports/run_20261124_051943_298768_13958_50a1ab4e.txt
+Failure report: VOXATEST_FAILURES.md
