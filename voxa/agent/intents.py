@@ -679,6 +679,21 @@ _LIST_ADDED = re.compile(
     rf"(?:i(?:'?ve| have)? (?:just )?)finished (?P<item>.+?) (?:to|on|in) (?P<list>{_LIST})",
     re.IGNORECASE,
 )
+# Ordering/delivering groceries is its own intent, not the shopping list: it must not
+# steal "add X to my shopping list" (which stays on list_add) or any list phrase.
+_GROCERY_ORDER = re.compile(
+    r"(?:"
+    r"(?:order|deliver|delivery)\s+(?:my\s+|the\s+|some\s+)?"
+    r"(?P<items>.+?)"
+    r"(?:\s+(?:from|at)\s+(?P<store>.+?))?"
+    r"(?:\s+(?:for\s+(?:home\s+)?(?:grocery\s+)?delivery|to\s+be\s+delivered))?"
+    r"|"
+    r"(?:get|have)\s+(?:my\s+|the\s+|some\s+)?"
+    r"(?P<gitems>groceries|grocery|food|produce)\s+delivered"
+    r"(?:\s+(?:from|at)\s+(?P<gstore>.+))?"
+    r")",
+    re.IGNORECASE,
+)
 _PRESENTATION = re.compile(
     r"(?:make|create|build|give|do)\s+(?:me\s+)?(?:a\s+)?"
     r"(?:(?P<count>\d+|one|two|three|four|five|six|seven|eight)\s+slides?"
@@ -1846,6 +1861,20 @@ def _route_command(text: str) -> ToolCall | None:
             "presentation_make",
             topic=presentation.group("topic").strip(),
             count=presentation.group("count") or "",
+        )
+    grocery = _GROCERY_ORDER.fullmatch(s)
+    if grocery:
+        found = grocery.groupdict()
+        if found["items"]:
+            return call(
+                "grocery_order",
+                items=found["items"].strip(),
+                store=(found["store"] or "").strip(),
+            )
+        return call(
+            "grocery_order",
+            items=(found["gitems"] or "").strip(),
+            store=(found["gstore"] or "").strip(),
         )
     list_add = _LIST_ADD.fullmatch(s)
     if list_add:

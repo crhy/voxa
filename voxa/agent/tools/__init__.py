@@ -26,6 +26,7 @@ from voxa.agent.tools.filemanage import file_manage_tools
 from voxa.agent.tools.files import file_dialog_tools
 from voxa.agent.tools.finance_docs import finance_docs_tools
 from voxa.agent.tools.github import github_tools
+from voxa.agent.tools.groceries import groceries_tools
 from voxa.agent.tools.headsup import headsup_tools
 from voxa.agent.tools.help import help_tools
 from voxa.agent.tools.hidden_files import hidden_files_tools
@@ -88,6 +89,7 @@ def default_registry() -> ToolRegistry:
         *trip_tools(),
         *travel_doc_tools(),
         *rebook_tools(),
+        *groceries_tools(),
         *slides_tools(),
         *project_steps_tools(),
         *databackup_tools(),

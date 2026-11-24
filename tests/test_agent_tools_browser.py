@@ -282,6 +282,7 @@ def test_registry_lists_all_tools():
             "get_noise_cancellation",
             "go_back",
             "gpu_status",
+            "grocery_order",
             "heads_up",
             "hidden_files",
             "home_scene",
