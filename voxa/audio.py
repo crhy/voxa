@@ -1145,6 +1145,7 @@ class AudioCapture:
         return bool(self._delay_lock is not None and self._delay_lock.degraded)
 
     def stop(self) -> None:
+        self._save_hearing_profile()
         self.stop_device_watch()
         gst = _ensure_gstreamer() if (self.pipeline is not None or self._ref_pipeline is not None) else None
         pipeline, self.pipeline = self.pipeline, None
@@ -1287,6 +1288,7 @@ class AudioCapture:
                 self.canceller = wanted(stream_delay_ms=int(self.tuning.aec3_seed_ms))
             else:
                 self.canceller = wanted()
+            self.apply_hearing_profile(self.reference_source, self.hearing_microphone)
         # f171 (roadmap task 4 on the exact-delay output): the residual stage rides on THIS
         # canceller's output - it is a spectral gain, not a second AEC owner. A mode change is
         # an explicit epoch, so the stage starts fresh with it: no delay handed yet, and the

@@ -20,6 +20,10 @@ numpy>=2.0,<3
 # pywebrtc-audio: the AEC3 echo canceller's dependency (voxa/anc.py), pulled in by
 # the hearing roadmap now on main; the wheel module carries it since the f130 history.
 pywebrtc-audio>=0.2,<0.3
+# onnxruntime: the Smart Turn v3.1 endpoint model (voxa/endpoint.py, roadmap hearing
+# task 9); 8 MB ONNX classifier, MIT, prebuilt manylinux wheels. Pulled transitively
+# by faster-whisper too, but pinned directly so the wheel module ships it.
+onnxruntime>=1.30,<2
 edge-tts>=7.3.1,<8
 PyOpenGL>=3.1,<4
 # Pure-Python GLB reader for downloaded 3D avatar models (no native build step).
