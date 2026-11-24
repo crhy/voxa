@@ -285,6 +285,7 @@ class ClipRunner:
         self._clean_vad: VoiceDetector | None = None  # lazy: it loads the Silero model
         self._clean_prob: float | None = None
         self._mask_margin: float | None = None
+        self._gate_margin: float | None = None
         self._dt_suspect = False
         self._dt_echo = False
         # f186: the joint verdicts this clip's gate ever LATCHED (see _observe_joint).
@@ -816,6 +817,7 @@ class ClipRunner:
         gate_margin = (float(self.mask.band_margin_db)
                        if self.mask is not None and np.isfinite(self.mask.band_margin_db)
                        else None)
+        self._gate_margin = gate_margin
         # f172 (re-plan of parked f132): the coherence half of the gate reads at the LOCKED
         # delay - the delay_samples the canceller and the residual mask are actually driven at -
         # never the canceller's own drifting DelayTracker estimate. f132's blocker was that this
@@ -885,11 +887,11 @@ class ClipRunner:
             residual_db=residual,
             residual_margin_db=margin,
             # Task 5: the mask's own margin (output over ITS predicted residual) and the joint
-            # gate's voice-only verdict, measured this frame.
-            residual_over_prediction_db=(
-                float(self.mask.residual_margin_db)
-                if self.mask is not None and np.isfinite(self.mask.residual_margin_db)
-                else None),
+            # gate's voice-only verdict, measured this frame. f187: the margin the JOINT gate saw
+            # (the per-band median, voxa/jointgate.py's third return value) - the live path feeds
+            # exactly that; the frame sums saturate on unlearned bands (f172) and the bench was
+            # judging attribution a number the live path never reports.
+            residual_over_prediction_db=self._gate_margin,
             # None when THIS gate could not measure (the caller falls back to the level gate
             # and says so - the degraded path, not a guess of "no second source").
             joint_suspect=(self._dt_suspect if (self._dt_measurable or self._dt_suspect)
@@ -1801,6 +1803,11 @@ def arg_parser() -> argparse.ArgumentParser:
                         help="joint gate: coherence at/above this is echo-consistency")
     parser.add_argument("--gate-erle-drop-db", type=float, default=None,
                         help="joint gate: running ERLE drop that counts as double talk")
+    # f187 (roadmap task 5): the run-length half of the joint rule, for the sweep.
+    parser.add_argument("--gate-joint-ms", type=float, default=None,
+                        help="joint gate: ms of all-three-conditions evidence that raise the suspect")
+    parser.add_argument("--gate-hold-ms", type=float, default=None,
+                        help="joint gate: ms of joint gap the suspect persists through")
     # f175 (roadmap task 7): the +- window (ms) of the word-timed own-speech evidence; swept
     # 200/400/600 in the notes. Unset means the shipped default (ownspeech.WORD_WINDOW_MS).
     parser.add_argument("--word-window-ms", type=float, default=400.0,
@@ -1843,6 +1850,10 @@ def run(argv: list[str] | None = None) -> int:
         dt_params["coherence_echo"] = args.gate_coherence
     if args.gate_erle_drop_db is not None:
         dt_params["erle_drop_db"] = args.gate_erle_drop_db
+    if args.gate_joint_ms is not None:
+        dt_params["joint_ms"] = args.gate_joint_ms
+    if args.gate_hold_ms is not None:
+        dt_params["hold_ms"] = args.gate_hold_ms
     report = run_clips(args.suite, args.seed, args.echo_mode, args.data_root, args.limit,
                        args.model, args.quiet, mask_params, dt_params, args.word_window_ms)
     # Hearing 2 (h01): what each candidate arm really is on this machine, next to the numbers.

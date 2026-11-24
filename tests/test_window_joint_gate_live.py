@@ -54,7 +54,11 @@ def _staged_frames(n_frames: int, delay: int, rng, *, user: bool = False, user_f
         u = rng.uniform(-1.2, 1.2, mic_full.size)
         u[:user_from * 320] = 0.0
         u[user_to * 320:] = 0.0
-        mic_full = mic_full + u
+        # f187: the canceller has taken her echo where the second source is (15% tail):
+        # user frames over RAW echo still read echo-coherent at the frozen 0.2 half.
+        idx = np.arange(mic_full.size)
+        in_user = (idx >= user_from * 320) & (idx < user_to * 320)
+        mic_full = np.where(in_user, 0.15 * mic_full + u, mic_full)
     frames = []
     for f in range(n_frames):
         ref_f = ref_full[f * 320:(f + 1) * 320]

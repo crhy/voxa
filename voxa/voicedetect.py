@@ -138,7 +138,10 @@ SPEECH_PLAYBACK_THRESHOLD = 0.65  # raised Silero threshold while TTS plays (rep
 SUSPECT_JOINT_MS = 150.0   # all three streams must hold this long to raise "suspect"
 SUSPECT_HOLD_MS = 300.0    # the suspect holds through joint gaps this long: transient bursts
 RESIDUAL_MARGIN_DB = 6.0   # cleaned output above the predicted residual = the user, not echo
-COHERENCE_ECHO = 0.5       # cleaned-vs-reference coherence at/above this is echo consistency
+COHERENCE_ECHO = 0.2       # coherence at/above this is echo consistency (f187: the room leaves
+                           # 0.04-0.46 between the raw microphone and the delayed reference on
+                           # PURE echo here; 0.5 never saw the echo, so the echo mirror of the
+                           # joint gate could not latch and residual bursts stayed "inconsistent")
 ERLE_DROP_DB = 3.0         # running ERLE this far under its own recent baseline = double talk
 COHERENCE_WINDOW = 512     # samples of the coherence window: 32 ms at 16 kHz, like Silero
 

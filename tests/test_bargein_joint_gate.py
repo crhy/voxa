@@ -128,3 +128,29 @@ def test_an_empty_candidate_is_never_user_on_the_level_tower_alone() -> None:
     # A real one-word answer keeps the tower's half-weight: it is not an empty span.
     ev.word_count = 1
     assert attribute(ev).source == USER
+
+
+def test_the_echo_mirror_never_drops_a_candidate_the_suspect_opened() -> None:
+    """f187: a person interrupting over her echo holds coherent frames between her words -
+    the gate's mirror latched and DROPPED the candidate the suspect itself had opened, and
+    the frozen last-word clip missed its barge-in. Once this reply raised a suspect, the
+    mirror verdict may not drop the candidate again (the mirror still vetoes the fallback
+    level gate on replies that never raised one)."""
+    ctl = BargeInController()
+    ctl.reply_started("The weather is clear today.")
+    for _ in range(40):  # her own level: teach the gate, no openings
+        ctl.observe(0.05, speaking=True, muted=True, evidence=_ev(),
+                    mic_db=_ECHOED_MIC_DB, reference_db=_REFERENCE_DB,
+                    delay_ms=200.0, dt_ms=20.0)
+    opened = ctl.observe(0.3, speaking=True, muted=True,
+                         evidence=_ev(joint_suspect=True, joint_echo=False),
+                         mic_db=_ECHOED_MIC_DB, reference_db=_REFERENCE_DB,
+                         delay_ms=200.0, dt_ms=20.0)
+    assert opened.gate_opened and ctl.pending_since > 0.0, "the suspect never opened"
+    outcome = ctl.observe(0.3, speaking=True, muted=True,
+                          evidence=_ev(joint_suspect=False, joint_echo=True),
+                          mic_db=_ECHOED_MIC_DB, reference_db=_REFERENCE_DB,
+                          delay_ms=200.0, dt_ms=20.0)
+    assert outcome.action == IGNORED and outcome.reason == "listening"
+    assert ctl.pending_since > 0.0, "the mirror dropped a candidate the suspect had opened"
+    assert ctl.stats.get("joint_closed_candidate", 0) == 0

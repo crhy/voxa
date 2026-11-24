@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from voxa.voicedetect import DoubleTalkGate, VoiceDetector, silero_hysteresis
+from voxa.voicedetect import COHERENCE_ECHO, DoubleTalkGate, VoiceDetector, silero_hysteresis
 
 
 def test_silero_hysteresis_ends_speech_only_below_off_threshold() -> None:
@@ -182,7 +182,14 @@ def _locked_delay_fixture(n_frames: int, delay: int, rng, *, user: bool = False,
         hi = user_to * 320
         u[:lo] = 0.0
         u[hi:] = 0.0
-        mic_full = mic_full + u
+        # f187: where the second source is, her echo is CANCELLED - the canceller has taken
+        # most of it and only a 15% tail rides on the user's frames. Real cleaned-stream
+        # user audio measures 0.02-0.26 coherence at the locked delay (f187, frozen clips);
+        # a raw echo under the speaker keeps its high coherence, which is exactly the
+        # distinction the echo half of the joint gate now measures at 0.2.
+        idx = np.arange(mic_full.size)
+        in_user = (idx >= lo) & (idx < hi)
+        mic_full = np.where(in_user, 0.15 * mic_full + u, mic_full)
     for f in range(n_frames):
         ref_frames.append(ref_full[f * 320:(f + 1) * 320])
         mic_frames.append(mic_full[f * 320:(f + 1) * 320])
@@ -276,3 +283,26 @@ def test_double_talk_gate_is_honest_when_it_cannot_measure() -> None:
     assert gate.suspect is False
     assert gate.echo_consistent is False
     assert gate.conditions["measurable"] is False
+
+
+def test_double_talk_gate_room_colored_echo_latches_the_mirror_at_the_narrowed_half() -> None:
+    """f187 (roadmap task 5): on the frozen smoke set the RAW microphone against the delayed
+    reference measures 0.04-0.46 coherence on PURE echo - the room colors it. The shipped
+    0.5 never saw that echo, so the gate's MIRROR could not latch and a residual burst was
+    'not echo' forever. At the narrowed 0.2 a ~0.37-coherence echo train is echo consistent,
+    and the suspect stays down."""
+    rng = np.random.default_rng(17)
+    delay = 2000
+    ref_full = rng.uniform(-0.4, 0.4, 20 * 320 + delay + 512)
+    mic_full = rng.uniform(-0.5, 0.5, ref_full.size)
+    mic_full[delay:] += 0.5 * ref_full[:ref_full.size - delay]
+    gate = DoubleTalkGate()
+    for f in range(20):
+        gate.observe(dt_ms=20.0, prob=0.1, mic=mic_full[f * 320:(f + 1) * 320],
+                     ref=ref_full[f * 320:(f + 1) * 320], delay_samples=delay,
+                     residual_over_prediction_db=0.0, erle_db=12.0,
+                     reference_active=True, alignment_healthy=True)
+    assert gate.coherence is not None
+    assert COHERENCE_ECHO <= gate.coherence < 0.5, "the room tail should sit in the 0.2-0.5 band"
+    assert gate.echo_consistent is True, "the mirror must latch on the colored echo"
+    assert gate.suspect is False

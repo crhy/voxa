@@ -52,6 +52,11 @@ YIELD = "yield"
 # are an interrupt word or address her by name.
 _MEDIA_EXCEPTION = re.compile(r"\b(?:stop|pause|cancel|quiet|enough|wait)\b")
 
+# f187 (roadmap task 5): once the joint gate has raised a suspect for this reply, its echo
+# mirror may not drop the candidate again. A real interruption over her echo holds coherent
+# frames too (f187 measured it on the frozen last-word clip: the mirror closed the candidate
+# the suspect itself had opened, and the barge-in was missed).
+
 # The capture path reports levels in int16 units; the gate works on the 0..1 scale the
 # window builds by dividing by this (voxa/window.py: ``self._latest_level / 4000.0``).
 LEVEL_SCALE = 4000.0
@@ -136,6 +141,11 @@ class BargeInController:
         # Has the floor already been yielded for this reply? Yielding happens once: a second
         # run of unexplained sound inside the same reply is the same interruption, not a new one.
         self._yielded = False
+        # f187: once the joint gate has raised a suspect for this reply, its echo mirror may
+        # no longer DROP the candidate: a real interruption and the echo it overlaps both hold
+        # coherent frames (f187 measured it on the frozen last-word clip), and an interruption
+        # the joint window itself opened must not be closed by the same window's mirror.
+        self._suspect_raised = False
 
     def _clear_candidate(self) -> None:
         """Drop the pending candidate: the gate's streak and the level ratio it opened on.
@@ -187,6 +197,7 @@ class BargeInController:
         self.gate.note_reply_start()
         self.onset.reset()
         self._yielded = False
+        self._suspect_raised = False
 
     def reply_started(self, text: str) -> None:
         """A reply began being read out (window.py:3004-3010 did exactly this before)."""
@@ -200,6 +211,7 @@ class BargeInController:
         self.gate.reset()
         self.onset.reset()
         self._yielded = False
+        self._suspect_raised = False
 
     def invalidate(self) -> None:
         """The floor was yielded: the evidence starts over, the reply's words do not.
@@ -293,7 +305,8 @@ class BargeInController:
         if joint is not None and audio.reference_active:
             if joint:
                 opened = True
-            elif getattr(audio, "joint_echo", False):
+                self._suspect_raised = True
+            elif getattr(audio, "joint_echo", False) and not self._suspect_raised:
                 # Only the gate's MIRROR verdict may suppress the fallback: the microphone held
                 # the delayed reference, so the tower is her own voice. "Not suspect" alone is
                 # indeterminate, and barge-ins the joint window has not confirmed keep the floor.
