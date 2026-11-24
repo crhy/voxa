@@ -306,3 +306,98 @@ def test_double_talk_gate_room_colored_echo_latches_the_mirror_at_the_narrowed_h
     assert COHERENCE_ECHO <= gate.coherence < 0.5, "the room tail should sit in the 0.2-0.5 band"
     assert gate.echo_consistent is True, "the mirror must latch on the colored echo"
     assert gate.suspect is False
+
+
+# --- f188 (issue #72): the joint evidence claims the span the mirror may latch on --------------
+# Landing f187's narrowed COHERENCE_ECHO 0.2 kept false_bargein but parked missed_bargein
+# 0.7742: smoke-0020's real barge-in never got judged because the mirror latched on her own
+# inter-word gap (0.46-0.73 coherence) and closed the candidate. The gate had ALREADY measured
+# 150 ms of residual-over-prediction + inconsistency at the locked delay - the two sound-streams
+# of the joint evidence - and a mirror that latches behind them contradicts its own gate.
+
+def _half_frames(gate_frames: int, rng, delay: int):
+    """Frames of the HALF: residual margin over the prediction, mic the delayed reference does
+    NOT explain (low coherence), Silero quiet - two of the three streams, no suspect."""
+    refs, mics = [], []
+    for _ in range(gate_frames):
+        refs.append(rng.uniform(-0.4, 0.4, 320))
+        mics.append(rng.uniform(-0.4, 0.4, 320))  # uncorrelated: coherence ~0 -> inconsistent
+    return refs, mics
+
+
+def _echo_frames(rng, delay: int, n: int):
+    """Frames the delayed reference DOES explain: high coherence, no residual margin."""
+    ref_full = rng.uniform(-0.4, 0.4, (n + 12) * 320 + delay)
+    refs, mics = [], []
+    for f in range(n):
+        # mic[t] = ref[t - delay]: the echo arrives at exactly the delay the gate reads at.
+        base = (f + 12) * 320
+        refs.append(ref_full[base:base + 320])
+        mics.append(ref_full[base - delay:base - delay + 320])
+    return refs, mics
+
+
+def test_f188_half_evidence_before_echo_blocks_the_mirror_from_latching() -> None:
+    """smoke-0020's shape: 150 ms of residual+inconsistency at the locked delay, THEN her
+    echo coherence - the mirror may not latch behind the joint evidence that contradicts it,
+    and the half alone never raises the suspect."""
+    rng = np.random.default_rng(23)
+    delay = 100
+    gate = DoubleTalkGate()
+    # warm the delay line with echo-only frames nobody claims: the coherence starts measurable
+    for ref_f, mic_f in zip(*_echo_frames(rng, delay, 4)):
+        gate.observe(dt_ms=20.0, prob=0.1, mic=mic_f, ref=ref_f, delay_samples=delay,
+                     residual_over_prediction_db=0.0, erle_db=None,
+                     reference_active=True, alignment_healthy=True)
+    for ref_f, mic_f in zip(*_half_frames(9, rng, delay)):  # 180 ms >= joint_ms
+        gate.observe(dt_ms=20.0, prob=0.1, mic=mic_f, ref=ref_f, delay_samples=delay,
+                     residual_over_prediction_db=10.0, erle_db=None,
+                     reference_active=True, alignment_healthy=True)
+    assert gate.suspect is False, "the half is two streams, never the triple"
+    for ref_f, mic_f in zip(*_echo_frames(rng, delay, 9)):  # coherence again, inside hold_ms
+        gate.observe(dt_ms=20.0, prob=0.1, mic=mic_f, ref=ref_f, delay_samples=delay,
+                     residual_over_prediction_db=0.0, erle_db=None,
+                     reference_active=True, alignment_healthy=True)
+    assert gate.coherence is not None and gate.coherence >= COHERENCE_ECHO
+    assert gate.echo_consistent is False, "the mirror latched behind joint evidence"
+
+
+def test_f188_mirror_that_latched_first_stands_against_a_later_residue_burst() -> None:
+    """smoke-0039's pause: the mirror locked on the echo BEFORE her re-heard "Thank you"
+    residue burst - the residue, not the verdict, is that clip's failure, so a later half
+    run neither unlatches the mirror nor raises the suspect (the canceller's misfire is not
+    a second source, and the triple + hold stay untouched)."""
+    rng = np.random.default_rng(24)
+    delay = 100
+    gate = DoubleTalkGate()
+    for ref_f, mic_f in zip(*_echo_frames(rng, delay, 12)):  # the mirror latches first
+        gate.observe(dt_ms=20.0, prob=0.1, mic=mic_f, ref=ref_f, delay_samples=delay,
+                     residual_over_prediction_db=0.0, erle_db=None,
+                     reference_active=True, alignment_healthy=True)
+    assert gate.echo_consistent is True
+    for ref_f, mic_f in zip(*_half_frames(9, rng, delay)):  # 180 ms residue burst
+        gate.observe(dt_ms=20.0, prob=0.1, mic=mic_f, ref=ref_f, delay_samples=delay,
+                     residual_over_prediction_db=10.0, erle_db=None,
+                     reference_active=True, alignment_healthy=True)
+    assert gate.suspect is False
+    assert gate.echo_consistent is True, "a latch built first is not taken back by residue"
+
+
+def test_f188_live_suspect_withholds_the_mirror_even_if_it_latched() -> None:
+    """The mirror never contradicts a LIVE suspect: the same gate that raised the three-stream
+    verdict cannot hand the caller an echo verdict for that span (the seam that reassigned
+    smoke-0020 to echo)."""
+    rng = np.random.default_rng(25)
+    delay = 100
+    gate = DoubleTalkGate()
+    for ref_f, mic_f in zip(*_echo_frames(rng, delay, 12)):
+        gate.observe(dt_ms=20.0, prob=0.1, mic=mic_f, ref=ref_f, delay_samples=delay,
+                     residual_over_prediction_db=0.0, erle_db=None,
+                     reference_active=True, alignment_healthy=True)
+    assert gate.echo_consistent is True
+    for ref_f, mic_f in zip(*_half_frames(12, rng, delay)):  # now WITH the speech stream
+        gate.observe(dt_ms=20.0, prob=0.9, mic=mic_f, ref=ref_f, delay_samples=delay,
+                     residual_over_prediction_db=10.0, erle_db=None,
+                     reference_active=True, alignment_healthy=True)
+    assert gate.suspect is True
+    assert gate.echo_consistent is False, "the gate's own second-source verdict outranks echo"
