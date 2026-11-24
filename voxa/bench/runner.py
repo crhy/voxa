@@ -1189,6 +1189,25 @@ class ClipRunner:
         if segment:
             self._finish_utterance(segment, self._frame, promote=False)
 
+    def _pinned_candidate_is_echo(self) -> bool:
+        """f185 (crhy/voxa#72): the three shipped hearing signals read TOGETHER say the span
+        this barge-in pinned is Voxa's OWN echo, not a user turn.
+
+        The ExactDelayLock (f168) must have proven the delay, the LockedResidualMask (f169/f171)
+        must have learned a per-band prediction that the cleaned output does NOT exceed
+        (``band_margin_db`` finite and under the joint gate's margin), and the DoubleTalkGate
+        (f173) must have latched its echo-consistent mirror verdict. Any one verdict missing or
+        indeterminate keeps the shipped promote: "the joint test did not fire" is not evidence of
+        echo (voicedetect.py's mirror rule), so an honest park beats a fake suppress.
+        """
+        if not self._lock_proven:
+            return False
+        if self.mask is None or not np.isfinite(self.mask.band_margin_db):
+            return False
+        if float(self.mask.band_margin_db) >= float(self.dt_gate.margin_db):
+            return False
+        return bool(self._dt_echo)
+
     def _apply_barge(self, outcome) -> None:
         if outcome.action == "yield":
             # The fast half of the decision (task A3): the floor is yielded on the ACOUSTIC
@@ -1242,12 +1261,23 @@ class ClipRunner:
         # is the ACCEPTED interruption - the decision is made, so the promote_wait does not
         # hold it (the f176 contract: the accepted span becomes the turn's beginning now).
         # The wait applies to the never-completed span, not to an accepted decision.
-        promoted = self.conversation.promote_pinned(enqueue=False, force=True)
-        self.emit("capture-promote", frames=[item.seq for item in promoted],
-                  span_seconds=round(self.conversation.capture.span_seconds, 3),
-                  pin_from=self.conversation.capture.pin_from)
-        for item in promoted:
-            self._segment_frame(item)
+        if self._pinned_candidate_is_echo():
+            # f185: the pinned span is Voxa's own echo - the shipped lock, residual stage and
+            # joint gate all agree - so her playback words are NOT promoted into the request.
+            # The user's real segment that follows keeps flowing through the segmenter and becomes
+            # the request exactly once; the echo that hijacked the barge-in never does.
+            self.emit("capture-suppressed", reason="echo-hijack",
+                      span_seconds=round(self.conversation.capture.span_seconds, 3),
+                      pin_from=self.conversation.capture.pin_from,
+                      band_margin_db=round(float(self.mask.band_margin_db), 2),
+                      joint_echo=True, lock_proven=True)
+        else:
+            promoted = self.conversation.promote_pinned(enqueue=False, force=True)
+            self.emit("capture-promote", frames=[item.seq for item in promoted],
+                      span_seconds=round(self.conversation.capture.span_seconds, 3),
+                      pin_from=self.conversation.capture.pin_from)
+            for item in promoted:
+                self._segment_frame(item)
         self.conversation.unmute()
         self.conversation.arm_prompt()
         self.conversation.waiting_for_prompt = True
