@@ -448,11 +448,73 @@ class LockedResidualMask(ResidualMask):
 
     def __init__(self, rate=16000, frame=512, hop=256, bands=64, over=0.05,
                  protect_db=6.0, floor=0.1, memory_s=0.4, tail_s=0.3,
-                 erle_target_db=20.0, over_ramp=0.5, ref_floor=1e-9, rt_s=None):
+                 erle_target_db=20.0, over_ramp=0.5, ref_floor=1e-9, rt_s=None,
+                 prim_s: float = 0.5):
         super().__init__(rate=rate, frame=frame, hop=hop, bands=bands, over=over,
                          protect_db=protect_db, floor=floor, memory_s=memory_s,
                          tail_s=tail_s, erle_target_db=erle_target_db,
                          over_ramp=over_ramp, ref_floor=ref_floor, rt_s=rt_s)
+        # f190 (roadmap task 4 on the SHORT echo-dominated clips): the linear canceller cancels
+        # the echo so well on these clips that the per-band output-vs-reference ratio the mask
+        # learns from its OWN output collapses to ~0, so `coupling` stays 0, `echo_b` (the
+        # predicted residual) is 0 in every band, and ``band_margin_db`` - the per-band output-
+        # over-prediction the joint double-talk gate needs to tell her echo from a second source
+        # - is ``-inf`` at every barge-in-confirm (f185's measured blocker). Neither the
+        # protection rule nor the suppression can read a prediction that never existed.
+        #
+        # f168's ExactDelayLock is built from the first ``prim_s`` of TTS (GCC-PHAT over the
+        # utterance onset); f169/f171 hand that converged delay to the mask with ``set_delay``.
+        # In that SAME onset window the canceller had not converged yet, so the residual it left
+        # IS measurable against the held reference. Prime a per-band prediction floor from those
+        # onset frames - read at the delay the lock proved - and use it as the floor of the
+        # prediction ``band_margin_db`` stands on, so a finite per-band prediction survives the
+        # short echo-dominated clip. It is EVIDENCE ONLY: the frame gain and the >= 6 dB
+        # protection ride on the mask's own learned coupling unchanged, so the cleaned stream -
+        # and every frozen smoke metric - is byte-identical; only the joint gate can now measure.
+        self._prim_s = float(prim_s)
+        self._prim_frames = max(1, int(round(self._prim_s * self.rate / self.hop)))
+        self._priming = False
+        self._primed = False
+        self._prim_seen = 0
+        self._prime_coupling = np.zeros(self.nbands)
+
+    def set_delay(self, delay_samples: float) -> None:
+        # f190: the priming window opens the FIRST time the lock hands the mask a delay (the
+        # utterance onset the lock itself converged on). A clip that never locks (near-end-only,
+        # silence) never primes: the prediction floor stays 0 and the pre-f190 behaviour holds.
+        super().set_delay(delay_samples)
+        if not self._primed and not self._priming:
+            self._priming = True
+
+    def _update_ratio_gate(self, out_b: np.ndarray, echo_b: np.ndarray) -> None:
+        # Prime the per-band prediction floor from the onset frames (the canceller's residue
+        # measured against the held reference at the locked delay), before the steady-state
+        # cancellation zeroes the learned ratios. Take the peak observed fraction per band, so
+        # the floor is a real upper bound on the residue the canceller left, never a guess.
+        if self._priming:
+            held = self._held_now
+            strong = held > self.ref_floor
+            obs = np.zeros(self.nbands)
+            obs[strong] = out_b[strong] / held[strong]
+            self._prime_coupling = np.maximum(self._prime_coupling, obs)
+            self._prim_seen += 1
+            if self._prim_seen >= self._prim_frames:
+                self._primed = True
+                self._priming = False
+        super()._update_ratio_gate(out_b, echo_b)
+        # f190: re-read the per-band margin on the onset-primed prediction floor, so a finite
+        # per-band residual prediction survives the short echo-dominated clip. This is NOT a
+        # loosened margin: the floor is the residue the canceller was OBSERVED to leave at the
+        # onset, so her echo frames stand at or below it (margin low -> echo) while a genuine
+        # second source still stands clearly above it (margin high). The frame gain and the
+        # >= 6 dB protection ride on the mask's own learned coupling unchanged (super() set them
+        # above), so the cleaned stream and the frozen smoke row are untouched.
+        if float(np.max(self._prime_coupling)) > 0.0:
+            pred = np.maximum(self.coupling, self._prime_coupling) * self._held_now
+            learned = pred > 1e-20
+            if learned.any():
+                ratios = np.maximum(out_b[learned], 1e-20) / pred[learned]
+                self.band_margin_db = float(10.0 * np.log10(float(np.median(ratios))))
 
 
 def user_present(mask: ReferenceMask, threshold_db: float = 3.0) -> bool:
