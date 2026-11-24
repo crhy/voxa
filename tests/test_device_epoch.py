@@ -254,3 +254,70 @@ def test_an_aligned_path_keeps_its_commands_during_recovery() -> None:
     runner._deliver("open the garage", 4, kind="request")
     assert runner.requests == ["open the garage"]
     assert runner.held_commands == 0
+
+
+# ------------------------------------------------ f184: self-command held at her OWN playback ----
+
+def _echo_evidence() -> "object":
+    """A span the attribution calls her OWN echo: a live reference, the delayed reference explains
+    the microphone, the joint gate's mirror verdict held, and nothing supports a second source."""
+    from voxa.attribution import SourceEvidence
+    return SourceEvidence(
+        reference_active=True, reference_power=0.05,
+        echo_explained_db=0.0,            # the reference explains the whole microphone
+        residual_over_prediction_db=-3.0,  # residual at/under the echo path's baseline
+        joint_echo=True,                   # the MIRROR verdict: this was the delayed reference
+        alignment_healthy=True, mic_level=0.02, own_level=0.02, vad_prob=0.0,
+    )
+
+
+def _user_evidence() -> "object":
+    """A span the attribution cleanly supports as a SECOND source (the user over her)."""
+    from voxa.attribution import SourceEvidence
+    return SourceEvidence(
+        reference_active=True, reference_power=0.05,
+        echo_explained_db=-8.0,            # the microphone holds far beyond the reference
+        residual_over_prediction_db=9.0,   # residual well over the echo path's baseline
+        joint_suspect=True,                # speech, margin and echo-inconsistency held together
+        alignment_healthy=True, mic_level=0.3, own_level=0.02, vad_prob=0.9,
+    )
+
+
+def test_a_self_echo_candidate_at_playback_is_held_not_a_command() -> None:
+    """Roadmap task 10 extended (f184): an unqualified candidate attributed to her OWN echo while
+    she is playing never opens a turn/request/command - the SAME shape as the recovery-window hold."""
+    runner = _runner()
+    runner.own_speech.started("turn on the lights")   # her voice is a live source (she is playing)
+    runner.last_evidence = _echo_evidence()
+    before = len(runner.requests)
+    runner._deliver("turn on the lights", 30, kind="request")
+    assert len(runner.requests) == before            # never a command from her own echo
+    assert runner.held_commands == 1
+    held = [e for e in runner.events if e["event"] == "self-command-held"]
+    assert held and held[0]["reason"] == "unqualified-echo-at-playback"
+    # the audio is KEPT: holding is a decision about the command, never a deletion. The decision is
+    # deferred by arming the prompt, exactly like the recovery-window hold.
+    assert runner._clean_stream == []
+    if runner.conversation is not None:  # the prompt is armed (the decision is only deferred)
+        runner.conversation.arm_prompt()
+        assert runner.conversation.waiting_for_prompt is True
+
+
+def test_a_user_command_at_playback_still_routes_and_degraded_is_unchanged() -> None:
+    """A genuinely user-spoken candidate during her playback still runs: the attribution cleanly
+    supports a second source, so the f184 hold must NOT touch it. The degraded joint-None path (no
+    span evidence) is left exactly as handoff 6.5 keeps it."""
+    runner = _runner()
+    runner.own_speech.started("turn on the lights")
+    runner.last_evidence = _user_evidence()
+    runner._deliver("open the pod bay", 31, kind="request")
+    assert runner.requests == ["open the pod bay"]   # the user's turn over her, never held
+    assert runner.held_commands == 0
+
+    # the degraded joint-None path is unchanged: no span evidence, so nothing is held
+    runner2 = _runner()
+    runner2.own_speech.started("turn on the lights")
+    runner2.last_evidence = None
+    runner2._deliver("open the pod bay", 32, kind="request")
+    assert runner2.requests == ["open the pod bay"]
+    assert runner2.held_commands == 0

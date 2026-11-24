@@ -63,6 +63,7 @@ from ..refmask import LockedResidualMask, ReferenceMask, ResidualMask
 from ..voicedetect import SPEECH_PLAYBACK_THRESHOLD, DoubleTalkGate, VoiceDetector
 from . import metrics as metrics_module
 from . import modes
+
 from . import report as report_module
 from .render import DEFAULT_DATA_ROOT, SR, read_wav
 
@@ -1116,6 +1117,29 @@ class ClipRunner:
                    or getattr(self.canceller, "delay_managed_internally", False))
         return not aligned
 
+    def _self_command_held(self, text: str, kind: str) -> bool:
+        """f184: an UNQUALIFIED candidate the attribution attributes to Voxa's OWN echo at (or in
+        the tail of) her playback must not open a user turn, request or ``direct_command``. This is
+        roadmap task 10's recovery-window rule (``command-held``) extended from the recovery window
+        to every playback/echo-tail moment, so she never opens a turn from her own voice - the SAME
+        shape: keep the audio, delay only the decision, ``conversation.arm_prompt()``.
+
+        Only a candidate the attribution calls her ECHO is held. A genuinely user-spoken candidate
+        still runs: a protected command word, the attribution cleanly supporting a second (user)
+        source, or the degraded joint-``None`` path (handoff 6.5 keeps it unchanged)."""
+        if kind not in ("request", "armed", "prompt", "followup"):
+            return False
+        if not self.own_speech.active():
+            return False  # not her playback or its tail: a genuine user turn is never held
+        from voxa.ownspeech import normalise
+        protect = self.own_speech._protected([self.wake_word])
+        if any(word in protect for word in normalise(text)):
+            return False  # a protected command word is the user's own command
+        if self.last_evidence is None:
+            return False  # no span evidence: the degraded joint-None path is unchanged
+        from voxa.attribution import ECHO
+        return attribute(self.last_evidence).source == ECHO
+
     def _deliver(self, text: str, frame: int, *, kind: str, words: list[dict] | None = None,
                  no_speech_prob: float | None = None) -> None:
         """The request that would reach the assistant (what ``on_prompt`` carries in the app)."""
@@ -1128,6 +1152,15 @@ class ClipRunner:
             self.held_commands += 1
             self._turn_event("command-held", text=text, frame=frame, epoch=self.epoch,
                       reason="recovery-window-unqualified-audio")
+            return
+        # Roadmap task 10 extended (f184): the same rule at her OWN playback / echo tail, not just
+        # the recovery window - an unqualified candidate heard from her own voice never opens a turn.
+        if self._self_command_held(text, kind):
+            self.held_commands += 1
+            self._turn_event("self-command-held", text=text, frame=frame, epoch=self.epoch,
+                      reason="unqualified-echo-at-playback")
+            if self.conversation is not None:
+                self.conversation.arm_prompt()  # audio kept, decision deferred to the next thing
             return
         self.requests.append(text)
         self.counts["turns"] += 1
