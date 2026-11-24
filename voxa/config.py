@@ -110,6 +110,11 @@ class Settings:
     # GStreamer capture pipeline (experimental), "off" = none.
     # ``echo_cancel`` is a deprecated alias: False maps to "off".
     echo_mode: str = "dtln"  # removes music and video sound before she listens; off when unavailable
+    # True once the user has chosen an echo mode by hand (voxa/window.py). A 0.1.8 profile stored
+    # ``echo_mode: "webrtc"`` (then the default); in 0.1.9 the default is "dtln", so a profile that
+    # never picked one migrates webrtc -> dtln, but a profile that explicitly chose webrtc is left
+    # alone. The marker is what tells the two apart.
+    echo_mode_user_picked: bool = False
     # Milliseconds the lips run ahead of the reported audio position (compensates sound-card and display delay).
     lip_sync_lead_ms: int = 160
     tts_rate: int = DEFAULT_TTS_RATE
@@ -249,6 +254,12 @@ class ConfigStore:
         # ``ai_backend`` key; those users stay on Ollama, today's behaviour.
         if "ai_backend" not in clean:
             clean["ai_backend"] = "ollama"
+        # 0.1.8 shipped "webrtc" as the echo_mode default; 0.1.9 ships "dtln" (Hearing 2 h04, the
+        # DTLN-aec neural stage). A profile that never picked an echo mode by hand (no
+        # ``echo_mode_user_picked`` marker) and still carries the old default moves to "dtln". A
+        # profile that explicitly chose "webrtc" carries the marker and is left untouched.
+        if "echo_mode_user_picked" not in payload and payload.get("echo_mode") == "webrtc":
+            clean["echo_mode"] = "dtln"
         # Profiles from before early endpointing persisted 900 ms, which was
         # then the default. Keeping that legacy value adds a perceptible pause
         # after every request. The absence of ``early_silence_ms`` identifies

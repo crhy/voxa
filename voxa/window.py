@@ -604,6 +604,7 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _save_echo_mode(self, mode: str) -> None:
         self.settings.echo_mode = mode
+        self.settings.echo_mode_user_picked = True
         self.config_store.save(self.settings)
         self._apply_echo_mode()
 
@@ -5561,6 +5562,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.settings.auto_speak = auto_speak_row.get_active()
         echo_modes = self._echo_mode_choices()
         self.settings.echo_mode = echo_modes[min(echo_row.get_selected(), len(echo_modes) - 1)]
+        self.settings.echo_mode_user_picked = True
         self.settings.web_search = WEB_SEARCH_VALUES[min(web_search_row.get_selected(), len(WEB_SEARCH_VALUES) - 1)]
         self.settings.wake_word = wake_word_row.get_text().strip()
         wakelabel.set_wake(self.settings.wake_word)

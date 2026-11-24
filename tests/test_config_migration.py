@@ -125,3 +125,31 @@ def test_read_only_load_leaves_legacy_files_alone(tmp_path: Path, monkeypatch) -
     assert legacy.read_text(encoding="utf-8") == json.dumps({"ollama_model": "llama3.1:8b"})
     assert not (tmp_path / ".config" / "voxa" / "config.json").exists()
     assert loaded.ollama_model != "llama3.1:8b"  # defaults, not the legacy contents
+
+
+def test_webrtc_echo_mode_from_0_1_8_migrates_to_dtln(tmp_path: Path) -> None:
+    """0.1.8 shipped echo_mode 'webrtc'; 0.1.9 defaults to the neural 'dtln' stage (issue #130).
+
+    A profile that never picked an echo mode by hand carries no ``echo_mode_user_picked`` marker,
+    so its stale 'webrtc' default moves to 'dtln'.
+    """
+    payload = {"ollama_model": "qwen3:14b", "echo_mode": "webrtc"}
+    loaded = _store(tmp_path, payload).load()
+    assert loaded.echo_mode == "dtln"
+    assert loaded.echo_mode_user_picked is False
+
+
+def test_explicitly_chosen_webrtc_is_never_migrated(tmp_path: Path) -> None:
+    """A user who deliberately selected 'webrtc' carries the marker and keeps it across the upgrade."""
+    payload = {"ollama_model": "qwen3:14b", "echo_mode": "webrtc", "echo_mode_user_picked": True}
+    loaded = _store(tmp_path, payload).load()
+    assert loaded.echo_mode == "webrtc"
+    assert loaded.echo_mode_user_picked is True
+
+
+def test_echo_mode_marker_survives_a_save_and_reload(tmp_path: Path) -> None:
+    store = _store(tmp_path, {"ollama_model": "qwen3:14b", "echo_mode": "webrtc", "echo_mode_user_picked": True})
+    first = store.load()
+    store.save(first)
+    reloaded = store.load()
+    assert reloaded.echo_mode == "webrtc" and reloaded.echo_mode_user_picked is True
