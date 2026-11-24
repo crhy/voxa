@@ -596,7 +596,13 @@ def attach_render_tap(pipeline: Any, timeline: RenderTimeline, generation: str, 
         if not all((tee, tap_sink, convert, resample, capsfilter, queue)):
             made["error"] = "GStreamer elements for the tap are unavailable"
             return made
-        queue.set_property("async", False)
+        # GStreamer dropped ``async`` from the queue element in 1.28; set it only when this
+        # build has it, the way the leaky/drop properties below are guarded. Unconditional
+        # set_property("async", ...) raised on a queue without the property, which took the
+        # whole reference tap with it (the tap failed to attach, the reference stayed silent
+        # and Voxa interrupted her own reply). The audio itself was never the failure.
+        if queue.find_property("async") is not None:
+            queue.set_property("async", False)
         queue.set_property("max-size-buffers", 64)
         # Never leaky: a dropped buffer is a hole in the reference, and a hole in the reference is a
         # canceller that fits the wrong echo. The callback below drains the branch as it arrives.
@@ -622,13 +628,18 @@ def attach_render_tap(pipeline: Any, timeline: RenderTimeline, generation: str, 
         if probe_branch:
             made["echo_probe"] = probe_branch
 
+        # ``upstream`` and ``to_sink`` are PADS, not elements: GStreamer's Pad.link returns a
+        # Gst.PadLinkReturn whose OK is the integer 0. ``not upstream.link(...)`` therefore read
+        # a successful link as a failure and cut the audio path, leaving the reference silent.
+        # Compare against PadLinkReturn.OK where this build has the enum, and against True for a
+        # plain boolean link (the fake pipeline in the tests).
         upstream.unlink(sink_pad)
-        if not upstream.link(tee.get_static_pad("sink")):
+        if not _pad_link_ok(upstream.link(tee.get_static_pad("sink")), gst):
             _relink(upstream, sink_pad)
             made["error"] = "could not feed the tee from the playback path"
             return made
         to_sink = tee.request_pad_simple("src_%u")
-        if to_sink is None or not to_sink.link(sink_pad):
+        if to_sink is None or not _pad_link_ok(to_sink.link(sink_pad), gst):
             made["error"] = "could not hand the sink back from the tee"
             return made
         made["elements"] = {"tee": tee, "queue": queue, "audioconvert": convert,
@@ -667,7 +678,8 @@ def _attach_echo_probe(pipeline: Any, tee: Any, timeline: RenderTimeline, gst: A
     queue = make("queue")
     if not all((probe, probe_sink, convert, resample, capsfilter, queue)):
         return {"attached": False, "error": "webrtcechoprobe elements unavailable"}
-    queue.set_property("async", False)
+    if queue.find_property("async") is not None:
+        queue.set_property("async", False)
     queue.set_property("max-size-buffers", 64)
     if queue.find_property("leaky") is not None:
         queue.set_property("leaky", 0)
@@ -693,6 +705,24 @@ def _relink(upstream: Any, sink_pad: Any) -> None:
         upstream.link(sink_pad)
     except Exception:  # noqa: BLE001 - best effort at not leaving the sound broken
         pass
+
+
+def _pad_link_ok(result: Any, gst: Any) -> bool:
+    """Did a Pad.link succeed?
+
+    Real GStreamer :class:`Gst.Pad` returns a :class:`Gst.PadLinkReturn` whose ``OK`` is the
+    integer 0, so ``if not link_result`` treats a good link as a failure. A plain fake pipeline
+    returns ``True``. Accept both, and nothing else.
+    """
+    if result is True:
+        return True
+    pad_link_return = getattr(gst, "PadLinkReturn", None)
+    if pad_link_return is not None:
+        try:
+            return result == pad_link_return.OK
+        except Exception:  # noqa: BLE001 - an unexpected enum shape is not a reason to cut audio
+            return False
+    return bool(result)
 
 
 def _tap_callback(timeline: RenderTimeline, generation: str, path: str, gst: Any,
