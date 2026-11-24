@@ -2,6 +2,10 @@
 
 ## 0.1.8 — 2026-10-26
 
+### New
+
+- **Voxa downloads the smallest model for you at first run.** When Ollama is installed but has no model yet, the welcome now pulls the smallest model itself, so you reach "You're all set" without opening the model screen and clicking Download. (#76)
+
 ### Fixed
 
 - Follow-up questions keep the earlier question and answer as context for both typed and spoken conversations.
