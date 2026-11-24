@@ -4738,6 +4738,26 @@ class MainWindow(Adw.ApplicationWindow):
         backend_row.connect("notify::selected", update_backend_rows)
         dialog.add(ai_page)
 
+        # Spend-money safeguards live behind an Advanced page so they stay out
+        # of the everyday settings (issue #43).
+        advanced_page = Adw.PreferencesPage(title="Advanced", icon_name="preferences-system-symbolic")
+        spend_group = Adw.PreferencesGroup(
+            title="Spending",
+            description="Voxa only spends money after reading the order back and hearing \u201cconfirm\u201d.",
+        )
+        per_order_row = Adw.SpinRow.new_with_range(0, 10000, 5)
+        per_order_row.set_title("Per-order limit")
+        per_order_row.set_subtitle("Most Voxa may spend at once; 0 means no limit")
+        per_order_row.set_value(self.settings.spend_per_order_cap)
+        spend_group.add(per_order_row)
+        per_day_row = Adw.SpinRow.new_with_range(0, 100000, 10)
+        per_day_row.set_title("Per-day limit")
+        per_day_row.set_subtitle("Most Voxa may spend in a day; 0 means no limit")
+        per_day_row.set_value(self.settings.spend_per_day_cap)
+        spend_group.add(per_day_row)
+        advanced_page.add(spend_group)
+        dialog.add(advanced_page)
+
         dialog.connect(
             "closed",
             self._save_preferences,
@@ -4756,6 +4776,8 @@ class MainWindow(Adw.ApplicationWindow):
             character_row,
             voice_row,
             rate_row,
+            per_order_row,
+            per_day_row,
         )
         dialog.present(self)
 
@@ -4777,6 +4799,8 @@ class MainWindow(Adw.ApplicationWindow):
         character_row,
         voice_row,
         rate_row,
+        per_order_row,
+        per_day_row,
     ) -> None:
         new_whisper = WHISPER_MODELS[whisper_row.get_selected()]
         heavy_note = ""
@@ -4819,6 +4843,8 @@ class MainWindow(Adw.ApplicationWindow):
         ]
         self.settings.tts_voice = TTS_VOICES[voice_row.get_selected()][1]
         self.settings.tts_rate = int(rate_row.get_value())
+        self.settings.spend_per_order_cap = float(per_order_row.get_value())
+        self.settings.spend_per_day_cap = float(per_day_row.get_value())
         self.config_store.save(self.settings)
         self._apply_appearance()
         assistant_view = getattr(self.shell, "assistant_view", None)

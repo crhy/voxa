@@ -68,6 +68,10 @@ class Settings:
     contacts: dict[str, str] = field(default_factory=dict)
     home_assistant_url: str = ""
     home_assistant_token: str = ""
+    # Spend-money safeguards (issue #43). Caps in the account's currency; 0 means
+    # no cap. Both live behind the Advanced settings so they stay out of the way.
+    spend_per_order_cap: float = 50.0
+    spend_per_day_cap: float = 200.0
 
     def normalized(self) -> Settings:
         self.tts_rate = max(80, min(350, int(self.tts_rate)))
@@ -81,6 +85,8 @@ class Settings:
             self.max_segment_seconds = 20.0  # the old default, saved in existing profiles
         self.max_segment_seconds = max(2.0, min(30.0, float(self.max_segment_seconds)))
         self.followup_seconds = max(0.0, min(20.0, float(self.followup_seconds)))
+        self.spend_per_order_cap = max(0.0, float(self.spend_per_order_cap))
+        self.spend_per_day_cap = max(0.0, float(self.spend_per_day_cap))
         self.ollama_url = self.ollama_url.rstrip("/") or "http://127.0.0.1:11434"
         self.llamacpp_url = self.llamacpp_url.rstrip("/") or "http://127.0.0.1:8781"
         self.strata_url = self.strata_url.rstrip("/") or "http://127.0.0.1:8080"
