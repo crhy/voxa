@@ -30,6 +30,11 @@ class Settings:
     llamacpp_url: str = "http://127.0.0.1:8781"
     llamacpp_model: str = ""
     strata_url: str = "http://127.0.0.1:8080"
+    # An OpenAI-compatible gateway (ChatGPT or a corporate endpoint). The key is
+    # never stored here: only the NAME of the environment variable that holds it.
+    openai_compatible_url: str = ""
+    openai_compatible_model: str = ""
+    openai_compatible_key_env: str = "VOXA_OPENAI_API_KEY"
     language: str = "en"
     character_id: str = ""
     face_mode: str = "prerendered"
@@ -84,7 +89,10 @@ class Settings:
         self.ollama_url = self.ollama_url.rstrip("/") or "http://127.0.0.1:11434"
         self.llamacpp_url = self.llamacpp_url.rstrip("/") or "http://127.0.0.1:8781"
         self.strata_url = self.strata_url.rstrip("/") or "http://127.0.0.1:8080"
-        if self.ai_backend not in {"llamacpp", "ollama", "strata"}:
+        self.openai_compatible_url = self.openai_compatible_url.rstrip("/")
+        self.openai_compatible_model = self.openai_compatible_model.strip()
+        self.openai_compatible_key_env = (self.openai_compatible_key_env or "VOXA_OPENAI_API_KEY").strip()
+        if self.ai_backend not in {"llamacpp", "ollama", "strata", "openai"}:
             self.ai_backend = "ollama"
         self.language = (self.language or "en").strip()[:16]
         self.wake_word = (self.wake_word or "voxa").strip()[:32] or "voxa"

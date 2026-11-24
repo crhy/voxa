@@ -103,6 +103,7 @@ from .installer import InstallerError, install_ollama, ollama_installed  # noqa:
 from .llamacpp import LlamaCppClient, StrataClient  # noqa: E402
 from .modelwait import wait_for_models  # noqa: E402
 from .ollama import OllamaClient, OllamaError, strip_reasoning  # noqa: E402
+from .openai_compat import OpenAICompatibleClient  # noqa: E402
 from .ownspeech import OwnSpeech  # noqa: E402
 from .pausewords import is_pause_request, resume_request  # noqa: E402
 from .replylang import LANGUAGES, is_only_a_language_request, requested_language  # noqa: E402
@@ -1364,12 +1365,21 @@ class MainWindow(Adw.ApplicationWindow):
         except Exception as exc:  # noqa: BLE001 - platform boundary
             self._toast(f"Microphone scan failed: {exc}")
 
-    def _ai_client(self) -> OllamaClient | LlamaCppClient | StrataClient:
+    def _ai_client(self) -> OllamaClient | LlamaCppClient | StrataClient | OpenAICompatibleClient:
         """The Ask AI client for whichever backend the user picked."""
         if self.settings.ai_backend == "ollama":
             return OllamaClient(self.settings.ollama_url)
         if self.settings.ai_backend == "strata":
             return StrataClient(self.settings.strata_url)
+        if self.settings.ai_backend == "openai":
+            # An OpenAI-compatible gateway (ChatGPT or a corporate endpoint). Empty
+            # fields fall back to the current local backend rather than crashing.
+            url = getattr(self.settings, "openai_compatible_url", "")
+            model = getattr(self.settings, "openai_compatible_model", "")
+            key_env = getattr(self.settings, "openai_compatible_key_env", "VOXA_OPENAI_API_KEY")
+            if url and model and key_env:
+                return OpenAICompatibleClient(url, model, key_env)
+            return LlamaCppClient(self.settings.llamacpp_url)
         return LlamaCppClient(self.settings.llamacpp_url)
 
     def _chat_model(self) -> str:
@@ -1378,6 +1388,8 @@ class MainWindow(Adw.ApplicationWindow):
             if self.settings.llamacpp_model:
                 return Path(self.settings.llamacpp_model).stem
             return "local"
+        if self.settings.ai_backend == "openai":
+            return getattr(self.settings, "openai_compatible_model", "") or "local"
         return self.settings.ollama_model
 
     def _backend_label(self) -> str:
@@ -1385,6 +1397,8 @@ class MainWindow(Adw.ApplicationWindow):
             return "Ollama"
         if self.settings.ai_backend == "strata":
             return "Strata"
+        if self.settings.ai_backend == "openai":
+            return "OpenAI"
         return "llama.cpp"
 
     def _refresh_ollama_models(self) -> None:
