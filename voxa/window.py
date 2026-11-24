@@ -2639,6 +2639,11 @@ class MainWindow(Adw.ApplicationWindow):
         and must run. The bench mirrors this in ``ClipRunner._self_command_held``."""
         if self.own_speech is None or not self.own_speech.active():
             return False  # not her playback or its tail: a genuine user turn is never held
+        # f189: an ACCEPTED overlap (a span the barge-in decision promoted - the joint-open /
+        # confirmed_user path) becomes the request exactly once (handoff 6.4), so it is never held,
+        # whatever the attribution calls it. The bench mirrors this in ``_delivered_span_accepted``.
+        if getattr(self.conversation, "turn_from_accepted_overlap", False):
+            return False
         protect = self.own_speech._protected([self.settings.wake_word])
         from voxa.ownspeech import normalise
         if any(word in protect for word in normalise(text)):

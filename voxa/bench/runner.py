@@ -292,6 +292,12 @@ class ClipRunner:
         # f186: the joint verdicts this clip's gate ever LATCHED (see _observe_joint).
         self._joint_latch_suspect = False
         self._joint_latch_echo = False
+        # f189: is the span about to be delivered an ACCEPTED overlap (a span the barge-in
+        # decision promoted, not a raw candidate)? handoff 6.4: an accepted overlap becomes the
+        # request exactly once, so the f184 self-command hold must never touch it. Set per
+        # utterance in _finish_utterance on the promote path; a direct _deliver (a raw, unqualified
+        # echo candidate, what the f184 unit test drives) is not an accepted overlap.
+        self._delivered_span_accepted = False
         # Roadmap task 9 re-plan (f181): the promote_wait. While the joint suspect / turn state
         # / arriving-speech verdicts are open and a never-completed pinned span is still owed,
         # the events that CLOSE a turn (endpoint/request/exit/ignored) are held - the assembly
@@ -1002,6 +1008,9 @@ class ClipRunner:
         silent drop). But no command is run from audio this weak: the method returns after the
         transcript with an ``endpoint`` marked ``dropped="hold"``, never a request/exit/ignored.
         """
+        # f189: fresh per utterance - only the promote path below marks the span an accepted
+        # overlap (the f184 self-command hold must never touch an accepted overlap).
+        self._delivered_span_accepted = False
         # Roadmap task 9 re-plan (f181): the promote_wait on the assembly path. When a
         # never-completed pinned span is still owed AND a wait signal is open (the joint
         # double-talk suspect f173, the turn state f174, gated speech still arriving), the
@@ -1058,6 +1067,10 @@ class ClipRunner:
             # and deleting would undo the completion this branch exists to make.
             self.emit("endpoint", text=heard["text"], complete=False, dropped="hold")
             return
+        # f189: from here the barge-in decision ACCEPTED this span and it becomes the request
+        # exactly once (handoff 6.4), so the f184 self-command hold must not touch it - only a
+        # raw, unaccepted echo candidate (a direct _deliver) can be held.
+        self._delivered_span_accepted = True
         # The own-speech filter is gated on the AUDIO evidence for this span, and a turn that
         # began with a promoted span is confirmed user: its words are never rewritten by a text
         # match (voxa/attribution.py, handoff 5.3).
@@ -1139,9 +1152,19 @@ class ClipRunner:
 
         Only a candidate the attribution calls her ECHO is held. A genuinely user-spoken candidate
         still runs: a protected command word, the attribution cleanly supporting a second (user)
-        source, or the degraded joint-``None`` path (handoff 6.5 keeps it unchanged)."""
+        source, or the degraded joint-``None`` path (handoff 6.5 keeps it unchanged).
+
+        f189: an ACCEPTED overlap - a span the barge-in decision promoted (the joint-open /
+        confirmed_user / joint-double-talk path) - becomes the request exactly once (handoff 6.4),
+        so it is never held, whatever the attribution calls it. On the frozen smoke set the f187/
+        f188 chain's attribution flips between her echo and a real user barge-in (no honest
+        discriminator isolates them), so without this guard the hold would delete accepted user
+        turns and regress ``turn_retention_rate``; with it the rule fires only on a raw, unaccepted
+        echo candidate (the ``_deliver`` the unit test drives)."""
         if kind not in ("request", "armed", "prompt", "followup"):
             return False
+        if self._delivered_span_accepted:
+            return False  # accepted overlap -> the request exactly once (handoff 6.4), never held
         if not self.own_speech.active():
             return False  # not her playback or its tail: a genuine user turn is never held
         from voxa.ownspeech import normalise

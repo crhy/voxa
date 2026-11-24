@@ -321,3 +321,21 @@ def test_a_user_command_at_playback_still_routes_and_degraded_is_unchanged() -> 
     runner2._deliver("open the pod bay", 32, kind="request")
     assert runner2.requests == ["open the pod bay"]
     assert runner2.held_commands == 0
+
+
+def test_an_accepted_overlap_is_promoted_once_even_when_attribution_reads_echo() -> None:
+    """f189 (crhy/voxa#72): the f184 hold must never touch an ACCEPTED overlap - a span the
+    barge-in decision promoted - even when the chain's attribution flips it to her echo. This is
+    exactly smoke-0024/0028/0029 on the f187/f188 chain, whose attribution reads ECHO yet whose
+    real user barge-in was accepted (capture-promote); holding them deleted the user turn and
+    regressed turn_retention_rate 0.84 -> 0.72. The accepted overlap becomes the request exactly
+    once (handoff 6.4), so it is never held and its words are neither dropped nor doubled."""
+    runner = _runner()
+    runner.own_speech.started("that's a bs code")
+    runner.last_evidence = _echo_evidence()          # the attribution wrongly calls it her echo
+    runner._delivered_span_accepted = True           # the barge-in decision accepted the overlap
+    runner._deliver("that's a bs code", 33, kind="armed")
+    assert runner.requests == ["that's a bs code"]   # the accepted overlap reaches the request
+    assert runner.requests.count("that's a bs code") == 1  # exactly once, never doubled
+    assert runner.held_commands == 0                 # never held
+    assert not [e for e in runner.events if e["event"] == "self-command-held"]

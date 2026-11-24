@@ -368,6 +368,13 @@ class ConversationController:
         self._turn_prefix_text = ""
         self._turn_prefix_bytes = 0
         self._turn_prefix_words: list[dict] = []
+        # f189: True while the prompt about to be handed to ``on_prompt`` began from an ACCEPTED
+        # overlap - a span the barge-in decision promoted (the joint-open / confirmed_user path).
+        # handoff 6.4: an accepted overlap becomes the request exactly once, so the f184
+        # self-command hold (window._prompt_is_self_echo) must never hold it; a raw wake/followup
+        # utterance (not promoted) is not an accepted overlap and can be. Mirrored in the bench by
+        # ``ClipRunner._delivered_span_accepted``.
+        self.turn_from_accepted_overlap = False
         # The prefix belongs to the turn in progress: the UI thread promotes while the worker
         # thread takes, so the handover is guarded.
         self._turn_lock = threading.Lock()
@@ -881,6 +888,9 @@ class ConversationController:
 
             prefix_text, prefix_bytes, _prefix_words = self.take_turn_prefix()
             prefixed = bool(prefix_text)
+            # f189: the prompt this utterance will hand to on_prompt rides an accepted overlap only
+            # when it began from a promoted span (prefixed). The f184 self-command hold skips it.
+            self.turn_from_accepted_overlap = prefixed
             if prefixed:
                 # The turn began with audio promoted out of the capture ring: its words were
                 # already recognised once, from exactly that audio, at the moment the interruption
