@@ -56,6 +56,31 @@ _MEDIA_EXCEPTION = re.compile(r"\b(?:stop|pause|cancel|quiet|enough|wait)\b")
 # window builds by dividing by this (voxa/window.py: ``self._latest_level / 4000.0``).
 LEVEL_SCALE = 4000.0
 
+# Sounds Whisper writes for hesitation, breathing and room noise rather than a word. A transcript
+# made only of these is not a person talking over Voxa (issue #130 self-interruption).
+_FILLER_TRANSCRIPT = {
+    "uh", "uhh", "um", "ummm", "er", "err", "eh", "hmm", "hmmm", "huh", "ah", "aha", "ahem",
+    "mm", "mmm", "oh", "ooh", "oooh", "hm", "hmph", "psst", "tsk", "laugh", "sigh",
+}
+
+
+def _has_interrupt_words(heard: str, raw: str, wake_word: str = "voxa") -> bool:
+    """Does the transcript hold a real word to interrupt Voxa with?
+
+    Empty, a transcript that is only the wake word, or one made only of hesitation/noise markers
+    (``[noise]``, ``(...)``, ``uh``, ``hmm``) is not a person talking over her reply, so it must
+    never be the reason to interrupt. Real words - including a bare "stop" - always are.
+    """
+    combined = f"{heard} {raw}".strip()
+    if not combined:
+        return False
+    # A bracketed noise/silence marker ("[noise]", "(inaudible)") carries no word.
+    stripped = re.sub(r"[\[\(\{][^\]\)\}]*[\]\)\}]", " ", combined)
+    wake = wake_word.casefold().strip()
+    # The wake word alone is a cue, not an interruption.
+    words = [w for w in re.findall(r"[A-Za-z][A-Za-z'-]*", stripped) if w.casefold() != wake]
+    return any(w.lower() not in _FILLER_TRANSCRIPT for w in words)
+
 
 @dataclass(slots=True)
 class BargeOutcome:
@@ -402,6 +427,16 @@ class BargeInController:
             self.gate.reset()
             self._clear_candidate()
             return BargeOutcome(OWN_VOICE, heard=heard, raw=raw, level=level01,
+                                source=decision.source, confidence=decision.confidence,
+                                degraded=decision.degraded, joint_suspect=joint)
+        if not _has_interrupt_words(heard, raw, wake_word):
+            # A barge-in must never fire on an empty, wake-word-only or filler/noise transcript
+            # (rhY, issue #130). The traced self-interruption was a level rise with heard='' that
+            # a silent reference misread as the user: there were no words to interrupt with, so
+            # this is a HOLD (keep speaking, keep the pinned span, judge again), never an interrupt.
+            self.gate.reset()
+            self._clear_candidate()
+            return BargeOutcome(HOLD, reason="no-words", heard=heard, raw=raw, level=level01,
                                 source=decision.source, confidence=decision.confidence,
                                 degraded=decision.degraded, joint_suspect=joint)
         self.gate.reset()
