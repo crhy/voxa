@@ -48,6 +48,34 @@ class ReferenceMask:
         ]
         self.coupling = np.zeros(self.nbands)
         self.ratios = [deque(maxlen=self.mem_frames) for _ in range(self.nbands)]
+        # f169 (roadmap task 4 on the exact-delay output): a stage that KNOWS the echo delay -
+        # Voxa's locked render timeline (voxa/align.py) - never correlation-searches for it. The
+        # reference is read at this offset and the mask's own lag estimate stays OFF, so the
+        # output-vs-reference ratios learn from an exactly aligned pair instead of a guessed one.
+        # None = nobody handed the mask a delay: it estimates its own lag (pre-f169 behaviour).
+        self._exact_lag: int | None = None
+        # Roadmap task 2 (tail=True) learns the coupling only from bands where the reference is
+        # STRONG (>= a quarter of the loudest band): on the raw microphone, quiet bands are mostly
+        # room noise and would poison the ratio. Roadmap task 4 (f131) feeds the mask the AEC's
+        # OWN output - quiet bands there are quiet residual, not noise - and a band that never
+        # learns a ratio predicts zero echo and is protected by rule, which is how echo leaks.
+        # ResidualMask relaxes this to every band with any reference energy.
+        self.ratio_rel_floor = 0.25 if self.tail else 0.0
+        # The coupling each band keeps is a percentile of its recent output-vs-reference ratios.
+        # Roadmap task 2 (raw mic) used the MEDIAN: the echo model had to survive room noise.
+        # Roadmap task 4 (ResidualMask) feeds the canceller's OWN output, where the residue of an
+        # adaptive filter jumps 10-20 dB frame to frame; a median prediction calls those jumps
+        # "near-end exceeds prediction by 6 dB" and protects the echo. ResidualMask raises the
+        # percentile instead.
+        self.ratio_quantile = 0.5
+        # A second coupling at a higher quantile: the most residue this band has RECENTLY been
+        # seen to leave. Roadmap task 4's protection margin is measured against THAT, so a band
+        # only counts as near-end when it holds clearly more than the loudest echo this band ever
+        # explained - a jump from an adaptive filter's residue cannot fake it.
+        self.ratio_quantile_hi = 0.5
+        self.coupling_hi = np.zeros(self.nbands)
+        self._held_now = np.zeros(self.nbands)
+        self._ratio_skip = np.zeros(self.nbands, dtype=bool)
         self.lag = 0
         self.last_user_db = -120.0
         self.last_echo_active = False
@@ -64,6 +92,18 @@ class ReferenceMask:
         # left after that prediction. Read-only evidence; nothing here changes the signal.
         self._mic_power = 0.0
         self._echo_power = 0.0
+
+    def set_delay(self, delay_samples: float) -> None:
+        """f169: hand the mask the delay Voxa's render timeline LOCKED (``voxa/align.py``).
+
+        The reference is read at exactly this offset (the mic sample at ``t`` pairs with the
+        reference at ``t - delay``) and the mask's own correlation estimate stays switched off:
+        every ratio, every held tail and every band decision then sees the pair the lock proved,
+        not a lag the mask guessed. It is the delay the canceller was driven at, so the predicted
+        residual is the canceller's residue measured against the SAME alignment.
+        """
+        self.lag = max(0, int(round(float(delay_samples))))
+        self._exact_lag = self.lag
 
     def _estimate_lag(self):
         n = min(len(self.mic_buf), len(self.ref_buf))
@@ -103,6 +143,21 @@ class ReferenceMask:
                               key=lambda k: (self.rt_scores[k] / f if (f := self.rt_frames[k]) else 9e9))
         return self.coupling * self.helds[self.rt_idx], self.rt_idx
 
+    def _note_ref_activity(self, ref_total: float) -> None:
+        """Hook: called with the reference band powers on every analysed frame."""
+        return None
+
+    def _update_ratio_gate(self, mic_b: np.ndarray, echo_b: np.ndarray) -> None:
+        """Hook: may set ``self._ratio_skip[b] = True`` to keep band b's output-vs-reference
+        ratio from learning this frame — roadmap task 4 uses it so a band that looks like
+        NEAR-END speech (protected by the margin rule) never poisons the echo model.
+        Default: every band learns every frame."""
+        return None
+
+    def _band_gain(self, mic_b: np.ndarray, echo_b: np.ndarray) -> np.ndarray:
+        """Hook: the per-band gain for this frame (1.0 = keep, floor = suppress)."""
+        return np.where(mic_b >= self.over * echo_b, 1.0, self.floor)
+
     def _frame_stats(self, mic_frame, ref_frame):
         fm = np.fft.rfft(mic_frame)
         fr = np.fft.rfft(ref_frame)
@@ -125,7 +180,7 @@ class ReferenceMask:
             self.out_den = np.concatenate([self.out_den, np.zeros(total - len(self.out_den))])
         if total >= self.frame:
             nframes = (total - self.frame) // self.hop + 1
-            if nframes > self.frames_done and (
+            if self._exact_lag is None and nframes > self.frames_done and (
                 self.frames_done == 0 or (nframes - self.frames_done) % 8 == 0
             ):
                 self.lag = self._estimate_lag()
@@ -138,22 +193,28 @@ class ReferenceMask:
                 fm, pm, mic_b, ref_b = self._frame_stats(mf, rf)
                 if self.tail:
                     echo_b, self.rt_idx = self._held_prediction(ref_b, mic_b)
+                    self._held_now = self.helds[self.rt_idx]
                 else:
                     echo_b = self.coupling * ref_b
+                    self._held_now = ref_b
                 self._mic_power = float(pm.sum())
                 self._echo_power = float(echo_b.sum())
                 # how much of the microphone the echo model cannot explain (roadmap task 2's
                 # near-end evidence: the user, not her own tail)
                 self.last_excess = float(np.sum(np.maximum(mic_b - self.over * echo_b, 0.0)))
                 self.last_excess_frac = self.last_excess / max(self._mic_power, 1e-12)
+                rel = np.max(ref_b) if self.ratio_rel_floor else 0.0
+                self._ratio_skip = np.zeros(self.nbands, dtype=bool)
+                self._update_ratio_gate(mic_b, echo_b)
+                skip = self._ratio_skip
                 for b in range(self.nbands):
-                    if ref_b[b] > 1e-10 and (not self.tail or ref_b[b] >= 0.25 * np.max(ref_b)):
+                    if ref_b[b] > 1e-10 and ref_b[b] >= self.ratio_rel_floor * rel and not skip[b]:
                         self.ratios[b].append(mic_b[b] / ref_b[b])
                         r = sorted(self.ratios[b])
-                        self.coupling[b] = r[len(r) // 2]
-                gain_b = np.where(
-                    mic_b >= self.over * echo_b, 1.0, self.floor
-                )
+                        self.coupling[b] = r[min(len(r) - 1, int(len(r) * self.ratio_quantile))]
+                        self.coupling_hi[b] = r[min(len(r) - 1, int(len(r) * self.ratio_quantile_hi))]
+                self._note_ref_activity(float(ref_b.sum()))
+                gain_b = self._band_gain(mic_b, echo_b)
                 mag = np.sqrt(pm)
                 phase = np.angle(fm)
                 band_gain = np.ones(pm.shape[0])
@@ -208,6 +269,7 @@ class ReferenceMask:
     def reset(self) -> None:
         self.coupling = np.zeros(self.nbands)
         self.ratios = [deque(maxlen=self.mem_frames) for _ in range(self.nbands)]
+        self._ratio_skip = np.zeros(self.nbands, dtype=bool)
         self.lag = 0
         self.last_user_db = -120.0
         self.last_echo_active = False
@@ -217,6 +279,180 @@ class ReferenceMask:
         self.out_den = np.zeros(0, dtype=np.float64)
         self.frames_done = 0
         self.emitted = 0
+
+
+class ResidualMask(ReferenceMask):
+    """Residual echo suppression ON THE AEC OUTPUT (roadmap task 4, f131).
+
+    ``ReferenceMask`` predicted the echo in the MICROPHONE and ducked the cells it
+    dominated. The full stack has a second, quieter echo: whatever the linear
+    canceller FAILED to remove. This mask runs on the canceller's own output with
+    the same aligned reference:
+
+    * the predicted residual is the median output-vs-reference ratio per band
+      (what the canceller leaves of the reference), held at the room's own decay
+      so the tail after TTS is predicted too;
+    * the mask is active while the reference plays and for ``tail_s`` after
+      (roadmap task 4: TTS + 300 ms); outside that window it never touches the
+      near end;
+    * over-subtraction rises when the running ERLE is low (cheap speakers, high
+      volume: a canceller that removes little leaves more echo, so subtract
+      deeper): ``over`` is the base gain and ``over_ramp`` extra dB of
+      suppression per dB of ERLE shortfall against ``erle_target_db``;
+    * a band whose output exceeds the predicted residual by ``protect_db`` is
+      the near-end speaker, not residual echo: it stays untouched (>= 6 dB by
+      the report's rule), and so does every band where no echo is predicted at
+      all — the user is never deleted for being quiet.
+
+    ``process(aec_output, ref)`` takes the canceller's cleaned stream (float
+    -1..1) and the aligned reference; the running ERLE of the canceller is fed
+    in with :meth:`set_running_erle` so the over-subtraction can rise.
+    """
+
+    def __init__(self, rate=16000, frame=512, hop=256, bands=64, over=0.05,
+                 protect_db=6.0, floor=0.1, memory_s=0.4, tail_s=0.3,
+                 erle_target_db=20.0, over_ramp=0.5, ref_floor=1e-9, rt_s=None):
+        super().__init__(rate=rate, frame=frame, hop=hop, bands=bands, over=over,
+                         floor=floor, memory_s=memory_s, tail=True, rt_s=rt_s)
+        self.protect = 10.0 ** (float(protect_db) / 10.0)
+        # The input here is the canceller's OWN output: every band with reference energy learns
+        # its output-vs-reference ratio, including the quiet ones (the nonlinear residue of cheap
+        # speakers lives exactly where the reference is quiet).
+        self.ratio_rel_floor = 0.0
+        # Predict the residual at the median of what this band recently left; protect only above
+        # the 98th percentile, the loudest residue it was ever seen to leave.
+        self.ratio_quantile = 0.5
+        self.ratio_quantile_hi = 0.98
+        # A frame whose protected energy exceeds this share of the frame is near-end speech:
+        # the echo model learns nothing from it.
+        self.freeze_frac = 0.5
+        self._frame_user = np.zeros(self.nbands, dtype=bool)
+        self._tail_s = float(tail_s)
+        self.erle_target_db = float(erle_target_db)
+        self.over_ramp = float(over_ramp)
+        self.ref_floor = float(ref_floor)
+        self._erle_db = 0.0
+        self._analysed = 0
+        self._last_ref_frame = -(10 ** 9)
+        # Roadmap task 5: the mask can say how far this frame's input stood above the residual
+        # it predicted. Evidence for the joint double-talk gate: a frame that leaves >> the
+        # predicted residual holds a second source, and only this class knows its own
+        # prediction (EchoPathBaseline's floor would poison the same measurement elsewhere).
+        self.residual_margin_db = float("-inf")
+        # Roadmap task 5 re-point (f172): the SAME evidence per band. The frame sums saturate
+        # on the bands this mask has no prediction for (the floor keeps them quiet, the echo
+        # prediction is what is missing), so the gate reads the MEDIAN of the per-band
+        # output-vs-prediction ratios over the bands the mask actually predicts: echo-only
+        # frames sit near 0 dB, a second source lifts many learned bands together.
+        self.band_margin_db = float("-inf")
+
+    def reset(self) -> None:
+        super().reset()
+        self._analysed = 0
+        self._last_ref_frame = -(10 ** 9)
+        self.residual_margin_db = float("-inf")
+        self.band_margin_db = float("-inf")
+
+    def set_running_erle(self, erle_db: float) -> None:
+        """The canceller's most recent ERLE (dB): low values deepen the suppression."""
+        self._erle_db = 0.9 * self._erle_db + 0.1 * float(erle_db)
+
+    def _note_ref_activity(self, ref_total: float) -> None:
+        self._analysed += 1
+        if ref_total > self.ref_floor:
+            self._last_ref_frame = self._analysed
+
+    def _near_end_share(self, out_b: np.ndarray, echo_b: np.ndarray) -> tuple[float, np.ndarray, np.ndarray]:
+        """(share of the frame the margin rule cannot explain, the median-rule bands, the
+        high-quantile-rule bands). ``out_b`` is this frame's input band powers."""
+        echo_hi = np.maximum(self.coupling_hi * self._held_now, echo_b)
+        user_hi = out_b >= self.protect * echo_hi
+        user_med = out_b >= self.protect * echo_b
+        out_total = float(out_b.sum())
+        share = float(out_b[user_med].sum()) / out_total if out_total > 0.0 else 0.0
+        return share, user_med, user_hi
+
+    def _update_ratio_gate(self, out_b: np.ndarray, echo_b: np.ndarray) -> None:
+        # Roadmap task 5: how far this frame's input stands above the residual this mask
+        # predicted, per the mask's OWN prediction (EchoPathBaseline's -120 dB floor would
+        # poison the same measurement elsewhere). Evidence for the joint double-talk gate.
+        out_total_margin = float(out_b.sum())
+        echo_total_margin = float(echo_b.sum())
+        # A frame the mask cannot explain at all (predicted residual ~0 but the output is loud)
+        # stands a HUNDRED dB above what was predicted - the clearest second source there is, not
+        # "nothing". The floor is relative to the output so the margin saturates instead of
+        # dividing by zero; a genuinely silent frame (output ~0) is reported as -inf (no claim).
+        if out_total_margin > 0.0:
+            echo_floor = out_total_margin * 1e-6
+            self.residual_margin_db = float(10.0 * np.log10(
+                out_total_margin / max(echo_total_margin, echo_floor)))
+        else:
+            self.residual_margin_db = float("-inf")
+        # f172: the per-band version of the same evidence, over the bands this mask holds a
+        # prediction for. A frame is a second source when the MEDIAN learned band stands N dB
+        # over its own prediction - not when the sum does, which unlearned near-silent
+        # predictions inflate to the saturation floor.
+        learned = echo_b > 1e-20
+        if learned.any():
+            ratios = np.maximum(out_b[learned], 1e-20) / echo_b[learned]
+            self.band_margin_db = float(10.0 * np.log10(float(np.median(ratios))))
+        else:
+            self.band_margin_db = float("-inf")
+        # One decision per frame: which bands are near-end, and whether the near end holds the
+        # whole frame. A band the margin rule protects is near-end speech: its inflated
+        # output-vs-reference ratio must NOT teach the echo model, or every later frame of her
+        # voice looks like echo; a frame that is mostly that learns nothing at all; and a band
+        # with nothing learned yet always bootstraps - that is how the first frames of an echo
+        # onset teach their own ratios.
+        share, _user_med, user_hi = self._near_end_share(out_b, echo_b)
+        self._frame_user = user_hi
+        if share > self.freeze_frac:
+            self._ratio_skip = self.coupling_hi > 0.0
+        else:
+            self._ratio_skip = user_hi & (self.coupling_hi > 0.0)
+
+    def _band_gain(self, out_b: np.ndarray, echo_b: np.ndarray) -> np.ndarray:
+        if (self._analysed - self._last_ref_frame) * (self.hop / self.rate) > self._tail_s:
+            return np.ones_like(out_b)
+        extra = self.over_ramp * max(0.0, self.erle_target_db - self._erle_db)
+        gain = max(self.over * 10.0 ** (-extra / 20.0), 1e-4)
+        return np.where(self._frame_user, 1.0, gain)
+
+
+class LockedResidualMask(ResidualMask):
+    """The residual stage on the EXACT-DELAY output (roadmap task 4, task f169).
+
+    The machinery is ``ResidualMask``'s - the predicted residual is the per-band
+    output-vs-reference ratio (median), held at the room's own decay so the tail after TTS is
+    predicted too, protection at ``protect_db`` above it, over-subtraction rising when the
+    running ERLE is low. What f169 adds is the delay it runs ON and the margin the task names:
+
+    * the stage runs on the output of the LOCKED linear canceller (the ``voxa-locked`` arm,
+      f164) and is handed that lock with :meth:`set_delay`: the reference is read at EXACTLY
+      the delay the lock proved and the mask's own correlation lag estimate never runs. f132
+      measured the estimated delay drifting 1.5-2.5 ms, which made every band ratio learn
+      from a mis-ALIGNED pair; f168 shipped a near-exact delay (`align_err_p90_ms` 0.02 ms,
+      `delay_est_err_ms` 0.07 ms), so the predicted residual is now the canceller's own
+      residue measured against the SAME alignment the canceller is driven at;
+    * the protection margin is the roadmap task 4 rule: a band whose output exceeds the
+      predicted residual by >= 6 dB is the near-end speaker and stays untouched (the shipped
+      f131 chain sits at 9.0 dB - measured before the delay could be trusted). The margin
+      still rides on the 98th-percentile prediction, because f131 measured that the residue
+      of an adaptive filter jumps 10-20 dB frame to frame: a median prediction would call
+      those jumps near-end and protect the echo. A band with no prediction at all is
+      protected too - short, quiet or first-onset user audio is never deleted for lacking an
+      echo model (evidence, not deletion);
+    * active through TTS plus the echo tail (``tail_s``); outside that window it never
+      touches anything.
+    """
+
+    def __init__(self, rate=16000, frame=512, hop=256, bands=64, over=0.05,
+                 protect_db=6.0, floor=0.1, memory_s=0.4, tail_s=0.3,
+                 erle_target_db=20.0, over_ramp=0.5, ref_floor=1e-9, rt_s=None):
+        super().__init__(rate=rate, frame=frame, hop=hop, bands=bands, over=over,
+                         protect_db=protect_db, floor=floor, memory_s=memory_s,
+                         tail_s=tail_s, erle_target_db=erle_target_db,
+                         over_ramp=over_ramp, ref_floor=ref_floor, rt_s=rt_s)
 
 
 def user_present(mask: ReferenceMask, threshold_db: float = 3.0) -> bool:

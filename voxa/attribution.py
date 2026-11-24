@@ -53,6 +53,9 @@ TEXT_WEIGHT = 0.3
 # then the words are the only evidence there is, they get more weight, and the decision is
 # reported as degraded (the app says so; roadmap task 1 gives the reference tap back).
 TEXT_ONLY_WEIGHT = 0.7
+# Roadmap task 7: the word-timed overlap's own weight, never above the cap the words are allowed
+# (a time-matched word is the single strongest word feature, but still one supporter, not a vote).
+WORD_TIMED_WEIGHT = TEXT_WEIGHT
 # A stop word is a cue about what to DO once a second source is supported.
 STOP_CUE = 0.15
 STOP_CUE_WITHOUT_AUDIO = 0.5
@@ -62,6 +65,10 @@ WAKE_CUE_WITHOUT_AUDIO = 0.25
 # The microphone standing well above her own voice is audio evidence, scaled by how unlike her
 # sentence the words are (a misheard echo towers too).
 LEVEL_LIFT = 0.45
+# The joint double-talk gate (voxa.voicedetect.DoubleTalkGate) has ALREADY combined the three
+# audio streams and held them together for a span before firing; when it fires its word is worth
+# more than any single stream, but it is still one supporter: the words keep their cap.
+JOINT_LIFT = 0.8
 GATE_RATIO = 2.0
 # A score inside this band is not a decision.
 UNCERTAIN_BAND = 0.25
@@ -89,6 +96,16 @@ class SourceEvidence:
     echo_explained_db: float | None = None   # dB of the microphone the delayed reference accounts for
     residual_db: float | None = None         # dB of the microphone left over after the echo-path fit
     residual_margin_db: float | None = None  # that residual above the echo path's recent baseline
+    # The residual mask's OWN output against its OWN predicted residual (roadmap task 5): the
+    # honest margin, measured where the prediction lives instead of by EchoPathBaseline.
+    residual_over_prediction_db: float | None = None
+    # The joint double-talk gate's voice-only verdict for this moment
+    # (voxa.voicedetect.DoubleTalkGate): True only when all three audio streams held together.
+    joint_suspect: bool | None = None
+    # The gate's MIRROR verdict: the microphone held the delayed reference (high coherence,
+    # nothing of its own) for the same window. Only this, not "not suspect", may suppress the
+    # caller's fallback gate or vote for echo.
+    joint_echo: bool | None = None
     vad_prob: float | None = None    # speech probability in the CLEANED signal (None = not measured)
     alignment_healthy: bool = True           # delay known, fresh, within tolerance
     mic_level: float = 0.0                   # 0..1, the scale BargeInGate uses
@@ -105,6 +122,12 @@ class SourceEvidence:
     word_count: int = 0
     stop_word: bool = False
     wake_word: bool = False
+    # Roadmap task 7: the WORD-TIMED overlap - the share of heard words that fuzzy-match a TTS
+    # word her speakers were audible reading within +-W ms (``voxa/ownspeech``'s ``timed_overlap``).
+    # A time-matched word is stronger echo evidence than a bare out-of-order overlap (it matches
+    # at the moment the echo could actually land), but it is still ONE weighted feature: it may
+    # nudge the confidence, never decide, and never on a confirmed near-end utterance.
+    word_timed_overlap: float = 0.0
 
 
 @dataclass(slots=True)
@@ -206,7 +229,10 @@ def attribute(ev: SourceEvidence, baseline_db: float | None = None) -> SourceDec
             reasons.append(f"microphone holds {explained:+.1f} dB beyond the reference")
 
     # 2. Independent speech: the residual over what this echo path usually leaves, and the VAD.
-    margin = ev.residual_margin_db if ev.residual_margin_db is not None else baseline_db
+    # Roadmap task 5: the mask's own margin (output over ITS predicted residual) outranks the
+    # EchoPathBaseline margin - the baseline rings a floor it can never measure honestly.
+    margin = (ev.residual_over_prediction_db if ev.residual_over_prediction_db is not None
+              else ev.residual_margin_db if ev.residual_margin_db is not None else baseline_db)
     if margin is not None:
         if margin >= USER_RESIDUAL_DB:
             add("residual", 0.5)
@@ -214,6 +240,13 @@ def attribute(ev: SourceEvidence, baseline_db: float | None = None) -> SourceDec
         elif margin <= 0.0:
             add("residual", -0.3)
             reasons.append(f"residual {margin:+.1f} dB at or under the echo path's baseline")
+    if ev.joint_suspect:
+        add("joint", JOINT_LIFT)
+        reasons.append("joint double-talk gate: speech, margin and echo-inconsistency held together")
+    elif ev.joint_echo:
+        # The MIRROR verdict of the same gate: this span was the delayed reference the whole time.
+        add("joint", -JOINT_LIFT)
+        reasons.append("joint double-talk gate: microphone held the delayed reference, nothing of its own")
     if ev.vad_prob is not None:
         if ev.vad_prob >= VAD_SPEECH:
             add("vad", 0.3)
@@ -231,7 +264,13 @@ def attribute(ev: SourceEvidence, baseline_db: float | None = None) -> SourceDec
     if ev.level_ratio is not None:
         tower = min(1.0, max(0.0, ev.level_ratio - 1.0) / (GATE_RATIO - 1.0))
         similarity = max(ev.text_overlap, ev.text_sound)
-        dissimilarity = (1.0 - similarity) if ev.text_letters_measurable else UNKNOWN_DISSIMILARITY
+        dissimilarity = (1.0 - similarity) if ev.text_letters_measurable else (
+            # f172 (roadmap task 5): an EMPTY transcript is not "words nothing like her
+            # sentence" - there are no words at all, no comparison to make. The tower used to
+            # half-count against a placeholder ("unknown, so 50% unlike"), which with the
+            # unexplained residual alone reached "user" and interrupted her on a candidate
+            # that heard nothing. No words: the tower abstains.
+            0.0 if ev.word_count == 0 else UNKNOWN_DISSIMILARITY)
         lift = LEVEL_LIFT * tower * dissimilarity
         if lift:
             add("level", lift)
@@ -243,10 +282,20 @@ def attribute(ev: SourceEvidence, baseline_db: float | None = None) -> SourceDec
     # path cannot explain, and what the words are not, count as evidence of a second source.
     # 3. Conversation evidence: weighted, capped, and never a length rule. Without an echo model
     #    the words carry more, and the decision says so.
-    audio_streams = sum(1 for value in (ev.echo_explained_db, ev.residual_margin_db)
+    audio_streams = sum(1 for value in (ev.echo_explained_db, ev.residual_margin_db,
+                                        ev.residual_over_prediction_db)
                         if value is not None)
     weight = TEXT_WEIGHT if audio_streams else TEXT_ONLY_WEIGHT
     text_value = -text_score(ev.text_overlap, ev.text_sound, weight)
+    # Roadmap task 7: the word-timed overlap is a heavier word feature than a bare overlap - a
+    # heard word that lands inside the audible span of the very word she was reading is an echo
+    # candidate at the moment the echo could actually arrive. Cap it at the same weight the words
+    # are allowed; it never decides alone and never on a confirmed near-end utterance.
+    if ev.word_timed_overlap:
+        timed = -min(weight, WORD_TIMED_WEIGHT * ev.word_timed_overlap)
+        text_value += timed
+        reasons.append(f"words time-matched to her playback {ev.word_timed_overlap:.2f} "
+                       f"(+{abs(timed):.2f} toward echo)")
     add("text", text_value)
     if ev.text_overlap >= 0.6 or ev.text_sound >= 0.6:
         reasons.append(f"words resemble her sentence (overlap {ev.text_overlap:.2f}, "

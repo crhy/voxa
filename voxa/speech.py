@@ -27,6 +27,83 @@ NATURAL_VOICE_ATTEMPTS = 2
 NATURAL_VOICE_RETRY_SECONDS = 0.35
 LOGGER = logging.getLogger(__name__)
 
+# Roadmap task 4 (voxa-hearing research report 4): keep TTS output peaks around -3 dBFS so the
+# speaker is not driven into compression - a distorted speaker creates nonlinear echo exactly
+# where the reference has no energy, which is the echo a linear canceller cannot model.
+CEILING_DBFS = -3.0
+
+
+def cap_wav_peaks(data: bytes, ceiling_dbfs: float = CEILING_DBFS) -> bytes:
+    """Scale 16-bit PCM WAV bytes down until their loudest sample sits at ``ceiling_dbfs``.
+
+    Audio whose peak is already below the ceiling is returned untouched; a cleaner synthesis
+    (Edge/Google voices) needs no cap and must not be made quieter. Only the samples move -
+    the WAV parameters round-trip.
+    """
+    import array
+    import io
+    import wave
+
+    with wave.open(io.BytesIO(data), "rb") as wav:
+        if wav.getnchannels() < 1 or wav.getsampwidth() != 2:
+            return data
+        params = wav.getparams()
+        frames = wav.readframes(wav.getnframes())
+    samples = array.array("h")
+    samples.frombytes(frames)
+    peak = max((abs(int(s)) for s in samples), default=0)
+    ceiling = int(round(32767.0 * 10.0 ** (ceiling_dbfs / 20.0)))
+    if peak <= ceiling:
+        return data
+    scale = ceiling / peak
+    try:
+        import numpy as np  # fast path when numpy is available (it is, everywhere Voxa runs)
+    except ImportError:
+        capped = array.array(
+            "h", (max(-32768, min(32767, int(s * scale))) for s in samples)
+        ).tobytes()
+    else:
+        capped = np.clip(
+            np.frombuffer(frames, dtype="<i2") * scale, -32768, 32767
+        ).astype("<i2").tobytes()
+    out = io.BytesIO()
+    with wave.open(out, "wb") as wav:
+        wav.setparams(params)
+        wav.writeframes(capped)
+    return out.getvalue()
+
+
+# Roadmap task 8 (report 76-83, handoff 6.5): on a SUSPECT overlap Voxa ducks her OWN playback by
+# 12 dB over a 20 ms ramp, and restores it on a REJECT. Ducking (not pausing) keeps the false
+# positive inaudible without ever lowering the system volume (handoff 233: "Do not globally lower
+# system volume as a way to pass tests"). The ramp is LINEAR and pure so it can be unit-tested off
+# a device: ``duck_envelope`` returns the per-frame gain a 20 ms ramp from unity to ``duck_gain``
+# applies to Voxa's stream, and the same gain back up when she resumes.
+DUCK_DB = 12.0
+DUCK_RAMP_MS = 20.0
+# The 0..1 factor a 12 dB duck maps to (10^(-12/20) = 0.251).
+DUCK_GAIN = 10.0 ** (-DUCK_DB / 20.0)
+
+
+def duck_envelope(n_frames: int, frame_ms: float, *, duck_gain: float = DUCK_GAIN,
+                  ramp_ms: float = DUCK_RAMP_MS, up: bool = False) -> list[float]:
+    """The per-frame linear gain of a ``ramp_ms`` duck ramp (``up=False``) or restore (``up=True``).
+
+    Down: unity for the first frame, then a linear glide to ``duck_gain`` over ``ramp_ms``; frames
+    after the ramp hold ``duck_gain``. Up: the same glide in reverse back to unity. A negative or
+    zero frame count returns nothing.
+    """
+    if n_frames <= 0:
+        return []
+    steps = max(1.0, ramp_ms / max(1e-9, frame_ms))
+    gains: list[float] = []
+    start, end = (1.0, duck_gain) if not up else (duck_gain, 1.0)
+    for i in range(n_frames):
+        frac = min(1.0, i / steps)
+        gains.append(start + (end - start) * frac)
+    return gains
+
+
 FEMALE_VOICES = frozenset({
     "ar-SA-ZariyahNeural", "de-DE-KatjaNeural", "en-GB-SoniaNeural", "en-IE-EmilyNeural", "en-IN-NeerjaNeural",
     "en-NG-EzinneNeural", "en-US-AriaNeural", "en-US-JennyNeural", "es-MX-DaliaNeural", "fr-FR-DeniseNeural",
@@ -199,6 +276,8 @@ class SpeechService:
         self.tap: dict[str, Any] = {}
         self._generation: str | None = None
         self._generation_counter = 0
+        # Roadmap task 8: True while this service's OWN stream is ducked for a suspect overlap.
+        self._ducked = False
 
     def attach_render_timeline(self, timeline: Any | None) -> None:
         """Give this service the render timeline to submit its own playback to (roadmap task 1)."""
@@ -478,10 +557,18 @@ class SpeechService:
         cancel_event: threading.Event,
     ) -> None:
         _ensure_gstreamer()
+        # Roadmap task 4: cap the peaks at -3 dBFS on the way to the speaker. The reference
+        # tap (attached immediately before the sink) then records exactly the capped audio it
+        # will be asked to cancel, so the cap and the echo reference agree. A machine without
+        # the limiter element plays uncapped, and says nothing here because playback itself
+        # must not depend on a cap.
+        cap = ""
+        if Gst.ElementFactory.make("limiter", "tts-cap") is not None:
+            cap = f"limiter name=tts_cap threshold={CEILING_DBFS:.1f} ! "
         pipeline = Gst.parse_launch(
             "appsrc name=source format=bytes block=true max-bytes=1048576 ! "
             "queue max-size-bytes=2097152 ! "
-            "decodebin ! audioconvert ! audioresample ! autoaudiosink name=sink"
+            f"decodebin ! audioconvert ! audioresample ! {cap}autoaudiosink name=sink"
         )
         appsrc = pipeline.get_by_name("source")
         if appsrc is None:
@@ -718,7 +805,9 @@ class SpeechService:
                 suffix=".wav",
                 delete=False,
             ) as handle:
-                handle.write(result.stdout)
+                # Roadmap task 4: the robotic fallback is also the loudest synthesis here, and
+                # eSpeak NG renders peaks near 0 dBFS; cap it before it reaches the speaker.
+                handle.write(cap_wav_peaks(result.stdout))
                 path = handle.name
             if self._before_play is not None:
                 try:
@@ -849,6 +938,40 @@ class SpeechService:
         self.cancel_event.set()
         self._close_generation("stopped")
         self._finish_media()
+
+    def duck(self, amount_db: float = DUCK_DB) -> bool:
+        """Duck ONLY this service's own playback by ``amount_db`` (roadmap task 8).
+
+        A suspect overlap lowers Voxa's stream (never the system volume, never another app's audio):
+        the playbin's own ``volume`` is the app's stream, so lowering it is the handoff's "duck her
+        stream, keep the audio pinned", not a global mute. ``resume`` undoes it. Both are no-ops when
+        no GStreamer pipeline is playing; the return says whether the stream was actually lowered.
+        """
+        if Gst is None or self.pipeline is None:
+            return False
+        try:
+            # playbin3 exposes ``volume``; playbin2 too. The property is the app's own stream gain.
+            self.pipeline.set_property("volume", 10.0 ** (-abs(amount_db) / 20.0))
+            self._ducked = True
+            return True
+        except Exception:  # noqa: BLE001 - a duck that cannot be set must never break playback
+            return False
+
+    def resume(self) -> bool:
+        """Restore the duck applied by :meth:`duck`: this stream back to unity gain."""
+        if Gst is None or self.pipeline is None or not getattr(self, "_ducked", False):
+            return False
+        try:
+            self.pipeline.set_property("volume", 1.0)
+            self._ducked = False
+            return True
+        except Exception:  # noqa: BLE001 - the restore must never break playback
+            return False
+
+    @property
+    def ducked(self) -> bool:
+        return bool(getattr(self, "_ducked", False))
+
 
     def _close_generation(self, reason: str) -> None:
         """Tell the timeline this utterance is over: heard up to the play position, cancelled after.

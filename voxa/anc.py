@@ -444,6 +444,19 @@ class EchoCanceller:
         """The delayed reference for this block (the offset the filter is fitted with)."""
         return self._shifted_ref(length)
 
+    def note_double_talk(self, hold_ms: float) -> None:
+        """Extend THIS class's own double-talk hold (roadmap task 5, no blanket freeze).
+
+        The caller measured double talk outside the canceller (the echo-aware joint gate in
+        :class:`voxa.voicedetect.DoubleTalkGate`); the canceller's adaptation stays frozen
+        through its own bounded ``_speaking_left`` window - the very control it computes for
+        itself - extended, never switched off permanently. When the hold runs out the filter
+        adapts again; the delay is still re-estimated, the filter is never rebuilt.
+        """
+        block_ms = self.BLOCK / float(self._sample_rate) * 1000.0
+        blocks = max(1, int(round(float(hold_ms) / block_ms)))
+        self._speaking_left = max(int(self._speaking_left), blocks)
+
     def _block(self, mic_b: np.ndarray, ref_b: np.ndarray) -> np.ndarray:
         length = len(mic_b)
         self._ref_hist = np.concatenate([self._ref_hist, ref_b])
@@ -703,6 +716,7 @@ class Aec3Canceller:
         self._frames = 0
         self._guard_frames = 0
         self._double_talk_frames = 0
+        self._dt_hold_frames = 0
         self._converged = 0.0
         self._clock_drift = bool(clock_drift)
         self._last_mic_power = 0.0
@@ -756,6 +770,18 @@ class Aec3Canceller:
             self._note(p_mic, p_mic, p_ref)
             return mic_b
         p_res = float(np.mean(cleaned.astype(np.float64) ** 2))
+        if self._dt_hold_frames > 0:
+            # Roadmap task 5: the joint double-talk gate measured the second source OUTSIDE
+            # this class. AEC3 still saw every frame (it must stay continuous), but the frame
+            # goes on as the microphone delivered it while the hold runs - this binding exposes
+            # no filter-freeze, so the canceller's own control here is the near-end pass
+            # (handoff 6.2: nothing discarded, AEC3 keeps adapting; AEC3's near-end
+            # suppression is what this protects against, and the bench chain's mask owns
+            # protection in this mode).
+            self._dt_hold_frames -= 1
+            self._double_talk_frames += 1
+            self._note(p_mic, p_res, p_ref)
+            return mic_b
         if p_mic > 0.0 and p_res > p_mic:
             # Never hand on something louder than the microphone itself (AEC3's high-pass filter or
             # a diverged filter). The frame passes through raw; the filter keeps its state. The
@@ -800,6 +826,7 @@ class Aec3Canceller:
         self._frames = 0
         self._guard_frames = 0
         self._double_talk_frames = 0
+        self._dt_hold_frames = 0
         self._converged = 0.0
         if self._detect is not None:
             self._detect.reset()
@@ -817,6 +844,17 @@ class Aec3Canceller:
     def load_state(self, state: dict) -> None:
         """Nothing to load: AEC3 starts from its own defaults. Kept so callers stay canceller-agnostic."""
         return None
+
+    def note_double_talk(self, hold_ms: float) -> None:
+        """Extend THIS class's own double-talk hold (roadmap task 5, no blanket freeze).
+
+        AEC3 must keep seeing every frame, and pywebrtc-audio exposes no filter freeze, so
+        this binding's own control is the bounded near-end pass in ``_frame``: AEC3's near-end
+        suppression cannot squash the user while the hold runs, and the filter keeps adapting.
+        """
+        frame_ms = self.BLOCK / float(self._sample_rate) * 1000.0
+        self._dt_hold_frames = max(int(self._dt_hold_frames),
+                                   max(1, int(round(float(hold_ms) / frame_ms))))
 
     def set_clock_drift(self, detected: bool) -> None:
         """Record that capture and playback run on different clocks (mic and sink are different devices).

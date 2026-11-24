@@ -69,6 +69,17 @@ SCENARIO_COUNTS = {
     "pause": 3,
     "cold": 3,
     "path_change": 3,
+    # RENDERER BUG FIX (f132, roadmap task 5 step 4). BUG: the clip matrix had NO interference
+    # scenario at all - the only background sound was broadband noise_signal() tied to snr_db -
+    # so "does a barge-in survive TV, music, or a cough?" was never measured, which is exactly
+    # what an echo-aware near-end detector is judged on (handoff 6.3: music and TV talk are the
+    # VAD's failure modes). FIX: an "interference" scenario (appended at the END of
+    # SCENARIO_COUNTS, so every existing clip keeps its id, its rng stream and its bytes - and
+    # the clips reuse phrase sources, so pick_librispeech stays untouched) with three
+    # speech-shaped/tonal/transient generators below. BEFORE: 48 smoke clips, no interference.
+    # AFTER: 52 smoke clips (4 interference); the frozen 48 keep identical audio bytes (their
+    # truth.json gains only the one "interference" level field).
+    "interference": 4,
 }
 SUITE_MULTIPLIER = {"smoke": 1, "full": 10}
 TTS_POOL_SIZE = {"smoke": 24, "full": 200}
@@ -441,6 +452,78 @@ def noise_signal(rng: np.random.Generator, n: int) -> np.ndarray:
     return (x / peak).astype(np.float32) if peak > 0 else x.astype(np.float32)
 
 
+def _syllable_envelope(rng: np.random.Generator, n: int, depth: float = 0.85) -> np.ndarray:
+    """Speech-like syllabic amplitude modulation: a few slow LFOs summed and centred."""
+    t = np.arange(n, dtype=np.float64) / SR
+    lfo = np.zeros(n)
+    for _ in range(4):
+        lfo += np.cos(2.0 * np.pi * rng.uniform(1.5, 7.0) * t + rng.uniform(0.0, 2.0 * np.pi))
+    lfo = 0.5 + 0.25 * lfo
+    return np.clip((1.0 - depth) + depth * lfo, 0.0, 1.6)
+
+
+def tv_signal(rng: np.random.Generator, n: int) -> np.ndarray:
+    """TV talk: a speech-like male voice (low F0 + decaying harmonics) under syllabic AM.
+    Not real dialogue audio - the bench never records anything - but shaped like the TV-mix
+    failure mode the roadmap VAD is named for: periodic, formantic, and much less noisy
+    than the broadband noise_signal()."""
+    t = np.arange(n, dtype=np.float64) / SR
+    f0 = rng.uniform(95.0, 140.0)
+    x = np.zeros(n)
+    for k in range(1, 13):
+        x += (1.0 / (1.0 + (k / 3.0) ** 2)) * np.sin(2.0 * np.pi * f0 * k * t + rng.uniform(0.0, 2.0 * np.pi))
+    x = _syllable_envelope(rng, n) * x
+    peak = float(np.max(np.abs(x))) if x.size else 0.0
+    return (x / peak).astype(np.float32) if peak > 0 else x.astype(np.float32)
+
+
+def music_signal(rng: np.random.Generator, n: int) -> np.ndarray:
+    """Music: sustained harmonic tones over a slow chord progression with a little vibrato -
+    the tonal, long-sustained interference the VAD must not read as speech."""
+    freq = np.ones(n, dtype=np.float64)
+    base = rng.uniform(190.0, 260.0)
+    chord_len = max(1, int(rng.uniform(0.9, 1.6) * SR))
+    steps = rng.choice(np.array([1.0, 1.122, 1.26, 1.5]), size=max(1, n // chord_len + 1))
+    freq = np.repeat(base * steps, chord_len)[:n]
+    if freq.size < n:
+        freq = np.resize(freq, n)
+    out = np.zeros(n)
+    for k, amp in ((1, 1.0), (2, 0.5), (3, 0.33), (5, 0.2)):
+        phase = 2.0 * np.pi * np.cumsum(freq) * k / SR + rng.uniform(0.0, 2.0 * np.pi)
+        out += amp * np.sin(phase)
+    out *= 1.0 + 0.004 * np.sin(2.0 * np.pi * rng.uniform(4.0, 6.5) * np.arange(n) / SR)
+    peak = float(np.max(np.abs(out))) if out.size else 0.0
+    return (out / peak).astype(np.float32) if peak > 0 else out.astype(np.float32)
+
+
+def cough_signal(rng: np.random.Generator, n: int) -> np.ndarray:
+    """Cough: 1-3 sharp wide-band bursts with a fast attack and a 100-280 ms decay, plus a
+    low-frequency thump - the transient the VAD must not promote on its own."""
+    x = np.zeros(n)
+    for _ in range(int(rng.integers(1, 4))):
+        pos = int(rng.uniform(0.05, 0.9) * max(n - SR // 4, 1))
+        dur = int(rng.uniform(0.12, 0.28) * SR)
+        m = min(dur, n - pos)
+        if m <= 0:
+            continue
+        env = np.exp(-np.arange(m) / (0.05 * SR))
+        attack = max(1, int(0.01 * SR))
+        env[:attack] *= np.linspace(0.0, 1.0, attack)
+        white = rng.standard_normal(m)
+        slow = np.convolve(white, np.ones(32) / 32.0, mode="same")
+        burst = (white - slow) + 0.6 * np.sin(2.0 * np.pi * 90.0 * np.arange(m) / SR)
+        x[pos:pos + m] += env * burst
+    peak = float(np.max(np.abs(x))) if x.size else 0.0
+    return (x / peak).astype(np.float32) if peak > 0 else x.astype(np.float32)
+
+
+INTERFERENCE_GENERATORS = {
+    "tv": tv_signal,
+    "music": music_signal,
+    "cough": cough_signal,
+}
+
+
 def rms(x: np.ndarray) -> float:
     return float(np.sqrt(np.mean(np.asarray(x, dtype=np.float64) ** 2)))
 
@@ -559,6 +642,7 @@ def plan(suite: str, seed: int) -> list[dict]:
                 "user_source": None,
                 "ser_db": None,
                 "snr_db": None,
+                "interference": None,
                 "pause_s": None,
                 "pair_id": None,
                 "pair_side": None,
@@ -598,6 +682,16 @@ def plan(suite: str, seed: int) -> list[dict]:
             elif scenario == "nst":
                 item["user_source"] = "librispeech"
                 item["jitter_s"] = float(rng.uniform(0.0, 0.4))
+            elif scenario == "interference":
+                # TV/music/cough under the reply while the user commands: the phrase sources are
+                # reused (user_text, not librispeech) so pick_librispeech's need count stays 48
+                # and the frozen 48 clips keep their exact bytes.
+                item["tts_text"] = pool[int(rng.integers(len(pool)))]
+                item["user_text"] = COMMAND_PHRASES[index % len(COMMAND_PHRASES)]
+                item["position"] = "middle"
+                item["dt_fraction"] = 0.5
+                item["interference"] = ("tv", "music", "cough", "tv")[index % 4]
+                item["expect"] = expected_decision(item["user_text"])
             else:  # the DT positions
                 item["tts_text"] = pool[int(rng.integers(len(pool)))]
                 item["user_source"] = "librispeech"
@@ -606,7 +700,11 @@ def plan(suite: str, seed: int) -> list[dict]:
                     item["dt_fraction"] = (0.2, 0.5, 0.8)[index % 3]
             if item["ser_db"] is None and scenario not in {"fst", "nst"}:
                 item["ser_db"] = float(rng.choice(SER_LEVELS))
-            item["snr_db"] = None if rng.random() < 0.25 else float(rng.choice(SNR_LEVELS))
+            if item["interference"] is not None:
+                # interference clips always carry an audible background; the kind generator picks
+                item["snr_db"] = float(rng.choice(SNR_LEVELS))
+            else:
+                item["snr_db"] = None if rng.random() < 0.25 else float(rng.choice(SNR_LEVELS))
             item.update(impairments(rng, force_step=scenario == "path_change",
                                     force_drift=scenario == "path_change",
                                     force_clean=(scenario == "dt_onset" and index == 0)))
@@ -647,7 +745,11 @@ def build_clip(item: dict, tts_source: Source | None, user_source: Source | None
         limit = min(len(user_arr), n)
         s[:limit] = user_arr[:limit]
 
-    noise = noise_signal(rng, n) if item["snr_db"] is not None else np.zeros(n, np.float32)
+    kind = item.get("interference")
+    if item["snr_db"] is not None:
+        noise = INTERFERENCE_GENERATORS.get(kind, noise_signal)(rng, n) if kind else noise_signal(rng, n)
+    else:
+        noise = np.zeros(n, np.float32)
 
     # Levels: the echo sits at a nominal level, the user is set by SER against the echo, and the
     # noise by SNR against the user (against the echo when there is no user to reference).
@@ -713,6 +815,7 @@ def build_clip(item: dict, tts_source: Source | None, user_source: Source | None
             "snr_db_target": item["snr_db"],
             "snr_reference": "user" if user_source is not None else "echo",
             "noise": item["snr_db"] is not None,
+            "interference": item["interference"] if item["snr_db"] is not None else None,
             "echo_rms": ECHO_RMS,
             "mix_gain_db": 20.0 * float(np.log10(gain)) if gain != 1.0 else 0.0,
         },

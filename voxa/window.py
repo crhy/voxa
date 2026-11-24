@@ -97,10 +97,15 @@ from .agent.tools.web import get_session  # noqa: E402
 from .anc import Aec3Canceller, EchoCanceller as AncCanceller, aec3_available  # noqa: E402
 from .audio import AudioCapture, AudioDevice, webrtc_available  # noqa: E402
 from .bargectl import BargeInController, HOLD, YIELD  # noqa: E402
+from .bargein import TurnStateMachine, decide_bargein  # noqa: E402, F401  (task-8 classifier names, used by voxa/turngate.py)
+from .turngate import LiveTurnDirector  # noqa: E402
 from .hearing import HearingDirector, HearingSample  # noqa: E402
 from .onset import level_dbfs, power_dbfs  # noqa: E402
 from .attribution import MIN_REFERENCE_POWER, SourceEvidence, attribute  # noqa: E402
 from .attribution import EchoPathBaseline as _EchoPathBaseline  # noqa: E402
+from .voicedetect import (SPEECH_PLAYBACK_THRESHOLD, DoubleTalkGate,  # noqa: E402
+                          VoiceDetector)
+from .jointgate import feed_joint_frames  # noqa: E402
 from .catalog import CatalogUnavailable, load_catalog, refresh_and_cache, refresh_due  # noqa: E402
 from .config import ConfigStore, gpu_choice_index, normalize_gpu_choice  # noqa: E402
 from .controller import AssistantController, ControllerPorts  # noqa: E402
@@ -110,6 +115,7 @@ from .conversation import (  # noqa: E402
     strip_wake_word,
 )
 from .dictation import DictationController  # noqa: E402
+from .endpoint import EndpointPolicy  # noqa: E402
 from .echo import (  # noqa: E402
     default_monitor_source,
     remove_leftover_devices,
@@ -393,6 +399,17 @@ class MainWindow(Adw.ApplicationWindow):
         # the text being spoken now / the piece before it (own-voice check). The decision
         # itself is voxa/bargectl.py, shared with the hearing bench.
         self._barge_ctl = BargeInController(trace=self._barge_trace)
+        # Roadmap task 9 re-plan (f181): a candidate window that closed undecided (HOLD) still
+        # owes its never-completed pinned span to the record - but the handover runs through
+        # the promote_wait (voxa/capture.py::promote_wait), so while the joint suspect / turn
+        # state / arriving-speech verdicts are open the span is NOT handed over mid-speech.
+        # This flag keeps that debt across frames; _hearing_evidence retries the handover at
+        # the suspect's close, and consumed ids mean a retry can never re-promote.
+        self._promote_hold_pending = False
+        # Roadmap task 8 (f174): the explicit turn states on the shipped chain. It reads the joint
+        # double-talk gate's suspect (f173) to duck her OWN stream, the candidate words to yield,
+        # and a false alarm to resume at the last word boundary. Pure/GTK-free (voxa/turngate.py).
+        self._turn = LiveTurnDirector(TurnStateMachine())
         # Task A3: the decision, the evidence windows and the candidate transcript run on the
         # hearing thread; this thread submits frames and receives decisions. The thread lives for
         # the window's whole life (it polls a bounded queue, idle when nothing is queued) so the
@@ -410,6 +427,13 @@ class MainWindow(Adw.ApplicationWindow):
         # Echo filter: remembers what Voxa is saying so a mic transcript that is
         # (part of) her own sentence is dropped, not heard as the user (issue #88).
         self.own_speech = OwnSpeech()
+        # Roadmap task 7 (f175): the ± window (ms) of the word-timed evidence - a heard word may
+        # sit this far from the word her speakers were audible reading and still be a time-matched
+        # echo candidate (ownspeech.WORD_WINDOW_MS; swept 200/400/600 on the bench).
+        self._word_window_ms = 400.0
+        # The wall-clock moment the current reply began reaching the speakers: the anchor the
+        # edge-tts word offsets (which begin at 0 with the reply) are filed against.
+        self._reply_audible_anchor: float | None = None
         # The conversation turn whose user message was just pushed, so a stale
         # finish/error callback can't untangle history built by a newer turn.
         self._pending_user_generation: int | None = None
@@ -2638,6 +2662,14 @@ class MainWindow(Adw.ApplicationWindow):
             on_status=lambda text: idle(self._on_dictation_status, text),
             on_auto_stop=lambda: idle(self._auto_stop_recording),
             on_error=lambda text: idle(self._toast, text),
+            # Roadmap task 9: dictation gets the same acoustic endpoint decision,
+            # with its own 5 s cap; the probe and weights come from the controller
+            # that already holds them.
+            endpoint_probe=(self.conversation._endpoint_probe
+                            if self.conversation is not None
+                            and getattr(self.conversation, "_smart_turn", None) is not None
+                            else None),
+            endpoint_policy=EndpointPolicy(self.settings.endpoint_patience, dictation=True),
         )
         self.dictation.start()
         try:
@@ -2730,6 +2762,8 @@ class MainWindow(Adw.ApplicationWindow):
             early_silence_ms=self.settings.early_silence_ms,
             early_final_pass=self.settings.early_final_pass,
             voice_detector=self.settings.voice_detector,
+            smart_turn_model=self.settings.smart_turn_model,
+            endpoint_patience=self.settings.endpoint_patience,
             on_woken=lambda: idle(session(self._on_conversation_woken)),
             on_prompt=lambda text: idle(session(self._on_conversation_prompt), text),
             on_status=lambda text: idle(session(self._set_status), text, True),
@@ -2763,6 +2797,11 @@ class MainWindow(Adw.ApplicationWindow):
             self._toast(self._start_failure)
             return False
 
+        # Roadmap task 10: watch the user's output device (read-only). A device, headphone-jack or
+        # Bluetooth-profile change is one explicit epoch: the reference, the canceller and the
+        # latency re-measure together, and no automatic command comes from unqualified audio while
+        # that recovers. Voxa never switches a profile or a device herself.
+        self.audio.start_device_watch()
         self.conversation_active = True
         self._latest_level = 0.0
         self._start_level_updates()
@@ -2836,6 +2875,16 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _on_conversation_prompt(self, text: str) -> bool:
         if not text:
+            return False
+        # Roadmap task 10's recovery rule: inside an epoch's recovery window no automatic command
+        # may come from audio the canceller cannot qualify yet (no delay, no echo model on this
+        # path). The audio itself is kept - she still hears it - only the decision waits.
+        if (self.audio is not None and self.audio.recovering
+                and not self.audio.echo_path_qualified()):
+            self._barge_trace("command-held", text=text[:160], epoch=self.audio.epoch,
+                              reason="recovery-window-unqualified-audio")
+            if self.conversation is not None:
+                self.conversation.arm_prompt()
             return False
         marks = getattr(self, "_cmd_marks", None) or {}
         marks["prompt"] = time.monotonic()
@@ -3309,6 +3358,7 @@ class MainWindow(Adw.ApplicationWindow):
             return
         typing.LAST_REPLY = text
         self._hearing.reply_started(text)
+        self._turn.note_reply(text)
         self.own_speech.started(text)
         if self.conversation is not None:
             self.conversation.mute()
@@ -3326,7 +3376,7 @@ class MainWindow(Adw.ApplicationWindow):
             "on_started": lambda: idle(self._for_session(token, self._set_status), "Speaking…", True),
             "on_done": lambda: idle(self._for_session(token, self._on_conversation_speech_done), reply_id),
             "on_error": lambda error: idle(self._for_session(token, self._on_conversation_speech_error), error),
-            "on_words": lambda words: idle(self.shell.set_word_timeline, words),
+            "on_words": lambda words: self._on_reply_words(words, str(reply_id)),
         }
         if self._live_client is not None and self.settings.face_mode == "live":
             # Thinking models and several tool replies use the whole-reply path instead of the
@@ -3335,7 +3385,35 @@ class MainWindow(Adw.ApplicationWindow):
             # while the selector still said High.  Asking SpeechService for a complete audio file
             # lets the neural server receive this utterance before playback as well.
             speech_callbacks["before_play"] = self._live_before_play
+        # Roadmap task 7 (f175): anchor the word-timed playback timeline when the reply starts
+        # (the same anchor the shell's lip-sync clock gets); the edge-tts word offsets below are
+        # reply-relative. The ± window absorbs the synthesis lead-in and the sink latency that
+        # the render timeline measures for the canceller - the evidence is a capped weight, not
+        # a decision, and a mis-anchored word simply never time-matches.
+        self._reply_audible_anchor = time.monotonic()
         self.speech.speak(text, self.settings.tts_rate, self._reply_voice(), **speech_callbacks)
+
+    def _on_reply_words(self, words, generation: str) -> None:
+        """Edge-tts word boundaries of a reply: lip-sync AND the word-timed playback timeline.
+
+        Roadmap task 7 (f175): the SAME word Voxa's speakers were audible reading at the moment
+        a transcript word lands is echo EVIDENCE (voxa/ownspeech.py); the same word elsewhere
+        in the clip is the user's. Never a decision here, never a deletion from this path.
+        """
+        idle(self.shell.set_word_timeline, words)
+        if not words:
+            return
+        anchor = self._reply_audible_anchor
+        if anchor is None:
+            anchor = time.monotonic()
+        try:
+            self.own_speech.note_played_boundaries(
+                [(word, anchor + float(offset), duration)
+                 for word, offset, duration in words],
+                generation=generation,
+            )
+        except Exception as exc:  # noqa: BLE001 - evidence never breaks a reply
+            logging.debug("word-timed playback timeline failed: %s", exc)
 
     def _conversation_idle_status(self) -> str:
         return (
@@ -3455,13 +3533,35 @@ class MainWindow(Adw.ApplicationWindow):
         except Exception:  # noqa: BLE001 - tracing must never disturb the conversation
             pass
 
+    def _joint_verdicts(self) -> tuple[bool | None, bool | None, float | None]:
+        """Feed the barge-in joint double-talk gate the frames the capture staged, on the HEARING
+        thread (roadmap task 5, f173; handoff 6.8: no inference in the audio callback, none on GTK).
+
+        The bench's ``voxa`` arm is the reference: cleaned-stream Silero at the raised playback
+        threshold, the residual mask's per-band margin over its OWN prediction at the LOCKED delay,
+        and the gate's coherence/ERLE-drop read at that same delay. The same ``DoubleTalkGate`` the
+        bench drives; ``voxa/jointgate.feed_joint_frames`` runs the feeding so the live path and
+        the bench cannot drift apart. The capture only stored the bytes (voxa/audio.py
+        ``_note_joint_frame``), so the model runs here, where the candidate transcript runs too.
+        """
+        frames = self.audio.drain_joint_frames()
+        if not frames:
+            # Nothing new to judge this frame: degrade, do not report a stale latch.
+            return None, None, None
+        gate = getattr(self, "_dt_gate", None)
+        if gate is None:
+            self._dt_gate = gate = DoubleTalkGate()
+            self._clean_vad = VoiceDetector(threshold=SPEECH_PLAYBACK_THRESHOLD)
+        return feed_joint_frames(gate, self._clean_vad, frames)
+
     def _hearing_evidence(self) -> SourceEvidence | None:
         """The source-attribution evidence for this moment (voxa/attribution.py, handoff 6.3).
 
         Three numbers the capture path already measured - the reference's power, how much of the
         microphone the echo path explains, and the residual it leaves - plus the VAD probability
-        of the cleaned signal. Nothing here touches an audio device or runs a model: the GTK thread
-        only reads state (handoff 6.8: no inference on this thread).
+        of the cleaned signal and the joint double-talk gate's verdict (roadmap task 5, f173). This
+        runs on the hearing worker, not the GTK thread: the model (cleaned-stream Silero) and the
+        gate's coherence run there, exactly as the candidate transcript does (handoff 6.8).
         """
         try:
             ref_power, explained, residual = self.audio.echo_measurements()
@@ -3470,12 +3570,19 @@ class MainWindow(Adw.ApplicationWindow):
                         if self.conversation is not None else None)
             prob = float(detector.last_prob) if (detector is not None and detector.last_prob is not None
                                                 and detector.probs) else None
+            joint_suspect, joint_echo, over_prediction = self._joint_verdicts()
             evidence = SourceEvidence(
                 reference_active=bool(ref_power > MIN_REFERENCE_POWER),
                 reference_power=float(ref_power),
                 echo_explained_db=explained,
                 residual_db=residual,
                 residual_margin_db=margin,
+                # Roadmap task 5: the mask's margin over its OWN prediction, and the joint gate's
+                # voice-only verdicts - None when this frame could not measure (INDETERMINATE: the
+                # caller keeps the level gate and says so).
+                residual_over_prediction_db=over_prediction,
+                joint_suspect=joint_suspect,
+                joint_echo=joint_echo,
                 vad_prob=prob,
                 # A delay of 0 means the echo path was never fitted: unqualified audio, no decision.
                 alignment_healthy=bool(self.audio.delay_samples > 0
@@ -3483,10 +3590,44 @@ class MainWindow(Adw.ApplicationWindow):
                 mic_level=float(self._latest_level / 4000.0),
                 own_level=float(self._barge_ctl.gate.baseline),
             )
+            # Roadmap task 7 (f175): the WORD-TIMED overlap as ONE capped evidence weight, next
+            # to f173's joint verdicts - never a deletion here, and the degraded path (no
+            # candidate words, no reference) is unchanged: without both clocks meeting there is
+            # simply no share to report. The candidate's word times are span-relative; the
+            # capture ring's own arrival stamp is the anchor (voxa/capture.py).
+            if self.conversation is not None:
+                words = getattr(self.conversation, "last_candidate_words", None)
+                base = getattr(self.conversation, "last_candidate_span_start", None)
+                if words and base is not None and self.own_speech.played_words():
+                    timed = self.own_speech.timed_overlap(
+                        [(w["word"], base + float(w["onset_s"]),
+                          base + float(w["offset_s"])) for w in words],
+                        window_ms=self._word_window_ms,
+                    )
+                    evidence.word_timed_overlap = timed["share"]
             if self.conversation is not None:
                 # The own-speech filter reads the decision, so a span the audio attributes to a
                 # second source is never rewritten by a text match (handoff 5.3).
                 self.conversation.audio_evidence = attribute(evidence)
+                # f178 endpoint ARBITRATOR: gate the Smart Turn "complete" verdict on the shipped
+                # joint suspect (f173), the turn state (f174: her stream is ducked while a suspect
+                # is open) and whether gated speech is still arriving (Silero hysteresis on). This
+                # runs on the hearing worker, next to _joint_verdicts; no inference, no widget.
+                self.conversation.note_endpoint_evidence(
+                    joint_suspect=joint_suspect,
+                    turn_suspect=self._turn.ducked,
+                    # f183: the widened "speech still arriving" signal is the Silero
+                    # HYSTERESIS state over the cleaned stream, not the instantaneous
+                    # on-threshold: a mid-word/soft-syllable dip inside a run of speech keeps
+                    # the Smart Turn "complete" withheld (the degraded joint-None path with
+                    # genuinely quiet speech, below the hysteresis floor, still fires - f136).
+                    more_speech_arriving=bool(detector is not None
+                                              and getattr(detector, "voiced", False)),
+                )
+                # f181: the verdicts that gate the PROMOTION are refreshed right here, so a
+                # never-completed span owed since a HOLD is handed over on the frame the
+                # suspect closes - no new inference, the same three shipped numbers.
+                self._promote_hold_try()
             return evidence
         except Exception as exc:  # noqa: BLE001 - attribution must never break the conversation
             logging.debug("hearing evidence unavailable: %s", exc)
@@ -3530,6 +3671,27 @@ class MainWindow(Adw.ApplicationWindow):
             evidence=self._hearing_evidence,
         ))
 
+    def _resolve_that_one(self):
+        """The word her speakers were audible reading the moment the floor was taken.
+
+        Roadmap task 7 (f175, ``voxa/ownspeech.item_being_read``): the anaphor "that one" a user
+        says over a reply refers to the item on her tongue at the interruption - the same
+        word-timed timeline that times the echo answers it. None when the reply was never
+        anchored (no words were played) or nothing was audible at that instant.
+        """
+        anchor = self._reply_audible_anchor
+        if anchor is None:
+            return None
+        try:
+            position = float(self.speech.position() or 0.0)
+        except Exception:  # noqa: BLE001 - a stopped or mock service has no position
+            position = 0.0
+        try:
+            return self.own_speech.item_being_read(anchor + position)
+        except Exception as exc:  # noqa: BLE001 - resolution is evidence, never a crash
+            logging.debug("that-one resolution failed: %s", exc)
+            return None
+
     def _on_hearing_decision(self, outcome: BargeOutcome) -> None:
         """The hearing thread's only act: put the decision on the frame clock's queue.
 
@@ -3559,16 +3721,44 @@ class MainWindow(Adw.ApplicationWindow):
         if outcome.onset and self.conversation is not None:
             # Independent speech onset: pin the captured span (pre-roll included) so the
             # audio of this possible interruption cannot be trimmed away while the words are
-            # still being judged (voxa/capture.py, handoff 6.4).
-            self.conversation.note_onset(level_floor=self._barge_ctl.onset_level_floor())
+            # still being judged (voxa/capture.py, handoff 6.4). f177: pin from the suspect
+            # onset (the run of unexplained sound the onset rule confirmed), not the late
+            # confirming frame, over the cleaned stream, so the first word is not lost.
+            self.conversation.note_onset(level_floor=self._barge_ctl.onset_level_floor(),
+                                         onset_audio_ms=outcome.onset_audio_ms)
+        # Roadmap task 8 (f174): the joint double-talk gate (f173) is the reversible-duck rule.
+        # Its suspect lowers Voxa's OWN stream (12 dB ramp, never the system volume, never the mic)
+        # and records the sample position; a frame the gate MEASURED as echo gives the floor back at
+        # the word boundary. A frame it could not measure (None, INDETERMINATE) changes nothing, so
+        # the degraded path is unchanged (handoff 6.5:233, brief design rule).
+        if outcome.joint_suspect is True:
+            self._turn.suspect(self.speech)
+        elif outcome.joint_suspect is False and self._turn.ducked:
+            self._turn.reject(self.speech)
         if outcome.action == "own-voice":
             if self.conversation is not None:
                 # Rejected, not deleted: the span stays for its evidence window.
                 self.conversation.note_rejected()
+            # Task 8 REJECT: this was her echo (or a backchannel), not a second source. Give the
+            # ducked floor back at the last word boundary and rewind the assistant context.
+            kept = self._turn.resume_turn(self.speech, spoken_reply=typing.LAST_REPLY,
+                                          played_words=self.own_speech.played_words())
+            if kept is not None:
+                self._conversation_history.truncate_last_assistant(kept)
         if outcome.action == HOLD:
             # The evidence did not decide: the pin stays open, nothing is stripped, and no
             # command runs from audio this weak (voxa/attribution.py, handoff 6.5).
             self._barge_trace("HOLD", source=outcome.source, confidence=round(outcome.confidence, 2))
+            # Roadmap task 9 re-plan (f181): the candidate window closed undecided, so the
+            # f176 HOLD completion is owed - the never-completed pinned span must still reach
+            # the record (never a silent drop). But the handover runs through the promote_wait:
+            # while the joint suspect / turn state / arriving-speech verdicts are open,
+            # conversation.promote_pinned() hands over nothing. _hearing_evidence refreshes
+            # those verdicts every frame, so the handover lands at the suspect's close; the
+            # ids are consumed once, so a retry never re-promotes.
+            if self.conversation is not None and self.conversation.promote_waiting():
+                self._promote_hold_pending = True
+                self._promote_hold_try()
         if outcome.action == YIELD:
             # The fast half of the decision (task A3): the floor is yielded on the ACOUSTIC
             # onset, before a single word has been transcribed. Everything the interrupted reply
@@ -3576,6 +3766,13 @@ class MainWindow(Adw.ApplicationWindow):
             # not yet spoken, the live-face buffer, and every callback that holds the generation
             # being invalidated. What happens to her WORDS is decided later, by the transcript.
             generation = self._hearing.invalidate()
+            # Roadmap task 7 (f175): the word-timed timeline also answers "what was she AUDIBLE
+            # READING when the floor was taken?" - so an anaphoric "that one" from the user
+            # resolves to the item on her tongue at that moment, not to a model's guess.
+            that_one = self._resolve_that_one()
+            if that_one is not None:
+                self._barge_trace("that-one", word=that_one.word,
+                                  path="yield")
             self._barge_trace("yield", generation=generation,
                               onset_audio_ms=round(outcome.onset_audio_ms, 1),
                               evidence_ms=round(outcome.evidence_ms, 1),
@@ -3584,6 +3781,12 @@ class MainWindow(Adw.ApplicationWindow):
             self.speech.stop()
             self._discard_prefetched_reply()
             self._live_reset()
+            # Task 8 CONFIRM effect: the assistant context describes only the words she audibly
+            # played before the floor was taken (report 76:76).
+            kept = self._turn.yield_turn(self.speech, spoken_reply=typing.LAST_REPLY,
+                                         played_words=self.own_speech.played_words())
+            if kept is not None:
+                self._conversation_history.truncate_last_assistant(kept)
             if self.conversation is not None:
                 # The microphone opens now: the user must never have to repeat themselves, and
                 # the words still being spoken into it are the same utterance the pinned span
@@ -3595,14 +3798,28 @@ class MainWindow(Adw.ApplicationWindow):
         if outcome.action != "interrupt":
             return
         self._barge_trace("INTERRUPT")
+        # Roadmap task 7 (f175): the same anaphor resolution as the yield path - the word her
+        # speakers were audible reading is the referent of a "that one" said at the takeover.
+        that_one = self._resolve_that_one()
+        if that_one is not None:
+            self._barge_trace("that-one", word=that_one.word, path="interrupt")
         self.own_speech.finished()
         self.speech.stop()
         self._live_reset()
+        # Task 8 CONFIRM effect: the words of the interruption become the request, and the
+        # assistant turn is truncated to the words she audibly played before she stopped.
+        kept = self._turn.yield_turn(self.speech, spoken_reply=typing.LAST_REPLY,
+                                     played_words=self.own_speech.played_words())
+        if kept is not None:
+            self._conversation_history.truncate_last_assistant(kept)
         if self.conversation is not None:
             # The words of the interruption BECOME the request: the pinned span is handed to
             # the user turn once, and the microphone that opens next continues the same
             # utterance (handoff 5.1/6.4 - the user must never have to repeat themselves).
-            promoted = self.conversation.promote_pinned()
+            # f181: this is the ACCEPTED interruption - the decision is made, so the
+            # promote_wait does not hold it (the f176 contract: the accepted span becomes
+            # the turn's beginning now). The wait applies to the never-completed span.
+            promoted = self.conversation.promote_pinned(force=True)
             self._barge_trace("promote", frames=len(promoted),
                               span_seconds=self.conversation.capture.span_seconds)
             self.conversation.unmute()
@@ -3611,6 +3828,27 @@ class MainWindow(Adw.ApplicationWindow):
         self._toast("Interrupted — go ahead.")
         self._set_status("Listening for your request…", busy=True)
         return False
+
+    def _promote_hold_try(self) -> None:
+        """f181: hand the never-completed pinned span to the record at the suspect's close.
+
+        The live twin of the runner's f176 HOLD completion, gated on the promote_wait:
+        ``ConversationController.promote_pinned`` hands nothing over while the joint suspect /
+        turn state / arriving-speech verdicts are open (the evidence the hearing worker pushes
+        every frame via note_endpoint_evidence), so this retry lands the handover when they
+        close. A span that was released or rejected stops being owed, and the debt is cleared
+        with it; consumed ids mean the same span is never promoted twice.
+        """
+        if not self._promote_hold_pending:
+            return
+        if self.conversation is None or not self.conversation.promote_waiting():
+            self._promote_hold_pending = False
+            return
+        promoted = self.conversation.promote_pinned()
+        if promoted:
+            self._promote_hold_pending = False
+            self._barge_trace("promote-hold", frames=len(promoted),
+                              span_seconds=self.conversation.capture.span_seconds)
 
     def _discard_prefetched_reply(self) -> None:
         """Cancel the reply pieces that were prepared ahead of playback.
@@ -4745,7 +4983,11 @@ class MainWindow(Adw.ApplicationWindow):
         piece = item_text or text
         if piece:
             self._hearing.reply_started(piece)
+            self._turn.note_reply(piece)
             self.own_speech.started(piece)
+            # Roadmap task 7 (f175): each prepared piece is its own edge-tts word-boundary
+            # origin (offsets restart at 0), so the word-timed timeline is anchored per piece.
+            self._reply_audible_anchor = time.monotonic()
         else:
             # The evidence restarts per piece: speaker onset is the loudest moment.
             self._hearing.piece_started()

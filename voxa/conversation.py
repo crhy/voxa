@@ -14,7 +14,8 @@ from . import spellings
 from .agent.intents import is_start_dictation
 from .capture import CaptureRing, Frame
 from .dictation import DICTATION_CHUNK_SECONDS, segment_stream
-from .endpoint import is_complete, is_followup
+from .endpoint import (EndpointPolicy, SmartTurn, arbitrate_endpoint, ends_dangling, is_complete,
+                       is_followup, smart_turn_model_path)
 from .transcription import WhisperService
 from .vocabulary import build_hint, refresh_app_names
 
@@ -188,6 +189,20 @@ class ConversationHistory:
         if self._turns:
             self._turns.pop()
 
+    def truncate_last_assistant(self, kept: str) -> bool:
+        """Rewrite the last assistant turn to what was actually audibly played (roadmap task 8).
+
+        On a confirmed interruption the LLM context must describe only the words Voxa actually
+        said out loud, not the whole reply she meant to speak. The caller computes ``kept`` with
+        ``voxa.bargein.truncate_to_heard``; this just rewrites that turn in place. Returns whether
+        an assistant turn was found to rewrite.
+        """
+        for turn in reversed(self._turns):
+            if turn.get("role") == "assistant":
+                turn["content"] = kept
+                return True
+        return False
+
     def clear(self) -> None:
         self._turns.clear()
 
@@ -227,6 +242,8 @@ class ConversationController:
         early_silence_ms: int = 300,
         early_final_pass: bool = False,
         voice_detector: bool = True,
+        smart_turn_model: str = "",
+        endpoint_patience: str = "default",
         on_woken: Callable[[], None],
         on_prompt: Callable[[str], None],
         on_status: Callable[[str], None],
@@ -266,6 +283,27 @@ class ConversationController:
             except Exception as exc:  # noqa: BLE001 - optional detector
                 logging.debug("voice detector unavailable: %s", exc)
                 self._voice_detector = None
+        # Roadmap task 9: the acoustic endpoint decision. The weights ship with the
+        # flatpak (or the bench data root); without them the pause rules stay as
+        # they were. The session is shared process-wide, inference stays off the
+        # UI thread (this controller's worker thread segments).
+        self._endpoint_policy = EndpointPolicy(endpoint_patience)
+        self._smart_turn: SmartTurn | None = None
+        model_path = smart_turn_model_path(smart_turn_model)
+        if model_path:
+            engine = SmartTurn.shared(model_path)
+            if engine.available:
+                self._smart_turn = engine
+            else:
+                logging.debug("smart turn model unavailable: %s", engine.error)
+        # f178: the shipped joint double-talk suspect (f173) and the explicit turn
+        # state (f174), pushed by the live path (voxa/window.py) so the endpoint
+        # probe can gate is_complete on them - never on the Smart Turn probability
+        # alone. ``None`` joint suspect = INDETERMINATE/degraded, which adds no
+        # veto (f136's pure-model behaviour is preserved on the degraded path).
+        self._joint_suspect: bool | None = None
+        self._turn_suspect = False
+        self._more_speech_arriving = False
         self.on_woken = on_woken
         self.on_prompt = on_prompt
         self.on_status = on_status
@@ -316,6 +354,9 @@ class ConversationController:
         self.last_candidate_raw = ""
         # Word timings of that same candidate pass, when the transcription service reports them.
         self.last_candidate_words: list[dict] = []
+        # Roadmap task 7 (f175): the arrival time the candidate's word times are relative to
+        # (the capture ring's clock), so the word-timed playback timeline can meet them.
+        self.last_candidate_span_start: float | None = None
         # The candidate's own words, so promoting the span can carry them into the turn once.
         self._candidate_text = ""
         # What the capture path currently knows about the source of the microphone (a
@@ -403,14 +444,20 @@ class ConversationController:
         """
         self._muted.clear()
 
-    def note_onset(self, seq: int | None = None, *, level_floor: float | None = None) -> bool:
+    def note_onset(self, seq: int | None = None, *, level_floor: float | None = None,
+                   onset_audio_ms: float | None = None) -> bool:
         """Speech onset: pin the span, from the onset back over the run of speech it belongs
         to, plus :data:`voxa.capture.PRE_ROLL_SECONDS` before it.
 
         Called by the UI and the bench when the barge-in gate opens. Pinning is what stops a
         rolling trim from overwriting an utterance that is still being judged.
+
+        ``onset_audio_ms`` (roadmap task 6 re-plan, f177) is the run of the user's OWN sound the
+        onset rule had to hold before confirming; the pin starts at the suspect onset that run
+        began at, over the cleaned (post-AEC) frames, so the first word of an interruption that
+        started with her playback is not lost behind the confirming frame.
         """
-        return self.capture.pin(seq, level_floor=level_floor)
+        return self.capture.pin(seq, level_floor=level_floor, onset_audio_ms=onset_audio_ms)
 
     def note_rejected(self) -> None:
         """A candidate the classifier did not accept: its audio stays for the evidence window.
@@ -427,7 +474,7 @@ class ConversationController:
         of the span being transcribed again or the same audio queued twice. Returns the number
         of frames promoted (0 when nothing is pinned).
         """
-        frames = self.capture.promote()
+        frames = self.capture.promote_pinned()
         for frame in frames:
             self._enqueue(frame.pcm, frame.level)
         return len(frames)
@@ -502,9 +549,53 @@ class ConversationController:
             early_silence_seconds=self.early_silence_seconds if early else None,
             early_check=early_check if early else None,
             is_voice=self._voice_check if self._voice_detector is not None else None,
+            endpoint_probe=self._endpoint_probe if self._smart_turn is not None else None,
+            endpoint_policy=self._endpoint_policy,
         ):
             return segment
         return None
+
+    def note_endpoint_evidence(self, *, joint_suspect: "bool | None" = None,
+                               turn_suspect: bool = False,
+                               more_speech_arriving: bool = False) -> None:
+        """Push the shipped joint double-talk suspect (f173) and turn state (f174)
+        to the endpoint probe, so it can gate ``is_complete`` on them (f178).
+
+        Called from the live hearing worker (voxa/window.py), the same place that
+        already drains the joint frame ring; no inference runs here. A ``None``
+        joint suspect means INDETERMINATE/degraded and adds no veto.
+        """
+        self._joint_suspect = joint_suspect
+        self._turn_suspect = turn_suspect
+        self._more_speech_arriving = more_speech_arriving
+
+    def _endpoint_probe(self, segment: bytes) -> "bool | None":
+        """Roadmap task 9: is the WHOLE turn heard so far acoustically finished?
+
+        Smart Turn v3.1's own verdict decides; a transcript ending on a
+        conjunction, filler or preposition (report 186) vetoes a "complete"
+        answer, because a first valid command match is not completeness. The
+        small always-loaded model does the text check, exactly like
+        :meth:`_early_check`. The f178 endpoint ARBITRATOR then gates that verdict
+        on the shipped joint suspect / turn state / still-arriving speech, without
+        ever retuning the model probability.
+        """
+        if self._smart_turn is None:
+            return None
+        complete = self._smart_turn.is_complete(segment)
+        if complete is not True:
+            return complete
+        try:
+            text = self.wake_whisper.transcribe(segment, self.language,
+                                                f"{self.wake_word.strip().capitalize()}.")
+        except Exception as exc:  # noqa: BLE001 - a probe must not lose the turn
+            logging.debug("endpoint probe transcript failed: %s", exc)
+            return True
+        model_verdict = not ends_dangling(text)
+        return arbitrate_endpoint(model_verdict,
+                                  joint_suspect=self._joint_suspect,
+                                  turn_suspect=self._turn_suspect,
+                                  more_speech_arriving=self._more_speech_arriving)
 
     def _voice_check(self, pcm: bytes, level: float) -> bool:
         """Detector verdict for one chunk; falls back to the loudness rule on error.
@@ -521,7 +612,8 @@ class ConversationController:
             logging.debug("voice detector failed; using the loudness rule: %s", exc)
             return level >= self.threshold
 
-    def _filter_own_speech(self, text: str, *, evidence=None, confirmed_user: bool = False) -> str | None:
+    def _filter_own_speech(self, text: str, *, evidence=None, confirmed_user: bool = False,
+                           heard_with_times=None, joint_closed_at=None) -> str | None:
         """Strip echoes of Voxa's own voice from a transcript.
 
         Returns the text to use, or ``None`` when the whole utterance is her own voice (drop it).
@@ -532,6 +624,10 @@ class ConversationController:
         utterance already established as the user's: either one of them stops a text match from
         rewriting anything (handoff 5.3 - the user may repeat Voxa's words on purpose). The
         overlap is still measured and kept in :attr:`last_filter_features` as a diagnostic.
+        With ``heard_with_times`` (roadmap task 7's re-plan, f175) the deletion narrows to the
+        word-timed rule: only a word that time-matches one of her played words while the joint
+        double-talk gate measured echo is dropped; without word times the text path is
+        unchanged (the degraded path, handoff 6.5).
         """
         if self.own_speech is None or not self.own_speech.active():
             return text
@@ -543,7 +639,9 @@ class ConversationController:
                 logging.debug("ignored her own words: %s", text)
                 return None
             stripped, _share = self.own_speech.strip(text, protect=[self.wake_word],
-                                                     evidence=ev, confirmed_user=confirmed_user)
+                                                     evidence=ev, confirmed_user=confirmed_user,
+                                                     heard_with_times=heard_with_times,
+                                                     joint_closed_at=joint_closed_at)
             return stripped
         except Exception as exc:  # noqa: BLE001 - echo filter must never lose speech
             logging.debug("own-speech filter failed: %s", exc)
@@ -680,11 +778,13 @@ class ConversationController:
         if not segment:
             self.last_candidate_raw = ""
             self.last_candidate_words = []
+            self.last_candidate_span_start = self.capture.span_start_time()
             return ""
         cached = self._candidate_cache
         if cached is not None and cached[0] == start and cached[1] == end:
             return cached[2]
         raw, words = self._transcribe_span(segment)
+        self.last_candidate_span_start = self.capture.span_start_time()
         self.last_candidate_raw = raw or ""
         self.last_candidate_words = words
         # The candidate is judged on the WHOLE transcript: her own words are not stripped out of
@@ -712,7 +812,7 @@ class ConversationController:
                 logging.debug("word-timed pass failed: %s", exc)
         return self._transcribe(segment, self.prompt_whisper, hint=self._prompt_hint), []
 
-    def promote_pinned(self, *, enqueue: bool = True) -> list[Frame]:
+    def promote_pinned(self, *, enqueue: bool = True, force: bool = False) -> list[Frame]:
         """Make the pinned span the beginning of the user turn, exactly once.
 
         The frames keep their sequence ids and are marked consumed, so the frames that arrive
@@ -725,8 +825,20 @@ class ConversationController:
         ``enqueue=False`` is for a caller that drives the speech-pause rules itself (the hearing
         bench) and wants the frames back to feed them onward instead of putting them on the
         worker queue. Returns the promoted frames, oldest first, ids intact.
+
+        Roadmap task 9 re-plan (f181): the live twin of the promote_wait. The endpoint
+        evidence f178 already pushes here (:meth:`note_endpoint_evidence`, refreshed every
+        frame by the hearing worker) now gates the PROMOTION too, not just the endpoint:
+        while the joint double-talk suspect is open, the turn is in a suspect/duck state, or
+        gated speech is still arriving, a never-completed pinned span is NOT handed over
+        mid-speech - the call returns nothing and consumes nothing, and the same call hands
+        the span over once when the suspect closes. A caller whose decision is already made
+        (the accepted barge-in, the hard cap) passes ``force=True``: the wait never holds an
+        accepted decision, and it never drops a span.
         """
-        frames = self.capture.promote()
+        frames = self.capture.promote_pinned(
+            joint_suspect=self._joint_suspect, turn_suspect=self._turn_suspect,
+            more_speech_arriving=self._more_speech_arriving, force=force)
         if not frames:
             return frames
         for frame in frames:
@@ -737,6 +849,11 @@ class ConversationController:
             self._turn_prefix_text = f"{self._turn_prefix_text} {self._candidate_text}".strip()
             self._turn_prefix_words = [*self._turn_prefix_words, *self.last_candidate_words]
         return frames
+
+    def promote_waiting(self) -> bool:
+        """A pinned span still owed to the user turn or the record (f181): the promote_wait
+        holds its handover while a shipped verdict is open; this says the span is waiting."""
+        return self.capture.promote_waiting()
 
     def take_turn_prefix(self) -> tuple[str, int, list[dict]]:
         """Take the stable prefix of the turn in progress (empty when the turn started normally).

@@ -302,3 +302,237 @@ class BargeInGate:
         # own voice sounds like in this room, which one interruption does not change.
         self._loud_ms = 0.0
         self._recent = []
+
+
+# --------------------------------------------------------------------------- task 8
+#
+# Roadmap task 8 (report 76-83, handoff 6.5/218-236): an EXPLICIT turn state machine, a
+# three-state barge-in decision (suspect -> duck, confirm -> yield, reject -> resume), and the
+# conversation-context truncation a yield owes. Everything here is pure: a state, a duration of
+# AUDIO, and the words heard. No GTK, no audio device, no system volume. The caller (the live
+# app in voxa/window.py, the measurement in voxa/bench/runner.py) performs the effects.
+
+# The application turn states (handoff 6.5:220). These are application states: the capture path
+# and the echo canceller run continuously ACROSS them (brief rule: "the canceller runs
+# continuously, never reset per sentence"). ``YIELDED`` is entered only by a CONFIRMED
+# interruption; ``OVERLAP_PENDING`` is the ducked-while-suspect state the false-pause rate is
+# calibrated on. ``PLANNING`` is Voxa preparing a response it has not yet started to speak.
+LISTENING = "LISTENING"
+USER_TURN = "USER_TURN"
+PLANNING = "PLANNING"
+SPEAKING = "SPEAKING"
+OVERLAP_PENDING = "OVERLAP_PENDING"
+YIELDED = "YIELDED"
+RECOVERING_AUDIO = "RECOVERING_AUDIO"
+TURN_STATES = (LISTENING, USER_TURN, PLANNING, SPEAKING,
+               OVERLAP_PENDING, YIELDED, RECOVERING_AUDIO)
+
+# Duck: lower ONLY Voxa's own stream by this many dB over a 20 ms ramp (handoff 6.5/roadmap 76,
+# "duck TTS by 10-15 dB ... the ramp is 20 ms"), never the system volume (brief design rule +
+# handoff 233: "Do not globally lower system volume as a way to pass tests").
+DUCK_DB = 12.0
+DUCK_RAMP_MS = 20.0
+# A duck is LINEAR gain, not a mute: this is the 0..1 factor 12 dB maps to.
+DUCK_GAIN = 10.0 ** (-DUCK_DB / 20.0)
+
+# CONFIRM (report 76:83, task line 10): these decide a real interruption. A bare backchannel is
+# never enough on its own; a protected command word is enough on its own.
+CONFIRM_MIN_WORDS = 2            # non-backchannel words that, together, confirm
+CONFIRM_GATED_SPEECH_MS = 500.0  # of continuous gated speech that confirms on its own
+# REJECT (report 76:83, task line 10): these decide a false alarm and resume her.
+REJECT_NO_WORDS_MS = 1500.0      # no words at all inside this window of AUDIO
+REJECT_NO_SPEECH_PROB = 0.6      # faster-whisper no_speech_prob above this = bracketed non-speech
+
+# Backchannels: brief acknowledgements that normally let her finish (handoff 6.5:227 "normally
+# keep speaking"). The yes/no context rule below can turn one of these into an ANSWER.
+BACKCHANNELS = frozenset({"yes", "no", "ok", "okay", "thanks", "thank you",
+                          "yeah", "uh-huh", "mm-hm", "right", "mhm", "mm"})
+# Protected command words: any one of these CONFIRMS on its own (roadmap task 7, task 8).
+PROTECTED_COMMANDS = frozenset({"stop", "cancel", "pause", "quiet", "wait", "enough", "shush"})
+# "no, the other one" -style corrections (handoff 6.5:235): yield quickly even though the words
+# are not stop-word commands. A negation followed by an anaphor pointing elsewhere.
+_CORRECTION = re.compile(r"\b(no|not|wait)\b.{0,24}\b(other|instead|wrong|meant|that one|this one)\b")
+
+
+def _content_words(text: str) -> list[str]:
+    return _words(text)
+
+
+def is_backchannel_only(text: str) -> bool:
+    """True when every word is a brief acknowledgement ('mm-hm', 'yeah', 'okay', 'right')."""
+    words = _content_words(text)
+    return bool(words) and all(w in BACKCHANNELS for w in words)
+
+
+def is_correction(text: str) -> bool:
+    """A 'no, the other one' correction: the user is pushing back, not acknowledging."""
+    return bool(_CORRECTION.search((text or "").lower()))
+
+
+# The three-state barge-in decision, as data (report 76-83). The caller turns an outcome into an
+# effect: ``duck`` lowers her own stream, ``yield`` hard-stops it and opens the user turn, ``resume``
+# restores the duck, ``hold`` keeps collecting without deciding.
+DECISION_SUSPECT = "suspect"   # -> duck
+DECISION_CONFIRM = "confirm"   # -> yield / stop
+DECISION_REJECT = "reject"     # -> resume
+
+
+def decide_bargein(heard: str, *, gated_speech_ms: float, no_speech_prob: float | None,
+                   asked_yes_no: bool = False, just_spoken: str = "") -> str:
+    """The three-state decision for one overlap candidate (report 76-83, task line 10-11).
+
+    CONFIRM (yield) on: >= CONFIRM_MIN_WORDS non-backchannel words, any protected command word, a
+    'no, the other one' correction, or >= CONFIRM_GATED_SPEECH_MS of continuous gated speech.
+    REJECT (resume) on: backchannels only, a bracketed non-speech token (no_speech_prob above
+    REJECT_NO_SPEECH_PROB), or no words at all for REJECT_NO_WORDS_MS of AUDIO. Context decides a
+    short 'yes': after Voxa asks a yes/no question it is an ANSWER (CONFIRM), not a backchannel.
+    Everything else holds: the audio is kept and the evidence window keeps running.
+    """
+    words = _content_words(heard)
+    # A protected word confirms on its own, whatever else is present.
+    if any(w in PROTECTED_COMMANDS for w in words):
+        return DECISION_CONFIRM
+    if is_correction(heard):
+        return DECISION_CONFIRM
+    # A short 'yes' is an answer to a question she just asked, not a backchannel (handoff 6.5:235).
+    if asked_yes_no and is_backchannel_only(heard):
+        return DECISION_CONFIRM
+    if is_backchannel_only(heard):
+        # A backchannel is a REJECT only once we are sure it is not speech she is mishearing as
+        # words of her own; with no extra signal it still lets her finish.
+        return DECISION_REJECT
+    if words:
+        non_back = [w for w in words if w not in BACKCHANNELS]
+        if len(non_back) >= CONFIRM_MIN_WORDS:
+            return DECISION_CONFIRM
+    if no_speech_prob is not None and no_speech_prob > REJECT_NO_SPEECH_PROB:
+        return DECISION_REJECT
+    # No words at all for the reject window of AUDIO: the gated sound produced nothing to say
+    # (bracketed non-speech), so it resumes her - checked BEFORE the gated-speech confirm so a full
+    # 1.5 s of wordless gated audio rejects rather than confirms.
+    if not words and gated_speech_ms >= REJECT_NO_WORDS_MS:
+        return DECISION_REJECT
+    if gated_speech_ms >= CONFIRM_GATED_SPEECH_MS:
+        return DECISION_CONFIRM
+    return DECISION_SUSPECT
+
+
+def truncate_to_heard(spoken: str, audible_upto: str) -> str:
+    """Truncate Voxa's assistant turn in the conversation context to the words she audibly played.
+
+    On a CONFIRMED yield the LLM context must describe only what was actually heard (report 76:76
+    "truncate the assistant turn in the LLM context to what was actually heard", task line 11).
+    ``spoken`` is the full reply text, ``audible_upto`` the words up to the stop position from the
+    word timeline. The kept text is the longest prefix of ``spoken`` whose words are all within the
+    audible set; trailing words she never reached are dropped.
+    """
+    spoken_words = _content_words(spoken)
+    audible = _content_words(audible_upto)
+    if not spoken_words:
+        return spoken
+    if not audible:
+        return ""
+    # Keep the longest leading run of spoken words that the audible playback covered.
+    keep = 0
+    for i, word in enumerate(spoken_words):
+        if i < len(audible) and audible[i] == word:
+            keep = i + 1
+        else:
+            break
+    if keep >= len(spoken_words):
+        return spoken
+    return " ".join(spoken_words[:keep])
+
+
+def rewind_to_last_word_boundary(spoken: str, heard_upto: str) -> str:
+    """On a long pause-then-reject, rewind the assistant text to the last WORD boundary (task
+    line 11): a mid-word pause must not leave a partial word in the context. The kept text is the
+    same audible prefix, but never past the last word that actually began being heard."""
+    return truncate_to_heard(spoken, heard_upto)
+
+
+class TurnStateMachine:
+    """The explicit playback/turn state machine (handoff 6.5:218-236), pure and GTK-free.
+
+    One instance describes one reply. The caller drives it with the events the hearing pipeline
+    already produces (an onset, a candidate transcript, a pause, an alignment failure) and
+    performs the effect each transition asks for. AEC and capture keep running in every state.
+    """
+
+    def __init__(self) -> None:
+        self.state: str = LISTENING
+        self._asked_yes_no = False
+        self._just_spoken = ""
+        self._pinned = False
+
+    # -- context the state machine reads (handoff 6.5:235) --------------------------------
+    def note_question(self, asked_yes_no: bool) -> None:
+        """Voxa just asked a yes/no question: a following 'yes' is an ANSWER, not a backchannel."""
+        self._asked_yes_no = bool(asked_yes_no)
+
+    def note_speaking(self, text: str) -> None:
+        """A reply began being read out: ``SPEAKING``, and this is the assistant turn to truncate."""
+        self.state = SPEAKING
+        self._just_spoken = text or ""
+        self._pinned = False
+
+    def note_planning(self) -> None:
+        """The LLM is preparing a response but has not started speaking it (PLANNING)."""
+        self.state = PLANNING
+
+    # -- the state-table rows (handoff 6.5:222-231) ----------------------------------------
+    def playback_only_echo(self) -> str:
+        """Row 1: an echo of her own playback never creates a user turn or a command. Stay put."""
+        return self.state  # SPEAKING/LISTENING unchanged; no user turn, no command
+
+    def user_onset(self) -> str:
+        """Row 2: a possible independent user onset pins the audio at once and ducks her stream.
+
+        ``OVERLAP_PENDING``: the audio is pinned and evidence accumulates WITHOUT deleting it
+        (brief: a classifier reads a snapshot, it never consumes the only copy).
+        """
+        self._pinned = True
+        self.state = OVERLAP_PENDING
+        return DECISION_SUSPECT
+
+    def confirm(self, heard: str, *, gated_speech_ms: float = 0.0,
+                no_speech_prob: float | None = None) -> str:
+        """Rows 3/4: decide the overlap candidate. CONFIRM yields, REJECT resumes, SUSPECT holds.
+
+        The caller maps the returned decision: CONFIRM -> hard-stop her stream, cancel the stale
+        response, continue the same user turn from the retained pre-roll; REJECT -> restore the
+        duck (resume); SUSPECT -> keep ducked and keep collecting.
+        """
+        decision = decide_bargein(
+            heard, gated_speech_ms=gated_speech_ms, no_speech_prob=no_speech_prob,
+            asked_yes_no=self._asked_yes_no, just_spoken=self._just_spoken)
+        if decision == DECISION_CONFIRM:
+            self.state = YIELDED
+        elif decision == DECISION_REJECT:
+            # Resume: back to the state the duck interrupted, the reply continuing from where it
+            # paused. The ducked-then-resumed reply still counts in self_pause_per_hour.
+            self.state = SPEAKING
+        # SUSPECT stays OVERLAP_PENDING.
+        return decision
+
+    def repeat_of_own_words(self) -> str:
+        """Row 5: the user repeats words Voxa just spoke. Preserve the words; the source evidence
+        and context decide (never delete). The state does not change on the word overlap alone."""
+        return self.state
+
+    def user_pause(self) -> str:
+        """Row 6: a mid-request pause. Hold the floor when evidence indicates continuation; the
+        state stays where it was (the pre-roll keeps the utterance alive)."""
+        return self.state
+
+    def resume_during_planning(self) -> str:
+        """Row 7: the user resumes while Voxa is preparing a response. Invalidate the pending
+        response before it starts and merge the continuation into the same user turn."""
+        self.state = USER_TURN
+        return USER_TURN
+
+    def alignment_failed(self) -> str:
+        """Row 8: audio alignment failed. Enter recovery, retain the capture, and prevent
+        unqualified automatic commands from playback contamination (``RECOVERING_AUDIO``)."""
+        self.state = RECOVERING_AUDIO
+        return RECOVERING_AUDIO

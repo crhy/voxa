@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import math
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -43,6 +44,12 @@ class StubDetector:
     def feed(self, pcm: bytes) -> bool:
         self.last_prob = 0.9
         return True
+
+    @property
+    def voiced(self) -> bool:
+        """The hysteresis state of an always-voiced stream: the run of speech is open while
+        the cleaned probability is at/over the threshold (f183's widened arriving signal)."""
+        return self.last_prob >= self.threshold
 
 
 @pytest.fixture(autouse=True)
@@ -239,6 +246,150 @@ def a_pinned_ring():
     return ring, clock
 
 
+def test_the_raw_ring_keeps_at_least_one_second_of_the_pre_onset_region() -> None:
+    """Roadmap task 6: the turn is first onset MINUS at least 300 ms (a 1 s raw ring), so the
+    raw capture survives the decision about what to do with it. A cold start that begins under
+    a reply must still be able to hand the recogniser the user's first word even though the
+    microphone was muted and the echo stages were running when it arrived."""
+    clock = [0.0]
+    ring = CaptureRing(clock=lambda: clock[0])
+    # 1.2 s of frames while muted (her playback), raw capture carried on every frame.
+    for index in range(60):
+        clock[0] += 0.02
+        ring.add(pcm(0.02, ECHO_LEVEL), float(ECHO_LEVEL), raw=pcm(0.02, USER_LEVEL))
+    # The onset lands on the last frame; the pinned span must reach back at least 300 ms and
+    # its raw audio (not just the cleaned/echo-cancelled copy) must still be readable.
+    ring.pin(seq=59)
+    pinned = ring.pinned()
+    assert pinned, "onset-minus-pre-roll pins a span"
+    assert pinned[-1].t_s - pinned[0].t_s >= 0.30, "at least 300 ms of pre-roll"
+    raw_span = ring.snapshot(raw=True)
+    assert raw_span, "the pre-onset raw capture is still there for one pass over the whole turn"
+    assert len(raw_span) >= int(0.30 * 16000) * 2, "a full second ring covers the pre-roll"
+
+
+def test_the_pin_never_walks_back_past_the_onset_minus_pre_roll_floor() -> None:
+    """Without a level floor the span is exactly onset minus pre-roll: a cold start's pin cannot
+    reach arbitrarily far back into her own echo and hand the turn a prefix that is only her voice."""
+    clock = [0.0]
+    ring = CaptureRing(clock=lambda: clock[0], pre_roll_seconds=0.3)
+    for index in range(80):  # 1.6 s, every frame "loud" (echo during playback)
+        clock[0] += 0.02
+        ring.add(b"\x00" * FRAME_BYTES, float(ECHO_LEVEL))
+    ring.pin(seq=60)
+    pinned = ring.pinned()
+    onset_frame = next(frame for frame in pinned if frame.seq == 60)
+    assert pinned[0].seq < 60
+    assert onset_frame.t_s - pinned[0].t_s <= 0.30 + 0.021, "the span is onset minus pre-roll, not a free walk-back"
+
+
+# ------------------------------------------------------------------ f177: POST-AEC pre-roll for the barge-in case
+
+
+def _post_aec_preroll_ring():
+    """Her playback, then the user, with the CLEANED (post-AEC) and the RAW capture carried apart.
+
+    Frames 0-39: she is playing and the user is talking over her. The canceller + mask DESTROY the
+    user's first word there - the cleaned frame is quiet (echo cancelled, user masked), while the
+    RAW microphone still carries the user (this is exactly what f133 measured: recovering the first
+    word from that raw audio re-introduces her echo). Frames 40-59: the user is clearly heard, so the
+    onset rule confirms here - 400 ms of unexplained sound after the first word was masked.
+    """
+    clock = [0.0]
+    ring = CaptureRing(clock=lambda: clock[0])
+    for _ in range(40):  # 0.8 s under playback: cleaned ~quiet, raw carries the user
+        clock[0] += 0.02
+        ring.add(pcm(0.02, 120), 120.0, raw=pcm(0.02, USER_LEVEL))
+    for _ in range(20):  # the user heard clearly: the confirming onset lands at seq 59
+        clock[0] += 0.02
+        ring.add(pcm(0.02, USER_LEVEL), float(USER_LEVEL))
+    return ring
+
+
+def test_a_barge_in_turn_starts_at_the_suspect_onset_minus_pre_roll_from_cleaned_audio() -> None:
+    """f177: pinning from the suspect onset (the run of unexplained sound the onset confirmed),
+    not the late confirming frame, starts the barge-in turn on the cleaned stream earlier - so the
+    first word that arrived under her playback is inside the span."""
+    ring = _post_aec_preroll_ring()
+    plain_ring = _post_aec_preroll_ring()
+    # Control: pinning the same onset with NO run length starts at onset minus pre-roll only.
+    plain_ring.pin(seq=59, onset_audio_ms=None)
+    plain = plain_ring.pin_from
+    ring.pin(seq=59, onset_audio_ms=400.0)
+    # The suspect onset (seq 59 - 0.4 s = seq 39) minus the 0.5 s pre-roll reaches earlier.
+    assert ring.pin_from is not None and ring.pin_from < plain, (ring.pin_from, plain)
+    assert ring.pin_from <= 20, "the span starts at the suspect onset minus the pre-roll"
+    span = ring.pinned()
+    assert span[0].seq == ring.pin_from and span[-1].seq == 59
+
+
+def test_the_barge_in_pre_roll_uses_cleaned_audio_never_the_raw_ring() -> None:
+    """f177: the pre-roll is the CLEANED (post-AEC, post-mask) stream, NOT the raw ring: the raw
+    audio under playback carries her echo, and promoting it would pull an echo word into the turn
+    (f133's re-introduced echo). The promoted span's bytes must be the cleaned copies."""
+    ring = _post_aec_preroll_ring()
+    ring.pin(seq=59, onset_audio_ms=400.0)
+    span = ring.promote_pinned()
+    assert span, "the barge-in turn owes its audio to the record"
+    for frame in span:
+        # the promoted bytes are the cleaned frame, whose pre-onset region is echo-cancelled quiet
+        peak = int(np.max(np.abs(np.frombuffer(frame.pcm, dtype="<i2").astype(np.int64))))
+        if frame.seq < 40:
+            assert peak < 2000, "cleaned pre-roll frames are the cancelled stream, not the raw copy"
+            assert frame.raw is not None, "the raw user-under-echo capture is kept but not used"
+            raw_peak = int(np.max(np.abs(np.frombuffer(frame.raw, dtype="<i2").astype(np.int64))))
+            assert raw_peak >= 2000, "the raw copy WOULD have carried an echo/user word"
+        else:
+            assert peak >= 2000, "the clear user frames are still in the span"
+    cleaned = b"".join(frame.pcm for frame in span)
+    raw = b"".join(frame.raw for frame in span if frame.raw is not None)
+    assert cleaned and raw and cleaned != raw, "the turn is the cleaned stream, never the raw ring"
+    assert ring.snapshot() == b"", "promotion consumed the span once"
+
+
+def test_the_pre_roll_never_pulls_an_echo_word_into_the_whole_turn_pass() -> None:
+    """Assembling the whole turn with the post-AEC pre-roll and running ONE pass over it must not
+    produce her echo word: the cleaned pre-roll region carries no echo, so the stub recogniser sees
+    only the user's words (peak >= 2000) and silence, never herword (400 <= peak < 2000)."""
+    ring = _post_aec_preroll_ring()
+    ring.pin(seq=59, onset_audio_ms=400.0)
+    span = b"".join(frame.pcm for frame in ring.promote_pinned())
+    asr = AudioReadingASR()
+    heard = asr.transcribe_words(span, "")["text"].split()
+    assert "herword" not in heard, "the pre-roll re-introduced an echo word into the turn"
+    assert "userword" in heard, "the user's own words are still in the assembled whole turn"
+
+
+def test_the_degraded_none_onset_audio_ms_path_is_unchanged() -> None:
+    """A caller that cannot supply the onset run length (None: the degraded joint path, no onset
+    rule) pins exactly as before - onset minus pre-roll - and the suspect-onset wiring changes
+    nothing about it."""
+    clock = [0.0]
+    ring = CaptureRing(clock=lambda: clock[0], pre_roll_seconds=0.3)
+    for _ in range(80):
+        clock[0] += 0.02
+        ring.add(b"\x00" * FRAME_BYTES, float(ECHO_LEVEL))
+    ring.pin(seq=60, onset_audio_ms=None)
+    pinned = ring.pinned()
+    onset_frame = next(frame for frame in pinned if frame.seq == 60)
+    assert onset_frame.t_s - pinned[0].t_s <= 0.30 + 0.021, "None onset_audio_ms = unchanged behaviour"
+
+
+def test_a_raw_ring_cold_start_is_not_used_for_the_first_word() -> None:
+    """f133's cold-start recovery from the RAW ring stays OUT: the turn's audio is always the
+    cleaned stream, so a cold first word is never recovered by reading the raw microphone back."""
+    ring = _post_aec_preroll_ring()
+    ring.pin(seq=59, onset_audio_ms=400.0)
+    span = ring.promote_pinned()
+    pre_onset = [frame for frame in span if frame.seq < 40]
+    assert pre_onset, "the span reaches back before the clear-user frames"
+    for frame in pre_onset:
+        peak = int(np.max(np.abs(np.frombuffer(frame.pcm, dtype="<i2").astype(np.int64))))
+        assert peak < 2000, "the pre-onset region is the cancelled stream, not the raw cold-start audio"
+        assert frame.raw is not None and int(np.max(np.abs(np.frombuffer(
+            frame.raw, dtype="<i2").astype(np.int64)))) >= 2000, "raw is kept but never promoted"
+
+
 def test_a_rolling_trim_can_never_overwrite_a_pinned_span() -> None:
     ring, clock = a_pinned_ring()
     for index in range(20, 120):  # two more seconds: the window is only 0.4 s
@@ -255,7 +406,7 @@ def test_snapshot_reads_a_copy_and_never_consumes_the_span() -> None:
     second = ring.snapshot()
     assert first == second and first
     assert [frame.seq for frame in ring.pinned()][:3] == [10, 11, 12]
-    assert ring.promote() and ring.snapshot() == b"", "the next read sees only audio not yet promoted"
+    assert ring.promote_pinned() and ring.snapshot() == b"", "the next read sees only audio not yet promoted"
 
 
 def test_a_rejected_candidate_is_released_after_its_evidence_window() -> None:
@@ -397,3 +548,254 @@ def test_a_twelve_second_request_over_a_reply_survives_the_ring(tmp_path) -> Non
     capture = runner.conversation.capture
     assert capture.pinned()[0].seq <= ids[0], "the pinned span still starts at the request's start"
     assert capture.dropped_frames < first_user, "nothing the user had already spoken is thrown away"
+
+
+# ------------------------------------------------------------------ f176 pair-candidate completion
+# A pinned candidate span the 900 ms window never promoted (an echo-measured onset that blocked the
+# yield, a HOLD, or a candidate that never collected 900 ms before the clip ended) is transcribed
+# exactly once into a segment transcript and stays HOLD - never a silent drop, never a command from
+# weak audio (handoff 6.4/6.5). These drive the runner's completion path with the stub recogniser.
+
+
+def _voxa_only_runner(tmp_path):
+    """A runner over a clip where Voxa reads a reply and the user never interrupts: no user audio
+    ever reaches a segment transcript, so the pinned-span completion path is unexercised."""
+    mic = signal(3.0, ECHO_LEVEL)
+    ref = signal(3.0, ECHO_LEVEL)
+    clip = write_clip(Path(tmp_path) / "data", "tiny", "tiny-0002-voxa_only-00", mic, ref, {
+        "id": "tiny-0002-voxa_only-00", "scenario": "voxa", "expect": "none",
+        "playback": {"text": "The weather is clear today.", "onset_s": 0.0, "offset_s": 3.0},
+        "user": None,
+    })
+    runner, _summary, _loaded = run_clip(clip)
+    assert not events_of(runner, "transcript"), "no user speech reached a segment transcript"
+    return runner
+
+
+def test_a_pinned_candidate_that_never_completes_is_transcribed_not_dropped(tmp_path) -> None:
+    runner = _voxa_only_runner(tmp_path)
+    controller = runner.conversation
+    controller.mute()
+    start = controller.capture._last_seq + 1
+    for offset in range(30):  # 0.6 s of the user over the reply, muted: never segmented
+        controller.feed(pcm(0.02, USER_LEVEL), float(USER_LEVEL), seq=start + offset)
+    controller.note_onset(seq=start + 10, level_floor=None)
+    assert controller.capture.pin_from is not None, "the onset pins the candidate span"
+    before_requests = len(events_of(runner, "request"))
+    runner._finish_unpromoted_pinned_span()
+    transcripts = events_of(runner, "transcript")
+    assert transcripts, "the never-completed span reaches a segment transcript (never a silent drop)"
+    holds = [e for e in events_of(runner, "endpoint") if e.get("dropped") == "hold"]
+    assert holds, "and the transcript is marked HOLD, never a completed utterance"
+    assert len(events_of(runner, "request")) == before_requests, "no command runs from audio this weak"
+
+
+def test_the_completion_promotes_the_pinned_span_exactly_once(tmp_path) -> None:
+    runner = _voxa_only_runner(tmp_path)
+    controller = runner.conversation
+    controller.mute()
+    start = controller.capture._last_seq + 1
+    for offset in range(20):
+        controller.feed(pcm(0.02, USER_LEVEL), float(USER_LEVEL), seq=start + offset)
+    controller.note_onset(seq=start + 5, level_floor=None)
+    runner._finish_unpromoted_pinned_span()
+    first = len(events_of(runner, "transcript"))
+    assert first == 1
+    runner._finish_unpromoted_pinned_span()
+    assert len(events_of(runner, "transcript")) == first, "the span is transcribed exactly once"
+
+
+def test_a_completed_clip_is_never_re_transcribed_by_the_completion(tmp_path) -> None:
+    # short_over_reply_clip interrupts and already transcribed its user audio: the completion must
+    # not transcribe the accepted words a second time (that would skew the WER/endpoint metrics).
+    runner, _summary, _loaded = run_clip(short_over_reply_clip(tmp_path / "data"))
+    before = len(events_of(runner, "transcript"))
+    assert before >= 1
+    runner._finish_unpromoted_pinned_span()
+    assert len(events_of(runner, "transcript")) == before
+
+
+def test_promote_false_finish_emits_a_transcript_but_never_a_request(tmp_path) -> None:
+    runner, _summary, _loaded = run_clip(short_over_reply_clip(tmp_path / "data"))
+    before_requests = len(events_of(runner, "request"))
+    runner._finish_utterance(pcm(0.6, USER_LEVEL), 0, promote=False)
+    assert len(events_of(runner, "transcript")) >= 1
+    assert len(events_of(runner, "request")) == before_requests, "HOLD never becomes a command"
+    assert any(e.get("dropped") == "hold" for e in events_of(runner, "endpoint"))
+
+
+def test_a_recovered_clip_protected_word_is_counted_kept(tmp_path) -> None:
+    """The segment transcript the completion adds carries the user's words into the record, so the
+    metric that reads the segment transcripts (``protected_word_samples``) counts them kept. The
+    stub recogniser maps the pinned user audio to ``userword``; a real one would put the command."""
+    from voxa.bench import metrics
+
+    runner = _voxa_only_runner(tmp_path)
+    controller = runner.conversation
+    controller.mute()
+    start = controller.capture._last_seq + 1
+    for offset in range(20):
+        controller.feed(pcm(0.02, USER_LEVEL), float(USER_LEVEL), seq=start + offset)
+    controller.note_onset(seq=start + 5, level_floor=None)
+    runner._finish_unpromoted_pinned_span()
+    # Build a metric fact whose user truth is the short answer the completion transcribed.
+    truth = {"id": "tiny-0002-voxa_only-00", "scenario": "short", "expect": "keep",
+             "playback": {"text": "x", "onset_s": 0.0, "offset_s": 3.0},
+             "user": {"onset_s": 0.0, "offset_s": 0.4,
+                      "words": [{"word": "userword", "onset_s": 0.0, "offset_s": 0.02}]}}
+    fact = metrics.clip_facts(truth, runner.events, None)
+    heard = metrics._heard_words(fact)
+    assert "userword" in heard, "the completion put the user's word on the segment transcript"
+    values = metrics.protected_word_samples([fact])["values"]
+    assert values and sum(values) >= 1, "the protected word is counted kept"
+
+
+# ------------------------------------------------------------------ f181 promote_wait
+# f178's two premature cuts are candidate-completion/whole-turn ASSEMBLY cuts during
+# continuous speech: the turn closed while gated speech was still arriving. The fix is not
+# the probe (f178's arbitrator owns that side) but the f176/f177 promote path: while the
+# joint suspect is open, the turn is in a suspect/duck state, or more speech is arriving,
+# the never-completed pinned span is not handed over mid-speech and the turn is not CLOSED
+# - the completion runs at the suspect's close or at the hard cap. Never a silent drop,
+# never a re-promotion, and the degraded joint None path is unchanged (f136's rule).
+
+
+def _owed_span_runner(tmp_path):
+    """A runner holding a never-completed pinned span: 0.6 s of user audio captured while
+    the microphone is MUTED, an onset that pins the span, and no barge-in decision that
+    ever accepted it (the state f176 named; the frame loop never segmented those frames)."""
+    runner = _voxa_only_runner(tmp_path)
+    controller = runner.conversation
+    controller.mute()
+    start = controller.capture._last_seq + 1
+    for offset in range(30):
+        controller.feed(pcm(0.02, USER_LEVEL), float(USER_LEVEL), seq=start + offset)
+    controller.note_onset(seq=start + 10, level_floor=None)
+    assert controller.capture.promote_waiting(), "the pinned span is owed to the record"
+    return runner
+
+
+def _quiet_speech(runner) -> None:
+    """The cleaned-signal detector says speech is NOT arriving (the stub runs on 0.9)."""
+    runner.conversation._voice_detector.last_prob = 0.0
+
+
+def _closures(runner) -> int:
+    """Events that CLOSE a turn: endpoint/request/exit/ignored (the promote_wait holds them)."""
+    return sum(len(events_of(runner, name))
+               for name in ("endpoint", "request", "exit", "ignored"))
+
+
+def test_open_joint_suspect_defers_the_assembly_cut_until_the_close(tmp_path) -> None:
+    runner = _owed_span_runner(tmp_path)
+    runner._dt_suspect, runner._dt_measurable = True, True
+    closures = _closures(runner)
+    runner._finish_utterance(pcm(0.6, USER_LEVEL), 0)
+    assert _closures(runner) == closures, "no assembly cut with the suspect open"
+    assert events_of(runner, "transcript"), "the audio is transcribed at the cut: never a drop"
+    runner._dt_suspect = False
+    _quiet_speech(runner)
+    runner._flush_promote_held()
+    assert _closures(runner) == closures + 1, "the close runs the completion once"
+
+
+def test_more_speech_arriving_defers_the_assembly_cut(tmp_path) -> None:
+    runner = _owed_span_runner(tmp_path)
+    runner._dt_suspect, runner._dt_measurable = False, True  # joint gate measured QUIET
+    closures = _closures(runner)
+    runner._finish_utterance(pcm(0.6, USER_LEVEL), 0)
+    assert _closures(runner) == closures, "arriving speech alone holds the cut"
+    _quiet_speech(runner)  # the run of speech ends: the held closure runs at the close
+    runner._flush_promote_held()
+    assert _closures(runner) == closures + 1
+
+
+def test_a_quiet_joint_gate_completes_the_turn_unchanged(tmp_path) -> None:
+    runner = _owed_span_runner(tmp_path)
+    runner._dt_suspect, runner._dt_measurable = False, True
+    _quiet_speech(runner)
+    closures = _closures(runner)
+    runner._finish_utterance(pcm(0.6, USER_LEVEL), 0)
+    assert _closures(runner) == closures + 1, "no wait signal: the completion is unchanged"
+
+
+def test_the_degraded_joint_none_path_is_unchanged(tmp_path) -> None:
+    # f136's rule: a joint verdict that could not measure (None) adds NO veto.
+    runner = _owed_span_runner(tmp_path)
+    runner._dt_suspect, runner._dt_measurable = False, False
+    _quiet_speech(runner)
+    closures = _closures(runner)
+    runner._finish_utterance(pcm(0.6, USER_LEVEL), 0)
+    assert _closures(runner) == closures + 1, "INDETERMINATE joint adds no wait"
+
+
+def test_a_suspect_that_closes_mid_turn_promotes_exactly_once(tmp_path) -> None:
+    runner = _owed_span_runner(tmp_path)
+    capture = runner.conversation.capture
+    assert capture.promote_pinned(joint_suspect=True) == [], "the open suspect holds the handover"
+    assert capture.promote_waiting(), "the span is still owed, never dropped"
+    promoted = capture.promote_pinned(joint_suspect=False)
+    assert promoted and not capture.promote_waiting(), "the close hands the span over once"
+    assert capture.promote_pinned(joint_suspect=False) == [], "never a re-promotion"
+
+
+def test_the_hard_cap_still_completes_a_span_the_wait_never_closed(tmp_path) -> None:
+    # The stub detector keeps "more speech arriving" ON for the whole clip: the wait never
+    # closes on the clip. The clip end is the hard cap - the held turn closures still run
+    # there (never a silent drop) and the accepted span still reaches the request once.
+    runner, summary, _loaded = run_clip(short_over_reply_clip(tmp_path / "data"))
+    assert summary["requests"], "the accepted span still becomes the request"
+    confirms = events_of(runner, "barge-in-confirm")
+    assert len(confirms) == 1, "the accepted barge-in itself is not deferred (f176 contract)"
+    requests = events_of(runner, "request")
+    heard = confirms[0]["heard"]
+    assert sum(1 for e in requests if heard in e["text"]) == 1, (
+        "the hard cap emitted the held closure exactly once")
+    endpoints = [e for e in events_of(runner, "endpoint") if heard in e.get("text", "")]
+    assert endpoints, "and the turn closure ran at the cap, never silently dropped"
+
+
+def test_the_live_controller_promote_path_waits_out_the_suspect(tmp_path) -> None:
+    controller, _asr = make_controller()
+    controller.feed(pcm(0.02, USER_LEVEL), float(USER_LEVEL), seq=0)
+    controller.note_onset(seq=0, level_floor=None)
+    controller.note_endpoint_evidence(joint_suspect=True)
+    assert controller.promote_waiting()
+    assert controller.promote_pinned() == [], "the live promote path waits on the joint suspect"
+    assert controller.promote_waiting(), "the span is still owed"
+    assert controller.promote_pinned(force=True), "an accepted decision is never held (f176)"
+    assert not controller.promote_waiting()
+
+
+# ------------------------------------------------------------------ f183 probe withhold
+# f181 left one frozen-set premature row open: the DEGRADED (joint-None) pure-model probe on
+# smoke-0023-dt_echo_tail-01. A joint None adds no veto (f136), so the ONLY signal that can
+# withhold its complete=True (frame 207, prob 0.706) is the "more speech arriving" flag -
+# and f178 read it off the instantaneous cleaned-Silero on-threshold, which the clip's
+# 0.492/0.372 mid-word dip fell under. f183 widens that signal to the Silero HYSTERESIS
+# state (VoiceDetector.voiced), so a dip inside a still-continuing run of speech is read as
+# arriving and the complete waits to the next pause / hard cap - while a genuinely quiet
+# cleaned stream (hysteresis closed) still lets f136's pure-model path fire.
+
+
+def test_more_speech_arriving_reads_the_silero_hysteresis_not_the_threshold(tmp_path) -> None:
+    runner = _voxa_only_runner(tmp_path)
+
+    class _Dip:
+        """A mid-word dip inside a run of speech: probability UNDER the on-threshold (f178's
+        old signal called it quiet) but the hysteresis run is still open (voiced)."""
+        threshold = 0.5
+        last_prob = 0.372
+        voiced = True
+
+    runner.conversation._voice_detector = _Dip()
+    assert runner._more_speech_arriving() is True, "a dip inside an arriving run still arrives"
+
+    class _Quiet:
+        """Genuinely quiet: the hysteresis closed, so the pause really is the turn's end."""
+        threshold = 0.5
+        last_prob = 0.10
+        voiced = False
+
+    runner.conversation._voice_detector = _Quiet()
+    assert runner._more_speech_arriving() is False, "a genuinely quiet cleaned stream completes"

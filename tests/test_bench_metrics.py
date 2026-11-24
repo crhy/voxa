@@ -20,9 +20,10 @@ from voxa.bench.metrics import METRIC_NAMES, align, clip_facts, compute, edit_di
 # --------------------------------------------------------------------------- toy clips
 
 def frame(index: int, erle_db: float = 0.0, mic_level_db: float = -40.0, clean_level_db: float = -40.0,
-          ref_power: float = 0.0, muted: bool = False) -> dict:
+          ref_power: float = 0.0, muted: bool = False, delay_samples: int | None = None,
+          delay_frac: float | None = None, delay_confident: bool = False) -> dict:
     """One 20 ms frame of the runner's event stream."""
-    return {
+    out = {
         "event": "frame",
         "frame": index,
         "samples": [index * 320, (index + 1) * 320],
@@ -34,6 +35,13 @@ def frame(index: int, erle_db: float = 0.0, mic_level_db: float = -40.0, clean_l
         "muted": muted,
         "speaking": ref_power > 0.0,
     }
+    if delay_samples is not None:
+        out["delay_samples"] = delay_samples
+    if delay_frac is not None:
+        out["delay_frac"] = delay_frac
+    if delay_confident:
+        out["delay_confident"] = True
+    return out
 
 
 def frames(count: int, **fields) -> list[dict]:
@@ -268,10 +276,11 @@ def test_a_missed_attempt_and_a_duck_are_both_measured() -> None:
 
 
 def test_the_delay_the_canceller_estimates_is_compared_with_the_delay_injected() -> None:
+    # Hearing 2: the delay estimate is a per-frame, per-clip P99 over the frames the exact
+    # aligner reports as confident, compared against the delay that actually echoed.
     facts = [clip(
         truth(scenario="fst", echo={"delay_samples": 1600, "drift_ppm": 0.0}),
-        frames(200) + [{"event": "delay-estimate", "frame": 150, "t_s": 3.0, "delay_samples": 1616,
-                        "delay_ms": 101.0}])]
+        frames(200, ref_power=0.001, delay_samples=1616, delay_confident=True))]
     assert value_of(facts, "delay_est_err_ms") == pytest.approx(1.0)  # 16 samples at 16 kHz
 
 
@@ -395,12 +404,12 @@ def test_metrics_this_stage_cannot_measure_are_null_and_never_fail() -> None:
 
 
 def test_the_render_instrument_feeds_the_alignment_and_music_metrics() -> None:
-    """Roadmap task 1: the two metrics the render timeline made measurable.
+    """Roadmap task 1 / Hearing 2: the metrics the render timeline and the exact aligner feed.
 
     With no clips they are still null, but with a sample count of 0 and no "reason": the instrument
-    exists, there was simply nothing to measure. With clips, each clip contributes its own P90 (for
-    the alignment) and its own size of move (for the music), and a clip whose run had no canceller to
-    align contributes nothing rather than a zero that would drag the number down.
+    exists, there was simply nothing to measure. ``align_err_p90_ms`` is now the sub-sample residual
+    of the aligner's locked fractional delay against the delay that echoed (P90 over the confident
+    frames); ``erle_music_loss_db`` still comes from the render instrument.
     """
     empty = compute([], seed=0)
     for name in ("align_err_p90_ms", "erle_music_loss_db"):
@@ -410,17 +419,19 @@ def test_the_render_instrument_feeds_the_alignment_and_music_metrics() -> None:
         assert "reason" not in empty[name]
 
     facts = [
-        clip(truth(scenario="fst"), [], {"render": {"measurable": True,
-                                                    "align_err_p90_ms": 0.4, "erle_music_loss_db": 0.1}}),
-        clip(truth(scenario="fst"), [], {"render": {"measurable": True,
-                                                    "align_err_p90_ms": 0.9, "erle_music_loss_db": 0.7}}),
+        clip(truth(scenario="fst", echo={"delay_samples": 1000, "drift_ppm": 0.0}),
+             frames(100, ref_power=0.001, delay_frac=1000.0, delay_confident=True),
+             {"render": {"measurable": True, "align_err_p90_ms": 0.4, "erle_music_loss_db": 0.1}}),
+        clip(truth(scenario="fst", echo={"delay_samples": 1000, "drift_ppm": 0.0}),
+             frames(100, ref_power=0.001, delay_frac=1010.0, delay_confident=True),
+             {"render": {"measurable": True, "align_err_p90_ms": 0.9, "erle_music_loss_db": 0.7}}),
         clip(truth(scenario="nst"), [], {"render": {"measurable": False,
                                                     "reason": "the clip has no Voxa playback to tap"}}),
     ]
-    # P90 of the per-clip P90s, over two measurable clips.
-    assert value_of(facts, "align_err_p90_ms") == pytest.approx(0.85)
+    # align: 0.25 ms and 0.625 ms of sub-sample residual, P90 over 200 confident frames.
+    assert value_of(facts, "align_err_p90_ms") == pytest.approx(0.625)
     assert value_of(facts, "erle_music_loss_db") == pytest.approx(0.4)
-    assert row_of(facts, "align_err_p90_ms")["samples"] == 2
+    assert row_of(facts, "align_err_p90_ms")["samples"] == 200
 
 
 # --------------------------------------------------------------------------- the report and check
@@ -428,7 +439,7 @@ def test_the_render_instrument_feeds_the_alignment_and_music_metrics() -> None:
 def toy_facts() -> list[dict]:
     return [
         clip(truth(scenario="fst", playback=playing("the weather is clear", 0.0, 3.6)),
-             frames(180, ref_power=0.001)),
+             frames(180, ref_power=0.001, erle_db=20.0, clean_level_db=-60.0)),
         clip(truth(scenario="nst", expect="keep", user=speaking("the library opens", 1.0, 2.0)),
              frames(120) + [{"event": "transcript", "t_s": 2.4, "text": "the library opens",
                              "words": timed("the library opens", 0.0, 1.0)},

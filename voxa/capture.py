@@ -140,6 +140,7 @@ class CaptureRing:
         *,
         level_floor: float | None = None,
         pre_roll_seconds: float | None = None,
+        onset_audio_ms: float | None = None,
     ) -> bool:
         """Pin the span of a speech onset: the onset frame, back through the elevated frames
         that belong to the same run of speech, plus the pre-roll before it.
@@ -151,6 +152,17 @@ class CaptureRing:
         the first word of an interruption that began before the gate had time to open. Pass
         ``None`` for no walk-back: the span is exactly onset minus pre-roll. The walk-back can
         never reach past the retained window, so a pinned span stays bounded.
+
+        ``onset_audio_ms`` (roadmap task 6 re-plan, f177) is how much of the run of the user's
+        OWN sound the onset rule had to hold before it confirmed, in milliseconds of audio
+        (``voxa/onset.py``, ``OnsetOutcome.onset_audio_ms``). The onset frame is late by exactly
+        that much: the first word of a barge-in that started together with her playback landed
+        BEFORE the gate had enough unexplained sound to open. Walking the onset back to where
+        that run of unexplained sound began - the suspect onset - is what recovers the first
+        word, and it never walks into her own echo, because her echo is EXPLAINED sound the
+        onset rule never counted. The span then starts at the suspect onset minus the pre-roll,
+        over the CLEANED (post-AEC, post-mask) frames the ring already holds - never the raw
+        ring, whose cold-start recovery f133 measured re-introduces echo.
         """
         pre_roll = self.pre_roll_seconds if pre_roll_seconds is None else pre_roll_seconds
         with self._lock:
@@ -161,6 +173,9 @@ class CaptureRing:
                 # The onset frame itself is already gone (the span was pinned late): pin what
                 # is left rather than nothing, so the rest of the utterance survives.
                 onset = self._frames[0]
+            if onset_audio_ms:
+                # f177: start the turn at the suspect onset, not the (late) confirming frame.
+                onset = self._suspect_onset(onset, float(onset_audio_ms))
             # Walk back over the run of speech the onset belongs to.
             index = self._index_of(onset.seq)
             while level_floor is not None and index > 0:
@@ -205,21 +220,73 @@ class CaptureRing:
                     if (start is None or frame.seq >= start) and frame.seq not in self._consumed]
             return b"".join(pick)
 
-    def promote(self) -> list[Frame]:
-        """Hand the pinned span to the user turn, exactly once.
+    def promote_wait(self, *, joint_suspect: "bool | None" = None, turn_suspect: bool = False,
+                     more_speech_arriving: bool = False) -> bool:
+        """The f181 WAIT on the candidate/promote path: True while a pinned span that was
+        never completed must NOT be handed to the speech-pause rules (the segmenter).
+
+        The same three shipped verdicts f178's endpoint ARBITRATOR reads - the joint
+        double-talk suspect (f173), the turn state (f174: suspect/duck open), and whether
+        gated speech is still arriving (Silero hysteresis on) - now gate the PROMOTION, not
+        just the endpoint. The two frozen-set premature cuts f178 measured are
+        candidate-completion / whole-turn assembly cuts during continuous speech: an
+        open-floor segment's pause floor ran its 2.0 s silence clock while the mic was muted
+        and the user's continuing speech sat UNPROMOTED in this ring. Handed to the segmenter
+        mid-speech, that span assembles a turn that closes while speech is still arriving.
+        So while a wait signal is active, ``promote_pinned`` WAITS: it hands over nothing and
+        marks nothing consumed. The promotion runs at the suspect's close, or at the
+        existing hard cap (the 2.0 s incomplete floor, 3 s / 5 s dictation, 120 s
+        ``MAX_PINNED_SECONDS``) - never a silent drop, never a re-promotion.
+
+        A degraded/INDETERMINATE joint verdict (``joint_suspect is None``, f136's rule)
+        adds NO veto: only a True joint suspect waits.
+        """
+        return bool(joint_suspect is True or turn_suspect or more_speech_arriving)
+
+    def promote_pinned(self, *, joint_suspect: "bool | None" = None,
+                       turn_suspect: bool = False, more_speech_arriving: bool = False,
+                       force: bool = False) -> list[Frame]:
+        """Hand the pinned span to the user turn (or the record), exactly once.
 
         The frames keep their sequence ids, and their ids are recorded as consumed, so the
         caller that later receives the same frames again (or the next frames of the same
         turn) can append only what is new. The pin stays open: a request longer than the
         window keeps growing in this same span instead of losing its start.
+
+        f176 (handoff 6.4) is why this is the ONE promotion primitive: the candidate window
+        (``BARGE_IN_LISTEN_MS``) can end on a pinned span the barge-in decision never accepted
+        (an echo-measured onset that blocked the yield, a HOLD, a candidate that never collected
+        900 ms before the clip ended). That span is still owed to the record, and the way it is
+        handed over without being transcribed or commanded twice is exactly this call - promote
+        the pinned span once, keep its ids consumed, and let the caller transcribe what comes
+        back (the hearing runner marks it ``dropped="hold"``, never a command from weak audio).
+
+        f181: with no wait signals this is the unchanged f176 primitive. While the caller's
+        verdicts make :meth:`promote_wait` True, the never-completed pinned span is NOT
+        handed to the segmenter mid-speech: the call returns [] and consumes nothing
+        (``promote_waiting()`` answers whether a span is waiting out the suspect). At the
+        suspect's close the same call promotes; the caller's hard cap passes ``force=True``
+        so the wait never turns into a silent drop or a lost span.
         """
         with self._lock:
             if self._pin_from is None:
+                return []
+            if not force and self.promote_wait(joint_suspect=joint_suspect,
+                                               turn_suspect=turn_suspect,
+                                               more_speech_arriving=more_speech_arriving):
                 return []
             fresh = [frame for frame in self._frames if frame.seq >= self._pin_from
                      and frame.seq not in self._consumed]
             self._consumed.update(frame.seq for frame in fresh)
             return fresh
+
+    def promote_waiting(self) -> bool:
+        """A pinned span with frames still owed to the user turn or the record."""
+        with self._lock:
+            if self._pin_from is None:
+                return False
+            return any(frame.seq >= self._pin_from and frame.seq not in self._consumed
+                       for frame in self._frames)
 
     def note_rejected(self, *, now: float | None = None) -> None:
         """A candidate that was not the user: keep its audio for the evidence window, then release.
@@ -242,6 +309,22 @@ class CaptureRing:
             if frame.seq == seq:
                 return frame
         return None
+
+    def _suspect_onset(self, onset: Frame, onset_audio_ms: float) -> Frame:
+        """The frame where the run of the user's OWN sound that ``onset`` confirmed began.
+
+        The onset rule confirms only after ``onset_audio_ms`` of unexplained sound, so the
+        confirming frame is that much LATE (roadmap task 6 re-plan, f177). The frames between
+        the suspect onset and the confirming frame are the first word of the barge-in - the run
+        of sound the speaker path could NOT explain, which is by construction the user's voice,
+        never her echo. Walking back to it is bounded by the retained window, so the span stays
+        bounded and never reaches into silence or into an EXPLAINED echo before the run.
+        """
+        run_start_t = onset.t_s - max(0.0, onset_audio_ms) / 1000.0
+        index = self._index_of(onset.seq)
+        while index > 0 and self._frames[index - 1].t_s >= run_start_t:
+            index -= 1
+        return self._frames[index]
 
     def _index_of(self, seq: int) -> int:
         for index, frame in enumerate(self._frames):
@@ -317,3 +400,18 @@ class CaptureRing:
             if not frames:
                 return 0, -1
             return frames[0].seq, frames[-1].seq
+
+    def span_start_time(self) -> float | None:
+        """The arrival time of the oldest frame ``snapshot()`` would return (None: no span).
+
+        Roadmap task 7 (f175): the recogniser's word times are segment-relative; a caller that
+        wants them on the same clock as the word-timed playback timeline needs this anchor.
+        """
+        with self._lock:
+            frames = [frame for frame in self._frames
+                      if (self._pin_from is None or frame.seq >= self._pin_from)
+                      and frame.seq not in self._consumed]
+            if not frames:
+                return None
+            return float(frames[0].t_s)
+

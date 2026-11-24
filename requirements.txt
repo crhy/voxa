@@ -10,3 +10,7 @@ yt-dlp-ejs==0.8.0
 # Voxa falls back to her own NLMS canceller and says so. Apache-2.0, prebuilt wheels for Linux
 # x86_64/aarch64; it statically links WebRTC AEC3 (verified by symbol table, see voxa/anc.py).
 pywebrtc-audio>=0.2,<0.3
+# Smart Turn v3.1 endpoint model (roadmap hearing task 9): the 8 MB ONNX classifier voxa/endpoint.py
+# runs on the whole turn at a pause. Imported lazily; without it the pause rules fall back to the
+# 700 ms silence they had before. MIT, prebuilt manylinux wheels.
+onnxruntime>=1.30,<2

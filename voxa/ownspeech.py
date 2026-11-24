@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import time
 from collections import deque
+from dataclasses import dataclass
 from difflib import SequenceMatcher
 
 PROTECTED = ("stop", "pause", "cancel", "quiet", "wait")
@@ -31,8 +32,34 @@ MIN_RUN = 3
 SHORT_HEARD_RUN = 2
 SHORT_HEARD_WORDS = 5
 
+# Roadmap task 7: the ± window a HEARD word may sit from a played TTS word and still be a
+# time-matched echo candidate. Report 78-87 (report line 181) names 200/400/600 ms as the sweep;
+# 400 ms is the shipped default (Edge TTS word boundaries are estimates, and the audible moment is
+# already shifted by task 1's measured output latency, so the slack is synthesis error + jitter).
+WORD_WINDOW_MS = 400.0
+
 # The attribution source that allows a rewrite at all.
 ECHO = "echo"
+
+
+@dataclass(slots=True)
+class PlayedWord:
+    """One TTS word Voxa's speakers played, and the audible span it occupied.
+
+    ``start``/``end`` are already in playback (audible) time: the synthesis offset from Edge TTS'
+    ``WordBoundary`` (``voxa/speech.py``) shifted by task 1's measured output latency (the render
+    timeline's ``audible_time`` map). ``generation`` is the id the render timeline files this
+    playback under, so a stopped reply's already-queued tail is not mistaken for heard echo.
+    """
+
+    word: str
+    start: float
+    end: float
+    generation: str | None = None
+
+    @property
+    def span_seconds(self) -> float:
+        return max(0.0, self.end - self.start)
 
 
 def normalise(text: str) -> list[str]:
@@ -64,6 +91,10 @@ class OwnSpeech:
         self.texts: deque[list[str]] = deque(maxlen=3)
         self.speaking = False
         self.finished_at: float | None = None
+        # Roadmap task 7: the word-timed timeline of what her speakers actually played. Bounded on
+        # purpose (the same reasoning as keep_seconds): it is evidence about WHEN an echo of each
+        # word would land, never a window during which matching words get deleted.
+        self._played: deque[PlayedWord] = deque(maxlen=2048)
 
     def started(self, text: str) -> None:
         words = normalise(text)
@@ -91,6 +122,144 @@ class OwnSpeech:
         if self.speaking or self.finished_at is None:
             return None
         return round(self.clock() - self.finished_at, 3)
+
+    # ------------------------------------------------------------------ word-timed timeline
+    # Roadmap task 7: the whole point is that she knows WHICH word she was saying at each audible
+    # moment, so a heard word that lands inside the span of a word she played is a time-matched
+    # echo candidate. This is one weighted FEATURE (report 78-87); it never deletes a word of a
+    # confirmed near-end utterance (handoff 5.3 / the A2 rule).
+
+    def note_played(self, word: str, start: float, end: float,
+                    generation: str | None = None) -> None:
+        """Record one TTS word her speakers played, in audible (playback) time."""
+        word = word.strip().casefold()
+        if not word:
+            return
+        start, end = float(start), float(end)
+        if end < start:
+            start, end = end, start
+        self._played.append(PlayedWord(word=word, start=start, end=end, generation=generation))
+
+    def note_played_boundaries(self, boundaries, generation: str | None = None,
+                               latency: float = 0.0) -> None:
+        """Record Edge-TTS word boundaries shifted by the measured output latency.
+
+        ``boundaries`` is the ``[(word, offset_seconds, duration_seconds)]`` ``voxa/speech.py``'s
+        ``on_words`` callback hands over. ``latency`` is task 1's measured output latency (the
+        seconds between the synthesis offset and the moment the sample is audible); the render
+        timeline already folds it into ``audible_time`` on the live path, so a caller that hands
+        audibility-corrected spans passes 0.0.
+        """
+        shift = float(latency)
+        for entry in boundaries:
+            word = str(entry[0])
+            offset = float(entry[1]) + shift
+            duration = float(entry[2]) if len(entry) > 2 else 0.0
+            self.note_played(word, offset, offset + max(0.0, duration), generation)
+
+    def played_words(self) -> list[PlayedWord]:
+        return list(self._played)
+
+    def item_being_read(self, at_time: float) -> PlayedWord | None:
+        """The word her speakers were audible reading at ``at_time`` (roadmap task 7 step 4).
+
+        The same timeline that times the echo also answers "what was she saying when I interrupted?"
+        - so an anaphoric "that one" from the user resolves to the item on the tongue at that moment.
+        """
+        at_time = float(at_time)
+        best: PlayedWord | None = None
+        best_start = float("inf")
+        for played in self._played:
+            if played.start <= at_time <= played.end and played.start < best_start:
+                best, best_start = played, played.start
+        return best
+
+    def timed_overlap(self, heard_with_times, window_ms: float = WORD_WINDOW_MS) -> dict:
+        """The WORD-TIMED overlap as a feature: heard words that match a played word inside the time window.
+
+        ``heard_with_times`` is an iterable of ``(word, onset_seconds, offset_seconds)`` for the
+        recogniser's words (faster-whisper ``word_timestamps=True``). A heard word counts as
+        time-matched when it fuzzy-matches one of her played words AND that word was audible within
+        ``window_ms`` of the heard word's span. Returns a diagnostic share; nothing is removed.
+        """
+        heard = [
+            (str(word).strip().casefold(), float(start), float(end))
+            for word, start, end in heard_with_times
+            if str(word).strip()
+        ]
+        if not heard or not self._played:
+            return {"share": 0.0, "matched": 0, "words": len(heard),
+                    "longest_run": 0, "window_ms": float(window_ms)}
+        window = float(window_ms) / 1000.0
+        matched = 0
+        runs: list[bool] = []
+        for word, onset, _offset in heard:
+            # Time-matched when the word fuzzy-matches one of her played words AND she was audible
+            # reading it within +- the window of the moment the recogniser placed this word: the
+            # echo of THAT word could only land at that time (report 78-87: the synthesis offset is
+            # already converted to playback time, so this is onset-to-onset within +-W ms).
+            hit = any(
+                _fuzzy_equal(word, played.word) and abs(onset - played.start) <= window
+                for played in self._played
+            )
+            runs.append(hit)
+            if hit:
+                matched += 1
+        longest = run = 0
+        for hit in runs:
+            run = run + 1 if hit else 0
+            longest = max(longest, run)
+        return {"share": matched / len(heard), "matched": matched, "words": len(heard),
+                "longest_run": longest, "window_ms": float(window_ms)}
+
+    def timed_matches(self, heard_with_times, window_ms: float = WORD_WINDOW_MS) -> list[bool]:
+        """Per heard word: does it fuzzy-match one of her played words within ± the window?
+
+        The same onset-to-onset test as :meth:`timed_overlap`, but per word - so a caller can
+        drop exactly the matched words and keep everything else (:meth:`timed_removed`).
+        """
+        heard = [
+            (str(word).strip().casefold(), float(start))
+            for word, start, _end in heard_with_times
+            if str(word).strip()
+        ]
+        if not heard or not self._played:
+            return [False] * len(heard)
+        window = float(window_ms) / 1000.0
+        return [
+            any(_fuzzy_equal(word, played.word) and abs(onset - played.start) <= window
+                for played in self._played)
+            for word, onset in heard
+        ]
+
+    def timed_removed(self, heard_with_times, window_ms: float = WORD_WINDOW_MS,
+                      joint_closed_at=None) -> list[bool]:
+        """The word-timed DROP rule (roadmap task 7 re-plan, task f175 step 3).
+
+        A heard word is removed ONLY when BOTH hold: it fuzzy-matches a word Voxa was audibly
+        reading within ± the window (her echo of THAT word could only land at that moment), AND
+        the joint double-talk gate was CLOSED at that moment - it measured echo, nothing else
+        (:class:`voxa.voicedetect.DoubleTalkGate`'s echo-consistent mirror verdict, shipped by
+        task 5/f173). The gate open or unmeasurable never deletes: an unexplained word is the
+        user's. This is why protected command words ("stop", "cancel", ...) are kept unless the
+        rule fires around their exact moment: a "Stop" the user says while she reads a different
+        word is her own command, not her echo.
+
+        ``joint_closed_at`` maps a heard word's onset (audible time) to the joint gate's state
+        there; missing (None) means never closed.
+        """
+        entries = [(str(word).strip(), float(start))
+                   for word, start, _end in heard_with_times if str(word).strip()]
+        matches = self.timed_matches(
+            [(word, onset, onset) for word, onset in entries], window_ms=window_ms)
+        removed: list[bool] = []
+        for matched, (_word, onset) in zip(matches, entries, strict=True):
+            if not matched:
+                removed.append(False)
+                continue
+            closed = joint_closed_at(float(onset)) if callable(joint_closed_at) else False
+            removed.append(bool(closed))
+        return removed
 
     def _protected(self, protect: list[str] | None) -> set[str]:
         out = set(PROTECTED)
@@ -154,8 +323,16 @@ class OwnSpeech:
         return source == ECHO
 
     def strip(self, heard: str, protect: list[str] | None = None, *, evidence=None,
-              confirmed_user: bool = False) -> tuple[str, float]:
+              confirmed_user: bool = False, heard_with_times=None,
+              joint_closed_at=None, window_ms: float = WORD_WINDOW_MS) -> tuple[str, float]:
         """Remove echo words, but only when the evidence says the span is her own voice.
+
+        Without ``heard_with_times`` this is the degraded text-only path, unchanged: the lexical
+        run decides (logged as degraded by the caller). With word times (roadmap task 7's
+        re-plan) the lexical run stops deleting - it stays a diagnostic in :meth:`features` -
+        and ONLY the word-timed rule does: a word is dropped when it time-matches one of her
+        played words within ± the window AND the joint gate was closed at that moment
+        (:meth:`timed_removed`). A confirmed near-end utterance is never rewritten either way.
 
         Returns ``(text, share)``: the share is the text-overlap feature, reported whether or
         not anything was removed, so a kept user repetition is still visible in the trace.
@@ -166,6 +343,22 @@ class OwnSpeech:
         if not heard_words:
             return (heard, 0.0)
         protect_set = self._protected(protect)
+        if heard_with_times is not None:
+            entries = [(str(word).strip(), start, end)
+                       for word, start, end in heard_with_times if str(word).strip()]
+            if len(entries) == len(heard_words):
+                removed = self.timed_removed(entries, window_ms=window_ms,
+                                             joint_closed_at=joint_closed_at)
+                removed_count = sum(removed)
+                share = removed_count / len(heard_words)
+                if removed_count == 0:
+                    return (heard, share)
+                if not self._may_rewrite(evidence, confirmed_user):
+                    return (heard, share)
+                remaining = [w for w, gone in zip(heard_words, removed, strict=True) if not gone]
+                return (" ".join(remaining), share)
+            # The word times and the transcript disagreed: never delete what cannot be aligned.
+            return (heard, 0.0)
         removed = self._removed(heard_words, protect_set)
         removed_count = sum(removed)
         if removed_count == 0:

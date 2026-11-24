@@ -82,6 +82,11 @@ class BargeOutcome:
     onset_audio_ms: float = 0.0
     evidence_ms: float = 0.0
     margin_db: float = 0.0
+    # Roadmap task 8 (f174): the joint double-talk gate's suspect verdict for the frame this
+    # decision was made on - True suspect, False measured echo, None could-not-measure. The window
+    # uses it to DUCK her own stream on the suspect (never on a measured echo, never on a degraded
+    # frame) before deciding to yield.
+    joint_suspect: bool | None = None
     # Stamped by ``voxa/hearing.py`` with the generation this decision belongs to: a decision
     # that crossed a yield is not applied at all (see ``HearingDirector.accept``).
     generation: int = 0
@@ -279,13 +284,49 @@ class BargeInController:
         stats["baseline"] = float(self.gate.baseline)
         self.gate.note_reply_audio(dt)
         opened = self.gate.update(level01, self.gate.baseline, dt)
+        # Roadmap task 5: with a live reference, the JOINT double-talk gate is the opening rule -
+        # the raw level ratio is what interrupted her on her own loudest syllables. The gate
+        # still tracks levels (baseline teaching, the fallback below), but the candidate window
+        # opens when the three audio streams agreed, not when the microphone towers.
+        audio = evidence() if callable(evidence) else evidence
+        joint = audio.joint_suspect if audio is not None else None
+        if joint is not None and audio.reference_active:
+            if joint:
+                opened = True
+            elif getattr(audio, "joint_echo", False):
+                # Only the gate's MIRROR verdict may suppress the fallback: the microphone held
+                # the delayed reference, so the tower is her own voice. "Not suspect" alone is
+                # indeterminate, and barge-ins the joint window has not confirmed keep the floor.
+                opened = False
+                stats["joint_closed"] = stats.get("joint_closed", 0) + 1
+                if self.pending_since > 0.0:
+                    # f172: the mirror verdict closes a candidate that the fallback level gate
+                    # already opened: the span it is collecting is her echo, and every frame
+                    # of it stays in the capture ring (evidence, never deletion). If a real
+                    # second source follows, the suspect or the fallback opens the window
+                    # again while its audio is still there.
+                    self._clear_candidate()
+                    stats["joint_closed_candidate"] = stats.get("joint_closed_candidate", 0) + 1
         if self.gate.listening and self.pending_since <= 0.0 and not opened:
             # Still her voice (or noise): teach the gate what "normal" is.
             self.gate.note_speaking_level(level01, dt)
         # --- speech onset: milliseconds of audio the speaker path cannot explain -----------------
         self.onset.note_delay(delay_ms)
         onset = self.onset.observe(mic_db, reference_db, dt)
-        if onset.onset and not self._yielded:
+        if onset.onset and not self._yielded and joint is False and audio.reference_active:
+            # f172 (roadmap task 5): the fast yield is reference-aware now. The onset rule says
+            # the microphone towers over what the speaker path could have produced, but the
+            # joint double-talk gate MEASURED this frame and did not find a second source -
+            # the cleaned stream's speech, its margin over the predicted residual and the
+            # reference at the locked delay never held together. The floor stays: the level
+            # gate and the words carry on (the candidate path below), and the suspect may
+            # still raise the yield on a later frame of the same onset.
+            stats["onset_blocked"] = stats.get("onset_blocked", 0) + 1
+            self._trace("onset-blocked", evidence_ms=round(onset.evidence_ms, 1),
+                        margin_db=round(onset.margin_db, 2),
+                        onset_audio_ms=round(onset.onset_audio_ms, 1),
+                        level=round(level01, 4), speaking=self.speaking_text[:60])
+        elif onset.onset and not self._yielded:
             # The fast half of the decision (task A3): stop her playback NOW, before a single
             # word has been transcribed. The words are still being collected, and the outcome
             # that decides what happens to them comes later.
@@ -299,7 +340,8 @@ class BargeInController:
                         level=round(level01, 4), speaking=self.speaking_text[:60])
             return BargeOutcome(YIELD, reason="onset", level=level01, onset=True, gate_opened=True,
                                 onset_audio_ms=onset.onset_audio_ms,
-                                evidence_ms=onset.evidence_ms, margin_db=onset.margin_db)
+                                evidence_ms=onset.evidence_ms, margin_db=onset.margin_db,
+                                joint_suspect=joint)
         if self.pending_since <= 0.0:
             if not opened:
                 return BargeOutcome(IGNORED, reason="gate-closed", level=level01)
@@ -320,7 +362,6 @@ class BargeInController:
             self.gate.reset()
             self._clear_candidate()
             return BargeOutcome(OFFLINE, heard=heard, raw=raw, level=level01)
-        audio = evidence() if callable(evidence) else evidence
         decision = source_decision(heard, self.speaking_text, self.recent_spoken, raw=raw,
                                    evidence=audio,
                                    level_ratio=(self.pending_ratio
@@ -341,7 +382,7 @@ class BargeInController:
             self._clear_candidate()
             return BargeOutcome(HOLD, reason="uncertain", heard=heard, raw=raw, level=level01,
                                 source=decision.source, confidence=decision.confidence,
-                                degraded=decision.degraded)
+                                degraded=decision.degraded, joint_suspect=joint)
         own = decision.source == ECHO
         if (
             not own
@@ -362,11 +403,11 @@ class BargeInController:
             self._clear_candidate()
             return BargeOutcome(OWN_VOICE, heard=heard, raw=raw, level=level01,
                                 source=decision.source, confidence=decision.confidence,
-                                degraded=decision.degraded)
+                                degraded=decision.degraded, joint_suspect=joint)
         self.gate.reset()
         self._clear_candidate()
         self.speaking_since = 0.0
         return BargeOutcome(INTERRUPT, heard=heard, raw=raw, level=level01,
                             listening_seconds=self.clock() - started,
                             source=decision.source, confidence=decision.confidence,
-                            degraded=decision.degraded)
+                            degraded=decision.degraded, joint_suspect=joint)

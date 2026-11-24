@@ -2,17 +2,21 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import subprocess
 import threading
 import time
+from collections import deque
 from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
 
 from . import anccal
-from .anc import (Aec3Canceller, DelayTracker, EchoCanceller, aec3_available, claim_aec_owner,
-                  estimate_delay,
-                  release_aec_owner)
+from .align import ExactDelayLock
+from .anc import (Aec3Canceller, EchoCanceller, MIN_REFERENCE_POWER, aec3_available,
+                  claim_aec_owner, erle_db, estimate_delay, release_aec_owner)
+from .echo import OUTPUT_SPEAKERS, DeviceWatcher, OutputSnapshot, output_tuning
+from .refmask import LockedResidualMask
 from .timeline import CaptureClock, RenderTimeline
 
 Gst: Any = None  # Initialized lazily so importing this module needs no GStreamer or PyGObject.
@@ -40,6 +44,10 @@ def _ensure_gstreamer() -> Any:
 # Reference samples we keep: the last 3 seconds at 16 kHz.
 REFERENCE_SECONDS = 3
 REFERENCE_RATE = 16000
+# Roadmap task 5 (f173): the barge-in joint gate reads the cleaned stream the capture produced.
+# The capture thread only STORES the frames (the canceller/mask already ran); the model (Silero)
+# and the coherence run on the hearing worker, which drains this bounded ring. 100 x 20 ms = 2 s.
+JOINT_FRAMES = 100
 
 
 def webrtc_available() -> bool:
@@ -235,7 +243,23 @@ class AudioCapture:
         self._delay_done = True
         self._delay_mic: list = []
         self._delay_ref: list = []
-        self._delay_tracker: DelayTracker | None = None
+        self._delay_lock: ExactDelayLock | None = None
+        # Roadmap task 4 on the exact-delay output (f171): the residual stage ON the shipping
+        # canceller's own output, read at the delay the lock drives the canceller at. None =
+        # the mode has no residual stage (echo off, the webrtc route, or AEC3, whose delay is
+        # its own and was never handed to a lock).
+        self._residual_mask: LockedResidualMask | None = None
+        self._delay_lock_logged = False   # the exact lock's first success: logged once
+        self._delay_degraded_logged = False  # the fallback estimate taking over: logged once
+        # Roadmap task 5 (f173): the joint double-talk gate's inputs, staged by the CAPTURE thread
+        # and consumed by the HEARING WORKER. The capture never runs a model here: it stores the
+        # cleaned/mic/reference bytes plus the delay, band margin and ERLE the canceller and the
+        # residual mask already measured. The hearing worker drains this bounded ring, runs the
+        # cleaned-stream Silero and the DoubleTalkGate coherence, and returns the joint verdicts to
+        # window._hearing_evidence (handoff 6.8: no inference in the audio callback, none on GTK).
+        self._joint_frames: deque[tuple] = deque(maxlen=JOINT_FRAMES)
+        self._joint_lock = threading.Lock()
+        self._joint_dropped = 0
         self._start_args: tuple | None = None
         # Roadmap task 2: the device the microphone is on and the device the sound goes out on.
         # Different devices mean different clocks, which is what AEC3's drift handling wants to know.
@@ -243,6 +267,18 @@ class AudioCapture:
         self._sink_identifier: str | None = None
         # The GStreamer route: the name of the webrtcechoprobe the playback tap registers (task 2).
         self.echo_probe_name: str | None = None
+        # Roadmap task 10: what the sound goes out on, and the epoch it was learned under.
+        # A device, headphone or Bluetooth-profile change is an EXPLICIT epoch: the reference
+        # history, the canceller and the latency measurement all restart together, because the
+        # acoustic path (and its codec buffering) is a different one. Never per sentence.
+        self._echo_mode = "off"
+        self.output_class: str = OUTPUT_SPEAKERS
+        self.tuning = output_tuning(self.output_class)
+        self.epoch = 0
+        self._recovery_until = 0.0
+        self._device_watcher: DeviceWatcher | None = None
+        # The live capture source, kept so an epoch can re-read the driver's own latency.
+        self._capture_src: Any = None
         # The speaker/microphone pair Voxa is hearing through (see voxa/anccal.py): the saved profile
         # for that pair is her starting filter, and what she learns during use is saved back under it.
         self.hearing_sink: str | None = None
@@ -323,6 +359,7 @@ class AudioCapture:
                 source = selected.device.create_element(None)
             else:
                 source = gst.ElementFactory.make("autoaudiosrc")
+        self._capture_src = source  # an epoch re-reads this driver's latency (task 10)
         convert = gst.ElementFactory.make("audioconvert")
         resample = gst.ElementFactory.make("audioresample")
         capsfilter = gst.ElementFactory.make("capsfilter")
@@ -364,7 +401,10 @@ class AudioCapture:
         self._delay_done = self.canceller is None
         self._delay_mic = []
         self._delay_ref = []
-        self._delay_tracker = None  # a fresh capture or mode change is an explicit epoch
+        self._delay_lock = None  # a fresh capture or mode change is an explicit epoch
+        self._residual_mask = (LockedResidualMask(rate=REFERENCE_RATE)
+                               if isinstance(self.canceller, EchoCanceller)
+                               else None)  # the residual stage re-learns the path with the capture
         self._ref_ring = (ReferenceRing(REFERENCE_SECONDS * REFERENCE_RATE)
                            if (self.reference_source or self.own_reference) else None)
         if self.reference_source:
@@ -419,6 +459,183 @@ class AudioCapture:
         freeze the alignment). Unknown or unanswered means 0: no correction, the old behaviour.
         """
         self.capture_clock.latency = seconds
+
+    # --- roadmap task 10: device, headphone and Bluetooth changes as explicit epochs -------
+
+    def start_device_watch(self, *, poll_seconds: float = 2.0, runner: Any = None) -> None:
+        """Watch the user's output device and react to changes with an epoch (roadmap task 10).
+
+        Read-only: the watcher only asks PulseAudio/PipeWire what the default sink, source and
+        Bluetooth profile ARE; Voxa never switches a profile, a port or the default device itself
+        (WirePlumber's autoswitch to the headset profile is an event to REACT to). Safe to call
+        twice, never raises: no daemon, no watcher, and the pipeline keeps its current epoch.
+        """
+        if self._device_watcher is not None:
+            return None
+        try:
+            watcher = DeviceWatcher(self._on_device_change, runner=runner or subprocess.run,
+                                    poll_seconds=poll_seconds, log=log)
+        except Exception:  # noqa: BLE001 - a machine with no audio at all must still run
+            log.info("device watcher unavailable: audio stays on its current epoch")
+            return None
+        self._device_watcher = watcher
+        # One synchronous read first: the very first output is not an epoch, it is what this
+        # capture is, so the tuning (and AEC3's delay seed) is right from the first sentence.
+        watcher.poll_once()
+        if watcher.snapshot is not None:
+            self.note_output(watcher.snapshot.output_class)
+        watcher.start()
+        return None
+
+    def stop_device_watch(self) -> None:
+        watcher, self._device_watcher = self._device_watcher, None
+        if watcher is not None:
+            watcher.stop()
+
+    def _on_device_change(self, change: dict) -> None:
+        """The watcher's callback: one device change, one explicit epoch."""
+        snap: OutputSnapshot | None = change.get("to")
+        reason = str(change.get("reason") or "device-change")
+        self.begin_epoch(getattr(snap, "output_class", None), reason=reason)
+
+    def note_output(self, output_class: str | None, *, reason: str = "startup") -> str:
+        """Learn WHICH output this is without an epoch (the watcher's first read).
+
+        The very first read has nothing to recover from, and opening a recovery window there would
+        hold the user's first request for no reason. The tuning still applies, because the AEC3
+        delay seed below is chosen when the canceller is created.
+        """
+        if not output_class or output_class == self.output_class:
+            return self.output_class
+        self.output_class = output_class
+        self.tuning = output_tuning(output_class)
+        log.info("audio output %s (%s): delay search %.0f ms, residual margin %.1f dB",
+                 output_class, reason, self.tuning.delay_search_ms, self.tuning.residual_margin_db)
+        return output_class
+
+    def echo_path_qualified(self) -> bool:
+        """True when the echo path can say what the microphone's sound is made of RIGHT NOW.
+
+        False is "unqualified audio": no delay estimate yet, or no canceller at all. Task 10's
+        recovery rule holds automatic commands off exactly that, and keeps the audio."""
+        canceller = self.canceller
+        if canceller is None or not self._canceller_enabled:
+            return False
+        if getattr(canceller, "delay_managed_internally", False):
+            return True  # AEC3 owns the alignment: it reports nothing because it is always searching
+        return self.delay_samples > 0
+
+    @property
+    def recovering(self) -> bool:
+        """True inside an epoch's recovery window (handoff 6.2's recovery process).
+
+        During recovery the pipeline keeps every sample of audio - nothing is thrown away - but
+        unqualified audio may not raise an automatic command: the canceller has not converged on the
+        new path yet, and a decision made from audio it cannot explain is how a device change turns
+        into a self-interruption.
+        """
+        return time.monotonic() < self._recovery_until
+
+    def begin_epoch(self, output_class: str | None = None, *, reason: str = "device-change") -> int:
+        """One explicit epoch: flush the reference, recreate the canceller, re-measure latency.
+
+        Roadmap task 10 and handoff 6.2: a route, device or Bluetooth-profile change is the ONLY
+        thing that reaches here (the canceller is never rebuilt per sentence, and the delay tracker
+        re-estimates the delay without ever touching the filter). Everything acoustic restarts
+        together: the reference history, the canceller instance, the latency measurement and the
+        task-5 thresholds that belong to this output (``self.tuning``). The recovery window that
+        opens holds automatic commands off unqualified audio while it converges.
+        """
+        self.epoch += 1
+        if output_class and output_class != self.output_class:
+            self.output_class = output_class
+        self.tuning = output_tuning(self.output_class)
+        log.info("audio epoch %d (%s): output %s, echo path %s, delay search %.0f ms, "
+                 "residual margin %.1f dB", self.epoch, reason, self.output_class,
+                 "present" if self.tuning.echo_path_present else "absent",
+                 self.tuning.delay_search_ms, self.tuning.residual_margin_db)
+        # 1. Flush the reference history: samples rendered into the OLD device's clock say nothing
+        #    about this one. Both reference kinds flush together (task 1's timeline and the ring).
+        if self.timeline is not None:
+            self.timeline.new_epoch(reason)
+        if self._ref_ring is not None:
+            self._ref_ring = ReferenceRing(REFERENCE_SECONDS * REFERENCE_RATE)
+        self._ref_anchor = None
+        # 2. Re-measure the latency before the first chunk of the new path is aligned.
+        self._remeasure_latency()
+        # 3. Recreate the canceller for the new path (one owner: the old one gives the path up
+        #    first), and restart the delay estimate - the delay itself is what changed.
+        self._recreate_canceller()
+        # The chain's delay machinery: an epoch is the only reset the learned delay ever gets
+        # (task 3 re-estimates, never rebuilds). ExactDelayLock holds the lock AND the fallback
+        # estimate, so dropping the lock drops both; ``_delay_tracker`` is the f137-era name of
+        # that estimate, cleared with it. The residual stage starts ungifted too: no delay of
+        # the old path may be handed to it.
+        self._delay_lock = None
+        self._delay_tracker = None
+        self._residual_mask = (LockedResidualMask(rate=REFERENCE_RATE)
+                               if self._echo_mode == "voxa" else None)
+        self._delay_mic, self._delay_ref = [], []
+        self._delay_done = self.canceller is None
+        # 4. The recovery window (handoff 6.2): no automatic commands from unqualified audio.
+        self._recovery_until = time.monotonic() + self.tuning.recovery_s
+        return self.epoch
+
+    def _recreate_canceller(self) -> None:
+        """Build a fresh canceller of the mode the capture path asked for, with this output's delay."""
+        mode = self._echo_mode
+        old, self.canceller = self.canceller, None
+        if old is not None:
+            release_aec_owner(old)
+            with contextlib.suppress(Exception):
+                old.close()  # AEC3 exposes close(); the NLMS path does not
+        if mode == "webrtc":
+            # The GStreamer DSP owns this pipeline's echo path: an epoch restarts the pipeline
+            # instead (``start`` re-runs it), which is also what re-opens its probe.
+            self.canceller = None
+            return
+        try:
+            if mode == "aec3":
+                # A2DP/HFP buffer hundreds of milliseconds on top of the room: seed AEC3 with the
+                # delay its estimator may expect (task 10's table). A normal output keeps today's
+                # blind start, because a wrong seed costs more than it saves.
+                self.canceller = Aec3Canceller(stream_delay_ms=int(self.tuning.aec3_seed_ms))
+            elif mode in ("voxa", "off"):
+                self.canceller = EchoCanceller()
+            else:
+                self.canceller = None
+                return
+        except Exception as exc:  # noqa: BLE001 - the microphone must survive a canceller failure
+            log.warning("echo canceller could not restart (%s): raw microphone, degraded state", exc)
+            self.canceller = None
+        self._canceller_enabled = self.canceller is not None
+        self._canceller_logged = False
+        self.apply_clock_drift()
+
+    def _remeasure_latency(self) -> float | None:
+        """Read the live capture latency again (an epoch may have changed the driver's buffer)."""
+        current = self.capture_clock.latency
+        if callable(current):
+            # The app handed us a live question, so ask it again: a Bluetooth profile changes the
+            # answer, and this is exactly why set_capture_latency accepts a callable.
+            try:
+                value = float(current())
+            except Exception:  # noqa: BLE001 - the source may be gone mid-switch
+                return None
+            log.debug("capture latency re-measured: %.1f ms", value * 1000.0)
+            return value
+        source = self._capture_src
+        if source is not None:
+            # The PulseAudio/PipeWire source driver tells its own latency in microseconds, the same
+            # property _start_reference sets on the reference side.
+            with contextlib.suppress(Exception):
+                if source.find_property("latency") is not None:
+                    microseconds = float(source.get_property("latency"))
+                    self.capture_clock.latency = max(0.0, microseconds / 1_000_000.0)
+                    log.debug("capture latency re-measured from the source: %.1f ms",
+                              self.capture_clock.latency * 1000.0)
+                    return self.capture_clock.latency
+        return current if isinstance(current, (int, float)) else None
 
     def reference_mode(self) -> str:
         """``own-render`` / ``monitor`` / ``none``: what the canceller is being fed right now."""
@@ -525,6 +742,7 @@ class AudioCapture:
         # The microphone is opened exactly as the plain capture pipeline opens it.
         selected = next((item for item in self._devices if item.identifier == device_id), None)
         mic_src = selected.device.create_element(None) if selected is not None else make("pulsesrc")
+        self._capture_src = mic_src  # an epoch re-reads this driver's latency (task 10)
         convert_m, resample_m, caps_m = make("audioconvert"), make("audioresample"), make("capsfilter")
         probe, probe_sink = make("webrtcechoprobe"), make("fakesink")
         convert, resample, capsfilter = make("audioconvert"), make("audioresample"), make("capsfilter")
@@ -596,7 +814,9 @@ class AudioCapture:
         self._delay_done = True
         self._delay_mic = []
         self._delay_ref = []
-        self._delay_tracker = None  # a fresh capture or mode change is an explicit epoch
+        self._delay_lock = None  # a fresh capture or mode change is an explicit epoch
+        self._residual_mask = None  # the GStreamer DSP owns the whole echo path, stage included
+        self._reset_joint_frames()  # the webrtc route feeds no joint frames: drop any NLMS residue
         self._ref_ring = None
         self.pipeline = pipeline
         # One AEC owner: the GStreamer DSP owns the echo path for as long as this pipeline lives.
@@ -699,6 +919,10 @@ class AudioCapture:
             self._canceller_enabled = False
             self._mic_counter += len(pcm) // 2
             return pcm
+        cleaned = self._residual_stage(cleaned, pcm, window)
+        # f173: stage the frame the joint double-talk gate will read on the hearing worker. No
+        # model runs here: the bytes plus the delay/margin/ERLE the canceller and mask measured.
+        self._note_joint_frame(cleaned, pcm, window)
         self._mic_counter += len(pcm) // 2
         return cleaned
 
@@ -711,13 +935,105 @@ class AudioCapture:
         if peak > self.hearing_level:
             self.hearing_level = peak
 
-    def _maybe_estimate_delay(self, pcm: bytes) -> None:
-        """Track the echo delay and the clock drift continuously (roadmap task 3).
+    def _note_joint_frame(self, cleaned: bytes, mic_bytes: bytes, ref: np.ndarray) -> None:
+        """Roadmap task 5 (f173): park one cleaned frame for the barge-in joint gate.
 
-        A GCC-PHAT over the first 0.5 s of every TTS utterance gives the coarse offset,
-        re-estimated every 0.5 s after that: the slope of the estimates is the clock drift in
-        ppm (above 50 ppm the drift flag latches and the interpolated offsets resample the
-        reference), and an abrupt jump is an explicit epoch the drift never sees. The
+        The capture thread has no business running a model (handoff 6.8), so this only keeps the
+        three sample streams the DoubleTalkGate needs plus the scalars the shipping chain already
+        measured: the delay the lock drove the canceller at, the residual mask's per-band margin
+        over its OWN prediction at that delay, and the running ERLE of the cleaned output. The
+        hearing worker drains the ring (``drain_joint_frames``), runs the cleaned-stream Silero and
+        the gate there, and hands the joint verdicts back to ``window._hearing_evidence``.
+        """
+        if self.canceller is None or not self._canceller_enabled:
+            return
+        try:
+            mic = np.frombuffer(mic_bytes, dtype="<i2").astype(np.float64) / 32768.0
+            out = np.frombuffer(cleaned, dtype="<i2").astype(np.float64) / 32768.0
+            erle = erle_db(mic, out)
+            mask = self._residual_mask
+            margin = (float(mask.band_margin_db)
+                      if mask is not None and np.isfinite(mask.band_margin_db) else None)
+            delay = int(self.canceller.delay_samples)
+            # The gate's coherence half reads only where the lock PROVED the frame (the exact
+            # render-timeline delay), never a drifting estimate - f132's blocker, f168 shipped the
+            # lock. AEC3 owns its delay internally, so it always counts as healthy.
+            align_healthy = bool(self.delay_confident
+                                 or getattr(self.canceller, "delay_managed_internally", False))
+            ref_power = float(np.mean(np.asarray(ref, dtype=np.float64) ** 2))
+            ref_active = bool(ref_power > MIN_REFERENCE_POWER)
+            with self._joint_lock:
+                if len(self._joint_frames) == self._joint_frames.maxlen:
+                    self._joint_dropped += 1
+                self._joint_frames.append((cleaned, mic_bytes,
+                                           np.asarray(ref, dtype=np.float64),
+                                           delay if delay > 0 else None, margin, erle,
+                                           align_healthy, ref_active))
+        except Exception as exc:  # noqa: BLE001 - the tap must never break the recording
+            log.debug("joint-evidence tap skipped: %s", exc)
+
+    def drain_joint_frames(self) -> list[tuple]:
+        """Take every frame staged since the last drain (the hearing worker consumes them).
+
+        The capture appends under the lock and the worker drains it whole, so each frame is fed to
+        the gate exactly once and contiguously; a full ring drops the oldest (a counted drop, the
+        degraded path), never a silent loss of the start of a turn.
+        """
+        with self._joint_lock:
+            frames = list(self._joint_frames)
+            self._joint_frames.clear()
+        return frames
+
+    def _reset_joint_frames(self) -> None:
+        """A capture/mode epoch is a new echo path: drop frames staged under the old one."""
+        with self._joint_lock:
+            self._joint_frames.clear()
+
+    def _residual_stage(self, cleaned: bytes, mic_bytes: bytes, ref: np.ndarray) -> bytes:
+        """Roadmap task 4 on the EXACT-DELAY output (task f171, issue #72).
+
+        The residual suppressor runs ON THE CANCELLER'S OWN OUTPUT with the same reference
+        window the canceller just heard: it predicts the residue the linear stage left per band
+        (:class:`voxa.refmask.LockedResidualMask`, the f131 machinery with the delay the lock
+        proved handed to it by :meth:`voxa.refmask.ReferenceMask.set_delay`, so the reference it
+        reads and the canceller's residue are the SAME pair). The canceller is unchanged and
+        stays the only AEC owner: the mask is a spectral gain on its output, not a second
+        canceller, and it suppresses nothing outside TTS plus its echo tail (the mask's own
+        ``tail_s`` rule) - a frame it cannot explain is kept, never deleted.
+
+        A mask failure degrades the stage alone, visibly: the cleaned stream still carries the
+        canceller's verdict, exactly as it did before this task.
+        """
+        if self._residual_mask is None:
+            return cleaned
+        try:
+            mic = np.frombuffer(mic_bytes, dtype="<i2").astype(np.float64) / 32768.0
+            out = np.frombuffer(cleaned, dtype="<i2").astype(np.float64) / 32768.0
+            # The running ERLE of the LINEAR canceller: where it removed little, the mask
+            # subtracts deeper (roadmap task 4's over-subtraction ramp).
+            self._residual_mask.set_running_erle(erle_db(mic, out))
+            masked = np.clip(self._residual_mask.process(out, np.asarray(ref, dtype=np.float64)),
+                             -1.0, 1.0)
+            if masked.size == 0:
+                return cleaned
+            masked = np.clip(np.rint(masked * 32767.0), -32768, 32767)
+            return masked.astype("<i2").tobytes()
+        except Exception as exc:  # noqa: BLE001 - recording must never break
+            log.warning("residual echo stage failed; keeping the canceller's output: %s", exc)
+            self._residual_mask = None
+            return cleaned
+
+    def _maybe_estimate_delay(self, pcm: bytes) -> None:
+        """Track the echo delay and the clock drift continuously (roadmap task 3), through
+        the exact lock issue #72/task f168 shipped: the render timeline's :class:`ExactAligner`
+        lock (roadmap Hearing 2) drives the canceller's reference while it is proven, and the
+        task-3 estimate (:class:`voxa.anc.DelayTracker`) keeps it pointed while it is not -
+        visibly degraded, never silently.
+
+        The GCC-PHAT fallback over the first 0.5 s of every TTS utterance gives the coarse
+        offset, re-estimated every 0.5 s after that: the slope of the estimates is the clock
+        drift in ppm (above 50 ppm the drift flag latches and the interpolated offsets resample
+        the reference), and an abrupt jump is an explicit epoch the drift never sees. The
         canceller NEVER rebuilds per sentence: only its reference offset is re-pointed, its
         filter, convergence and double-talk state carry across utterances."""
         if self._delay_done:
@@ -728,20 +1044,39 @@ class AudioCapture:
             # is done: nothing to build, AEC3 is never replaced by the NLMS canceller.
             self._delay_done = True
             return
-        if self._delay_tracker is None:
-            self._delay_tracker = DelayTracker(sample_rate=REFERENCE_RATE)
+        if self._delay_lock is None:
+            self._delay_lock = ExactDelayLock(
+                sample_rate=REFERENCE_RATE, canceller=self.canceller)
         window = self._reference_window(len(pcm) // 2)
         if window is None:
             return
         mic = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
-        update = self._delay_tracker.observe(mic, np.asarray(window, dtype=np.float32))
-        if update is None:
-            return
-        self.canceller.set_offset(update["delay_samples"], *update["anchors"])
-        if update["kind"] != "track":
-            log.info("echo delay %s: %d samples (%.3f s), drift %.1f ppm", update["kind"],
-                     update["delay_samples"], update["delay_samples"] / REFERENCE_RATE,
-                     update["drift_ppm"])
+        update = self._delay_lock.observe(
+            self._mic_counter / REFERENCE_RATE, mic, np.asarray(window, dtype=np.float32))
+        if update == "lock" and self._residual_mask is not None:
+            # f171 (roadmap task 4 on the exact-delay output): the mask reads its reference at
+            # the SAME delay the canceller was just driven at, so every band ratio, every held
+            # tail and the 6 dB near-end rule all see the pair the lock proved. Before the
+            # first lock nothing is handed and the mask estimates its own lag (the pre-f169
+            # behaviour); a degraded frame never hands the mask a delay the canceller is NOT
+            # using, so it never passes a verdict measured against an unmeasured alignment.
+            self._residual_mask.set_delay(float(self._delay_lock.delay_frac))
+        if update == "lock":
+            if not self._delay_lock_logged:
+                log.info("echo delay: exact lock at %.3f ms (drift %.1f ppm)",
+                         float(self._delay_lock.delay_frac) / REFERENCE_RATE * 1000.0,
+                         self._delay_lock.drift_ppm)
+                self._delay_lock_logged = True
+        elif update == "estimate":
+            if not self._delay_degraded_logged:
+                log.info("echo delay: exact lock not yet confident; the estimated delay "
+                         "drives the reference (degraded: lock unproven, never raw audio)")
+                self._delay_degraded_logged = True
+            est = self._delay_lock.tracker.last_update
+            if est is not None and est["kind"] != "track":
+                log.info("echo delay %s: %d samples (%.3f s), drift %.1f ppm", est["kind"],
+                         est["delay_samples"], est["delay_samples"] / REFERENCE_RATE,
+                         est["drift_ppm"])
 
     @staticmethod
     def _rms(pcm: bytes) -> float:
@@ -793,8 +1128,24 @@ class AudioCapture:
         """The delay the echo path was fitted with (0 = never estimated: alignment unhealthy)."""
         return self.canceller.delay_samples if self.canceller is not None else 0
 
+    @property
+    def delay_frac(self) -> float:
+        """The fractional reference read offset the lock holds (0.0 = never locked)."""
+        return float(self._delay_lock.delay_frac) if (
+            self._delay_lock is not None and self._delay_lock.delay_frac is not None) else 0.0
+
+    @property
+    def delay_confident(self) -> bool:
+        """True only while the exact lock has proven itself (never on the fallback estimate)."""
+        return bool(self._delay_lock is not None and self._delay_lock.delay_confident)
+
+    @property
+    def delay_degraded(self) -> bool:
+        """True while the reference is driven by the estimate because the lock is unproven."""
+        return bool(self._delay_lock is not None and self._delay_lock.degraded)
+
     def stop(self) -> None:
-        self._save_hearing_profile()
+        self.stop_device_watch()
         gst = _ensure_gstreamer() if (self.pipeline is not None or self._ref_pipeline is not None) else None
         pipeline, self.pipeline = self.pipeline, None
         ref_pipeline, self._ref_pipeline = self._ref_pipeline, None
@@ -881,6 +1232,7 @@ class AudioCapture:
         if mode == "webrtc" and not webrtc_available():
             log.info("webrtc echo cancellation unavailable: running with echo off")
             mode = "off"
+        self._echo_mode = mode  # an epoch (task 10) recreates THIS mode's canceller
         if mode == "webrtc":
             self.pulse_source = None
             self.reference_source = reference_source
@@ -891,7 +1243,9 @@ class AudioCapture:
             self._delay_done = True
             self._delay_mic = []
             self._delay_ref = []
-            self._delay_tracker = None  # a mode change is an explicit epoch
+            self._delay_lock = None  # a mode change is an explicit epoch
+            self._residual_mask = None  # no canceller output to put a stage on
+            self._reset_joint_frames()
             self._ref_ring = None
             self._ref_anchor = None
             if self._ref_pipeline is not None:
@@ -911,7 +1265,9 @@ class AudioCapture:
             self._delay_done = True
             self._delay_mic = []
             self._delay_ref = []
-            self._delay_tracker = None  # a mode change is an explicit epoch
+            self._delay_lock = None  # a mode change is an explicit epoch
+            self._residual_mask = None  # no canceller output to put a stage on
+            self._reset_joint_frames()
             self._ref_ring = None
             self._ref_anchor = None
             if self._ref_pipeline is not None:
@@ -925,8 +1281,18 @@ class AudioCapture:
         if not isinstance(self.canceller, wanted):
             # Exactly one canceller owns the echo path: give the old one up before the new one claims it.
             release_aec_owner(self.canceller)
-            self.canceller = wanted()
-        self.apply_hearing_profile(self.reference_source, self._microphone_identity())
+            if mode == "aec3":
+                # Task 10: a Bluetooth link buffers hundreds of ms on top of the room, and the
+                # output is already known here - seed the estimator instead of starting blind.
+                self.canceller = wanted(stream_delay_ms=int(self.tuning.aec3_seed_ms))
+            else:
+                self.canceller = wanted()
+        # f171 (roadmap task 4 on the exact-delay output): the residual stage rides on THIS
+        # canceller's output - it is a spectral gain, not a second AEC owner. A mode change is
+        # an explicit epoch, so the stage starts fresh with it: no delay handed yet, and the
+        # mask estimates its own lag until the exact lock proves one and hands it over.
+        self._residual_mask = (LockedResidualMask(rate=REFERENCE_RATE)
+                               if mode == "voxa" else None)
         self._canceller_enabled = True
         self._canceller_logged = False
         self.apply_clock_drift()
@@ -934,7 +1300,8 @@ class AudioCapture:
             self._delay_done = False
             self._delay_mic = []
             self._delay_ref = []
-            self._delay_tracker = None  # a mode change is an explicit epoch
+            self._delay_lock = None  # a mode change is an explicit epoch
+            self._reset_joint_frames()
             self._ref_ring = None
             return
         if self._ref_ring is None:
@@ -945,4 +1312,4 @@ class AudioCapture:
         self._delay_done = False
         self._delay_mic = []
         self._delay_ref = []
-        self._delay_tracker = None  # a fresh capture or mode change is an explicit epoch
+        self._delay_lock = None  # a fresh capture or mode change is an explicit epoch

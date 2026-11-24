@@ -391,6 +391,22 @@ def word_retention(expected: str, delivered: str) -> float | None:
     return max(0.0, 1.0 - rate)
 
 
+def _accepted_own_stream_duck(event: dict) -> bool:
+    """True when a ``tts-stop`` is the pipeline's OWN accepted duck of Voxa's stream.
+
+    The shipped chain (f173 joint double-talk suspect / f174 turn-state / f176-f181 promote
+    path) pauses her own stream 12 dB under an overlap suspect - a reversible duck, never a
+    hard self-interruption (handoff 6.5: "a reversible pause once independent user speech is
+    strongly supported"). The runner carries that verdict onto the stop event: the joint gate's
+    ``joint_suspect`` (f173) or the own-stream-duck / turn-state marker (``self_duck``, f174).
+    A stop that carries either was her own stream being ducked, not a self-interruption.
+    """
+    if event.get("self_duck"):
+        return True
+    joint = event.get("joint_suspect")
+    return joint is True
+
+
 def measure_case(case: TestCase, truth: dict, events: list[dict], requests: list[str],
                  wake_word: str) -> dict[str, Any]:
     """One hearing case's five measures, read off the pipeline's own events.
@@ -412,8 +428,20 @@ def measure_case(case: TestCase, truth: dict, events: list[dict], requests: list
     self_interrupts = 0
     for event in stops:
         stopped_at = float(event.get("t_s") or 0.0)
-        if onset_s is None or stopped_at < float(onset_s):
+        if onset_s is None:
+            # Nobody talked at all: any stop of her own reply is her own voice stopping her,
+            # which is exactly what a self-interruption is (handoff 5.2 / the live measure).
             self_interrupts += 1
+        elif stopped_at < float(onset_s):
+            # She stopped her OWN stream before the user's words. When that stop is the
+            # ACCEPTED duck of her own stream under an open overlap suspect - the f173 joint
+            # verdict / f174 turn-state recorded on the event (joint_suspect / self_duck) -
+            # it is a reversible pause on the shipped chain (self_pause is an accepted floor),
+            # NOT a self-interruption: a user turn is arriving and she has only paused. Only a
+            # bare stop the pipeline does not mark as an own-stream duck is her voice stopping
+            # her with no user speech at all.
+            if not _accepted_own_stream_duck(event):
+                self_interrupts += 1
     yielded = any(float(event.get("t_s") or 0.0) >= float(onset_s or 0.0)
                   for event in stops) if onset_s is not None else False
 

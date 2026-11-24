@@ -98,7 +98,7 @@ def _truth(data_root: Path, entry: dict) -> dict:
 
 def test_smoke_plan_holds_every_scenario_of_the_matrix() -> None:
     items = render.plan("smoke", 0)
-    assert len(items) == 48
+    assert len(items) == 52
     assert {item["scenario"] for item in items} == set(render.SCENARIO_COUNTS)
     for scenario, count in render.SCENARIO_COUNTS.items():
         assert sum(1 for item in items if item["scenario"] == scenario) == count
@@ -126,10 +126,18 @@ def test_smoke_plan_holds_every_scenario_of_the_matrix() -> None:
         "onset", "first_syllable", "middle", "last_word", "echo_tail"}
     assert {item["dt_fraction"] for item in items if item["scenario"] == "dt_middle"} == {0.2, 0.5, 0.8}
     assert all(0.4 <= item["pause_s"] <= 1.5 for item in items if item["scenario"] == "pause")
+    # Interference clips: TV/music/cough under a spoken command, always with an audible SNR,
+    # and phrase-sourced (never librispeech) so the frozen 48 clips keep their picks and bytes.
+    inter = [item for item in items if item["scenario"] == "interference"]
+    assert len(inter) == 4
+    assert {item["interference"] for item in inter} == {"tv", "music", "cough"}
+    assert all(item["snr_db"] is not None for item in inter)
+    assert all(item["user_text"] in render.COMMAND_PHRASES and item["user_source"] is None
+               for item in inter)
 
 
 def test_full_suite_is_ten_times_smoke() -> None:
-    assert len(render.plan("full", 0)) == 480
+    assert len(render.plan("full", 0)) == 520
     assert render.plan("smoke", 0) == render.plan("smoke", 0)  # the plan itself is deterministic
 
 
@@ -229,7 +237,7 @@ def test_same_seed_renders_identical_bytes(rendered) -> None:
     data_root, manifests = rendered
     assert manifests["m1.json"] == manifests["m2.json"]
     manifest = json.loads(manifests["m1.json"])
-    assert manifest["suite"] == "smoke" and manifest["seed"] == 0 and manifest["count"] == 48
+    assert manifest["suite"] == "smoke" and manifest["seed"] == 0 and manifest["count"] == 52
     for entry in manifest["clips"]:
         for name, digest in entry["files"].items():
             on_disk = hashlib.sha256((clip_dir(data_root, entry, name)).read_bytes()).hexdigest()
