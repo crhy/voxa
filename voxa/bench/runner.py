@@ -286,8 +286,10 @@ class ClipRunner:
         self._clean_prob: float | None = None
         self._mask_margin: float | None = None
         self._dt_suspect = False
-        self._dt_measurable = False
         self._dt_echo = False
+        # f186: the joint verdicts this clip's gate ever LATCHED (see _observe_joint).
+        self._joint_latch_suspect = False
+        self._joint_latch_echo = False
         # Roadmap task 9 re-plan (f181): the promote_wait. While the joint suspect / turn state
         # / arriving-speech verdicts are open and a never-completed pinned span is still owed,
         # the events that CLOSE a turn (endpoint/request/exit/ignored) are held - the assembly
@@ -839,6 +841,13 @@ class ClipRunner:
             alignment_healthy=alignment_healthy)
         self._dt_measurable = bool(self.dt_gate.conditions.get("measurable"))
         self._dt_echo = self.dt_gate.echo_consistent
+        # f186: remember WHICH joint verdict this clip's gate latched, so the completion of a
+        # never-promoted pinned span can tell a measured second source (suspect) from her echo
+        # (the mirror) from a gate that never measured at all (degraded).
+        if self._dt_suspect:
+            self._joint_latch_suspect = True
+        if self._dt_echo:
+            self._joint_latch_echo = True
         if self._dt_suspect and self.canceller is not None:
             self.canceller.note_double_talk(2.0 * CHUNK_MS)
 
@@ -974,7 +983,8 @@ class ClipRunner:
 
     # --- one finished utterance -------------------------------------------------
 
-    def _finish_utterance(self, segment: bytes, frame: int, *, promote: bool = True) -> None:
+    def _finish_utterance(self, segment: bytes, frame: int, *, promote: bool = True,
+                          confirmed_user: bool = False) -> None:
         """The decision ``ConversationController._run`` makes once a segment is complete.
 
         A turn that began with a promoted span keeps its stable prefix: the prefix's words were
@@ -1049,7 +1059,8 @@ class ClipRunner:
         # began with a promoted span is confirmed user: its words are never rewritten by a text
         # match (voxa/attribution.py, handoff 5.3).
         text = self.conversation._filter_own_speech(
-            heard["text"], evidence=self.last_evidence, confirmed_user=bool(prefix_text),
+            heard["text"], evidence=self.last_evidence,
+            confirmed_user=bool(prefix_text) or confirmed_user,
             heard_with_times=timed_words or None,
             joint_closed_at=self._joint_closed_at if timed_words else None)
         if text is None:
@@ -1057,7 +1068,7 @@ class ClipRunner:
             return
         if not text:
             return
-        if not prefix_text and self.last_evidence is not None and self.last_evidence.reference_active:
+        if not prefix_text and not confirmed_user and self.last_evidence is not None and self.last_evidence.reference_active:
             # A whole utterance taken while the speakers were still live: it may only become a
             # request when the audio supports a second source (shared brief: no automatic
             # commands from unqualified audio during playback). When it does, the words fall
@@ -1187,7 +1198,29 @@ class ClipRunner:
             self.segmenter.step(frame.pcm, frame.level, frame.t_s)
         segment = self.segmenter.pending()
         if segment:
-            self._finish_utterance(segment, self._frame, promote=False)
+            # f186 (crhy/voxa#72): the matched pair's WRONG half - the user over Voxa. A
+            # never-completed pinned span whose joint double-talk gate latched the SUSPECT
+            # (speech + residual margin + echo-inconsistency held together at the locked delay,
+            # and the MIRROR never latched) measured a second source over live playback: the
+            # audio itself is qualified, so the span is kept as a user turn (handoff 6.4: the
+            # accepted overlap becomes the request exactly once) instead of ending as a HOLD
+            # with its words on the record but never commanded. A span the mirror latched on
+            # echo is her voice (HOLD at most, never a command); a gate that never measured
+            # either way is the degraded path - unchanged, still HOLD (f136's rule).
+            if self._joint_open_for_span():
+                self._finish_utterance(segment, self._frame, promote=True, confirmed_user=True)
+            else:
+                self._finish_utterance(segment, self._frame, promote=False)
+
+    def _joint_open_for_span(self) -> bool:
+        """f186: did this clip's joint gate latch a SECOND SOURCE (the suspect) and never her
+        echo (the mirror)? The two pair tests of the joint gate at the locked delay: the patent's
+        double-talk rule latches the suspect when speech, the residual margin and the
+        echo-inconsistency all held together; the MIRROR rule latches echo when the microphone
+        held the delayed reference with nothing of its own. Suspect-without-echo is the measured
+        second source of the user-over-Voxa pair; echo or no-verdict-at-all is not.
+        """
+        return bool(self._joint_latch_suspect and not self._joint_latch_echo)
 
     def _pinned_candidate_is_echo(self) -> bool:
         """f185 (crhy/voxa#72): the three shipped hearing signals read TOGETHER say the span
@@ -1299,6 +1332,8 @@ class ClipRunner:
         self._dt_suspect = False
         self._dt_measurable = False
         self._dt_echo = False
+        self._joint_latch_suspect = False
+        self._joint_latch_echo = False
         self._promote_defer = False
         self._promote_held_events = []
         # Roadmap task 7 (f175): a new clip starts the word-timed playback timeline over - it is

@@ -650,6 +650,71 @@ def test_a_recovered_clip_protected_word_is_counted_kept(tmp_path) -> None:
     assert values and sum(values) >= 1, "the protected word is counted kept"
 
 
+# ------------------------------------------------------------------ f186 pair: keep the joint-open twin
+# The matched pair's WRONG half (crhy/voxa#72): the user saying over Voxa's reply the SAME words
+# her playback is reading. When the joint double-talk gate LATCHED the suspect (speech, residual
+# margin and echo-inconsistency held together at the locked delay) and the mirror never latched,
+# the audio itself measured a second source: the never-completed pinned span is kept as a user
+# turn (confirmed_user, handoff 6.4/5.3), never a HOLD whose words reach the record but never the
+# request. The echo-only twin (the mirror latched) is never promoted, and the degraded path (no
+# verdict at all) keeps f136's honest HOLD.
+
+
+def _pinned_span_runner(tmp_path):
+    """A runner holding a never-completed pinned span (the state f176 named): 0.6 s of user
+    audio captured while the microphone is MUTED, an onset that pins it, no decision accepted
+    it. The joint verdict of the clip is what the caller sets."""
+    runner = _voxa_only_runner(tmp_path)
+    controller = runner.conversation
+    controller.mute()
+    start = controller.capture._last_seq + 1
+    for offset in range(30):
+        controller.feed(pcm(0.02, USER_LEVEL), float(USER_LEVEL), seq=start + offset)
+    controller.note_onset(seq=start + 10, level_floor=None)
+    assert controller.capture.pin_from is not None, "the onset pins the candidate span"
+    return runner
+
+
+def test_joint_open_never_completed_span_is_kept_as_a_request(tmp_path) -> None:
+    """The user-over-Voxa twin: the joint gate latched the suspect and never the echo mirror,
+    so the pinned span completes as a confirmed user turn - kept, not a silent HOLD."""
+    runner = _pinned_span_runner(tmp_path)
+    runner._joint_latch_suspect, runner._joint_latch_echo = True, False
+    before_requests = len(events_of(runner, "request"))
+    runner._finish_unpromoted_pinned_span()
+    assert len(events_of(runner, "request")) == before_requests + 1, (
+        "the measured second source becomes the request exactly once (handoff 6.4)")
+    assert not any(e.get("dropped") == "hold" for e in events_of(runner, "endpoint")), (
+        "a gate that measured a second source does not end the span on HOLD")
+    transcripts = events_of(runner, "transcript")
+    assert transcripts and "userword" in transcripts[-1]["text"], "the kept turn carries the words"
+
+
+def test_joint_echo_latched_span_is_never_promoted(tmp_path) -> None:
+    """The echo-only twin of the pair: the mirror latched, so the span is her voice - the
+    completion never promotes it to a turn or a command (the echo leak the pair test forbids)."""
+    runner = _pinned_span_runner(tmp_path)
+    runner._joint_latch_suspect, runner._joint_latch_echo = True, True
+    before_requests = len(events_of(runner, "request"))
+    runner._finish_unpromoted_pinned_span()
+    assert len(events_of(runner, "request")) == before_requests, "echo never becomes a command"
+    assert any(e.get("dropped") == "hold" for e in events_of(runner, "endpoint")), (
+        "at most a HOLD transcript: the record keeps the audio, the floor stays")
+
+
+def test_degraded_joint_span_completion_is_unchanged(tmp_path) -> None:
+    """A joint gate that never measured either verdict (the degraded path, f136's rule): the
+    completion is exactly what f176 shipped - a HOLD, never a silent drop, never a command."""
+    runner = _pinned_span_runner(tmp_path)
+    assert not runner._joint_open_for_span(), "no verdict latched: degraded"
+    before_requests = len(events_of(runner, "request"))
+    runner._finish_unpromoted_pinned_span()
+    assert len(events_of(runner, "request")) == before_requests
+    holds = [e for e in events_of(runner, "endpoint") if e.get("dropped") == "hold"]
+    assert holds, "the degraded completion is unchanged: HOLD"
+    assert events_of(runner, "transcript"), "the audio is owed to the record: never a silent drop"
+
+
 # ------------------------------------------------------------------ f181 promote_wait
 # f178's two premature cuts are candidate-completion/whole-turn ASSEMBLY cuts during
 # continuous speech: the turn closed while gated speech was still arriving. The fix is not
