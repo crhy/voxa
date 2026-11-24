@@ -1,5 +1,41 @@
 # Voxa changelog
 
+## 0.1.9 — 2026-11-23
+
+### New
+
+- **Hearing chain: device, headphone and Bluetooth changes are explicit epochs.** The
+  canceller, the reference history and the latency measurement all restart together when the
+  output device changes, because the acoustic path (and its codec buffering) is a different
+  one. Never per sentence. (`voxa/audio.py`, `voxa/echo.py`, `voxa/align.py`, #72)
+- **Hearing chain: the exact-delay lock drives the canceller reference.** The render timeline's
+  ExactAligner lock drives the canceller's reference while it is proven, and task-3's estimate
+  keeps it pointed while it is not; degraded is visible, never silent. (`voxa/align.py`,
+  `voxa/timeline.py`, #72)
+- **Hearing chain: the joint double-talk gate.** The capture thread parks one cleaned frame per
+  window for the barge-in joint gate; the hearing worker drains the ring, runs the cleaned-stream
+  Silero and the gate, and hands the joint verdicts back to the window. No model runs on the
+  capture thread. (`voxa/audio.py`, `voxa/bargectl.py`, `voxa/bench/*`, #72)
+- **Hearing chain: the locked residual mask.** A spectral-gain residual stage rides on the
+  canceller's output; it estimates its own lag until the exact lock proves one and hands it over,
+  then predicts per band from that delay. (`voxa/refmask.py`, `voxa/audio.py`, #72)
+- **Hearing chain: the endpoint arbitrator.** Smart Turn completeness is gated on the shipped
+  joint suspect, not the probability alone; the last premature cut is withheld while gated speech
+  is still arriving at the probe's own gate. (`voxa/endpoint.py`, `voxa/window.py`, #72)
+- **Hearing: VoxaTest scores what Voxa heard against what was said, runs offline (no speakers,
+  no microphone), and keeps its soak runs from tripping over each other.** (`voxa/voxt.py`, #72)
+- **Hearing: with the microphone paused she no longer hears things that are not there.** No
+  false triggers and no wake-word misses in the paused suite. (`voxa/hearing.py`, #136)
+- **Hearing: test references are rendered from the exact TTS audio**, and the echo delay keeps
+  tracking through drift between the microphone and speaker clocks. (`voxa/timeline.py`,
+  `voxa/anc.py`, #72)
+- **Hearing: per speaker and microphone profile.** The saved filter for the pair you talk through
+  is her starting point, and what she learns during use is saved back under it.
+  (`voxa/anccal.py`, `voxa/audio.py`, #72)
+- **Hearing: clip renderer, pipeline runner, metrics report and baseline ratchet** for the hearing
+  roadmap are in the tree; the GPU/percent widgets report the exact echo delay.
+  (`voxa/bench/*`, `voxa/hardware.py`, #72)
+
 ## Unreleased
 
 ### New

@@ -34,6 +34,29 @@
   </screenshots>
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="0.1.9" date="2026-11-23">
+      <description>
+        <p>Voxa 0.1.9 folds the hearing chain into the release candidate: the exact-delay lock,
+        the joint double-talk gate, the residual mask and the device epochs all ship together, and
+        she keeps her canceller across a speaker, headphone or Bluetooth change.</p>
+        <ul>
+          <li>She learns her hearing per speaker and microphone; the saved filter for the pair you talk
+          through is her starting point, and what she learns during use is saved back under it.</li>
+          <li>The clip renderer, pipeline runner, metrics report and baseline ratchet for the hearing
+          roadmap are in the tree; the GPU/percent widgets report the exact echo delay.</li>
+          <li>Test references are rendered from the exact TTS audio, and the echo delay keeps tracking
+          through drift between the microphone and speaker clocks.</li>
+          <li>VoxaTest scores what Voxa heard against what was said, runs offline, and keeps its soak
+          runs from tripping over each other.</li>
+          <li>With her microphone paused she no longer hears things that are not there: no false
+          triggers and no wake-word misses in the paused suite.</li>
+          <li>Hearing: device, headphone and Bluetooth changes are explicit epochs; the canceller, the
+          reference history and the latency measurement all restart together.</li>
+          <li>Hearing: the endpoint arbitrator gates Smart Turn completeness on the shipped joint
+          suspect, not the probability alone; the residual mask predicts per band from the locked delay.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.8" date="2026-10-26">
       <description>
         <p>Voxa 0.1.8 fixes conversation follow-ups, local music playback, model choices, and desktop integration.</p>
