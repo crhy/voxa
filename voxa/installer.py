@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import subprocess
 import threading
 import urllib.error
@@ -11,6 +12,13 @@ from pathlib import Path
 from .agent.host import host_command  # noqa: E402
 
 INSTALL_SCRIPT_URL = "https://ollama.com/install.sh"
+
+# Pinned integrity pin for the official install script. This is a PLACEHOLDER
+# digest committed by the project; a maintainer replaces it with the real
+# sha256 of the current https://ollama.com/install.sh before each release, so
+# any tampered or silently-changed remote script is rejected before it ever
+# reaches the privileged shell.
+EXPECTED_INSTALL_SHA256 = "56a79f3b115448072387c2480044bfa2cf8f90e4f5fddd8c943b4e051b81f80b"
 
 
 class InstallerError(RuntimeError):
@@ -45,6 +53,23 @@ def _fetch_install_script(timeout: float = 15.0) -> str:
         raise InstallerError(f"Could not download the Ollama install script: {exc}") from exc
 
 
+def verify_install_script(script: str, expected_sha256: str) -> None:
+    """Verify the fetched install script against a pinned sha256 digest.
+
+    Raises ``InstallerError`` naming the mismatch (never the script bytes)
+    when the bytes we fetched are not exactly the script the pin describes,
+    so a network tamper or upstream change is caught before the bytes are
+    handed to the privileged shell.
+    """
+    actual = hashlib.sha256(script.encode("utf-8")).hexdigest()
+    if actual != expected_sha256:
+        raise InstallerError(
+            "The downloaded Ollama install script does not match its expected "
+            f"sha256 digest (expected {expected_sha256}, got {actual}). "
+            "Refusing to run an unverified script."
+        )
+
+
 def _privileged_shell_command() -> list[str]:
     # "-s" reads the script from stdin, so the elevated process only ever
     # sees bytes we already fetched ourselves (see install_ollama).
@@ -77,7 +102,9 @@ def install_ollama(
 
     Fetching happens from inside this (network-enabled) app process; only the
     already-downloaded script text is handed to the privileged process, so
-    the elevated shell never reaches the network itself. The user sees a
+    the elevated shell never reaches the network itself. The fetched bytes
+    are verified against ``EXPECTED_INSTALL_SHA256`` before anything runs with
+    elevated privileges, so unverified bytes never reach root. The user sees a
     native PolicyKit password prompt from ``pkexec`` rather than a terminal.
 
     Requires ``pkexec`` on the host, and under Flatpak also requires
@@ -85,6 +112,7 @@ def install_ollama(
     reach the host's ``pkexec``.
     """
     script = _fetch_install_script()
+    verify_install_script(script, EXPECTED_INSTALL_SHA256)
     command = _privileged_shell_command()
     try:
         process = subprocess.Popen(
@@ -98,7 +126,8 @@ def install_ollama(
     except FileNotFoundError as exc:
         raise InstallerError(
             "Could not find pkexec. Install Ollama manually from a terminal: "
-            "curl -fsSL https://ollama.com/install.sh | sh"
+            "download the Ollama install script (https://ollama.com/install.sh), "
+            "inspect it, then run it as root yourself."
         ) from exc
 
     assert process.stdout is not None
