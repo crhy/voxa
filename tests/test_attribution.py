@@ -247,3 +247,22 @@ def test_the_controller_stops_her_only_on_audio_that_supports_a_second_source():
         open_the_gate(control, clock, "stop")
         decided = judge(control, clock, "stop", evidence=evidence)
         assert decided.action == action, (evidence.echo_explained_db, decided.reason)
+
+
+def test_the_floor_of_a_silent_microphone_never_decides_user_issue_72_v11c():
+    """Issue #72, task v11c step 5: between sentences of her own TTS the microphone sits at
+    the floor this echo path always leaves (-120 dB sentinel), the baseline is ringed low,
+    and the residual tower fires anyway. With no words and no speech in the cleaned signal
+    there is NO second source in those samples - the span abstains, it is never "user"."""
+    gap = _alone(speaking=True, word_count=0, vad_prob=None,
+                 echo_explained_db=-120.0, residual_margin_db=18.1)
+    decision = attribute(gap)
+    assert decision.source == UNCERTAIN, decision.reason
+    assert not decision.degraded          # honest silence, not a broken path
+    assert any("floor" in reason for reason in decision.reasons), decision.reason
+
+    # The SAME reading while a person is actually talking over the gap keeps deciding user:
+    # speech in the cleaned signal, or words, and the floor guard stays out of the way.
+    talking = attribute(_alone(speaking=True, word_count=2, vad_prob=0.91,
+                               echo_explained_db=-120.0, residual_margin_db=18.1))
+    assert talking.source == USER, talking.reason

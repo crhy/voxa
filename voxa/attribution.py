@@ -45,6 +45,9 @@ UNCERTAIN = "uncertain"
 USER_RESIDUAL_DB = 6.0
 # The microphone is (almost) fully accounted for by the delayed reference: positive echo evidence.
 ECHO_EXPLAINED_DB = -1.5
+# Issue #72, task v11c step 5: the cancellers floor their "explained" number at -120 dB when the
+# microphone is silent; anything at or under this bound is that sentinel, not a measurement.
+FLOOR_EXPLAINED_DB = -100.0
 # A VAD probability in the cleaned signal at or above this is speech of its own.
 VAD_SPEECH = 0.5
 # Text features may move the score by at most this much, never decide by themselves.
@@ -230,6 +233,18 @@ def attribute(ev: SourceEvidence, baseline_db: float | None = None) -> SourceDec
         # below, not an unhealthy one.
         reasons.append("alignment unhealthy: audio unqualified, no decision")
         return SourceDecision(UNCERTAIN, 0.0, tuple(reasons), degraded=True, evidence=ev)
+
+    if (ev.speaking and ev.word_count == 0
+            and (ev.vad_prob is None or ev.vad_prob < VAD_SPEECH)
+            and ev.echo_explained_db is not None and ev.echo_explained_db <= FLOOR_EXPLAINED_DB):
+        # Issue #72, task v11c step 5: the microphone is at the floor this echo path always
+        # leaves (the sentinel reading) AND carries no speech and no words - between sentences
+        # of her own TTS, or in the tail of her reply. There is no independent source in these
+        # samples: the residual and the tower measure the echo path's own noise floor, not a
+        # speaker. The span is hers by audio; the words only ever get the last say, not the first.
+        reasons.append(f"microphone at the echo path's floor ({ev.echo_explained_db:.1f} dB) "
+                      "with no speech: abstain")
+        return SourceDecision(UNCERTAIN, 0.0, tuple(reasons), degraded=False, evidence=ev)
 
     # 1. Echo consistency: how much of the microphone the delayed reference already explains.
     explained = ev.echo_explained_db
