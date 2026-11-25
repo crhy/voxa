@@ -1041,16 +1041,18 @@ def _tap_callback(timeline: RenderTimeline, generation: str, path: str, gst: Any
         very clock the microphone stamps with. Trust it when both are valid, and only fall back
         to the sink-clock query when they are not.
         """
-        none = getattr(gst, "CLOCK_TIME_NONE", -1)
         try:
             element = sink.get_parent()
             while element is not None and element.get_parent() is not None:
                 element = element.get_parent()
             base = element.get_base_time() if element is not None else None
             running = buffer.get_running_time()
-            if base is None or running is None or base == none or running == none:
+            if base is None or running is None:
                 return None
-            if base < 0 or running < 0:
+            # Unset clock times are the GST_CLOCK_TIME_NONE sentinel, which PyGObject hands back
+            # as a near-uint64-max integer (sign varies by binding). Any real device-clock time is
+            # far below 2**63 ns; reject the sentinel (and negatives) instead of adding it.
+            if not (0 <= int(base) < (1 << 63)) or not (0 <= int(running) < (1 << 63)):
                 return None
             return (base + running) / 1_000_000_000.0
         except Exception:  # noqa: BLE001 - an answer-less clock falls back, never breaks sound
