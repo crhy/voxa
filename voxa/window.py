@@ -156,7 +156,7 @@ from .ui.live_face import LiveFaceClient, decode_audio_to_pcm16k  # noqa: E402
 from .ui.model_selector import ai_status_for_backend, gpu_status_detail  # noqa: E402
 from .ui.radio_picker import RadioPicker  # noqa: E402
 from .ui.shell import AssistantShell, build_header  # noqa: E402
-from .ui.state import AssistantModel, AssistantState  # noqa: E402
+from .ui.state import AssistantModel, AssistantState, commit_face_state  # noqa: E402
 from .ui.styles import install_styles  # noqa: E402
 from .ui.welcome_dialog import WelcomeDialog  # noqa: E402
 
@@ -793,8 +793,17 @@ class MainWindow(Adw.ApplicationWindow):
         )
         truly_listening = capturing and not conversation.muted
         wanted = AssistantState.LISTENING if truly_listening else AssistantState.READY
-        if wanted is not state:
-            self.assistant_model.set_state(wanted, "")
+        # Issue #72, task v11d item 3: an idle Voxa must not FLASH. The idle face and the Listening
+        # caption used to follow every hearing decision (gate-open / hold / echo / user); room noise
+        # flips READY <-> LISTENING for a frame or two and the face jumps. Only show a state change
+        # once it has held for >= 300 ms, so a sub-300 ms blip - a room-noise hold that never really
+        # began a prompt - never reaches the face.
+        committed, self._face_state_tracked, self._face_state_tracked_at = commit_face_state(
+            wanted, state, time.monotonic(),
+            getattr(self, "_face_state_tracked", None),
+            getattr(self, "_face_state_tracked_at", None))
+        if committed is not state:
+            self.assistant_model.set_state(committed, "")
         return True
 
     def _sync_window_focus(self) -> bool:

@@ -103,6 +103,33 @@ def can_transition(current: AssistantState, new: AssistantState) -> bool:
     return current is new or new in ALLOWED_TRANSITIONS[current]
 
 
+# Issue #72, task v11d item 3: an idle Voxa must not FLASH. The idle face/Listening caption
+# follows every hearing decision (gate-open / hold / echo / user); on room noise those decisions
+# flip READY <-> LISTENING for a frame or two, and the face jumps. A state change is only shown
+# once it has held this long, so a sub-300 ms blip (a room-noise hold that never really began a
+# prompt) never reaches the face.
+FACE_STATE_DEBOUNCE_S = 0.300
+
+
+def commit_face_state(wanted: AssistantState, committed: AssistantState, now: float,
+                      tracked: AssistantState | None, tracked_at: float | None,
+                      hold_s: float = FACE_STATE_DEBOUNCE_S):
+    """Debounce an idle face state: show ``wanted`` only after it has held for ``hold_s``.
+
+    Returns ``(committed, tracked, tracked_at)`` for the caller to store. ``committed`` is the
+    state the face shows; it moves to ``wanted`` only when ``wanted`` has been the candidate for
+    at least ``hold_s``. A candidate that changes restarts the clock, so a blip shorter than
+    ``hold_s`` is never shown - which is exactly the room-noise flash this guards.
+    """
+    if wanted is tracked:
+        if (wanted is not committed and tracked_at is not None
+                and (now - tracked_at) >= hold_s):
+            return wanted, tracked, tracked_at
+        return committed, tracked, tracked_at
+    # A different candidate: start holding it now; the face keeps showing ``committed``.
+    return committed, wanted, now
+
+
 #: States a task can never leave.
 TERMINAL_TASK_STATES = frozenset({TaskState.DONE, TaskState.FAILED, TaskState.CANCELLED})
 
