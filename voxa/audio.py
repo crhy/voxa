@@ -592,6 +592,15 @@ class AudioCapture:
         self._recovery_until = time.monotonic() + self.tuning.recovery_s
         return self.epoch
 
+    def note_echo_mode(self, mode: str) -> None:
+        """Record which echo backend the app applied directly, changing nothing else.
+
+        :meth:`_prepare_microphone` builds the canceller itself before the microphone starts;
+        without this the mode stayed ``"off"`` and every epoch (task 10) rebuilt the WRONG
+        stage: the DTLN neural echo path died at the first device change (issue #72, v11c).
+        """
+        self._echo_mode = mode
+
     def _recreate_canceller(self) -> None:
         """Build a fresh canceller of the mode the capture path asked for, with this output's delay."""
         mode = self._echo_mode
@@ -611,7 +620,7 @@ class AudioCapture:
                 # delay its estimator may expect (task 10's table). A normal output keeps today's
                 # blind start, because a wrong seed costs more than it saves.
                 self.canceller = Aec3Canceller(stream_delay_ms=int(self.tuning.aec3_seed_ms))
-            elif mode in ("voxa", "off"):
+            elif mode == "voxa":
                 self.canceller = EchoCanceller()
             elif mode == "dtln":
                 # Issue #72, task v11c: the epoch used to DROP the DTLN stage - every live route

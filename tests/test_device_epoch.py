@@ -77,6 +77,32 @@ def test_an_epoch_never_drops_the_dtln_stage() -> None:
     assert capture.echo_path_qualified() is True
 
 
+def test_the_app_may_assign_the_canceller_directly_but_must_name_the_mode() -> None:
+    """Issue #72, task v11c: _prepare_microphone builds the canceller itself before the
+    microphone starts. Without note_echo_mode the mode stayed "off", so the FIRST epoch
+    replaced the neural stage with an NLMS one whose delay nobody proved: back to
+    'alignment unhealthy: audio unqualified' on nearly every live decision."""
+    from voxa.dtln import DtlnCanceller, dtln_available
+    if not dtln_available()[0]:
+        pytest.skip("no DTLN stage on this machine")
+    capture = AudioCapture()
+    capture.canceller = DtlnCanceller()          # what _prepare_microphone does
+    capture.note_echo_mode("dtln")               # and now also says which backend
+    capture.timeline = None
+    capture.begin_epoch(OUTPUT_BT_A2DP, reason="bluetooth-profile")
+    assert isinstance(capture.canceller, DtlnCanceller)
+    assert capture.echo_path_qualified() is True
+
+
+def test_an_epoch_with_echo_off_keeps_no_canceller() -> None:
+    capture = AudioCapture()
+    capture.note_echo_mode("off")
+    capture.timeline = None
+    capture.begin_epoch(OUTPUT_BT_A2DP, reason="bluetooth-profile")
+    assert capture.canceller is None
+    assert capture.echo_path_qualified() is False
+
+
 def test_the_recovery_window_closes_and_the_class_travels() -> None:
     capture = AudioCapture()
     capture._echo_mode = "off"

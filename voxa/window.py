@@ -1265,6 +1265,11 @@ class MainWindow(Adw.ApplicationWindow):
                 mode = "voxa"
             self.audio.canceller = (Aec3Canceller() if mode == "aec3"
                                     else DtlnCanceller() if mode == "dtln" else AncCanceller())
+            # Task v11c: the epoch (task 10) recreates the mode the capture path KNOWS, and
+            # this direct assignment never told it: _echo_mode stayed "off", so the first
+            # device change rebuilt an NLMS stage over (or instead of) the neural one, and
+            # every live decision came back 'alignment unhealthy: audio unqualified'.
+            self.audio.note_echo_mode(mode)
             self.audio.apply_clock_drift()
             if mode != "aec3":
                 # Start from the hearing profile saved for this speaker and microphone, if it still fits.
@@ -1280,10 +1285,12 @@ class MainWindow(Adw.ApplicationWindow):
             self.audio.reference_decision = getattr(self, "_reference_decision", None)
             self.audio.pulse_source = None
             self.audio.canceller = None
+            self.audio.note_echo_mode("webrtc")
         else:
             self.audio.pulse_source = None
             self.audio.reference_source = None
             self.audio.canceller = None
+            self.audio.note_echo_mode("off")
 
     def _release_face_server(self) -> None:
         """Drop the live client; stop the face server if Voxa was the one that started it (frees the GPU)."""
