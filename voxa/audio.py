@@ -919,7 +919,15 @@ class AudioCapture:
         if (self.timeline is not None and self._last_arrival is not None
                 and self.timeline.total > 0):
             mic_start, _end = self.capture_clock.stamp(self._last_arrival, samples)
-            return self.timeline.reference_window(mic_start=mic_start, length=samples)
+            window = self.timeline.reference_window(mic_start=mic_start, length=samples)
+            # Task v11c step 3: a blank window while her reply is on the timeline is a
+            # stamp/ring disagreement, not silence - name it with the numbers instead of
+            # guessing. (A reply that has not started or has drained legitimately blanks.)
+            if window is not None and not np.any(window):
+                log.info("reference window blank: mic_start=%.3f total=%.1f arrival=%.3f "
+                         "latency=%s", mic_start, self.timeline.total,
+                         self._last_arrival, self.capture_clock.latency)
+            return window
         if self._ref_ring is None:
             return None
         return self._ref_ring.window(self._mic_counter - (self._ref_anchor or 0), samples)
