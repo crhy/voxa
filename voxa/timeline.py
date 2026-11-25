@@ -260,12 +260,21 @@ class GstSinkClock:
     def _query_min_latency(self):
         """The pipeline's minimum latency in ns, or None when it will not answer.
 
-        Issue #72 / task v11d: ``pipeline.query_latency()`` does not exist in the sandbox's gi
-        (GStreamer 1.26.11), which left every render-tap anchor on the 0.05 s fallback. The query
-        that DOES work is ``Gst.Query.new_latency()`` + ``element.query(q)``, whose
-        ``parse_latency()`` returns ``(live, min, max)``; the current latency is not exposed at
-        all, so the minimum (falling back to the maximum) is the best the pipeline reports.
+        A pipeline that answers the convenience ``query_latency()`` (a simulated sink, or a build
+        that has it) answers first. Issue #72 / task v11d: the sandbox's gi (GStreamer 1.26.11) has
+        NO ``query_latency``, which left every render-tap anchor on the 0.05 s fallback. The query
+        that DOES work there is ``Gst.Query.new_latency()`` + ``element.query(q)``, whose
+        ``parse_latency()`` returns ``(live, min, max)``; the current latency is not exposed at all,
+        so the minimum (falling back to the maximum) is the best the pipeline reports.
         """
+        try:
+            success, minimum, maximum, _current = self.pipeline.query_latency()
+        except Exception:  # noqa: BLE001 - no such method here (the sandbox gi): try the real query
+            success, minimum, maximum = None, None, None
+        if success:
+            value = minimum if minimum and minimum > 0 else maximum
+            if value and value > 0:
+                return value
         try:
             from gi.repository import Gst
         except Exception:  # noqa: BLE001 - no gi here: the caller's fallback answers
@@ -274,11 +283,10 @@ class GstSinkClock:
             query = Gst.Query.new_latency()
             if not self.pipeline.query(query):
                 return None
-            live, minimum, maximum = query.parse_latency()
+            _live, minimum, maximum = query.parse_latency()
         except Exception:  # noqa: BLE001 - a pipeline that will not answer is not an error here
             return None
         value = minimum if minimum and minimum > 0 else maximum
-        del live
         if not value or value <= 0:
             return None
         return value
