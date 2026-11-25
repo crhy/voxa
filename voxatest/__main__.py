@@ -318,6 +318,7 @@ def _run(
     reports_dir: str,
     failure_report: str,
     first_index: int = 1,
+    listening=None,
 ) -> int:
     if settings.output_device:
         os.environ.setdefault("GST_AUDIOSINK", settings.output_device)
@@ -328,6 +329,15 @@ def _run(
             "remove VoxaTest's spoken prompts. In Voxa, set Preferences > Speech > Echo "
             "cancellation to Off, or to DTLN (which cancels only her own playback), before "
             "running acoustic tests.",
+            file=sys.stderr,
+            flush=True,
+        )
+        return 2
+
+    if listening is not None and not listening.ensure_ready():
+        print(
+            f"Voxa is not listening and could not be made to: {listening.reason}. "
+            "Nothing was played. Start Voxa and run again, or press Active first.",
             file=sys.stderr,
             flush=True,
         )
@@ -413,6 +423,14 @@ def _run(
             if settings.run_deadline_seconds and time.monotonic() - started > settings.run_deadline_seconds:
                 print("Run deadline reached before all cases completed.", flush=True)
                 deadline_hit = True
+                break
+
+            if listening is not None and not listening.case_ready():
+                print(
+                    f"Voxa is not listening for case {case.id}: {listening.reason}. Stopping before more sound.",
+                    flush=True,
+                )
+                aborted = True
                 break
 
             emit_event("case_start", index=first_index + index - 1, total=first_index + total - 1,
@@ -747,15 +765,24 @@ def main(argv: list[str] | None = None) -> int:
         if not cases:
             print(f"No test cases found in {args.cases}. Generate cases first.", file=sys.stderr)
             return 1
-        return _run(
-            settings,
-            cases,
-            args.json_report,
-            args.text_report,
-            args.reports or str(settings.reports_dir),
-            args.failure_report or str(settings.failure_report_path),
-            first_index=start_at,
-        )
+        # Live runs never start deaf (issue #130): send start-listening, watch listening.json,
+        # recheck before every case, and take listening back down only if we were the starter.
+        from .listening import ListeningPreflight
+
+        preflight = ListeningPreflight()
+        try:
+            return _run(
+                settings,
+                cases,
+                args.json_report,
+                args.text_report,
+                args.reports or str(settings.reports_dir),
+                args.failure_report or str(settings.failure_report_path),
+                first_index=start_at,
+                listening=preflight,
+            )
+        finally:
+            preflight.finish()
 
     if args.command == "commands":
         return _run_command_bench(

@@ -30,7 +30,7 @@ from voxa.reference import (
     decide,
 )
 
-from . import isolation, soak
+from . import isolation, listening, soak
 from .config import HarnessSettings, load_settings
 
 PASS, WARN, FAIL, SKIP = "PASS", "WARN", "FAIL", "SKIP"
@@ -56,6 +56,32 @@ def check_wake_word(settings: HarnessSettings) -> Check:
     if not word:
         return Check("wake word", WARN, "Voxa's wake word is empty in her config: she will not start listening.")
     return Check("wake word", PASS, f'she answers to "{word}"; the soak speaks it inside her own replies')
+
+
+def check_listening(dry_run: bool, runner=subprocess.run) -> Check:
+    """Can a live run make Voxa listen (issue #130), and is she already?"""
+    if dry_run:
+        return Check("scripted listening", SKIP,
+                     "not probed in a dry run: a live run sends start-listening and waits for listening.json")
+    command = listening.action_command("start-listening", runner=runner)
+    if command is None:
+        return Check(
+            "scripted listening", FAIL,
+            f"nothing can reach Voxa: no running {listening.APP_ID}, no Flatpak Voxa, no gapplication: "
+            "a live run would play into a deaf Voxa",
+        )
+    state = listening.read_state(listening.choose_state_path())
+    if state is None:
+        return Check(
+            "scripted listening", WARN,
+            "no listening.json yet: Voxa is not running, or older than the scripted actions; "
+            "a live run would refuse before playing",
+        )
+    if state["active"]:
+        return Check("scripted listening", PASS, "Voxa is already listening")
+    return Check("scripted listening", PASS,
+                 f"not listening yet ({state.get('reason') or 'as shipped: never listening on launch'}); "
+                 "a live run sends start-listening and waits up to 60 s")
 
 
 def check_echo_mode(settings: HarnessSettings) -> Check:
@@ -193,7 +219,12 @@ def run_checks(
 
         monitor = default_monitor_source()
 
-    checks: list[Check] = [check_wake_word(settings), check_echo_mode(settings), check_isolation(settings)]
+    checks: list[Check] = [
+        check_wake_word(settings),
+        check_listening(dry_run=not probe, runner=runner),
+        check_echo_mode(settings),
+        check_isolation(settings),
+    ]
     if probe:
         checks.append(check_reference_mode(monitor, runner=runner))
         checks.append(check_same_device(settings.input_device, monitor))

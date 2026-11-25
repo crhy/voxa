@@ -477,6 +477,28 @@ class VoxaTestWindow(Adw.ApplicationWindow):
             self._toast(message)
             return
 
+        # Scripted listening (issue #130): the `voxatest run` child sends start-listening,
+        # waits for listening.json and refuses before playing anything if Voxa cannot listen.
+        # The GUI only refuses early when nothing on this machine could reach her at all.
+        from . import listening
+
+        command = listening.action_command("start-listening")
+        if command is None:
+            message = (
+                f"VoxaTest cannot tell Voxa to start listening: no running {listening.APP_ID}, no Flatpak "
+                "Voxa and no gapplication were found. Start Voxa first; she never starts listening by herself."
+            )
+            self.status_label.set_text(message)
+            self._append_log(f"[preflight] {message}\n")
+            self._toast(message)
+            return
+        state = listening.read_state(listening.choose_state_path())
+        if state is not None and state.get("active"):
+            self._append_log("[preflight] Voxa is already listening\n")
+        else:
+            reason = (state or {}).get("reason") or "no listening.json yet"
+            self._append_log(f"[preflight] Voxa is not listening yet ({reason}); the run will send start-listening\n")
+
         cases = Path(self.cases_entry.get_text().strip() or DEFAULT_DATA_PATH).expanduser()
         if not cases.is_file():
             self._toast(f"Case file not found: {cases}")
