@@ -21,7 +21,7 @@ from dataclasses import dataclass
 
 from .attribution import ECHO, SourceEvidence
 from .attribution import UNCERTAIN as SOURCE_UNCERTAIN
-from .bargein import FRAME_MS, BargeInGate, source_decision
+from .bargein import FRAME_MS, BargeInGate, STOP_WORDS, _words, overlap, sounds_like, source_decision
 from .onset import OnsetDetector
 from .conversation import detect_addressed_exit_phrase, strip_wake_word
 
@@ -36,6 +36,13 @@ from .conversation import detect_addressed_exit_phrase, strip_wake_word
 # completes later and decides what happens to her words, not whether the floor was yielded.
 BARGE_IN_LISTEN_MS = 900.0
 BARGE_IN_LISTEN_SECONDS = BARGE_IN_LISTEN_MS / 1000.0  # kept for callers that still speak in seconds
+
+# Issue #72, step 4: the second guard behind DTLN. The canceller removes most of her voice but a
+# few words leak through the mask ("5 times more." from "The answer is: 5 times 4 is 20."); a leak
+# that matches what she is SAYING right now is not an interruption. Deliberately narrow: a stop or
+# wake word always beats the text (task A2: a person saying "stop" over her "stop" must interrupt).
+TEXT_ECHO_OVERLAP = 0.5
+TEXT_ECHO_SOUNDS = 0.55
 
 # Outcomes of one observation; the caller performs the effects.
 IGNORED = "ignored"
@@ -80,6 +87,28 @@ def _has_interrupt_words(heard: str, raw: str, wake_word: str = "voxa") -> bool:
     # The wake word alone is a cue, not an interruption.
     words = [w for w in re.findall(r"[A-Za-z][A-Za-z'-]*", stripped) if w.casefold() != wake]
     return any(w.lower() not in _FILLER_TRANSCRIPT for w in words)
+
+
+def _text_echo_veto(heard: str, raw: str, wake_word: str, speaking: str) -> bool:
+    """Second guard behind echo cancellation (issue #72): a leak through the canceller that
+    matches what she is SAYING right now is her own echo, not a barge-in.
+
+    DTLN removes almost all of her voice; a few words leak through the mask ("5 times more."
+    from "The answer is: 5 times 4 is 20."). This veto is deliberately narrow: the words must
+    overlap heavily with the current utterance AND sound like it letter for letter. A stop word
+    or a bare wake word always beats the text (task A2: a person saying "stop" over her saying
+    "stop" must always interrupt), and the check only runs after audio failed to prove own
+    voice - it is the second guard, never the first.
+    """
+    if not speaking or not (heard or "").strip():
+        return False
+    combined = f"{heard} {raw}"
+    if strip_wake_word(combined, wake_word) is not None:
+        return False
+    if any(word in STOP_WORDS for word in _words(combined)):
+        return False
+    return (overlap(heard, speaking) >= TEXT_ECHO_OVERLAP
+            and sounds_like(heard, speaking) >= TEXT_ECHO_SOUNDS)
 
 
 @dataclass(slots=True)
@@ -416,6 +445,12 @@ class BargeInController:
             and strip_wake_word(f"{heard} {raw}", wake_word) is None
         ):
             # The station she is announcing has already started: its presenter is not the user.
+            own = True
+        # Issue #72, step 4: the canceller leaves a few leaked words of her own voice in the
+        # microphone, and this second guard reads their text. Words that overlap with what she is
+        # SAYING right now ("5 times more." while she says "...5 times 4 is 20.") are her echo,
+        # never a barge-in - but a stop word or a bare wake word always beats the text (task A2).
+        if not own and _text_echo_veto(heard, raw, wake_word, self.speaking_text):
             own = True
         if own:
             # The loud sound was Voxa's own voice: carry on speaking (unless the floor was
