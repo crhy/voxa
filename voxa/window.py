@@ -3435,10 +3435,22 @@ class MainWindow(Adw.ApplicationWindow):
         timeline = getattr(self, "render_timeline", None)
         if timeline is not None:
             timeline.open_turn()
+        # Issue #72, task v11b: one render-tap report per reply. The report belongs to the AUDIO,
+        # and every path that ends a reply's audio (the assistant session ending on its own, an
+        # error, a barge-in, a dropped session token) calls _note_reply_end; without this the same
+        # reply would report twice or, when the session token moved on, not at all.
+        self._reply_end_noted = False
         self._hearing.turn_started(text)
 
     def _note_reply_end(self) -> None:
-        """The reply's audio ended; the turn closes, its echo tail still belongs to her."""
+        """The reply's audio ended; the turn closes, its echo tail still belongs to her.
+
+        Idempotent per reply (task v11b): the natural end, the error path, a barge-in and a
+        stopped reply all reach here, and exactly one ``render-tap`` line is written for the reply.
+        """
+        if getattr(self, "_reply_end_noted", True):
+            return
+        self._reply_end_noted = True
         timeline = getattr(self, "render_timeline", None)
         if timeline is not None:
             timeline.close_turn()
@@ -3467,6 +3479,19 @@ class MainWindow(Adw.ApplicationWindow):
         # across three prompts and their replies, re-transcribed every second).
         if self.conversation is not None:
             self.conversation.close_span()
+
+    def _reply_audio_end(self, token: int, callback: Callable, *args) -> None:
+        """The reply's audio ended (GStreamer said EOS or errored): close the render turn now.
+
+        Issue #72, task v11b: the render tap's report and the reply's turn belong to the AUDIO,
+        not to the assistant session. ``_for_session`` drops a callback the moment a newer session
+        opens or the assistant leaves its state - which is exactly what a live reply runs into
+        when the user talks over her or a follow-up arms - and the reply then never wrote its
+        ``render-tap`` line and never closed its turn. The audio bookkeeping runs ungated; the
+        session work behind it stays gated, so a stale reply still cannot touch a newer request.
+        """
+        idle(self._note_reply_end)
+        return idle(self._for_session(token, callback), *args)
 
     def _conversation_speak(self, text: str) -> None:
         if not may_speak(self.assistant.is_paused):
@@ -3497,8 +3522,8 @@ class MainWindow(Adw.ApplicationWindow):
         self.shell.set_speech_clock(self._lip_clock)
         speech_callbacks = {
             "on_started": lambda: idle(self._for_session(token, self._set_status), "Speaking…", True),
-            "on_done": lambda: idle(self._for_session(token, self._on_conversation_speech_done), reply_id),
-            "on_error": lambda error: idle(self._for_session(token, self._on_conversation_speech_error), error),
+            "on_done": lambda: self._reply_audio_end(token, self._on_conversation_speech_done, reply_id),
+            "on_error": lambda error: self._reply_audio_end(token, self._on_conversation_speech_error, error),
             "on_words": lambda words: self._on_reply_words(words, str(reply_id)),
         }
         if self._live_client is not None and self.settings.face_mode == "live":
@@ -3938,6 +3963,10 @@ class MainWindow(Adw.ApplicationWindow):
         self.own_speech.finished()
         self.speech.stop()
         self._live_reset()
+        # Issue #72, task v11b: an interrupted reply is still a reply whose audio ended. Its
+        # turn must close and its render tap must report (the live gate counts these lines);
+        # without this the barge-in path left the turn open and wrote no render-tap line.
+        self._note_reply_end()
         # Task 8 CONFIRM effect: the words of the interruption become the request, and the
         # assistant turn is truncated to the words she audibly played before she stopped.
         kept = self._turn.yield_turn(self.speech, spoken_reply=typing.LAST_REPLY,
