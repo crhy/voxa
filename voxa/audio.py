@@ -613,6 +613,12 @@ class AudioCapture:
                 self.canceller = Aec3Canceller(stream_delay_ms=int(self.tuning.aec3_seed_ms))
             elif mode in ("voxa", "off"):
                 self.canceller = EchoCanceller()
+            elif mode == "dtln":
+                # Issue #72, task v11c: the epoch used to DROP the DTLN stage - every live route
+                # change quietly lost the echo path ("alignment unhealthy: audio unqualified"
+                # on every decision, delay_samples 0, no echo delay line). The neural stage is
+                # rebuilt like any other canceller; it owns its delay, so nothing is seeded.
+                self.canceller = DtlnCanceller()
             else:
                 self.canceller = None
                 return

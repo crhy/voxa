@@ -60,6 +60,23 @@ def test_a_device_change_flushes_the_reference_and_opens_a_recovery_window() -> 
     assert capture.recovering is True
 
 
+def test_an_epoch_never_drops_the_dtln_stage() -> None:
+    """Issue #72, task v11c: an epoch dropped the DTLN canceller to None, so every live
+    route change silently lost the echo path (every decision "alignment unhealthy: audio
+    unqualified", delay_samples 0, no echo delay line). The neural stage must be rebuilt
+    like any other canceller; it owns its delay, so nothing seeds it."""
+    from voxa.dtln import DtlnCanceller, dtln_available
+    if not dtln_available()[0]:
+        pytest.skip("no DTLN stage on this machine")
+    capture = AudioCapture()
+    capture.set_echo_mode("dtln", None)
+    assert isinstance(capture.canceller, DtlnCanceller)
+    capture.timeline = None
+    capture.begin_epoch(OUTPUT_BT_A2DP, reason="bluetooth-profile")
+    assert isinstance(capture.canceller, DtlnCanceller)
+    assert capture.echo_path_qualified() is True
+
+
 def test_the_recovery_window_closes_and_the_class_travels() -> None:
     capture = AudioCapture()
     capture._echo_mode = "off"
