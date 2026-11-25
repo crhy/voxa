@@ -1108,11 +1108,30 @@ class AudioCapture:
         Attribution evidence, read-only: "is the speaker path live at this moment" is handoff 6.3's
         first stream. The window is the canceller's own block size scale, so a reply that stopped
         a moment ago still counts while its echo is in flight.
+
+        Issue #72 / task v08: while one of her turns is LIVE this read is the turn's own render
+        (voxa/timeline.py ``turn_reference_window``) - continuous across the gaps between the
+        pieces of a reply and over the echo tail - so a mid-reply moment never reads silent.
+        That reading used to credit her own voice to the user, which is how she answered herself.
         """
-        window = self._reference_window(max(1, int(samples)))
+        window = self._attribution_reference_window(max(1, int(samples)))
         if window is None:
             return 0.0
         return float(np.mean(np.asarray(window, dtype=np.float64) ** 2)) if len(window) else 0.0
+
+    def _attribution_reference_window(self, samples: int) -> np.ndarray | None:
+        """The reference window for ATTRIBUTION: the canceller keeps the exact-aligned read.
+
+        Falls back to :meth:`_reference_window` when no render timeline is answering, or when no
+        turn of hers is live (a silent reference is then honest: nothing is playing).
+        """
+        timeline = self.timeline
+        if timeline is None or self._last_arrival is None or timeline.total <= 0:
+            return self._reference_window(samples)
+        mic_start, _end = self.capture_clock.stamp(self._last_arrival, samples)
+        if not timeline.turn_is_live(mic_start):
+            return timeline.reference_window(mic_start=mic_start, length=samples)
+        return timeline.turn_reference_window(moment=mic_start, length=samples)
 
     def echo_measurements(self) -> tuple[float, float | None, float | None]:
         """(reference_power, echo_explained_db, residual_db) of the last block the canceller fitted.

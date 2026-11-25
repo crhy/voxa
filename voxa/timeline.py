@@ -60,6 +60,41 @@ MODE_OWN_RENDER = "own-render"
 MODE_MONITOR = "monitor"
 MODE_NONE = "none"
 
+#: Issue #72 / task v08: room + microphone latency measured on the rc4 LIVE run
+#: (``.voxa-bench/live-rc4-0-8b/barge.log``) - her own voice is still arriving in the microphone
+#: up to this long after the piece that made it left the speakers. A reply spoken as several
+#: pieces is ONE render for the canceller and for attribution, so a turn's reference read stays
+#: continuous for the gaps between pieces and over this tail.
+ECHO_TAIL_SECONDS = 1.5
+
+
+@dataclass(slots=True)
+class Turn:
+    """One reply as her speakers rendered it: every piece of it on ONE continuous timeline.
+
+    A turn is opened by the reply's first ``speak-start`` and closed when the last piece ends;
+    it stays LIVE until :data:`ECHO_TAIL_SECONDS` after the last sample left the speakers, which
+    is how long her own echo can still be in the microphone. While a turn is live the reference
+    must never read silent on a gap between two pieces - that reading is what made her answer
+    herself (issue #72).
+    """
+
+    id: str
+    opened_at: float
+    first_index: int | None = None
+    last_index: int = 0
+    last_audible_at: float | None = None
+    pieces: int = 0
+    generations: list[str] = field(default_factory=list)
+    state: str = "open"
+    closed_at: float | None = None
+
+    def as_dict(self) -> dict:
+        return {"id": self.id, "opened_at": self.opened_at, "first_index": self.first_index,
+                "last_index": self.last_index, "last_audible_at": self.last_audible_at,
+                "pieces": self.pieces, "generations": list(self.generations),
+                "state": self.state, "closed_at": self.closed_at}
+
 
 class SampleRing:
     """Bounded ring of rendered samples, addressed by the absolute index in the output stream.
@@ -263,6 +298,11 @@ class RenderTimeline:
         self._order: deque[str] = deque(maxlen=64)
         self._next_playable: float | None = None
         self._foreign: set[str] = set()
+        # Issue #72 / task v08: the reply she is speaking right now, if any. Every piece of it is
+        # filed under this turn, so the reference the attribution reads is one continuous render
+        # instead of one playbin at a time.
+        self._turn: Turn | None = None
+        self._turn_counter = 0
         # Roadmap task 2: when set, every render tap also registers a GStreamer webrtcechoprobe under
         # this name on Voxa's own playback branch, so a GStreamer webrtcdsp can use her own render as
         # its reference without ever listening to the speakers. None = no probe (the default).
@@ -292,11 +332,103 @@ class RenderTimeline:
                                    self.channels if channels is None else max(1, int(channels)))
             self._anchors.clear()
             self._next_playable = None
+            if self._turn is not None and self._turn.state == "open":
+                # The reply is still speaking on the new route: its render restarts at index 0 of
+                # this epoch, but it is still the same turn (issue #72).
+                self._turn.first_index = None
+                self._turn.last_index = 0
+                self._turn.last_audible_at = None
         log.info("render timeline epoch %d: %s", self.epoch, reason or "route change")
 
     def set_sample_rate(self, rate: int) -> None:
         if int(rate) != self.sample_rate:
             self.new_epoch(f"render rate {self.sample_rate} -> {rate}")
+
+    # ------------------------------------------------------------------ turns (issue #72, task v08)
+
+    @property
+    def turn(self) -> Turn | None:
+        """The reply she is speaking (or whose echo tail is still in the microphone)."""
+        with self._lock:
+            return self._turn
+
+    def open_turn(self, *, now: float | None = None) -> Turn:
+        """A reply began being read out: its first ``speak-start`` opens ONE turn.
+
+        Every piece of that reply is submitted under this turn, so the reference covers the gaps
+        between pieces as well as the pieces themselves; a second :meth:`open_turn` starts the
+        NEXT reply and files the previous one's tail under it.
+        """
+        stamp = self._clock() if now is None else float(now)
+        with self._lock:
+            self._close_turn_locked(stamp, reason="a new reply started")
+            self._turn_counter += 1
+            turn = Turn(id=f"turn-{self._turn_counter}-{stamp:.3f}", opened_at=stamp)
+            self._turn = turn
+            return turn
+
+    def close_turn(self, *, now: float | None = None, reason: str = "") -> Turn | None:
+        """The last piece of the reply ended. The turn stays LIVE for :data:`ECHO_TAIL_SECONDS`.
+
+        Closing is not silence: the room and the microphone are still carrying the end of what she
+        said, so the reference keeps serving it until the tail has passed.
+        """
+        stamp = self._clock() if now is None else float(now)
+        with self._lock:
+            return self._close_turn_locked(stamp, reason=reason)
+
+    def _close_turn_locked(self, stamp: float, *, reason: str = "") -> Turn | None:
+        turn = self._turn
+        if turn is None or turn.state == "closed":
+            return turn
+        turn.state = "closed"
+        turn.closed_at = stamp
+        if reason and turn.generations:
+            turn.generations[-1] = f"{turn.generations[-1]} ({reason})"
+        return turn
+
+    def turn_is_live(self, moment: float | None = None) -> bool:
+        """True from the turn's first speak-start until the last audio end + the echo tail."""
+        stamp = self._clock() if moment is None else float(moment)
+        with self._lock:
+            turn = self._turn
+            if turn is None:
+                return False
+            end = (turn.last_audible_at if turn.last_audible_at is not None else turn.opened_at)
+            return turn.opened_at <= stamp < end + ECHO_TAIL_SECONDS
+
+    def turn_reference_window(self, *, moment: float | None = None, length: int,
+                              tail: float = ECHO_TAIL_SECONDS, mono: bool = True) -> np.ndarray:
+        """The samples the microphone could STILL be carrying at ``moment``, from her own render.
+
+        This is the reference the attribution reads while she speaks, and the reason it stops
+        reading silent mid-reply (issue #72): the pieces of one reply are one render, so between
+        two pieces - and for ``tail`` seconds after the last sample left the speakers, the room +
+        microphone latency of the live run - the honest reference is the tail of what she had
+        already played, at its real positions in the output stream. The window is the last
+        ``length`` samples rendered at or before ``moment`` (walked back over the render instead
+        of zero-padded past it), so it is sample-aligned with what reached the sink.
+        """
+        stamp = self._clock() if moment is None else float(moment)
+        length = max(1, int(length))
+        with self._lock:
+            turn = self._turn
+            if turn is None or turn.last_index <= 0:
+                return np.zeros(length, dtype=np.float32) if mono else np.zeros((length, self.channels))
+            end = min(self._index_at_time(stamp), turn.last_index)
+            end = max(0, end)
+            start = max(0, end - length)
+            window = self.ring.window(start, max(1, end - start))
+        if window.shape[0] < length:
+            # Positions before the reply was rendered at all: the microphone could not be
+            # hearing them, so the WINDOW (which ends at ``end``) is front-padded with silence.
+            pad = np.zeros((length - window.shape[0], window.shape[1]), dtype=np.float32)
+            window = np.concatenate([pad, window])
+        if mono and window.shape[1] == 1:
+            return window[:, 0]
+        if mono:
+            return window.mean(axis=1).astype(np.float32)
+        return window
 
     # ------------------------------------------------------------------ generations
 
@@ -307,6 +439,9 @@ class RenderTimeline:
         with self._lock:
             self._generations[item.id] = item
             self._order.append(item.id)
+            if self._turn is not None and self._turn.state == "open":
+                self._turn.generations.append(item.id)
+                self._turn.pieces += 1
             while len(self._order) > 64:
                 oldest = self._order.popleft()
                 if oldest != item.id:
@@ -389,6 +524,16 @@ class RenderTimeline:
                 item.last_index = chunk.end_index
                 if item.state in ("open", "generated"):
                     item.state = "playing"
+            turn = self._turn
+            if turn is not None and turn.state == "open":
+                # Issue #72: the turn owns the whole render of one reply, pieces included, so the
+                # reference read for a moment inside it never falls into a piece boundary.
+                if turn.first_index is None:
+                    turn.first_index = first
+                turn.last_index = chunk.end_index
+                audible_end = playable + arr.shape[0] / self.sample_rate
+                turn.last_audible_at = (max(turn.last_audible_at, audible_end)
+                                        if turn.last_audible_at is not None else audible_end)
             return chunk
 
     def _query_latency(self, sink: Any) -> float | None:

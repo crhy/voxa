@@ -44,6 +44,82 @@ BARGE_IN_LISTEN_SECONDS = BARGE_IN_LISTEN_MS / 1000.0  # kept for callers that s
 TEXT_ECHO_OVERLAP = 0.5
 TEXT_ECHO_SOUNDS = 0.55
 
+# Issue #72, task v08: the echo she hears back is often the piece spoken BEFORE the current one
+# (the live log's heard lines match the PREVIOUS piece's words), so the veto compares against the
+# whole turn, and the guard must not swallow a real question that shares her function words: the
+# heard line only dies to the veto when most of its words are hers.
+VETO_PREVIOUS_SECONDS = 10.0
+# Room + microphone latency of the live run: her own tail is still in the microphone this long
+# after the last piece ended, so the reference is still hers, and she must not answer it.
+ECHO_TAIL_SECONDS = 1.5
+
+
+# Whisper writes her own content words as near-misses ("leveling" for "lemonade", "Bans" for
+# "Paris", "five" for "5"); a pure echo line therefore carries AT MOST two content words the turn
+# never said. A real question over her reply carries more ("capital", "France", "life", "thank" in
+# the logged France line). Function words carry no signal: both share them.
+_VETO_FOREIGN_CONTENT_MAX = 2
+
+# Closed class: never decide narrowness on these. Numbers are NOT in it - "at 15 to 20" and
+# "100x4" are words to the veto (voxa.bargein._words drops digits, which made the logged maths
+# prompts look like a handful of her own function words).
+_FUNCTION_WORDS = frozenset("""
+    i me my mine we us our you your yours he him his she her it its they them their this that
+    these those a an the and or but nor to of in on at for with by from into over under again
+    then is am are was were be been being do does did done have has had will would can could
+    shall should not no so too very just now here there all any both each few other some such
+    same what which who whom whose where when why how s t d ll re ve m
+""".split())
+
+# Number words are digits to the veto: "five times more." leaks from "5 times 4 is 20." and must
+# not be counted as foreign content.
+_NUMBER_WORDS = {
+    "zero": "0", "one": "1", "two": "2", "three": "3", "four": "4", "five": "5", "six": "6",
+    "seven": "7", "eight": "8", "nine": "9", "ten": "10", "eleven": "11", "twelve": "12",
+    "thirteen": "13", "fourteen": "14", "fifteen": "15", "sixteen": "16", "seventeen": "17",
+    "eighteen": "18", "nineteen": "19", "twenty": "20", "thirty": "30", "forty": "40",
+    "fifty": "50", "sixty": "60", "seventy": "70", "eighty": "80", "ninety": "90",
+    "hundred": "100", "thousand": "1000", "million": "1000000",
+}
+
+
+def _heard_tokens(text: str) -> list[str]:
+    """Words of a transcript, numbers included: "15 to 20" and "100x4" are words to the veto.
+
+    ``voxa.bargein._words`` drops digits (it scores letter features), which would make a maths
+    prompt look like a handful of her own function words.
+    """
+    return re.findall(r"[a-z0-9][a-z0-9'-]*", text.lower())
+
+
+def _foreign_core(heard: str, turn_text: str, wake_word: str) -> tuple[int, int]:
+    """How many heard CONTENT words are hers, and how many are not (the veto's narrowness check).
+
+    A content word is hers when it stands in what she said this turn (or fuzzy-matches a word of
+    it, which is what Whisper's mishearing of her own voice does: "leveling" for "lemonade",
+    "five" for "5", "100" inside "100x4"). Each word counts ONCE - a doubled mishearing is still
+    one mishearing. Wake and stop words never count as foreign: they are cues, and the veto
+    already steps aside for them.
+    """
+    spoken_raw = {_NUMBER_WORDS.get(token, token) for token in _heard_tokens(turn_text)}
+    spoken = {token for token in spoken_raw if token not in _FUNCTION_WORDS}
+    wake = wake_word.casefold()
+    hers: set[str] = set()
+    foreign: set[str] = set()
+    for token in _heard_tokens(heard):
+        token = _NUMBER_WORDS.get(token, token)
+        if token == wake or token in STOP_WORDS:
+            continue
+        if token in _FUNCTION_WORDS:
+            continue
+        if token in spoken or any(len(token) > 2 and (token in word or word in token)
+                                  for word in spoken):
+            hers.add(token)
+        else:
+            foreign.add(token)
+    return len(hers), len(foreign)
+
+
 # Outcomes of one observation; the caller performs the effects.
 IGNORED = "ignored"
 OFFLINE = "offline"
@@ -187,6 +263,13 @@ class BargeInController:
         # What Voxa is saying now and the reply before it: the own-voice check's evidence.
         self.speaking_text = ""
         self.recent_spoken = ""
+        # Issue #72, task v08: the reply she is reading out right now is a TURN - every piece of
+        # it is one thing she said. The veto reads the turn's words (echo lands ~1 s late, against
+        # the PREVIOUS piece), and the ``speaking`` signal spans the turn until its echo tail.
+        self.turn_started_at = 0.0
+        self.turn_ended_at = 0.0
+        self._turn_log: list[tuple[float, str]] = []
+        self._previous_turn_log: list[tuple[float, str]] = []
         # Has the floor already been yielded for this reply? Yielding happens once: a second
         # run of unexplained sound inside the same reply is the same interruption, not a new one.
         self._yielded = False
@@ -248,9 +331,64 @@ class BargeInController:
         self.speaking_text = text
         self.note_speaking()
 
+    def note_turn(self, text: str = "") -> None:
+        """The reply's FIRST ``speak-start`` opens one turn (issue #72, task v08).
+
+        Every piece of that reply belongs to it: the text veto reads the whole turn (the echo of
+        piece 1 arrives while piece 2 plays), and the turn's words stay the evidence until the
+        NEXT reply rolls them into ``_previous_turn_log`` for :data:`VETO_PREVIOUS_SECONDS`.
+        """
+        self.turn_started_at = self.clock()
+        self.turn_ended_at = 0.0
+        self._previous_turn_log = self._turn_log
+        self._turn_log = [(self.turn_started_at, text)] if text else []
+
+    def note_piece(self, text: str = "") -> None:
+        """A later piece of the SAME reply began being read out."""
+        if text:
+            self._turn_log.append((self.clock(), text))
+
+    def turn_veto_text(self) -> str:
+        """Everything she said in the current turn, plus the last 10 s of the previous one."""
+        now = self.clock()
+        parts = [text for _started, text in self._turn_log]
+        parts += [text for started, text in self._previous_turn_log
+                  if now - started <= VETO_PREVIOUS_SECONDS]
+        return " ".join(parts).strip()
+
+    def speaking_now(self) -> bool:
+        """True from the turn's first speak-start until its last audio end plus the echo tail.
+
+        This is the ``speaking`` flag i02 marks the reference with: her voice is still arriving in
+        the microphone for :data:`ECHO_TAIL_SECONDS` after the last piece left the speakers, and the
+        gaps between pieces are hers too - the moments that read silent are exactly what made her
+        answer herself.
+        """
+        if self.turn_started_at > 0.0 and self.turn_ended_at <= 0.0:
+            return True
+        return (self.turn_ended_at > 0.0
+                and self.clock() < self.turn_ended_at + ECHO_TAIL_SECONDS)
+
+    def _turn_text_echo_veto(self, heard: str, raw: str, wake_word: str) -> bool:
+        """Issue #72, task v08: the second guard reads her WHOLE TURN, not just the current piece.
+
+        The echo lands about a second late - the heard words are usually the PREVIOUS piece's
+        text, which the per-piece veto never saw. But the heard line only dies to the veto while
+        MOST of its words really are hers: a real question that shares her function words (the
+        logged "What is the capital of France?" at overlap 0.68) survives the guard and interrupts.
+        """
+        turn_text = self.turn_veto_text() or self.speaking_text
+        if not _text_echo_veto(heard, raw, wake_word, turn_text):
+            return False
+        hers, foreign = _foreign_core(f"{heard} {raw}", turn_text, wake_word)
+        return foreign < hers and foreign <= _VETO_FOREIGN_CONTENT_MAX
+
     def reply_ended(self) -> None:
         """The reply finished, was stopped or the mode closed (window.py:3060-3061 and friends)."""
         self.speaking_since = 0.0
+        if self.turn_started_at > 0.0:
+            # The reply's audio ended; her echo is still in the microphone for the tail.
+            self.turn_ended_at = self.clock()
         self.gate.reset()
         self.onset.reset()
         self._yielded = False
@@ -446,11 +584,11 @@ class BargeInController:
         ):
             # The station she is announcing has already started: its presenter is not the user.
             own = True
-        # Issue #72, step 4: the canceller leaves a few leaked words of her own voice in the
-        # microphone, and this second guard reads their text. Words that overlap with what she is
-        # SAYING right now ("5 times more." while she says "...5 times 4 is 20.") are her echo,
-        # never a barge-in - but a stop word or a bare wake word always beats the text (task A2).
-        if not own and _text_echo_veto(heard, raw, wake_word, self.speaking_text):
+        # Issue #72, step 4 + task v08: the canceller leaves a few leaked words of her own voice in
+        # the microphone, and this second guard reads their text against her WHOLE TURN - the echo
+        # of piece 1 arriving while piece 2 plays is her echo, never a barge-in - but a stop word
+        # or a bare wake word always beats the text (task A2), and so do mostly-foreign words.
+        if not own and self._turn_text_echo_veto(heard, raw, wake_word):
             own = True
         if own:
             # The loud sound was Voxa's own voice: carry on speaking (unless the floor was
@@ -477,6 +615,9 @@ class BargeInController:
         self.gate.reset()
         self._clear_candidate()
         self.speaking_since = 0.0
+        if self.turn_started_at > 0.0 and self.turn_ended_at <= 0.0:
+            # Her playback stops now; its echo is still in the microphone for the tail.
+            self.turn_ended_at = self.clock()
         return BargeOutcome(INTERRUPT, heard=heard, raw=raw, level=level01,
                             listening_seconds=self.clock() - started,
                             source=decision.source, confidence=decision.confidence,

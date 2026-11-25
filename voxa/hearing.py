@@ -87,6 +87,24 @@ class PieceStarted:
     """
 
 
+@dataclass(slots=True)
+class TurnStarted:
+    """The reply's FIRST ``speak-start``: one turn of which every piece is part (task v08).
+
+    The text veto and the ``speaking`` signal are turn-wide from here: the echo of piece 1 lands
+    while piece 2 plays, and the whole reply is one continuous render for the reference.
+    """
+
+    text: str = ""
+
+
+@dataclass(slots=True)
+class PieceSpoken:
+    """A later piece of the turn in progress began being read out (task v08)."""
+
+    text: str = ""
+
+
 class HearingDirector:
     """The barge-in decision, on its own thread, fed by bounded queues.
 
@@ -164,6 +182,12 @@ class HearingDirector:
             self.controller.reply_ended()
         elif isinstance(event, PieceStarted):
             self.controller.note_speaking()
+        elif isinstance(event, TurnStarted):
+            self.controller.note_turn(event.text)
+            self.controller.reply_started(event.text)
+        elif isinstance(event, PieceSpoken):
+            self.controller.note_piece(event.text)
+            self.controller.reply_started(event.text)
 
     def _deliver(self, outcome: BargeOutcome) -> None:
         self._decisions.append(outcome)
@@ -201,6 +225,12 @@ class HearingDirector:
 
     def reply_started(self, text: str) -> bool:
         return self._push(ReplyStarted(text=text))
+
+    def turn_started(self, text: str) -> bool:
+        return self._push(TurnStarted(text=text))
+
+    def piece_spoken(self, text: str) -> bool:
+        return self._push(PieceSpoken(text=text))
 
     def reply_ended(self) -> bool:
         return self._push(ReplyEnded())

@@ -817,7 +817,7 @@ class MainWindow(Adw.ApplicationWindow):
             self.conversation.release_prompt()
             self.conversation.open_followup(0)
         self.own_speech.finished()      # the reply she was cut off saying stays remembered: its echo must not wake her
-        self._hearing.reply_ended()
+        self._note_reply_end()
         self.assistant.pause()
         self._set_status(f"Paused — say “{self.settings.wake_word}” to continue")
 
@@ -889,7 +889,7 @@ class MainWindow(Adw.ApplicationWindow):
     def _port_stop_speech(self) -> None:
         self.speech.stop()
         self._live_reset()
-        self._hearing.reply_ended()
+        self._note_reply_end()
         if self.conversation is not None:
             self.conversation.unmute()
 
@@ -2843,7 +2843,7 @@ class MainWindow(Adw.ApplicationWindow):
         # the mute/barge-in state is reset explicitly here.
         self.speech.stop()
         self._live_reset()
-        self._hearing.reply_ended()
+        self._note_reply_end()
         if self._pending_user_generation is not None:
             self._conversation_history.drop_last()
         self._pending_user_generation = None
@@ -2972,7 +2972,7 @@ class MainWindow(Adw.ApplicationWindow):
             self.conversation.unmute()
         self.speech.stop()
         self._live_reset()
-        self._hearing.reply_ended()
+        self._note_reply_end()
         if kind == "goodbye":
             # Exactly what pressing the red OFFLINE button does.
             self.stop_current_work()
@@ -3370,6 +3370,26 @@ class MainWindow(Adw.ApplicationWindow):
 
         threading.Thread(target=work, daemon=True).start()
 
+    def _note_reply_start(self, text: str) -> None:
+        """One reply = ONE turn and one continuous render (issue #72, task v08).
+
+        The render timeline opens a turn at the reply's first ``speak-start`` so the reference the
+        attribution reads covers the gaps between the pieces and the echo tail instead of reading
+        silent at every piece boundary; the hearing thread gets the same turn so its text veto
+        spans the whole reply and the ``speaking`` signal lasts until the tail.
+        """
+        timeline = getattr(self, "render_timeline", None)
+        if timeline is not None:
+            timeline.open_turn()
+        self._hearing.turn_started(text)
+
+    def _note_reply_end(self) -> None:
+        """The reply's audio ended; the turn closes, its echo tail still belongs to her."""
+        timeline = getattr(self, "render_timeline", None)
+        if timeline is not None:
+            timeline.close_turn()
+        self._hearing.reply_ended()
+
     def _conversation_speak(self, text: str) -> None:
         if not may_speak(self.assistant.is_paused):
             # Paused: she stays silent (issue 136). A late tool reply, a coaching
@@ -3378,7 +3398,7 @@ class MainWindow(Adw.ApplicationWindow):
             self._toast(text)
             return
         typing.LAST_REPLY = text
-        self._hearing.reply_started(text)
+        self._note_reply_start(text)
         self._turn.note_reply(text)
         self.own_speech.started(text)
         if self.conversation is not None:
@@ -3460,7 +3480,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.own_speech.finished()
         if self.conversation is not None:
             self.conversation.unmute()
-        self._hearing.reply_ended()
+        self._note_reply_end()
         self.assistant.reply_finished(self.assistant.token(), waiting_for_prompt=waiting, reply_id=reply_id)
         self._set_status("Listening for a follow-up…" if waiting else self._conversation_idle_status())
         return False
@@ -3480,7 +3500,7 @@ class MainWindow(Adw.ApplicationWindow):
     def _on_conversation_speech_error(self, error: str) -> bool:
         if self.conversation is not None:
             self.conversation.unmute()
-        self._hearing.reply_ended()
+        self._note_reply_end()
         self._fail_assistant("Speech playback failed")
         self._toast(error)
         self._set_status(self._conversation_idle_status())
@@ -3598,8 +3618,10 @@ class MainWindow(Adw.ApplicationWindow):
                 # Roadmap task 1 gives the reference tap back; until it can measure her own
                 # samples, a silent tap while she is mid-reply is NOT a near-end turn. Mark her
                 # speaking so attribution treats the reference as active by definition and never
-                # credits her own echo to the user (issue #72: she was answering herself).
-                speaking=self._barge_ctl.speaking_since > 0.0,
+                # credits her own echo to the user (issue #72: she was answering herself). Task
+                # v08: that signal is the whole TURN now - true from its first speak-start until
+                # the last piece's end plus the echo tail, gaps between pieces included.
+                speaking=self._barge_ctl.speaking_now(),
                 echo_explained_db=explained,
                 residual_db=residual,
                 residual_margin_db=margin,
@@ -3678,7 +3700,7 @@ class MainWindow(Adw.ApplicationWindow):
         ref_power, _explained, _residual = self.audio.echo_measurements()
         self._hearing.submit(HearingSample(
             level01=self._latest_level / 4000.0,
-            speaking=self._barge_ctl.speaking_since > 0.0,
+            speaking=self._barge_ctl.speaking_now(),
             paused=self.assistant.is_paused,
             muted=bool(self.conversation_active and self.conversation is not None
                        and self.conversation.muted),
@@ -5008,7 +5030,12 @@ class MainWindow(Adw.ApplicationWindow):
         state["playing"] = True
         piece = item_text or text
         if piece:
-            self._hearing.reply_started(piece)
+            if not state["started"]:
+                # The reply's first piece opens the turn: one continuous render and one turn's
+                # words from here (issue #72, task v08).
+                self._note_reply_start(piece)
+            else:
+                self._hearing.piece_spoken(piece)
             self._turn.note_reply(piece)
             self.own_speech.started(piece)
             # Roadmap task 7 (f175): each prepared piece is its own edge-tts word-boundary
