@@ -297,3 +297,25 @@ def test_an_aligned_path_keeps_its_commands_during_recovery() -> None:
     runner._deliver("open the garage", 4, kind="request")
     assert runner.requests == ["open the garage"]
     assert runner.held_commands == 0
+
+
+def test_dtln_tracks_its_reference_travel_instead_of_the_nlms_estimator() -> None:
+    """Issue #72, task v11c step 3: DTLN owns its internal delay but the render map still has
+    to be READ at the fitted travel. The estimator path must run the travel lock for DTLN and
+    never treat it as the AEC3 "done" case; an epoch clears the fitted travel with everything
+    else."""
+    from voxa.dtln import DtlnCanceller, dtln_available
+    if not dtln_available()[0]:
+        pytest.skip("no DTLN stage on this machine")
+    capture = AudioCapture()
+    capture.set_echo_mode("dtln", None)
+    seen: list[bytes] = []
+    capture._fit_echo_travel = lambda pcm: seen.append(pcm)  # type: ignore[assignment]
+    capture._maybe_estimate_delay(b"\x00\x00\x00\x00")
+    assert seen == [b"\x00\x00\x00\x00"]          # the travel lock ran
+    assert capture._delay_done is True            # the NLMS estimator stayed out
+    capture._echo_travel = 0.120
+    capture.timeline = None
+    capture.begin_epoch(OUTPUT_BT_A2DP, reason="bluetooth-profile")
+    assert isinstance(capture.canceller, DtlnCanceller)
+    assert capture._echo_travel == 0.0           # the old route's travel is gone

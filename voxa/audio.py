@@ -251,6 +251,11 @@ class AudioCapture:
         # healthy alignment is readable instead of inferred.
         self._anchor = {"mic": [], "ref": [], "gap": 0, "done": False}
         self._anchor_ms: float | None = None
+        # Issue #72, task v11c step 3: the fitted travel from the loudspeaker to the microphone.
+        # DTLN owns its internal delay but still needs the reference READ at the right place;
+        # the exact lock feeds this number and _reference_window applies it.
+        self._echo_travel = 0.0
+        self._echo_travel_logged = False
         # Roadmap task 4 on the exact-delay output (f171): the residual stage ON the shipping
         # canceller's own output, read at the delay the lock drives the canceller at. None =
         # the mode has no residual stage (echo off, the webrtc route, or AEC3, whose delay is
@@ -409,6 +414,8 @@ class AudioCapture:
         self._delay_mic = []
         self._delay_ref = []
         self._delay_lock = None  # a fresh capture or mode change is an explicit epoch
+        self._echo_travel = 0.0
+        self._echo_travel_logged = False
         self._anchor = {"mic": [], "ref": [], "gap": 0, "done": False}
         self._anchor_ms = None
         self._residual_mask = (LockedResidualMask(rate=REFERENCE_RATE)
@@ -586,6 +593,9 @@ class AudioCapture:
                                if self._echo_mode == "voxa" else None)
         self._delay_mic, self._delay_ref = [], []
         self._delay_done = self.canceller is None
+        # Task v11c step 3: the old route's fitted travel says nothing about this one.
+        self._echo_travel = 0.0
+        self._echo_travel_logged = False
         self._anchor = {"mic": [], "ref": [], "gap": 0, "done": False}
         self._anchor_ms = None
         # 4. The recovery window (handoff 6.2): no automatic commands from unqualified audio.
@@ -919,7 +929,8 @@ class AudioCapture:
         if (self.timeline is not None and self._last_arrival is not None
                 and self.timeline.total > 0):
             mic_start, _end = self.capture_clock.stamp(self._last_arrival, samples)
-            window = self.timeline.reference_window(mic_start=mic_start, length=samples)
+            window = self.timeline.reference_window(mic_start=mic_start, length=samples,
+                                                  echo_travel=self._echo_travel)
             # Task v11c step 3: a blank window while her reply is on the timeline is a
             # stamp/ring disagreement, not silence - name it with the numbers instead of
             # guessing. (A reply that has not started or has drained legitimately blanks.)
@@ -1076,6 +1087,15 @@ class AudioCapture:
         # dtln included - that mode owns the delay internally and reported nothing, which is
         # exactly why no "echo delay:" line ever appeared live.
         self._observe_wide_anchor(pcm)
+        if (getattr(self.canceller, "delay_managed_internally", False)
+                and self._echo_mode == "dtln"):
+            # Task v11c step 3: the neural stage owns its delay inside its 32 ms analysis
+            # window, but the reference it is HANDED must still start at the right place:
+            # the exact lock measures the map-vs-microphone travel per chunk and
+            # _reference_window reads at it. Tracked continuously, like every lock.
+            self._fit_echo_travel(pcm)
+            self._delay_done = True
+            return
         if self._delay_done:
             return
         if getattr(self.canceller, "delay_managed_internally", False):
@@ -1117,6 +1137,38 @@ class AudioCapture:
                 log.info("echo delay %s: %d samples (%.3f s), drift %.1f ppm", est["kind"],
                          est["delay_samples"], est["delay_samples"] / REFERENCE_RATE,
                          est["drift_ppm"])
+
+    def _fit_echo_travel(self, pcm: bytes) -> None:
+        """Task v11c step 3 for DTLN: measure the map-vs-microphone travel with the exact
+        lock on the UNSHIFTED pair, and move the reference read by it. The neural stage
+        learns the echo delay itself; what it cannot learn is where the render map parked
+        the samples it is handed - v11b's +-480 ms straddle and this run's alternating
+        residuals are that parking error, and the lock is how the rest of the fleet fits it.
+        """
+        if self.timeline is None or self._last_arrival is None or self.timeline.total <= 0:
+            return
+        n = len(pcm) // 2
+        mic_start, _end = self.capture_clock.stamp(self._last_arrival, n)
+        ref = self.timeline.reference_window(mic_start=mic_start, length=n)
+        if ref is None:
+            return
+        if self._delay_lock is None:
+            # canceller=None: the neural stage is not driven by an offset, only observed.
+            self._delay_lock = ExactDelayLock(sample_rate=REFERENCE_RATE)
+        mic = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
+        self._delay_lock.observe(self._mic_counter / REFERENCE_RATE,
+                                 mic[:ref.size], np.asarray(ref, dtype=np.float32)[:mic.size])
+        if not self._delay_lock.delay_confident:
+            return
+        travel = float(self._delay_lock.delay_frac) / REFERENCE_RATE
+        if not 0.0 <= travel <= 1.0:
+            return
+        if abs(travel - self._echo_travel) > 0.02:
+            self._echo_travel = travel
+            if not self._echo_travel_logged:
+                log.info("echo delay: exact lock at %.1f ms travel (drift %.1f ppm)",
+                         travel * 1000.0, self._delay_lock.drift_ppm)
+                self._echo_travel_logged = True
 
     _ANCHOR_CAP_S = 3.0
     _ANCHOR_GAP_FRAMES = 40
