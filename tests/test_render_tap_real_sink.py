@@ -44,9 +44,13 @@ sys.path.insert(0, sys.argv[1])
 os.environ.setdefault("VOXA_NO_WELCOME", "1")
 import gi
 gi.require_version("Gtk", "4.0")
+gi.require_version("Gdk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, GLib, Gtk
-if not Gtk.init_check():
+from gi.repository import Adw, Gdk, GLib, Gtk
+# GTK 4's init_check() returns True even with NO display (the window factory is where
+# it actually fails: Gtk.init() raises "Gtk couldn't be initialized"), so the real test
+# is whether GDK can name a display at all.
+if not Gtk.init_check() or Gdk.Display.get_default() is None:
     print("SKIP no display")
     raise SystemExit(0)
 Adw.init()
