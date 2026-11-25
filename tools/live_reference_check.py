@@ -36,6 +36,13 @@ RENDER_TAP = re.compile(
     r"render-tap .*attached=(?P<attached>[A-Za-z]+) .*samples=(?P<samples>\d+) "
     r"peak=(?P<peak>[0-9.]+) silent=(?P<silent>[A-Za-z]+)"
 )
+# Issue #72, task v11b step 10: the two live numbers the task's gate reads.
+# A DECISION is one attribution line (it carries source='...'/reasons='...'); it is ALIGNED
+# when its reasons do not say the echo path could not qualify the audio. An INTERRUPT line is
+# a real barge-in she performed - while she speaks ALONE (nobody else in the room) every one
+# of them is a false interrupt of herself.
+DECISION = re.compile(r"source='(?P<source>[a-z-]+)'")
+UNHEALTHY = "alignment unhealthy"
 # The three sentences the task asks her to read aloud: long enough to be a real reply.
 SENTENCES = (
     "The first sentence is long enough that Voxa will still be speaking when the check begins. "
@@ -62,9 +69,9 @@ def _launch_app() -> subprocess.Popen:
     return proc
 
 
-def _make_file() -> Path:
+def _make_file(text: str | None = None) -> Path:
     handle = tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, prefix="voxa-live-ref-")
-    handle.write(SENTENCES)
+    handle.write(text if text is not None else SENTENCES)
     handle.close()
     return Path(handle.name)
 
@@ -89,20 +96,26 @@ def _trigger_read_file(path: Path) -> bool:
     return _action("read-file", str(path))
 
 
-def _count_checks(after_byte: int, timeout: float) -> tuple[int, int]:
-    """Watch one reply in ``barge.log`` and judge her reference honestly: (silent, checks).
+def _count_checks(after_byte: int, timeout: float) -> tuple[int, int, int, int, int]:
+    """Watch one reply in ``barge.log`` and judge her reference honestly.
 
-    A reply is a CHECK once she started speaking (a ``speak-start`` line). It reads SILENT when
-    the live tap could not measure her own voice - either the ``render-tap`` line reports a
-    near-zero peak, or attribution fell back to ``reference active by definition while speaking:
-    silent tap, abstain`` (the exact reason the v09 log had on every line). If the reply neither
-    shows a speak-start nor times out, it is not a check (returns 0, 0) and the caller retries.
+    Returns ``(silent, checks, decisions, aligned, interrupts)``:
+    * one CHECK once she started speaking (a ``speak-start`` line);
+    * SILENT when the live tap could not measure her own voice - the ``render-tap`` line reports
+      a near-zero peak, or attribution fell back to ``reference active by definition while
+      speaking: silent tap, abstain``;
+    * DECISIONS / ALIGNED for step 10's ``alignment healthy while speaking: H of D`` - every
+      attribution line during the reply, and those that are not ``alignment unhealthy``;
+    * INTERRUPTS for step 10's ``false interrupts while she speaks alone: K of N`` - every
+      ``INTERRUPT`` during the reply, which with nobody else talking is her cutting herself off.
+    A reply that neither shows a speak-start nor times out is not a check (0, 0, 0, 0, 0).
     """
     deadline = time.monotonic() + timeout
     path = _barge_log_path()
     spoke = False
     silent = False
     render_seen = False
+    decisions = aligned = interrupts = 0
     while time.monotonic() < deadline:
         if not path.exists():
             time.sleep(0.4)
@@ -114,6 +127,12 @@ def _count_checks(after_byte: int, timeout: float) -> tuple[int, int]:
                     spoke = True
                 if "silent tap, abstain" in line:
                     silent = True
+                if DECISION.search(line):
+                    decisions += 1
+                    if UNHEALTHY not in line:
+                        aligned += 1
+                if re.search(r"\bINTERRUPT\b", line):
+                    interrupts += 1
                 match = RENDER_TAP.search(line)
                 if match:
                     render_seen = True
@@ -122,14 +141,14 @@ def _count_checks(after_byte: int, timeout: float) -> tuple[int, int]:
                     if match.group("silent").lower() == "true" or (samples > 0 and peak < 1e-3):
                         silent = True
             after_byte = handle.tell()
-        # A reply that finished (a reply-end/render-tap after a speak-start) settles the check.
+        # A reply that finished (a speak-end/render-tap after a speak-start) settles the check.
         if spoke and (render_seen or "reply-end" in open(path, encoding="utf-8", errors="replace"
                                                           ).read()[after_byte:]):
             break
         time.sleep(0.4)
     if not spoke:
-        return 0, 0
-    return (1 if silent else 0), 1
+        return 0, 0, 0, 0, 0
+    return (1 if silent else 0), 1, decisions, aligned, interrupts
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -140,7 +159,15 @@ def main(argv: list[str] | None = None) -> int:
                         help="seconds to wait for each reply's render-tap line")
     parser.add_argument("--keep-app", action="store_true",
                         help="leave Voxa running at the end (default: stop the instance we started)")
+    parser.add_argument("--voice", default="",
+                        help="issue #72 v11b step 11: label this run with the voice/language in use")
+    parser.add_argument("--text-file", default=None,
+                        help="issue #72 v11b step 11: read THIS file aloud instead of the English "
+                             "default (each character speaks its own language)")
     args = parser.parse_args(argv)
+    reply_text = None
+    if args.text_file:
+        reply_text = Path(args.text_file).read_text(encoding="utf-8").strip()
 
     log_path = _barge_log_path()
     started = None
@@ -153,28 +180,39 @@ def main(argv: list[str] | None = None) -> int:
 
     total = 0
     silent_total = 0
+    decisions = 0
+    aligned = 0
+    interrupts = 0
     attempt = 0
     max_attempts = max(1, args.replies) * 3
     try:
         while total < max(1, args.replies) and attempt < max_attempts:
             attempt += 1
             before = log_path.stat().st_size if log_path.exists() else 0
-            tmp = _make_file()
+            tmp = _make_file(reply_text)
             if not _trigger_read_file(tmp):
                 print("could not ask Voxa to read the file: is the app running and the "
                       "read-file action exported?", file=sys.stderr)
                 return 2
-            silent, checks = _count_checks(before, args.per_reply_timeout)
+            silent, checks, reply_decisions, reply_aligned, reply_interrupts = _count_checks(
+                before, args.per_reply_timeout)
             total += checks
             silent_total += silent
+            decisions += reply_decisions
+            aligned += reply_aligned
+            interrupts += reply_interrupts
             tmp.unlink(missing_ok=True)
     finally:
         if started is not None and not args.keep_app:
             subprocess.run(["flatpak", "kill", APP_ID], capture_output=True, check=False)
             started.terminate()
 
-    print(f"reference silent while speaking: {silent_total} of {total} checks")
-    return 0 if silent_total == 0 and total >= 1 else 1
+    label = f" [{args.voice}]" if args.voice else ""
+    print(f"reference silent while speaking: {silent_total} of {total} checks{label}")
+    print(f"alignment healthy while speaking: {aligned} of {decisions}{label}")
+    print(f"false interrupts while she speaks alone: {interrupts} of {total}{label}")
+    return 0 if (silent_total == 0 and total >= 1 and decisions > 0 and aligned / decisions >= 0.9
+                 and interrupts == 0) else 1
 
 
 if __name__ == "__main__":
