@@ -19,7 +19,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from .attribution import ECHO, SourceEvidence
+from .attribution import ECHO, USER, SourceEvidence
 from .attribution import UNCERTAIN as SOURCE_UNCERTAIN
 from .bargein import FRAME_MS, BargeInGate, STOP_WORDS, _words, overlap, sounds_like, source_decision
 from .onset import OnsetDetector
@@ -49,6 +49,17 @@ TEXT_ECHO_SOUNDS = 0.55
 # whole turn, and the guard must not swallow a real question that shares her function words: the
 # heard line only dies to the veto when most of its words are hers.
 VETO_PREVIOUS_SECONDS = 10.0
+
+# Issue #72, task v11 step 3: an abstain must not be permanent. When the reference is UNUSABLE
+# (the live tap reads silent while she speaks, or the alignment is unhealthy) attribution can only
+# ever hold the span back, so nothing said over her could ever become ``user`` and real barge-ins
+# were dead (the rc5 live run recorded 0 INTERRUPTs). While she speaks and the reference is
+# unusable, decide by the TURN-WIDE text veto instead: heard CONTENT words that are NOT in her
+# whole turn's text are the user's. The threshold is deliberately high and the wake word opens it:
+# >= 3 foreign content words, or the wake word plus >= 2. Her own words (misheard echoes land a
+# handful of foreign words at most) never reach it, so they still never interrupt her.
+DEGRADED_FOREIGN_MIN = 3
+DEGRADED_FOREIGN_WITH_WAKE = 2
 # Room + microphone latency of the live run: her own tail is still in the microphone this long
 # after the last piece ended, so the reference is still hers, and she must not answer it.
 ECHO_TAIL_SECONDS = 1.5
@@ -385,6 +396,29 @@ class BargeInController:
         hers, foreign = _foreign_core(f"{heard} {raw}", turn_text, wake_word)
         return foreign < hers and foreign <= _VETO_FOREIGN_CONTENT_MAX
 
+    @staticmethod
+    def _reference_unusable(decision) -> bool:
+        """Did attribution abstain because the REFERENCE could not be trusted (not because the
+        audio was weak)? Issue #72, task v11 step 3: the two degraded states that hold forever -
+        a silent tap while she speaks, and an unhealthy alignment - are exactly these reasons."""
+        return any("silent tap, abstain" in reason or "alignment unhealthy" in reason
+                   for reason in decision.reasons)
+
+    def _degraded_turn_promote(self, heard: str, raw: str, wake_word: str) -> bool:
+        """Issue #72, task v11 step 3: while she speaks and the reference is UNUSABLE, promote by
+        the turn-wide text veto. Heard CONTENT words that are not in her whole turn are the user;
+        >= 3 of them, or the wake word plus >= 2, is a barge-in. Her own words (few foreign) never
+        clear it, so an echo of her reply still never interrupts her.
+        """
+        turn_text = self.turn_veto_text() or self.speaking_text
+        if not turn_text or not (heard or raw):
+            return False
+        _hers, foreign = _foreign_core(f"{heard} {raw}", turn_text, wake_word)
+        wake_present = strip_wake_word(f"{heard} {raw}", wake_word) is not None
+        if wake_present:
+            return foreign >= DEGRADED_FOREIGN_WITH_WAKE
+        return foreign >= DEGRADED_FOREIGN_MIN
+
     def reply_ended(self) -> None:
         """The reply finished, was stopped or the mode closed (window.py:3060-3061 and friends)."""
         self.speaking_since = 0.0
@@ -567,6 +601,29 @@ class BargeInController:
                     reasons="; ".join(decision.reasons)[:200],
                     seconds=self.clock() - started, speaking=self.speaking_text[:60])
         if decision.source == SOURCE_UNCERTAIN:
+            # Issue #72, task v11 step 3: an abstain is not permanent. When the REFERENCE is
+            # unusable (silent tap while she speaks, or an unhealthy alignment) attribution can
+            # only ever hold the span back, so a real barge-in could never be credited to the
+            # user. While she speaks, decide by the turn-wide text veto instead: heard words that
+            # are not in her whole turn (>= 3, or the wake word plus >= 2) ARE the user ->
+            # INTERRUPT. Her own words never clear the bar, so they fall through to the HOLD.
+            if (self.turn_started_at > 0.0 and self.turn_ended_at <= 0.0
+                    and self._reference_unusable(decision)
+                    and _has_interrupt_words(heard, raw, wake_word)
+                    and self._degraded_turn_promote(heard, raw, wake_word)):
+                self._trace("words", heard=heard, raw=raw, source="user",
+                            confidence=0.0, degraded=True,
+                            reasons="degraded reference: turn-wide text veto promoted to user",
+                            seconds=self.clock() - started, speaking=self.speaking_text[:60])
+                self.gate.reset()
+                self._clear_candidate()
+                self.speaking_since = 0.0
+                if self.turn_started_at > 0.0 and self.turn_ended_at <= 0.0:
+                    self.turn_ended_at = self.clock()
+                return BargeOutcome(INTERRUPT, heard=heard, raw=raw, level=level01,
+                                    listening_seconds=self.clock() - started,
+                                    source=USER, confidence=0.0, degraded=True,
+                                    joint_suspect=joint)
             # Not her voice and not proven to be a person: hold. The captured span stays pinned
             # for its evidence window, nothing is stripped from the transcript, and no command
             # runs from audio this weak (handoff 6.5: an immediate output change for every raw
