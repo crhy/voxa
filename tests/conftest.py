@@ -6,6 +6,11 @@ switched the default audio output. Pointing PULSE_SERVER at nothing makes every 
 
 import os
 
+# NumPy 2 huge-page madvise stalls khugepaged on this machine (see voxa/__init__.py);
+# the gate box has tens of GB pinned by the local model. Set before anything imports
+# numpy: conftest is the first file pytest loads.
+os.environ.setdefault("NUMPY_MADVISE_HUGEPAGE", "0")
+
 import pytest
 
 os.environ["PULSE_SERVER"] = "unix:/nonexistent-voxa-tests"
