@@ -803,6 +803,9 @@ class MainWindow(Adw.ApplicationWindow):
             getattr(self, "_face_state_tracked", None),
             getattr(self, "_face_state_tracked_at", None))
         if committed is not state:
+            # Task v11d step 4 counts idle face state changes from barge.log: this line is
+            # written ONLY when the debounced commit actually moves the face.
+            self._barge_trace("face-state", frm=state.name, to=committed.name)
             self.assistant_model.set_state(committed, "")
         return True
 
