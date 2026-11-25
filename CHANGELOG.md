@@ -1,5 +1,15 @@
 # Voxa changelog
 
+## Unreleased
+
+### Fixed
+
+- **Hearing: mid-reply she no longer hears and answers herself.** A reference tap that measures
+  silence while she is speaking is the missing reference (roadmap task 1), not a near-end turn,
+  so the reference is treated as active by definition and the microphone is never credited to the
+  user on that reading — attribution abstains (degraded) and the words/joint gate decide.
+  (`voxa/attribution.py`, `voxa/window.py`, #72)
+
 ## 0.1.9 — 2026-11-23
 
 ### New

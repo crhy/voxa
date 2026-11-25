@@ -93,6 +93,12 @@ class SourceEvidence:
 
     reference_active: bool = False
     reference_power: float = 0.0
+    # True while Voxa is mid-reply. The reference is then ACTIVE BY DEFINITION even when the tap
+    # measures silence: the silent reading is the measurement gap roadmap task 1 hands back, not
+    # proof nothing is playing. Crediting the microphone to the user on that reading is exactly
+    # the self-interruption this module exists to prevent (issue #72), so a silent tap while
+    # ``speaking`` may never decide ``user`` - it abstains and lets the words decide.
+    speaking: bool = False
     echo_explained_db: float | None = None   # dB of the microphone the delayed reference accounts for
     residual_db: float | None = None         # dB of the microphone left over after the echo-path fit
     residual_margin_db: float | None = None  # that residual above the echo path's recent baseline
@@ -199,6 +205,14 @@ def attribute(ev: SourceEvidence, baseline_db: float | None = None) -> SourceDec
             streams.append((name, value))
 
     if not ev.reference_active:
+        if ev.speaking:
+            # Voxa is speaking, so the reference is active by definition: the tap measuring
+            # silence is the missing reference (roadmap task 1), not a near-end turn. There is
+            # no honest reference to compare the microphone against, so this is a degraded
+            # state that may only ever hold the span back (``echo``/``uncertain``) - it must
+            # never answer ``user``, which is what made her answer herself (issue #72).
+            reasons.append("reference active by definition while speaking: silent tap, abstain")
+            return SourceDecision(UNCERTAIN, 0.0, tuple(reasons), degraded=True, evidence=ev)
         # Nothing is coming out of the speakers: there is no echo to explain the microphone, so
         # any speech in it is the user's. (The near-end-only case, and the case where Voxa is
         # silent.) A reference that is merely quiet is still a reference: see the power check below.

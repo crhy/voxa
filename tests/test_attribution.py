@@ -109,6 +109,18 @@ def test_a_silent_reference_leaves_nothing_to_cancel():
     assert decision.source == USER
 
 
+def test_speaking_with_a_silent_tap_never_credits_the_microphone_to_the_user():
+    # The self-interruption of issue #72: Voxa is mid-reply, the reference tap measures silence
+    # (the missing reference of roadmap task 1), and the microphone carries her own voice. The
+    # reference is active by definition, so attribution may NOT answer ``user`` here - that is
+    # what made her answer herself. It abstains (degraded) and lets the words/joint gate decide.
+    decision = attribute(SourceEvidence(reference_active=False, speaking=True, vad_prob=0.8,
+                                         mic_level=0.5, text_overlap=1.0, text_sound=1.0))
+    assert decision.source != USER, decision.reasons
+    assert decision.degraded is True
+    assert any("by definition while speaking" in reason for reason in decision.reasons)
+
+
 def test_one_crude_signal_alone_does_not_make_a_person():
     # The microphone towers over her level, and that is all the evidence says: the echo path is
     # fitted (so its streams count) but leaves nothing of its own behind.

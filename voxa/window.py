@@ -3595,6 +3595,11 @@ class MainWindow(Adw.ApplicationWindow):
             evidence = SourceEvidence(
                 reference_active=bool(ref_power > MIN_REFERENCE_POWER),
                 reference_power=float(ref_power),
+                # Roadmap task 1 gives the reference tap back; until it can measure her own
+                # samples, a silent tap while she is mid-reply is NOT a near-end turn. Mark her
+                # speaking so attribution treats the reference as active by definition and never
+                # credits her own echo to the user (issue #72: she was answering herself).
+                speaking=self._barge_ctl.speaking_since > 0.0,
                 echo_explained_db=explained,
                 residual_db=residual,
                 residual_margin_db=margin,
