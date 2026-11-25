@@ -3741,8 +3741,14 @@ class MainWindow(Adw.ApplicationWindow):
                 joint_suspect=joint_suspect,
                 joint_echo=joint_echo,
                 vad_prob=prob,
-                # A delay of 0 means the echo path was never fitted: unqualified audio, no decision.
-                alignment_healthy=bool(self.audio.delay_samples > 0
+                # Issue #72, task v11b step 8: "no delay we reported" is NOT "unqualified audio".
+                # The live echo_mode is dtln (and aec3), whose canceller owns the alignment
+                # internally and never reports a delay (voxa/dtln.py delay_managed_internally);
+                # reading delay_samples == 0 as unhealthy made EVERY decision while she spoke
+                # 'alignment unhealthy: audio unqualified, no decision', so attribution could only
+                # abstain and the degraded text veto decided from garbled transcripts. Ask the
+                # capture path, which already knows which backend owns the delay.
+                alignment_healthy=bool(self.audio.echo_path_qualified()
                                        or ref_power <= MIN_REFERENCE_POWER),
                 mic_level=float(self._latest_level / 4000.0),
                 own_level=float(self._barge_ctl.gate.baseline),

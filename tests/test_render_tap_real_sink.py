@@ -176,6 +176,24 @@ pump()
 win.stop_conversation_mode()
 pump()
 show("closed-twice", win)
+
+# 4. step 8 (issue #72 v11b): an internally-managed canceller (dtln/aec3) owns the alignment,
+# so a decision while she speaks is qualified audio, never 'alignment unhealthy'.
+win = fresh()
+win.audio.drain_joint_frames = lambda: []
+win.audio.echo_measurements = lambda: (0.5, -20.0, -35.0)   # loud reference, echo explained
+win.audio.echo_path_qualified = lambda: True
+win.audio.delay_samples = 0                                  # DTLN/AEC3 never report a delay
+win.assistant.activate()
+win.assistant.wake(win.assistant.token())
+evidence = win._hearing_evidence()
+from voxa.attribution import attribute
+decision = attribute(evidence) if evidence is not None else None
+print("dtln-evidence",
+      "healthy", bool(getattr(evidence, "alignment_healthy", False)) if evidence else None,
+      "reasons", ";".join(decision.reasons) if decision is not None else "",
+      "source", decision.source if decision is not None else "")
+show("dtln-evidence", win)
 """
 
 
@@ -221,3 +239,8 @@ def test_every_reply_reports_its_render_tap_once() -> None:
         line = next(line for line in lines if line.startswith(f"{label} LINE"))
         label, _, _, attached, _, samples, _, peak, _, silent = line.split()
         assert attached == "True" and int(samples) > 0 and float(peak) > 0 and silent == "False", line
+
+    # step 8: the DTLN/AEC3 canceller owns the delay, so a frame while she speaks is qualified
+    dtln = next(line for line in lines if line.startswith("dtln-evidence healthy"))
+    assert "healthy True" in dtln, f"a self-managed canceller must count as aligned: {dtln}"
+    assert "alignment unhealthy" not in dtln, dtln
