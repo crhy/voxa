@@ -2918,7 +2918,10 @@ class MainWindow(Adw.ApplicationWindow):
         self._cmd_marks = marks
         heard = self.conversation.last_heard if self.conversation is not None else text
         # Test builds: every accepted request, as heard and as passed on (see _trace_ignored).
-        self._barge_trace("request", heard=heard[:160], text=text[:160])
+        # v11 step 5: turn_ms is endpoint -> request heard (endpoint wait + Whisper base on CPU).
+        request_turn_ms = int((marks["prompt"] - marks.get("speech_end", marks["prompt"])) * 1000)
+        self._barge_trace("request heard", turn_ms=request_turn_ms,
+                          heard=heard[:160], text=text[:160])
         if self.assistant.is_paused:
             allowed, rest, why = wake_allowed(heard, self.settings.wake_word, self._paused_own_share())
             if not allowed:
@@ -3086,12 +3089,27 @@ class MainWindow(Adw.ApplicationWindow):
         return out
 
     def _on_stage_timing(self, stage: str, when: float) -> None:
-        """Store a monotonic mark for a conversation stage; a new turn clears the slate."""
+        """Store a monotonic mark for a conversation stage; a new turn clears the slate.
+
+        Issue #72, task v11 step 5: every turn gets its stages in barge.log with ms so the
+        biggest stage is visible (endpoint + transcription come before `request heard`, so
+        `request heard` -> `speak-start` looked instant while the real wait hid upstream).
+        ``user-end`` opens the turn (endpoint reached), ``stt-done`` closes transcription,
+        ``request heard`` and ``speak-start`` are traced where they already are.
+        """
         marks = getattr(self, "_cmd_marks", None) or {}
         if stage == "speech_end":
             marks = {}
+            marks[stage] = when
+            self._cmd_marks = marks
+            self._barge_trace("user-end", turn_ms=0)
+            return
         marks[stage] = when
         self._cmd_marks = marks
+        if stage == "transcribed":
+            turn_ms = int((when - marks.get("speech_end", when)) * 1000)
+            self._barge_trace("stt-done", turn_ms=turn_ms)
+
 
     def _tool_result(self, call: intents.ToolCall) -> ToolResult:
         """Resolve a tool call, special-casing the character tools that touch the UI."""
@@ -3414,7 +3432,11 @@ class MainWindow(Adw.ApplicationWindow):
         self.own_speech.started(text)
         if self.conversation is not None:
             self.conversation.mute()
+        # v11 step 5: turn_ms here is endpoint -> first audio; subtract request heard's turn_ms
+        # and you get the `request heard` -> `speak-start` leg the rc5 log said was only 0-3 s.
+        _spk_marks = getattr(self, "_cmd_marks", None) or {}
         self._barge_trace("speak-start", path="whole-reply", conversation=self.conversation_active,
+                          turn_ms=int((time.monotonic() - _spk_marks.get("speech_end", time.monotonic())) * 1000),
                           muted=bool(self.conversation is not None and self.conversation.muted),
                           level_timer=bool(self._level_source), text=text[:50])
         token = self.assistant.token()
@@ -3561,8 +3583,10 @@ class MainWindow(Adw.ApplicationWindow):
                 path.write_text("")
             detail = " ".join(f"{key}={value!r}" if isinstance(value, str) else f"{key}={value:.3f}"
                               if isinstance(value, float) else f"{key}={value}" for key, value in fields.items())
+            now = time.time()
+            stamp = f"{time.strftime('%H:%M:%S', time.localtime(now))}.{int((now % 1) * 1000):03d}"
             with path.open("a", encoding="utf-8") as handle:
-                handle.write(f"{time.strftime('%H:%M:%S')} {event} {detail}\n")
+                handle.write(f"{stamp} {event} {detail}\n")
         except Exception:  # noqa: BLE001 - tracing must never disturb the conversation
             pass
 
