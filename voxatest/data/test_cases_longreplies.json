@@ -1,0 +1,143 @@
+{
+ "_about": "Task v09 suite b: long multi-sentence replies (recipes, lists, explain, 7-day forecast) that trigger piece-boundary echo (issue #72, task v09).",
+ "cases": [
+  {
+   "id": "long-recipe-1",
+   "category": "general",
+   "prompt": "Give me a recipe for chocolate chip cookies.",
+   "expected_contains": [],
+   "expected_keywords": [
+    "butter|flour|sugar",
+    "bake|oven"
+   ],
+   "rubric": "Gives a multi-step cookie recipe."
+  },
+  {
+   "id": "long-recipe-2",
+   "category": "general",
+   "prompt": "How do I make banana bread from scratch?",
+   "expected_contains": [],
+   "expected_keywords": [
+    "banana",
+    "flour|butter",
+    "bake|oven"
+   ],
+   "rubric": "Gives a multi-step banana bread recipe."
+  },
+  {
+   "id": "long-recipe-3",
+   "category": "general",
+   "prompt": "Tell me step by step how to cook chicken soup.",
+   "expected_contains": [],
+   "expected_keywords": [
+    "chicken",
+    "soup",
+    "cook|simmer"
+   ],
+   "rubric": "Gives a multi-step chicken soup recipe."
+  },
+  {
+   "id": "long-list-1",
+   "category": "general",
+   "prompt": "Give me a list of the ten best mountains in the world.",
+   "expected_contains": [],
+   "expected_keywords": [
+    "mountain|everest",
+    "ten|10"
+   ],
+   "rubric": "Lists several mountains."
+  },
+  {
+   "id": "long-list-2",
+   "category": "general",
+   "prompt": "Name five interesting facts about the ocean.",
+   "expected_contains": [],
+   "expected_keywords": [
+    "ocean",
+    "five|1"
+   ],
+   "rubric": "Gives several ocean facts."
+  },
+  {
+   "id": "long-list-3",
+   "category": "general",
+   "prompt": "List the planets in our solar system in order.",
+   "expected_contains": [],
+   "expected_keywords": [
+    "mars|jupiter|earth",
+    "planets|solar"
+   ],
+   "rubric": "Lists the planets."
+  },
+  {
+   "id": "long-explain-1",
+   "category": "general",
+   "prompt": "Explain how a car engine works in detail.",
+   "expected_contains": [],
+   "expected_keywords": [
+    "engine",
+    "fuel|gas|combustion"
+   ],
+   "rubric": "Explains an engine in several sentences."
+  },
+  {
+   "id": "long-explain-2",
+   "category": "general",
+   "prompt": "Explain photosynthesis step by step.",
+   "expected_contains": [],
+   "expected_keywords": [
+    "photosynthesis|plant",
+    "sunlight|sun|light",
+    "steps|process"
+   ],
+   "rubric": "Explains photosynthesis in several sentences."
+  },
+  {
+   "id": "long-explain-3",
+   "category": "general",
+   "prompt": "Explain why the sky changes colors at sunset.",
+   "expected_contains": [],
+   "expected_keywords": [
+    "sky",
+    "light|sun"
+   ],
+   "rubric": "Explains sunset colors in several sentences."
+  },
+  {
+   "id": "long-forecast-1",
+   "category": "general",
+   "prompt": "Give me a 7-day weather forecast for San Diego.",
+   "expected_contains": [],
+   "expected_keywords": [
+    "weather|forecast|sunny|rain",
+    "san diego|tokyo|riverside",
+    "day|days|temperature"
+   ],
+   "rubric": "Gives a multi-day forecast."
+  },
+  {
+   "id": "long-forecast-2",
+   "category": "general",
+   "prompt": "What will the weather be like in Tokyo for the next seven days?",
+   "expected_contains": [],
+   "expected_keywords": [
+    "weather|forecast|sunny|rain",
+    "san diego|tokyo|riverside",
+    "day|days|temperature"
+   ],
+   "rubric": "Gives a seven-day forecast for Tokyo."
+  },
+  {
+   "id": "long-forecast-3",
+   "category": "general",
+   "prompt": "Give me a 7-day forecast for Riverside, California.",
+   "expected_contains": [],
+   "expected_keywords": [
+    "weather|forecast|sunny|rain",
+    "san diego|tokyo|riverside",
+    "day|days|temperature"
+   ],
+   "rubric": "Gives a seven-day forecast for Riverside."
+  }
+ ]
+}
