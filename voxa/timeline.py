@@ -289,6 +289,8 @@ class GstSinkClock:
         value = minimum if minimum and minimum > 0 else maximum
         if not value or value <= 0:
             return None
+        if not (0 < value < (1 << 63)):  # GST_CLOCK_TIME_NONE: the pipeline reports no latency
+            return None
         return value
 
 
