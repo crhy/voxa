@@ -417,6 +417,51 @@ def decide_bargein(heard: str, *, gated_speech_ms: float, no_speech_prob: float 
     return DECISION_SUSPECT
 
 
+# Issue #72, task v11d item 2: Whisper hallucinates fixed phrases on silence, music and room
+# noise even when nobody spoke. The one INTERRUPT that survived the v11c no-speech guard was
+# ``heard='Thanks for watching.'`` - her own closing phrase, invented out of the echo path's
+# residual. These are the transcripts Whisper invents when there is no real speech; a transcript
+# that is (essentially) one of them, or that Whisper itself brackets as non-speech with a high
+# no_speech_prob, is NOT evidence of a second source UNLESS the cleaned signal really carries
+# speech (VAD >= VAD_SPEECH). A genuine user turn with real speech is never dropped by this guard.
+HALLUCINATION_PHRASES = frozenset({
+    "", ".", "you", "music", "thank you", "thanks", "thanks for watching",
+    "thanks for listening", "thank you for watching", "thank you very much",
+    "like and subscribe", "subscribe", "like and subscribe and hit the bell",
+    "don't forget to subscribe", "don't forget to like and subscribe",
+    "okay", "ok", "the end", "to be continued", "bye", "goodbye",
+})
+
+
+def is_whisper_hallucination(heard: str, raw: str = "", *,
+                             no_speech_prob: float | None = None,
+                             vad_prob: float | None = None) -> bool:
+    """True when a transcript is a Whisper hallucination on noise, not a real second source.
+
+    High ``no_speech_prob`` (above :data:`REJECT_NO_SPEECH_PROB`, Whisper's own non-speech
+    bracket) or a transcript that is one of Whisper's known silence/music phrases decides it -
+    but only when the CLEANED signal carries no real speech (``vad_prob`` missing or below the
+    attribution VAD threshold). With real speech in the cleaned signal the same words are kept:
+    this is a noise filter, never a "the user is wrong" filter.
+    """
+    from .attribution import VAD_SPEECH
+
+    if vad_prob is not None and vad_prob >= VAD_SPEECH:
+        return False  # the cleaned signal really has speech: not a hallucination
+    if no_speech_prob is not None and no_speech_prob > REJECT_NO_SPEECH_PROB:
+        return True
+    for text in (heard, raw):
+        norm = (text or "").strip().casefold()
+        # Whisper appends sentence punctuation to its inventions; "Thanks for watching." and
+        # "thanks for watching" are the same hallucination.
+        norm = norm.strip(" \t\"'“”‘’")
+        while norm and not norm[-1].isalnum():
+            norm = norm[:-1].strip()
+        if norm in HALLUCINATION_PHRASES:
+            return True
+    return False
+
+
 def truncate_to_heard(spoken: str, audible_upto: str) -> str:
     """Truncate Voxa's assistant turn in the conversation context to the words she audibly played.
 

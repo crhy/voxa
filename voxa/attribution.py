@@ -116,6 +116,10 @@ class SourceEvidence:
     # caller's fallback gate or vote for echo.
     joint_echo: bool | None = None
     vad_prob: float | None = None    # speech probability in the CLEANED signal (None = not measured)
+    # Issue #72, task v11d item 2: the speech model's own confidence that a segment is NOT speech
+    # (``no_speech_prob``). None when the ASR did not report it. A high value brackets the
+    # transcript as invented on silence/music, so it feeds the hallucination guard.
+    no_speech_prob: float | None = None
     alignment_healthy: bool = True           # delay known, fresh, within tolerance
     mic_level: float = 0.0                   # 0..1, the scale BargeInGate uses
     own_level: float = 0.0                   # the level her own voice produces in the microphone

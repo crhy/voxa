@@ -21,7 +21,8 @@ from dataclasses import dataclass
 
 from .attribution import ECHO, ECHO_EXPLAINED_DB, USER, SourceEvidence
 from .attribution import UNCERTAIN as SOURCE_UNCERTAIN
-from .bargein import FRAME_MS, BargeInGate, STOP_WORDS, _words, overlap, sounds_like, source_decision
+from .bargein import (FRAME_MS, BargeInGate, STOP_WORDS, _words, is_whisper_hallucination,
+                      overlap, sounds_like, source_decision)
 from .onset import OnsetDetector
 from .conversation import detect_addressed_exit_phrase, strip_wake_word
 
@@ -612,12 +613,29 @@ class BargeInController:
             self.gate.reset()
             self._clear_candidate()
             return BargeOutcome(OFFLINE, heard=heard, raw=raw, level=level01)
+        # Issue #72, task v11d item 2: a Whisper hallucination on the echo path's residual
+        # ("Thanks for watching.", "subscribe", ...) is not a second source. Drop it BEFORE the
+        # words are decided, unless the cleaned signal really carries speech - the one INTERRUPT
+        # that survived the v11c no-speech guard was such a phrase (her own closing line), and it
+        # stopped her on noise. A real user turn with VAD speech is never dropped here.
+        if is_whisper_hallucination(
+                heard, raw,
+                no_speech_prob=getattr(audio, "no_speech_prob", None),
+                vad_prob=getattr(audio, "vad_prob", None)):
+            self._trace("hallucination", heard=heard, raw=raw,
+                        vad_prob=getattr(audio, "vad_prob", None),
+                        no_speech_prob=getattr(audio, "no_speech_prob", None),
+                        speaking=self.speaking_text[:60])
+            self.gate.reset()
+            self._clear_candidate()
+            return BargeOutcome(HOLD, reason="hallucination", heard=heard, raw=raw,
+                                level=level01)
         decision = source_decision(heard, self.speaking_text, self.recent_spoken, raw=raw,
                                    evidence=audio,
                                    level_ratio=(self.pending_ratio
-                                                if self.pending_ratio is not None else
-                                                self.gate.peak / max(self.gate.baseline,
-                                                                     self.gate.min_level)))
+                                               if self.pending_ratio is not None else
+                                               self.gate.peak / max(self.gate.baseline,
+                                                                    self.gate.min_level)))
         self._trace("words", heard=heard, raw=raw, source=decision.source,
                     confidence=round(decision.confidence, 2), degraded=decision.degraded,
                     reasons="; ".join(decision.reasons)[:200],
