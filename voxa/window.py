@@ -1271,6 +1271,8 @@ class MainWindow(Adw.ApplicationWindow):
             # every live decision came back 'alignment unhealthy: audio unqualified'.
             self.audio.note_echo_mode(mode)
             self.audio.apply_clock_drift()
+            log.info("echo backend %s: %s over reference %r", mode,
+                     type(self.audio.canceller).__name__, self.audio.reference_via())
             if mode != "aec3":
                 # Start from the hearing profile saved for this speaker and microphone, if it still fits.
                 microphone = self.settings.microphone_id or self.settings.microphone_name
