@@ -424,6 +424,15 @@ class RenderTimeline:
             if turn is None or turn.last_index <= 0:
                 return np.zeros(length, dtype=np.float32) if mono else np.zeros((length, self.channels))
             end = min(self._index_at_time(stamp), turn.last_index)
+            oldest = max(0, self.ring.total - self.ring.capacity)
+            if end <= oldest:
+                # Issue #72, task v11b: the estimated render map placed this microphone moment
+                # entirely outside what the ring still holds. The turn has render, so the honest
+                # answer is not silence (that is the live ``reference active by definition while
+                # speaking: silent tap`` that leaves attribution nothing to compare): serve the
+                # newest render of the turn. The map, not the audio, is what is off - a whole-reply
+                # is queued to the sink ahead of the clock that stamps its chunks.
+                end = turn.last_index
             end = max(0, end)
             start = max(0, end - length)
             window = self.ring.window(start, max(1, end - start))
