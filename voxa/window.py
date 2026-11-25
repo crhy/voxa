@@ -3445,16 +3445,22 @@ class MainWindow(Adw.ApplicationWindow):
         # Issue #72, task v11 step 2: log what the render tap actually recorded for this reply -
         # whether it attached, and its samples and peak. A reply with samples but a near-zero peak
         # is the live failure: the tap attached yet read silent, so her canceller subtracts nothing.
-        if timeline is not None:
-            stats = timeline.turn_stats()
-            if stats is not None:
-                tap = getattr(self.speech, "tap", None) or {}
-                self._barge_trace("render-tap", attached=bool(tap.get("attached")),
-                                  pieces=stats.get("pieces"), samples=stats.get("samples"),
-                                  peak=round(float(stats.get("peak") or 0.0), 4),
-                                  silent=bool((stats.get("samples") or 0) > 0
-                                              and float(stats.get("peak") or 0.0) < 1e-3),
-                                  error=str(tap.get("error") or ""))
+        # Log it whether or not a turn is open: a reply that never opened a turn (or whose turn was
+        # filed under a newer one) is itself a silent reference, and the live check must see it.
+        tap = getattr(self.speech, "tap", None) or {}
+        stats = timeline.turn_stats() if timeline is not None else None
+        if stats is not None:
+            samples = int(stats.get("samples") or 0)
+            peak = float(stats.get("peak") or 0.0)
+            silent = samples > 0 and peak < 1e-3
+        else:
+            samples = -1
+            peak = -1.0
+            silent = True  # no turn recorded any render: the reference is silent for this reply
+        self._barge_trace("render-tap", attached=bool(tap.get("attached")),
+                          pieces=(stats.get("pieces") if stats else -1),
+                          samples=samples, peak=round(peak, 4), silent=silent,
+                          error=str(tap.get("error") or ""))
         self._hearing.reply_ended()
         # Issue #72, task v11 step 4: her reply ending is a turn boundary. The held capture
         # span must not survive into the next turn (the live log let one span grow past 60 s
