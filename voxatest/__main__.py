@@ -62,6 +62,27 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     run.add_argument("--deadline-seconds", type=float, help="Stop the run after this many seconds (0 means no limit).")
     run.add_argument("--retries", type=int, help="Retry a case when the microphone heard no reply.")
     run.add_argument("--end-silence", type=float, help="Seconds of silence that end a spoken reply.")
+    run.add_argument(
+        "--talk-over",
+        action="store_true",
+        help=(
+            "Live pacing (issue #72, task v11 step 6): do not wait for a long reply to finish. "
+            "On replies longer than ~4 s VoxaTest speaks the next question over her 2-4 s in, "
+            "measures her stop latency, and whether she then answered the new question."
+        ),
+    )
+    run.add_argument(
+        "--talk-over-seconds",
+        type=float,
+        default=None,
+        help="How far into her reply to talk over her (default 3.0; the task says 2-4 s).",
+    )
+    run.add_argument(
+        "--settle-seconds",
+        type=float,
+        default=None,
+        help="Seconds to settle before the next prompt after her reply ends (issue #72: 1.5 -> 1.0).",
+    )
     run.add_argument("--start-at", type=int, default=1, help="1-based index of the first case to run.")
     run.add_argument(
         "--max-silent",
@@ -191,6 +212,14 @@ def _apply_cli_overrides(settings, args: argparse.Namespace) -> None:
         settings.end_silence_seconds = end_silence
     if max_silent is not None:
         settings.max_consecutive_no_reply = max_silent
+    # Issue #72, task v11 step 6: live talk-over pacing and the shortened settle.
+    settings.talk_over = bool(getattr(args, "talk_over", False)) or settings.talk_over
+    talk_over_seconds = getattr(args, "talk_over_seconds", None)
+    if talk_over_seconds is not None:
+        settings.talk_over_seconds = talk_over_seconds
+    settle_seconds = getattr(args, "settle_seconds", None)
+    if settle_seconds is not None:
+        settings.settle_seconds = settle_seconds
 
 
 def _load_whisper(settings, log):

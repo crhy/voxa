@@ -104,6 +104,11 @@ class RunResult:
         }
 
 
+def _case_barges(case: TestCase) -> bool:
+    """True when a case already names where the user barges into her reply."""
+    return case.barge_at is not None and str(case.barge_at).strip() != ""
+
+
 def run_case(
     case: TestCase,
     settings: HarnessSettings,
@@ -127,6 +132,14 @@ def run_case(
     prompt = _with_wake_word(case.prompt, settings.wake_word)
     # V3 hearing suite, LIVE: the case names what Voxa must read out, and the harness speaks its
     # own words at a moment measured from the start of HER reply (voxatest/hearing.py).
+    # Issue #72, task v11 step 6: `--talk-over` paces the live run to interrupt her instead of
+    # waiting. The case's own question is spoken settings.talk_over_seconds into her reply
+    # (resolve_barge_at treats a value >= 1.0 as ABSOLUTE SECONDS), so VoxaTest barges in 2-4 s
+    # in; measure_live then records stop_latency and whether she answered the new question. Only
+    # cases that would not already barge get the override, and only a live hearing case has the
+    # schedule machinery to speak over her.
+    if settings.talk_over and hearing.is_hearing_case(case) and not _case_barges(case):
+        case.barge_at = float(settings.talk_over_seconds)
     plan = hearing.plan_live(case, settings.wake_word) if hearing.is_hearing_case(case) else None
     if plan is not None and plan.lead_prompt:
         prompt = _with_wake_word(plan.lead_prompt, settings.wake_word)

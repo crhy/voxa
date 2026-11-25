@@ -185,7 +185,14 @@ class HarnessSettings:
     speak_timeout_seconds: float = 60.0
     run_deadline_seconds: float = 0.0
     max_reply_seconds: float = 90.0
-    settle_seconds: float = 1.5
+    # Issue #72, task v11 step 6: next prompt starts <= 1.0 s after her reply ends (was 1.5).
+    settle_seconds: float = 1.0
+    # Issue #72, task v11 step 6: `--talk-over` (on for live runs) speaks the next question
+    # over her reply instead of waiting for it to finish, on replies longer than
+    # talk_over_min_reply_seconds, this many seconds in (the task's "2-4 s in").
+    talk_over: bool = False
+    talk_over_seconds: float = 3.0
+    talk_over_min_reply_seconds: float = 4.0
     retries: int = 1
     max_consecutive_no_reply: int = 5
     data_path: Path = DEFAULT_DATA_PATH
