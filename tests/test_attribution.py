@@ -266,3 +266,26 @@ def test_the_floor_of_a_silent_microphone_never_decides_user_issue_72_v11c():
     talking = attribute(_alone(speaking=True, word_count=2, vad_prob=0.91,
                                echo_explained_db=-120.0, residual_margin_db=18.1))
     assert talking.source == USER, talking.reason
+
+
+def test_no_speech_on_the_cleaned_signal_never_decides_user_issue_72_v11c():
+    """Live barge.log (12:22): INTERRUPTs decided with the words heard EMPTY on reasons
+    "no VAD on the cleaned signal" / "cleaned signal not speech-like p=0.30". While she
+    speaks, the audio readings (microphone holds beyond the reference, residual +13..27 dB
+    over the echo path's baseline) mean the canceller is not cancelling at its delay: her
+    OWN echo, not a second speaker. With no words and no speech the span is held."""
+    unmeasured = _alone(speaking=True, word_count=0, vad_prob=None,
+                        echo_explained_db=-4.4, residual_margin_db=13.0)
+    decision = attribute(unmeasured)
+    assert decision.source == UNCERTAIN, decision.reason
+    assert not decision.degraded
+    assert any("no speech on the cleaned signal" in r for r in decision.reasons), decision.reason
+
+    quiet = attribute(_alone(speaking=True, word_count=0, vad_prob=0.30,
+                             echo_explained_db=-5.3, residual_margin_db=26.0))
+    assert quiet.source == UNCERTAIN, quiet.reason
+
+    # A real person over her reply still decides user: speech in the cleaned signal, or
+    # words, and the guard stays out of the way.
+    assert attribute(_over_her(word_count=0)).source == USER
+    assert attribute(_over_her(vad_prob=0.10, word_count=3)).source == USER

@@ -427,6 +427,10 @@ class AudioCapture:
             self._start_reference(gst)
         elif self.own_reference:
             log.info("echo reference: Voxa's own rendered samples; the test voice cannot enter it")
+        # Task v11c: only begin_epoch ever re-measured the capture latency, so a fresh capture
+        # stamped every window with the CaptureClock default of 0.0 - the whole reference window
+        # sat the capture latency late. Read the driver's answer now, while the pipeline plays.
+        self._remeasure_latency()
 
     def use_own_reference(self, timeline: RenderTimeline | None = None) -> None:
         """Take the reference from Voxa's own render instead of from any monitor (roadmap task 1).

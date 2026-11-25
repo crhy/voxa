@@ -246,6 +246,20 @@ def attribute(ev: SourceEvidence, baseline_db: float | None = None) -> SourceDec
                       "with no speech: abstain")
         return SourceDecision(UNCERTAIN, 0.0, tuple(reasons), degraded=False, evidence=ev)
 
+    if (ev.speaking and ev.word_count == 0
+            and (ev.vad_prob is None or ev.vad_prob < VAD_SPEECH)):
+        # Issue #72, task v11c step 5 (live barge.log 12:22): INTERRUPTs were decided with the
+        # words heard EMPTY on reasons "no VAD on the cleaned signal" / "cleaned signal not
+        # speech-like p=0.30". With no words and no speech in the cleaned signal the ONLY way
+        # to reach user is audio alone - residual over the echo path's baseline, the microphone
+        # holding beyond the reference - and while she speaks those readings mean the canceller
+        # is not cancelling at its delay: her own echo, never a second speaker. No independent
+        # source in the span: hold it, and the delay/baseline fault is reported separately.
+        reasons.append("no speech on the cleaned signal (no words, VAD "
+                       + ("unmeasured" if ev.vad_prob is None else f"p={ev.vad_prob:.2f}")
+                       + "): abstain")
+        return SourceDecision(UNCERTAIN, 0.0, tuple(reasons), degraded=False, evidence=ev)
+
     # 1. Echo consistency: how much of the microphone the delayed reference already explains.
     explained = ev.echo_explained_db
     if explained is not None:
