@@ -3412,6 +3412,19 @@ class MainWindow(Adw.ApplicationWindow):
         timeline = getattr(self, "render_timeline", None)
         if timeline is not None:
             timeline.close_turn()
+        # Issue #72, task v11 step 2: log what the render tap actually recorded for this reply -
+        # whether it attached, and its samples and peak. A reply with samples but a near-zero peak
+        # is the live failure: the tap attached yet read silent, so her canceller subtracts nothing.
+        if timeline is not None:
+            stats = timeline.turn_stats()
+            if stats is not None:
+                tap = getattr(self.speech, "tap", None) or {}
+                self._barge_trace("render-tap", attached=bool(tap.get("attached")),
+                                  pieces=stats.get("pieces"), samples=stats.get("samples"),
+                                  peak=round(float(stats.get("peak") or 0.0), 4),
+                                  silent=bool((stats.get("samples") or 0) > 0
+                                              and float(stats.get("peak") or 0.0) < 1e-3),
+                                  error=str(tap.get("error") or ""))
         self._hearing.reply_ended()
         # Issue #72, task v11 step 4: her reply ending is a turn boundary. The held capture
         # span must not survive into the next turn (the live log let one span grow past 60 s

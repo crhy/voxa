@@ -85,6 +85,8 @@ class Turn:
     last_index: int = 0
     last_audible_at: float | None = None
     pieces: int = 0
+    samples: int = 0
+    peak: float = 0.0
     generations: list[str] = field(default_factory=list)
     state: str = "open"
     closed_at: float | None = None
@@ -92,7 +94,8 @@ class Turn:
     def as_dict(self) -> dict:
         return {"id": self.id, "opened_at": self.opened_at, "first_index": self.first_index,
                 "last_index": self.last_index, "last_audible_at": self.last_audible_at,
-                "pieces": self.pieces, "generations": list(self.generations),
+                "pieces": self.pieces, "samples": self.samples, "peak": self.peak,
+                "generations": list(self.generations),
                 "state": self.state, "closed_at": self.closed_at}
 
 
@@ -171,6 +174,10 @@ class Chunk:
     audible_at: float
     epoch: int
     channels: int = 1
+    #: Peak magnitude of this piece (0..1.0 for float PCM): the render tap's own loudness.
+    #: A whole reply whose every piece peaks at ~0 means the tap reads silent (issue #72, task v11
+    #: step 2) - the reference the canceller subtracts is silent even though she is speaking.
+    peak: float = 0.0
 
     @property
     def end_index(self) -> int:
@@ -179,7 +186,8 @@ class Chunk:
     def as_dict(self) -> dict:
         return {"generation": self.generation, "path": self.path, "first_index": self.first_index,
                 "samples": self.samples, "submitted_at": self.submitted_at,
-                "audible_at": self.audible_at, "epoch": self.epoch, "channels": self.channels}
+                "audible_at": self.audible_at, "epoch": self.epoch, "channels": self.channels,
+                "peak": self.peak}
 
 
 @dataclass(slots=True)
@@ -452,6 +460,18 @@ class RenderTimeline:
         with self._lock:
             return self._generations.get(str(generation))
 
+    def turn_stats(self) -> dict | None:
+        """The current-or-last turn's render stats: pieces, samples, peak, state (issue #72 v11).
+
+        ``peak`` is the loudest sample the render tap recorded anywhere in the turn (0..1). A reply
+        with ``samples > 0`` but ``peak`` near 0 means the tap attached but read silent - the
+        reference the canceller would subtract is silent even though she was speaking, which is the
+        live failure of task v11 step 2.
+        """
+        with self._lock:
+            turn = self._turn
+            return turn.as_dict() if turn is not None else None
+
     def note_generated(self, generation: str, samples: int) -> None:
         """The engine produced ``samples`` more samples for this generation (decoded, not played)."""
         with self._lock:
@@ -498,6 +518,7 @@ class RenderTimeline:
                            channels=arr.shape[1])
         stamp = self._clock() if now is None else float(now)
         latency = self._query_latency(sink)
+        peak = float(np.max(np.abs(arr))) if arr.size else 0.0
         with self._lock:
             if str(generation) in self._foreign:
                 # A foreign stream (VoxaTest's test voice) reached the tap: it is not Voxa's echo,
@@ -513,7 +534,7 @@ class RenderTimeline:
                 playable = max(playable, self._next_playable)
             chunk = Chunk(generation=str(generation), path=str(path), first_index=first,
                           samples=arr.shape[0], submitted_at=stamp, audible_at=playable,
-                          epoch=self.epoch, channels=arr.shape[1])
+                          epoch=self.epoch, channels=arr.shape[1], peak=peak)
             self._anchors.append(chunk)
             self._next_playable = playable + arr.shape[0] / self.sample_rate
             item = self._generations.get(chunk.generation)
@@ -534,6 +555,8 @@ class RenderTimeline:
                 audible_end = playable + arr.shape[0] / self.sample_rate
                 turn.last_audible_at = (max(turn.last_audible_at, audible_end)
                                         if turn.last_audible_at is not None else audible_end)
+                turn.samples += arr.shape[0]
+                turn.peak = max(turn.peak, peak)
             return chunk
 
     def _query_latency(self, sink: Any) -> float | None:
