@@ -1,0 +1,30 @@
+Total: 1
+Passed: 0
+Failed: 1
+Errors: 0
+Average score: 0.0
+
+FAIL [general] 1: score 0 (22.0s) - I count on you that directly. since it was our ears of black man. None country or- the place. Runs don't have any captain. or even this context.
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: Paris, Paris, capital, France.
+
+Comprehension
+  hearing_word_accuracy  0.0000  (1 cases)
+  routed_tool_accuracy   null  (0 cases with an expected tool)
+  layers: not_heard 1, misheard 0, misrouted 0, misanswered 0, ok 0
+  per category:
+    general: cases 1 hearing 0.0000 routed null
+  CONFUSIONS (top 30):
+    none: every word heard as it was said
+Hearing suite (timed interruptions, short answers, repetitions, pauses, quiet speech)
+  interrupt_recall           null
+  keep_accuracy              null
+  stop_latency_p50_ms        null
+  stop_latency_p95_ms        null
+  premature_rate             null
+  self_interrupt_count       null
+  request_word_retention     null
+  cases [{'case_id': '1', 'category': 'general', 'prompt': 'What is the capital of France?', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}]  yielded None/None  kept None/None  complete requests None/None  premature None/None
+  per cell:
+  per overlap:
+  per expect:

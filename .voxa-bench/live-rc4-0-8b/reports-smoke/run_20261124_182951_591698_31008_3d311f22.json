@@ -1,0 +1,1104 @@
+{
+  "timestamp": "2026-11-24T18:34:55.328198",
+  "complete": false,
+  "summary": {
+    "total": 17,
+    "passed": 0,
+    "failed": 17,
+    "errors": 0,
+    "average_score": 0.0,
+    "by_category": {
+      "general": {
+        "total": 5,
+        "passed": 0,
+        "failed": 5
+      },
+      "math": {
+        "total": 6,
+        "passed": 0,
+        "failed": 6
+      },
+      "memory": {
+        "total": 1,
+        "passed": 0,
+        "failed": 1
+      },
+      "instructions": {
+        "total": 1,
+        "passed": 0,
+        "failed": 1
+      },
+      "reasoning": {
+        "total": 2,
+        "passed": 0,
+        "failed": 2
+      },
+      "science": {
+        "total": 1,
+        "passed": 0,
+        "failed": 1
+      },
+      "time": {
+        "total": 1,
+        "passed": 0,
+        "failed": 1
+      }
+    }
+  },
+  "comprehension": {
+    "hearing_word_accuracy": 0.1441,
+    "routed_tool_accuracy": null,
+    "layer_counts": {
+      "not_heard": 2,
+      "misheard": 14,
+      "misrouted": 0,
+      "misanswered": 1,
+      "ok": 0
+    },
+    "confusions": [
+      {
+        "said": "who",
+        "heard": "what",
+        "count": 2
+      },
+      {
+        "said": "add",
+        "heard": "multiply",
+        "count": 1
+      },
+      {
+        "said": "and",
+        "heard": "dispatch",
+        "count": 1
+      },
+      {
+        "said": "capital",
+        "heard": "actually",
+        "count": 1
+      },
+      {
+        "said": "cat",
+        "heard": "what",
+        "count": 1
+      },
+      {
+        "said": "current",
+        "heard": "is",
+        "count": 1
+      },
+      {
+        "said": "date",
+        "heard": "the",
+        "count": 1
+      },
+      {
+        "said": "first",
+        "heard": "capital",
+        "count": 1
+      },
+      {
+        "said": "five",
+        "heard": "wrote",
+        "count": 1
+      },
+      {
+        "said": "forty",
+        "heard": "all",
+        "count": 1
+      },
+      {
+        "said": "four",
+        "heard": "100x4",
+        "count": 1
+      },
+      {
+        "said": "four",
+        "heard": "dogs",
+        "count": 1
+      },
+      {
+        "said": "four",
+        "heard": "playhandler",
+        "count": 1
+      },
+      {
+        "said": "france",
+        "heard": "of",
+        "count": 1
+      },
+      {
+        "said": "hamlet",
+        "heard": "mountain",
+        "count": 1
+      },
+      {
+        "said": "hundred",
+        "heard": "give",
+        "count": 1
+      },
+      {
+        "said": "in",
+        "heard": "of",
+        "count": 1
+      },
+      {
+        "said": "is",
+        "heard": "he",
+        "count": 1
+      },
+      {
+        "said": "mittens",
+        "heard": "5x4",
+        "count": 1
+      },
+      {
+        "said": "mountain",
+        "heard": "capital",
+        "count": 1
+      },
+      {
+        "said": "of",
+        "heard": "10th",
+        "count": 1
+      },
+      {
+        "said": "one",
+        "heard": "bazaar",
+        "count": 1
+      },
+      {
+        "said": "play",
+        "heard": "tallest",
+        "count": 1
+      },
+      {
+        "said": "president",
+        "heard": "of",
+        "count": 1
+      },
+      {
+        "said": "root",
+        "heard": "the",
+        "count": 1
+      },
+      {
+        "said": "square",
+        "heard": "set",
+        "count": 1
+      },
+      {
+        "said": "states",
+        "heard": "is",
+        "count": 1
+      },
+      {
+        "said": "symbol",
+        "heard": "simple",
+        "count": 1
+      },
+      {
+        "said": "tallest",
+        "heard": "the",
+        "count": 1
+      },
+      {
+        "said": "times",
+        "heard": "the",
+        "count": 1
+      }
+    ],
+    "cases_scored": 17,
+    "routed_cases": 0,
+    "wake_word": "voxa",
+    "by_category": {
+      "general": {
+        "cases": 5,
+        "hearing_word_accuracy": 0.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 5,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 0
+        }
+      },
+      "instructions": {
+        "cases": 1,
+        "hearing_word_accuracy": 0.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 1,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 0
+        }
+      },
+      "math": {
+        "cases": 6,
+        "hearing_word_accuracy": 0.2417,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 5,
+          "misrouted": 0,
+          "misanswered": 1,
+          "ok": 0
+        }
+      },
+      "memory": {
+        "cases": 1,
+        "hearing_word_accuracy": 0.1429,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 1,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 0
+        }
+      },
+      "reasoning": {
+        "cases": 2,
+        "hearing_word_accuracy": 0.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 2,
+          "misheard": 0,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 0
+        }
+      },
+      "science": {
+        "cases": 1,
+        "hearing_word_accuracy": 0.8571,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 1,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 0
+        }
+      },
+      "time": {
+        "cases": 1,
+        "hearing_word_accuracy": 0.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 1,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 0
+        }
+      }
+    },
+    "cases": [
+      {
+        "case_id": "1",
+        "category": "general",
+        "prompt": "What is the capital of France?",
+        "heard": "How he is actually one of the box natural sources of protein, the owner, sparkles",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "what",
+            "how"
+          ],
+          [
+            "capital",
+            "actually"
+          ],
+          [
+            "france",
+            "of"
+          ]
+        ]
+      },
+      {
+        "case_id": "2",
+        "category": "general",
+        "prompt": "Who was the first president of the United States?",
+        "heard": "What is the capital of France? Your life is definitely one of the box natural sources of Thank you",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "who",
+            "what"
+          ],
+          [
+            "was",
+            "is"
+          ],
+          [
+            "first",
+            "capital"
+          ],
+          [
+            "president",
+            "of"
+          ],
+          [
+            "united",
+            "life"
+          ],
+          [
+            "states",
+            "is"
+          ]
+        ]
+      },
+      {
+        "case_id": "3",
+        "category": "general",
+        "prompt": "How do you make lemonade?",
+        "heard": "Bazaar, what is the capital of France? Bazaar, who was the first president of the United States? How is it the only box natural source of costumes? The owner? Bazaar, how do you make-",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "4",
+        "category": "general",
+        "prompt": "What is the tallest mountain in the world?",
+        "heard": "Hi, this is the capital of banks, and it's won the world's most important cultural and commercial centers / What is the tallest m-",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.5,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "what",
+            "hi"
+          ],
+          [
+            "tallest",
+            "the"
+          ],
+          [
+            "mountain",
+            "capital"
+          ],
+          [
+            "in",
+            "of"
+          ],
+          [
+            "world",
+            "and"
+          ]
+        ]
+      },
+      {
+        "case_id": "5",
+        "category": "general",
+        "prompt": "Who wrote the play Hamlet?",
+        "heard": "what is the tallest mountain in the world",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "who",
+            "what"
+          ],
+          [
+            "wrote",
+            "is"
+          ],
+          [
+            "play",
+            "tallest"
+          ],
+          [
+            "hamlet",
+            "mountain"
+          ]
+        ]
+      },
+      {
+        "case_id": "6",
+        "category": "math",
+        "prompt": "What is 5 times 4?",
+        "heard": "he wrote the playhandler",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "is",
+            "he"
+          ],
+          [
+            "five",
+            "wrote"
+          ],
+          [
+            "times",
+            "the"
+          ],
+          [
+            "four",
+            "playhandler"
+          ]
+        ]
+      },
+      {
+        "case_id": "7",
+        "category": "memory",
+        "prompt": "Remember that my cat is named Mittens.",
+        "heard": "what is 5x4",
+        "hearing_word_accuracy": 0.1429,
+        "hearing_word_accuracy_best_record": 0.1429,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [
+          "calculate"
+        ],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "cat",
+            "what"
+          ],
+          [
+            "mittens",
+            "5x4"
+          ]
+        ]
+      },
+      {
+        "case_id": "8",
+        "category": "instructions",
+        "prompt": "Set a timer for 10 minutes.",
+        "heard": "Bazaar, remember that my CAD is named Middens / set a timer for 10 minutes. There was nothing the means of playhunterite with the logic claims",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [
+          "set_timer"
+        ],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "9",
+        "category": "reasoning",
+        "prompt": "If all dogs are mammals, are poodles mammals?",
+        "heard": "",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": null,
+        "layer": "not_heard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "10",
+        "category": "science",
+        "prompt": "What is the chemical symbol for water?",
+        "heard": "What is the chemical simple for water",
+        "hearing_word_accuracy": 0.8571,
+        "hearing_word_accuracy_best_record": 0.8571,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "symbol",
+            "simple"
+          ]
+        ]
+      },
+      {
+        "case_id": "1",
+        "category": "math",
+        "prompt": "What is the square root of 144?",
+        "heard": "I'm going to set the 10th, Bazaar, give all dogs a mammal, give the logic commands. Bazaar, what is the chemical simple for water? Water Excited is a chemical / what is the square root of",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.6,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "square",
+            "set"
+          ],
+          [
+            "root",
+            "the"
+          ],
+          [
+            "of",
+            "10th"
+          ],
+          [
+            "one",
+            "bazaar"
+          ],
+          [
+            "hundred",
+            "give"
+          ],
+          [
+            "forty",
+            "all"
+          ],
+          [
+            "four",
+            "dogs"
+          ]
+        ]
+      },
+      {
+        "case_id": "2",
+        "category": "math",
+        "prompt": "Multiply 7 by 8.",
+        "heard": "multiply 7 by 8",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "misanswered",
+        "expected_tool": "",
+        "tools_ran": [
+          "calculate"
+        ],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "3",
+        "category": "math",
+        "prompt": "Divide 100 by 4.",
+        "heard": "divide 100x4",
+        "hearing_word_accuracy": 0.2,
+        "hearing_word_accuracy_best_record": 0.2,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "four",
+            "100x4"
+          ]
+        ]
+      },
+      {
+        "case_id": "4",
+        "category": "math",
+        "prompt": "Add 15 and 20.",
+        "heard": "Multiply 7x8, dispatch, X. , divide 100x4. Divide 100x4, equals 25 / at 15 to 20. No, you can't divide 100 by 4 by a number like that. You need a number like a box of vision. Did you need to write 100 by 4 or something similar",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "add",
+            "multiply"
+          ],
+          [
+            "and",
+            "dispatch"
+          ]
+        ]
+      },
+      {
+        "case_id": "5",
+        "category": "math",
+        "prompt": "Subtract 10 from 50.",
+        "heard": "Bazaar, subtract 10",
+        "hearing_word_accuracy": 0.25,
+        "hearing_word_accuracy_best_record": 0.25,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "7",
+        "category": "time",
+        "prompt": "What is the current date?",
+        "heard": "Dirty, Bazaar, what is the chemical simple thing like that",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "current",
+            "is"
+          ],
+          [
+            "date",
+            "the"
+          ]
+        ]
+      },
+      {
+        "case_id": "9",
+        "category": "reasoning",
+        "prompt": "If it rains, should I take an umbrella?",
+        "heard": "",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": null,
+        "layer": "not_heard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      }
+    ]
+  },
+  "results": [
+    {
+      "case_id": "1",
+      "category": "general",
+      "prompt": "What is the capital of France?",
+      "transcript": "Your right is definitely one of the box natural sources",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: Paris, Paris, capital, France.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 13.23,
+      "expected_tool": "",
+      "heard": "How he is actually one of the box natural sources of protein, the owner, sparkles",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "How he is actually one of the box natural sources of protein, the owner, sparkles"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "2",
+      "category": "general",
+      "prompt": "Who was the first president of the United States?",
+      "transcript": "Paris is the only box match. So is it pretty? The owner.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: Washington, Washington.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 17.24,
+      "expected_tool": "",
+      "heard": "What is the capital of France? Your life is definitely one of the box natural sources of Thank you",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "What is the capital of France? Your life is definitely one of the box natural sources of Thank you"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "3",
+      "category": "general",
+      "prompt": "How do you make lemonade?",
+      "transcript": "If you can't... and it's one of the world's most important cultural and commercial centers.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: lemons, water, sugar, lemons, water, sugar.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 18.01,
+      "expected_tool": "",
+      "heard": "Bazaar, what is the capital of France? Bazaar, who was the first president of the United States? How is it the only box natural source of costumes? The owner? Bazaar, how do you make-",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Bazaar, what is the capital of France? Bazaar, who was the first president of the United States? How is it the only box natural source of costumes? The owner? Bazaar, how do you make-"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "4",
+      "category": "general",
+      "prompt": "What is the tallest mountain in the world?",
+      "transcript": "Ariel, you remind everyone. It's the only box now. So that's it. in costumes. experience.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: Mount Everest, Everest, tallest, mountain.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 20.37,
+      "expected_tool": "",
+      "heard": "Hi, this is the capital of banks, and it's won the world's most important cultural and commercial centers / What is the tallest m-",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Hi, this is the capital of banks, and it's won the world's most important cultural and commercial centers",
+        "What is the tallest m-"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "5",
+      "category": "general",
+      "prompt": "Who wrote the play Hamlet?",
+      "transcript": "Madok here is the tallest mountain in the world, with the height of the clock. And still, I don't fight with you.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: William Shakespeare, Shakespeare, Hamlet.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 18.56,
+      "expected_tool": "",
+      "heard": "what is the tallest mountain in the world",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "what is the tallest mountain in the world"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "6",
+      "category": "math",
+      "prompt": "What is 5 times 4?",
+      "transcript": "You didn't rise up, right? That's a lot of work.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: 20, 20, times, five.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 15.33,
+      "expected_tool": "",
+      "heard": "he wrote the playhandler",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "he wrote the playhandler"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "7",
+      "category": "memory",
+      "prompt": "Remember that my cat is named Mittens.",
+      "transcript": "Five times more is 20.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: Mittens, Mittens, cat, remember.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 10.43,
+      "expected_tool": "",
+      "heard": "what is 5x4",
+      "capability": 0,
+      "observed_tools": [
+        "calculate"
+      ],
+      "heard_records": [
+        "what is 5x4"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "8",
+      "category": "instructions",
+      "prompt": "Set a timer for 10 minutes.",
+      "transcript": "There was no human name to play. I'm glad we've got no complaints.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: 10 minutes, timer, 10, minutes.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 19.91,
+      "expected_tool": "",
+      "heard": "Bazaar, remember that my CAD is named Middens / set a timer for 10 minutes. There was nothing the means of playhunterite with the logic claims",
+      "capability": 0,
+      "observed_tools": [
+        "set_timer"
+      ],
+      "heard_records": [
+        "Bazaar, remember that my CAD is named Middens",
+        "set a timer for 10 minutes. There was nothing the means of playhunterite with the logic claims"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "9",
+      "category": "reasoning",
+      "prompt": "If all dogs are mammals, are poodles mammals?",
+      "transcript": "with the logic behind us.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: Yes, Yes, poodle, mammal.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 9.21,
+      "expected_tool": "",
+      "heard": "",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "10",
+      "category": "science",
+      "prompt": "What is the chemical symbol for water?",
+      "transcript": "What's your self?",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: H2O, H2O|H 2 O|h2o.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 13.74,
+      "expected_tool": "",
+      "heard": "What is the chemical simple for water",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "What is the chemical simple for water"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "1",
+      "category": "math",
+      "prompt": "What is the square root of 144?",
+      "transcript": "The square root of 2 is approximately 1.414.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: 12, 12.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 18.06,
+      "expected_tool": "",
+      "heard": "I'm going to set the 10th, Bazaar, give all dogs a mammal, give the logic commands. Bazaar, what is the chemical simple for water? Water Excited is a chemical / what is the square root of",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "I'm going to set the 10th, Bazaar, give all dogs a mammal, give the logic commands. Bazaar, what is the chemical simple for water? Water Excited is a chemical",
+        "what is the square root of"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "2",
+      "category": "math",
+      "prompt": "Multiply 7 by 8.",
+      "transcript": "Multi-guys, 7 bi-m-is-",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: 56, 56.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 11.09,
+      "expected_tool": "",
+      "heard": "multiply 7 by 8",
+      "capability": 0,
+      "observed_tools": [
+        "calculate"
+      ],
+      "heard_records": [
+        "multiply 7 by 8"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "3",
+      "category": "math",
+      "prompt": "Divide 100 by 4.",
+      "transcript": "Divide 100 by 40.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: 25, 25.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 14.27,
+      "expected_tool": "",
+      "heard": "divide 100x4",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "divide 100x4"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "4",
+      "category": "math",
+      "prompt": "Add 15 and 20.",
+      "transcript": "No, you can't abide 100 by 4 by a number like that. You need a number about the vision. Did you mean to write it to write 100 by 4? or something similar.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: 35, 35.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 25.8,
+      "expected_tool": "",
+      "heard": "Multiply 7x8, dispatch, X. , divide 100x4. Divide 100x4, equals 25 / at 15 to 20. No, you can't divide 100 by 4 by a number like that. You need a number like a box of vision. Did you need to write 100 by 4 or something similar",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Multiply 7x8, dispatch, X. , divide 100x4. Divide 100x4, equals 25",
+        "at 15 to 20. No, you can't divide 100 by 4 by a number like that. You need a number like a box of vision. Did you need to write 100 by 4 or something similar"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "5",
+      "category": "math",
+      "prompt": "Subtract 10 from 50.",
+      "transcript": "Azar, what is the chemical simple for water?",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: 40, 40.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 13.32,
+      "expected_tool": "",
+      "heard": "Bazaar, subtract 10",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Bazaar, subtract 10"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "7",
+      "category": "time",
+      "prompt": "What is the current date?",
+      "transcript": "No, she means just the substance. so make sure that the next step is complete. everything in her body.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: date, today.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 17.33,
+      "expected_tool": "",
+      "heard": "Dirty, Bazaar, what is the chemical simple thing like that",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Dirty, Bazaar, what is the chemical simple thing like that"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "9",
+      "category": "reasoning",
+      "prompt": "If it rains, should I take an umbrella?",
+      "transcript": "",
+      "score": 0,
+      "passed": false,
+      "notes": "No spoken reply was captured.",
+      "method": "empty",
+      "error": "",
+      "duration_seconds": 8.56,
+      "expected_tool": "",
+      "heard": "",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    }
+  ]
+}

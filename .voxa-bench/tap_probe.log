@@ -1,0 +1,11 @@
+gst GStreamer 1.26.11
+stream found by name: sink -> autoaudiosink
+stream sink pad: True peer: <Gst.Pad object at 0x7f68123f5700 (GstPad at 0x557f7f6c8740)>
+stream children at build time: ['not a bin: autoaudiosink']
+stream attach: True error: None elements: ['appsink', 'audioconvert', 'audioresample', 'capsfilter', 'queue', 'sink', 'tee']
+stream(no-decodebin) attach: True error: None
+stream state -> 2
+stream children while PLAYING: ['not a bin: autoaudiosink']
+stream pushed, running loop
+stream loop done
+stream TAP branch samples: 0 bytes: 0 timeline: {'samples': None, 'peak': None}

@@ -1,0 +1,1087 @@
+{
+  "timestamp": "2026-11-25T01:25:22.649929",
+  "complete": true,
+  "summary": {
+    "total": 20,
+    "passed": 5,
+    "failed": 15,
+    "errors": 0,
+    "average_score": 39.1,
+    "by_category": {
+      "general": {
+        "total": 5,
+        "passed": 1,
+        "failed": 4
+      },
+      "math": {
+        "total": 7,
+        "passed": 1,
+        "failed": 6
+      },
+      "memory": {
+        "total": 2,
+        "passed": 1,
+        "failed": 1
+      },
+      "instructions": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0
+      },
+      "reasoning": {
+        "total": 2,
+        "passed": 0,
+        "failed": 2
+      },
+      "science": {
+        "total": 2,
+        "passed": 0,
+        "failed": 2
+      },
+      "time": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0
+      }
+    }
+  },
+  "comprehension": {
+    "hearing_word_accuracy": 0.6604,
+    "routed_tool_accuracy": null,
+    "layer_counts": {
+      "not_heard": 1,
+      "misheard": 9,
+      "misrouted": 0,
+      "misanswered": 6,
+      "ok": 4
+    },
+    "confusions": [
+      {
+        "said": "absorb",
+        "heard": "lens",
+        "count": 1
+      },
+      {
+        "said": "add",
+        "heard": "watch",
+        "count": 1
+      },
+      {
+        "said": "and",
+        "heard": "my",
+        "count": 1
+      },
+      {
+        "said": "and",
+        "heard": "the",
+        "count": 1
+      },
+      {
+        "said": "do",
+        "heard": "look",
+        "count": 1
+      },
+      {
+        "said": "eight",
+        "heard": "7x8",
+        "count": 1
+      },
+      {
+        "said": "fifteen",
+        "heard": "alting",
+        "count": 1
+      },
+      {
+        "said": "five",
+        "heard": "on",
+        "count": 1
+      },
+      {
+        "said": "four",
+        "heard": "100x4",
+        "count": 1
+      },
+      {
+        "said": "four",
+        "heard": "fork",
+        "count": 1
+      },
+      {
+        "said": "gas",
+        "heard": "a",
+        "count": 1
+      },
+      {
+        "said": "mittens",
+        "heard": "vittons",
+        "count": 1
+      },
+      {
+        "said": "of",
+        "heard": "wallet",
+        "count": 1
+      },
+      {
+        "said": "plants",
+        "heard": "ass",
+        "count": 1
+      },
+      {
+        "said": "seven",
+        "heard": "concept",
+        "count": 1
+      },
+      {
+        "said": "subtract",
+        "heard": "the",
+        "count": 1
+      },
+      {
+        "said": "times",
+        "heard": "5x",
+        "count": 1
+      },
+      {
+        "said": "twenty",
+        "heard": "beat",
+        "count": 1
+      },
+      {
+        "said": "what",
+        "heard": "thats",
+        "count": 1
+      }
+    ],
+    "cases_scored": 20,
+    "routed_cases": 0,
+    "wake_word": "voxa",
+    "by_category": {
+      "general": {
+        "cases": 5,
+        "hearing_word_accuracy": 1.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 0,
+          "misrouted": 0,
+          "misanswered": 4,
+          "ok": 1
+        }
+      },
+      "instructions": {
+        "cases": 1,
+        "hearing_word_accuracy": 1.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 0,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 1
+        }
+      },
+      "math": {
+        "cases": 7,
+        "hearing_word_accuracy": 0.3536,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 6,
+          "misrouted": 0,
+          "misanswered": 1,
+          "ok": 0
+        }
+      },
+      "memory": {
+        "cases": 2,
+        "hearing_word_accuracy": 0.9285,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 1,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 1
+        }
+      },
+      "reasoning": {
+        "cases": 2,
+        "hearing_word_accuracy": 0.4375,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 1,
+          "misheard": 1,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 0
+        }
+      },
+      "science": {
+        "cases": 2,
+        "hearing_word_accuracy": 0.5,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 1,
+          "misrouted": 0,
+          "misanswered": 1,
+          "ok": 0
+        }
+      },
+      "time": {
+        "cases": 1,
+        "hearing_word_accuracy": 1.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 0,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 1
+        }
+      }
+    },
+    "cases": [
+      {
+        "case_id": "1",
+        "category": "general",
+        "prompt": "What is the capital of France?",
+        "heard": "what is the capital of France",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "misanswered",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "2",
+        "category": "general",
+        "prompt": "Who was the first president of the United States?",
+        "heard": "Who was the first president of the United States",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "3",
+        "category": "general",
+        "prompt": "How do you make lemonade?",
+        "heard": "How do you make lemonade",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "misanswered",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "4",
+        "category": "general",
+        "prompt": "What is the tallest mountain in the world?",
+        "heard": "What is the tallest mountain in the world",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "misanswered",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "5",
+        "category": "general",
+        "prompt": "Who wrote the play Hamlet?",
+        "heard": "Who wrote the play, Hamlet",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "misanswered",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "6",
+        "category": "math",
+        "prompt": "What is 5 times 4?",
+        "heard": "what is 5x fork",
+        "hearing_word_accuracy": 0.4,
+        "hearing_word_accuracy_best_record": 0.4,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "times",
+            "5x"
+          ],
+          [
+            "four",
+            "fork"
+          ]
+        ]
+      },
+      {
+        "case_id": "7",
+        "category": "memory",
+        "prompt": "Remember that my cat is named Mittens.",
+        "heard": "Remember that my cat is named Vittons",
+        "hearing_word_accuracy": 0.8571,
+        "hearing_word_accuracy_best_record": 0.8571,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [
+          "remember_fact"
+        ],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "mittens",
+            "vittons"
+          ]
+        ]
+      },
+      {
+        "case_id": "8",
+        "category": "instructions",
+        "prompt": "Set a timer for 10 minutes.",
+        "heard": "set a timer for 10 minutes",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [
+          "set_timer"
+        ],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "9",
+        "category": "reasoning",
+        "prompt": "If all dogs are mammals, are poodles mammals?",
+        "heard": "Bazaar, if all dogs are mammals, are poodles mammals",
+        "hearing_word_accuracy": 0.875,
+        "hearing_word_accuracy_best_record": 0.875,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "10",
+        "category": "science",
+        "prompt": "What is the chemical symbol for water?",
+        "heard": "What is the chemical symbol for water",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "misanswered",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "1",
+        "category": "math",
+        "prompt": "What is the square root of 144?",
+        "heard": "what is the square root of 144",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "misanswered",
+        "expected_tool": "",
+        "tools_ran": [
+          "calculate"
+        ],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "2",
+        "category": "math",
+        "prompt": "Multiply 7 by 8.",
+        "heard": "multiply 7x8",
+        "hearing_word_accuracy": 0.25,
+        "hearing_word_accuracy_best_record": 0.25,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": [
+          [
+            "eight",
+            "7x8"
+          ]
+        ]
+      },
+      {
+        "case_id": "3",
+        "category": "math",
+        "prompt": "Divide 100 by 4.",
+        "heard": "divide 100x4",
+        "hearing_word_accuracy": 0.2,
+        "hearing_word_accuracy_best_record": 0.2,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "four",
+            "100x4"
+          ]
+        ]
+      },
+      {
+        "case_id": "4",
+        "category": "math",
+        "prompt": "Add 15 and 20.",
+        "heard": "Watch, alting the beat",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "add",
+            "watch"
+          ],
+          [
+            "fifteen",
+            "alting"
+          ],
+          [
+            "and",
+            "the"
+          ],
+          [
+            "twenty",
+            "beat"
+          ]
+        ]
+      },
+      {
+        "case_id": "5",
+        "category": "math",
+        "prompt": "Subtract 10 from 50.",
+        "heard": "The track 10 from 50",
+        "hearing_word_accuracy": 0.5,
+        "hearing_word_accuracy_best_record": 0.5,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "subtract",
+            "the"
+          ]
+        ]
+      },
+      {
+        "case_id": "7",
+        "category": "time",
+        "prompt": "What is the current date?",
+        "heard": "what is the current date",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "9",
+        "category": "reasoning",
+        "prompt": "If it rains, should I take an umbrella?",
+        "heard": "",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": null,
+        "layer": "not_heard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "10",
+        "category": "science",
+        "prompt": "What gas do plants absorb?",
+        "heard": "That's a look-ass lens of Zor",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "what",
+            "thats"
+          ],
+          [
+            "gas",
+            "a"
+          ],
+          [
+            "do",
+            "look"
+          ],
+          [
+            "plants",
+            "ass"
+          ],
+          [
+            "absorb",
+            "lens"
+          ]
+        ]
+      },
+      {
+        "case_id": "1",
+        "category": "memory",
+        "prompt": "Remember that my favorite color is blue.",
+        "heard": "remember that my favorite color is blue",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [
+          "remember_fact"
+        ],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "2",
+        "category": "math",
+        "prompt": "What is the sum of five and seven?",
+        "heard": "The wallet on my concept",
+        "hearing_word_accuracy": 0.125,
+        "hearing_word_accuracy_best_record": 0.125,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "of",
+            "wallet"
+          ],
+          [
+            "five",
+            "on"
+          ],
+          [
+            "and",
+            "my"
+          ],
+          [
+            "seven",
+            "concept"
+          ]
+        ]
+      }
+    ]
+  },
+  "results": [
+    {
+      "case_id": "1",
+      "category": "general",
+      "prompt": "What is the capital of France?",
+      "transcript": "Paris is the capital.",
+      "score": 75,
+      "passed": false,
+      "notes": "The reply did not contain: France.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 13.01,
+      "expected_tool": "",
+      "heard": "what is the capital of France",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "what is the capital of France"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "2",
+      "category": "general",
+      "prompt": "Who was the first president of the United States?",
+      "transcript": "George Washington said it took the first part of the interview.",
+      "score": 100,
+      "passed": true,
+      "notes": "The reply contained every expected word.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 18.42,
+      "expected_tool": "",
+      "heard": "Who was the first president of the United States",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Who was the first president of the United States"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "3",
+      "category": "general",
+      "prompt": "How do you make lemonade?",
+      "transcript": "Mixing fresh lemonade is easy. Just a little bit. to energies and to your mind. 19th century. So you can go sugar or lemon to feel it to taste.",
+      "score": 66,
+      "passed": false,
+      "notes": "The reply did not contain: water, water.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 25.3,
+      "expected_tool": "",
+      "heard": "How do you make lemonade",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "How do you make lemonade"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "4",
+      "category": "general",
+      "prompt": "What is the tallest mountain in the world?",
+      "transcript": "Not looking at it. The world's tallest mountain.",
+      "score": 50,
+      "passed": false,
+      "notes": "The reply did not contain: Mount Everest, Everest.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 16.72,
+      "expected_tool": "",
+      "heard": "What is the tallest mountain in the world",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "What is the tallest mountain in the world"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "5",
+      "category": "general",
+      "prompt": "Who wrote the play Hamlet?",
+      "transcript": "William Shakespeare.",
+      "score": 66,
+      "passed": false,
+      "notes": "The reply did not contain: Hamlet.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 12.27,
+      "expected_tool": "",
+      "heard": "Who wrote the play, Hamlet",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Who wrote the play, Hamlet"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "6",
+      "category": "math",
+      "prompt": "What is 5 times 4?",
+      "transcript": "Bye, thanks for watching. specific type of industrial for working. He's primarily interior handling equipment. especially for pork lifts and heavy powers. and a widely available abounds like toys.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: 20, 20, times, five.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 24.43,
+      "expected_tool": "",
+      "heard": "what is 5x fork",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "what is 5x fork"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "7",
+      "category": "memory",
+      "prompt": "Remember that my cat is named Mittens.",
+      "transcript": "I remember that you can.",
+      "score": 25,
+      "passed": false,
+      "notes": "The reply did not contain: Mittens, Mittens, cat.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 13.38,
+      "expected_tool": "",
+      "heard": "Remember that my cat is named Vittons",
+      "capability": 0,
+      "observed_tools": [
+        "remember_fact"
+      ],
+      "heard_records": [
+        "Remember that my cat is named Vittons"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "8",
+      "category": "instructions",
+      "prompt": "Set a timer for 10 minutes.",
+      "transcript": "Time reset for 10 minutes.",
+      "score": 100,
+      "passed": true,
+      "notes": "The reply contained every expected word.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 11.47,
+      "expected_tool": "",
+      "heard": "set a timer for 10 minutes",
+      "capability": 0,
+      "observed_tools": [
+        "set_timer"
+      ],
+      "heard_records": [
+        "set a timer for 10 minutes"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "9",
+      "category": "reasoning",
+      "prompt": "If all dogs are mammals, are poodles mammals?",
+      "transcript": "No, do those aren't dogs. so they can't be mothers and mothers and mothers. But little is indeed a breed of dogs.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: Yes, Yes, poodle, mammal.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 23.23,
+      "expected_tool": "",
+      "heard": "Bazaar, if all dogs are mammals, are poodles mammals",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Bazaar, if all dogs are mammals, are poodles mammals"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "10",
+      "category": "science",
+      "prompt": "What is the chemical symbol for water?",
+      "transcript": "H.O.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: H2O, H2O|H 2 O|h2o.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 14.02,
+      "expected_tool": "",
+      "heard": "What is the chemical symbol for water",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "What is the chemical symbol for water"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "1",
+      "category": "math",
+      "prompt": "What is the square root of 144?",
+      "transcript": "Square use of 100% for one.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: 12, 12.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 12.61,
+      "expected_tool": "",
+      "heard": "what is the square root of 144",
+      "capability": 0,
+      "observed_tools": [
+        "calculate"
+      ],
+      "heard_records": [
+        "what is the square root of 144"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "2",
+      "category": "math",
+      "prompt": "Multiply 7 by 8.",
+      "transcript": "56",
+      "score": 100,
+      "passed": true,
+      "notes": "The reply contained every expected word.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 12.61,
+      "expected_tool": "",
+      "heard": "multiply 7x8",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "multiply 7x8"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "3",
+      "category": "math",
+      "prompt": "Divide 100 by 4.",
+      "transcript": "100 divided by 4.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: 25, 25.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 13.21,
+      "expected_tool": "",
+      "heard": "divide 100x4",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "divide 100x4"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "4",
+      "category": "math",
+      "prompt": "Add 15 and 20.",
+      "transcript": "Watch the beach. I'm ready to keep you going.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: 35, 35.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 14.86,
+      "expected_tool": "",
+      "heard": "Watch, alting the beat",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Watch, alting the beat"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "5",
+      "category": "math",
+      "prompt": "Subtract 10 from 50.",
+      "transcript": "That's a great exercise. I've been catching it. Let's count together. One, two, three, four, five, six, seven, eight. 910.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: 40, 40.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 25.27,
+      "expected_tool": "",
+      "heard": "The track 10 from 50",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "The track 10 from 50"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "7",
+      "category": "time",
+      "prompt": "What is the current date?",
+      "transcript": "Find out today's date. Curntime. Day 3. We can.",
+      "score": 100,
+      "passed": true,
+      "notes": "The reply contained every expected word.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 22.13,
+      "expected_tool": "",
+      "heard": "what is the current date",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "what is the current date"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "9",
+      "category": "reasoning",
+      "prompt": "If it rains, should I take an umbrella?",
+      "transcript": "Want to date in town time, doc?",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: yes, yes, umbrella.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 10.49,
+      "expected_tool": "",
+      "heard": "",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "10",
+      "category": "science",
+      "prompt": "What gas do plants absorb?",
+      "transcript": "Today, if you look at lenses... What is that?",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: carbon dioxide, carbon, dioxide.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 18.18,
+      "expected_tool": "",
+      "heard": "That's a look-ass lens of Zor",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "That's a look-ass lens of Zor"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "1",
+      "category": "memory",
+      "prompt": "Remember that my favorite color is blue.",
+      "transcript": "I'll remember that your favorite color is blue.",
+      "score": 100,
+      "passed": true,
+      "notes": "The reply contained every expected word.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 11.59,
+      "expected_tool": "",
+      "heard": "remember that my favorite color is blue",
+      "capability": 0,
+      "observed_tools": [
+        "remember_fact"
+      ],
+      "heard_records": [
+        "remember that my favorite color is blue"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "2",
+      "category": "math",
+      "prompt": "What is the sum of five and seven?",
+      "transcript": "I cannot say no to him. But I can tell you that the war is on. and look for your endorsement.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: 12, 12.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 34.89,
+      "expected_tool": "",
+      "heard": "The wallet on my concept",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "The wallet on my concept"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    }
+  ]
+}

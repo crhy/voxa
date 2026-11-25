@@ -1,0 +1,190 @@
+PARTIAL RUN (interrupted or still running)
+Total: 36
+Passed: 19
+Failed: 17
+Errors: 0
+Average score: 47.61
+
+FAIL [paused_wake] paused-wake-time: score 0 (37.0s) - It's great that you sat in the out to me.
+  Voxa heard: what time is it
+  comprehension: layer=misanswered hearing=1.0000 routed=n/a
+  notes: Keyword fallback used because model JSON could not be parsed.
+PASS [paused_wake] paused-wake-open-firefox: score 100 (15.7s) - I couldn't find an app. called by us.
+  Voxa heard: open firebox / Bazaar, open firebox, and an app called BIOS
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply correctly identifies that Firefox isn't an app and provides a helpful hint about possible solutions.
+PASS [paused_wake] paused-wake-timer: score 50 (10.9s) - www.Viabox.com the website.
+  Voxa heard: Bazaar, open firebox, and an app called BIOS / I couldn't find the quiet set of time-tens, be open to the jack home, to the side
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply correctly sets a timer for ten minutes and uses the website www.Viabox.com.
+FAIL [paused_wake] paused-wake-weather: score 0 (16.4s) - I couldn't find specific weather danger. in the center zone.
+  Voxa heard: What are you weather today
+  comprehension: layer=misheard hearing=0.6000 routed=n/a
+  notes: The response does not provide the required information about the weather in the center zone.
+PASS [paused_wake] paused-wake-jazz: score 100 (43.6s) - Whether today in a computer C.A.P. is like 40 6 degrees sunrise, 6.29 am, sunset 7.12 pm. high a low 81 degrees 47 degrees wind. Bye, it's very easy. and medicine. Medicine 51% 2.29 degrees pressure. 30.1 7 inches. Early local weather forecast. weather conditions. from whether it don't come.
+  Voxa heard: Vichyx? Boxa, what weather today? I call in specific weather to play the stuff on
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The response accurately describes today's computer C.A.P. and weather conditions.
+FAIL [paused_wake] paused-wake-joke: score 0 (24.1s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: No spoken reply was captured.
+FAIL [paused_wake] paused-wake-search: score 0 (13.6s) - I couldn't find the weather day today.
+  Voxa heard: But search advids
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: Keyword fallback used because model JSON could not be parsed.
+PASS [paused_wake] paused-wake-dictation: score 75 (18.4s) - I couldn't find that. Cool. Thank you. Say open to take dot com. the website.
+  Voxa heard: start to take
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The response confirms the user's query and provides a suggestion for a website, which is suitable for dictating.
+PASS [paused_wake] paused-wake-news: score 100 (18.7s) - You can find the latest breaking news on site FlexiNM, AP News.
+  Voxa heard: I need the news
+  comprehension: layer=misheard hearing=0.3333 routed=n/a
+  notes: The captured response fully meets the requirements of the prompt. It correctly identifies the service provided and mentions the news platforms available. No errors were found in the transcription or context.
+PASS [paused_wake] paused-wake-convert: score 75 (14.5s) - I...
+  Voxa heard: But, could one have allowed but are silence / Hi. What? How do I have a lot of other styles
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The response correctly converts 100 kilometers to miles.
+PASS [paused_wake] paused-wake-list: score 95 (10.2s) - 10 minutes timer is done.
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: The reply correctly asks for the time, but does not provide the milk shopping list or answer about the milk shopping list.
+FAIL [paused_wake] paused-wake-door: score 55 (19.9s) - I didn't catch that. Are these for people request?
+  Voxa heard: That's guilt, show me, Boxer hasn't got my sh-
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The captured reply is in a different context and does not directly answer the prompt about pausing and waking up. It seems the speaker is in a different state and not directly related to Voxa or its capabilities.
+PASS [paused_near_miss] paused-near-miss-voxel: score 80 (13.3s) - I
+  Voxa heard: absolutely, a QDs / Bazaar, excellent, IQDs
+  comprehension: layer=misheard hearing=0.1111 routed=n/a
+  notes: The captured reply is clear, relevant, and directly related to the prompt. It doesn't contain any unexpected information or details that deviate from the prompt.
+PASS [paused_near_miss] paused-near-miss-voxel2: score 95 (14.0s) - You
+  Voxa heard: Thanks, a super straight demo
+  comprehension: layer=misheard hearing=0.1429 routed=n/a
+  notes: The reply confirms the user's statement that Voxel graphics look great in the demo without making any assumptions or irrelevant information.
+PASS [paused_near_miss] paused-near-miss-roxa: score 50 (12.8s) - I...
+  Voxa heard: And, access, so we're free to demo. You
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The response is quite clear, but it could be improved to be more concise. For example, 'I said I called later today' or 'I asked you to call me back later today.'
+PASS [paused_near_miss] paused-near-miss-roxa2: score 100 (13.0s) - I
+  Voxa heard: But what all that later / But, what the heck are you talking about, edgel
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply provides a clear and concise summary of the conversation between Roxa and Marco, confirming that they were discussing the schedule. No keywords or additional context were provided.
+FAIL [paused_near_miss] paused-near-miss-poxa: score 0 (8.7s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: No spoken reply was captured.
+PASS [paused_near_miss] paused-near-miss-vox-populi: score 100 (14.8s) - Oi.
+  Voxa heard: I said the fastest to bar up your engines
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply correctly captures the content of the prompt and provides a clear summary of the podcast's discussion.
+PASS [paused_near_miss] paused-near-miss-vox-uh: score 89 (11.3s) - I...
+  Voxa heard: The 16th simlas, the 13th headless, the Thuckest of Bhoppy Regents, I said the fastest of Bhoppy Regents
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply correctly answers the prompt 'Vox uh what happened next' and provides a reasonable continuation.
+PASS [paused_near_miss] paused-near-miss-boxer: score 85 (12.5s) - Oi.
+  Voxa heard: Thanks, thanks, I'll have them. Bye / Ardour, Bartolade
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The response captures the tone of the spoken dialogue but does not address the content or context of the prompt, so it doesn't fully fulfill the requirements.
+PASS [paused_near_miss] paused-near-miss-boxer2: score 80 (11.9s) - I
+  Voxa heard: That's a fucks-er-your-bartle day / Bye-bye
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The captured response accurately summarizes the content of the prompt without any errors or discrepancies.
+PASS [paused_near_miss] paused-near-miss-vox-media: score 85 (12.5s) - I...
+  Voxa heard: Botraning, a lot of shit / body, ported, door slank. I
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply is on track, but it's not entirely accurate. It's not clear if it refers to scores or a recent report from Vox Media.
+FAIL [paused_near_miss] paused-near-miss-box-office: score 0 (12.2s) - I...
+  Voxa heard: All right
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The captured reply does not contain any relevant keywords or phrases related to the prompt about the box office. It appears to be a response to the prompt without any clear indication of the box office opening time.
+PASS [paused_near_miss] paused-near-miss-hoxa: score 100 (12.5s) - I
+  Voxa heard: What does our opens and shop / But, buzzes, and you receive
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The captured response is clear and relevant to the prompt. It provides accurate information about Hoxa, stating it is a surname that Hoxa rarely sees.
+FAIL [paused_near_miss] paused-near-miss-foxes: score 0 (24.8s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: No spoken reply was captured.
+FAIL [paused_exit] paused-exit-cancel: score 0 (16.4s) - I
+  Voxa heard: plum
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: Keyword fallback used because model JSON could not be parsed.
+FAIL [paused_exit] paused-exit-never-mind: score 0 (12.6s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: No spoken reply was captured.
+PASS [paused_exit] paused-exit-forget-it: score 100 (25.1s) - I
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: The response is a direct continuation of the prompt without making assumptions about the speaker's intentions.
+FAIL [paused_exit] paused-exit-done: score 0 (24.0s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: No spoken reply was captured.
+FAIL [paused_exit] paused-exit-stop: score 0 (24.0s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: No spoken reply was captured.
+PASS [paused_exit] paused-exit-stop-talking: score 100 (17.0s) - I
+  Voxa heard: Access, downkey
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The response is grammatically correct, but it doesn't clearly answer the question. It could have provided a clearer example.
+FAIL [paused_exit] paused-exit-offline: score 0 (24.0s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: No spoken reply was captured.
+FAIL [paused_exit] paused-exit-turn-off: score 0 (24.0s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: No spoken reply was captured.
+FAIL [paused_exit] paused-exit-shut-down: score 0 (24.0s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: No spoken reply was captured.
+FAIL [paused_exit] paused-exit-thats-all: score 0 (24.0s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: No spoken reply was captured.
+FAIL [paused_exit] paused-exit-see-you: score 0 (24.0s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: No spoken reply was captured.
+
+Comprehension
+  hearing_word_accuracy  0.0608  (36 cases)
+  routed_tool_accuracy   null  (0 cases with an expected tool)
+  layers: not_heard 13, misheard 22, misrouted 0, misanswered 1, ok 0
+  per category:
+    paused_exit: cases 11 hearing 0.0000 routed null
+    paused_near_miss: cases 13 hearing 0.0195 routed null
+    paused_wake: cases 12 hearing 0.1611 routed null
+  CONFUSIONS (top 30):
+    1x  a -> er
+    1x  a -> open
+    1x  a -> our
+    1x  about -> later
+    1x  all -> bye
+    1x  and -> what
+    1x  argued -> that
+    1x  back -> were
+    1x  barks -> them
+    1x  boxer -> thanks
+    1x  boxer -> thats
+    1x  called -> access
+    1x  cancel -> plum
+    1x  cat -> search
+    1x  cheese -> iqds
+    1x  close -> thats
+    1x  convert -> but
+    1x  cube -> bazaar
+    1x  day -> absolutely
+    1x  day -> ardour
+    1x  dictation -> to
+    1x  discussed -> the
+    1x  door -> have
+    1x  door -> show
+    1x  firefox -> firebox
+    1x  for -> and
+    1x  for -> but
+    1x  great -> a
+    1x  happened -> the
+    1x  hoxa -> what
+Hearing suite (timed interruptions, short answers, repetitions, pauses, quiet speech)
+  interrupt_recall           null
+  keep_accuracy              null
+  stop_latency_p50_ms        null
+  stop_latency_p95_ms        null
+  premature_rate             null
+  self_interrupt_count       null
+  request_word_retention     null
+  cases [{'case_id': 'paused-wake-time', 'category': 'paused_wake', 'prompt': 'Voxa, what time is it?', 'heard': 'what time is it', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'misanswered', 'expected_tool': '', 'tools_ran': ['tell_time'], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'paused-wake-open-firefox', 'category': 'paused_wake', 'prompt': 'Voxa, open firefox', 'heard': 'open firebox / Bazaar, open firebox, and an app called BIOS', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.5, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': ['open_app'], 'routed': None, 'passed': True, 'error': '', 'confusions': [['firefox', 'firebox']]}, {'case_id': 'paused-wake-timer', 'category': 'paused_wake', 'prompt': 'Voxa, set a timer for ten minutes', 'heard': "Bazaar, open firebox, and an app called BIOS / I couldn't find the quiet set of time-tens, be open to the jack home, to the side", 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': ['open_app'], 'routed': None, 'passed': True, 'error': '', 'confusions': [['a', 'open'], ['timer', 'firebox'], ['for', 'and'], ['ten', 'an'], ['minutes', 'app']]}, {'case_id': 'paused-wake-weather', 'category': 'paused_wake', 'prompt': 'Voxa, what is the weather today', 'heard': 'What are you weather today', 'hearing_word_accuracy': 0.6, 'hearing_word_accuracy_best_record': 0.6, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['is', 'are'], ['the', 'you']]}, {'case_id': 'paused-wake-jazz', 'category': 'paused_wake', 'prompt': 'Voxa, play some jazz', 'heard': 'Vichyx? Boxa, what weather today? I call in specific weather to play the stuff on', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': [['some', 'boxa'], ['jazz', 'what']]}, {'case_id': 'paused-wake-joke', 'category': 'paused_wake', 'prompt': 'Voxa, tell me a joke', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'paused-wake-search', 'category': 'paused_wake', 'prompt': 'Voxa, search for cat videos', 'heard': 'But search advids', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['for', 'but'], ['cat', 'search'], ['videos', 'advids']]}, {'case_id': 'paused-wake-dictation', 'category': 'paused_wake', 'prompt': 'Voxa, start dictation', 'heard': 'start to take', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': ['open_app'], 'routed': None, 'passed': True, 'error': '', 'confusions': [['dictation', 'to']]}, {'case_id': 'paused-wake-news', 'category': 'paused_wake', 'prompt': 'Voxa, read the news', 'heard': 'I need the news', 'hearing_word_accuracy': 0.3333, 'hearing_word_accuracy_best_record': 0.3333, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': [['read', 'i']]}, {'case_id': 'paused-wake-convert', 'category': 'paused_wake', 'prompt': 'Voxa, convert 100 kilometers to miles', 'heard': 'But, could one have allowed but are silence / Hi. What? How do I have a lot of other styles', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': [['convert', 'but'], ['hundred', 'one'], ['kilometers', 'have'], ['to', 'allowed'], ['miles', 'but']]}, {'case_id': 'paused-wake-list', 'category': 'paused_wake', 'prompt': 'Voxa, add milk to my shopping list', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': 'paused-wake-door', 'category': 'paused_wake', 'prompt': 'Voxa, close the door', 'heard': "That's guilt, show me, Boxer hasn't got my sh-", 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['close', 'thats'], ['the', 'guilt'], ['door', 'show']]}, {'case_id': 'paused-near-miss-voxel', 'category': 'paused_near_miss', 'prompt': 'Voxel of the day, a tiny cube of cheese', 'heard': 'absolutely, a QDs / Bazaar, excellent, IQDs', 'hearing_word_accuracy': 0.1111, 'hearing_word_accuracy_best_record': 0.1111, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': [['day', 'absolutely'], ['tiny', 'qds'], ['cube', 'bazaar'], ['of', 'excellent'], ['cheese', 'iqds']]}, {'case_id': 'paused-near-miss-voxel2', 'category': 'paused_near_miss', 'prompt': 'Voxel graphics look great in that demo', 'heard': 'Thanks, a super straight demo', 'hearing_word_accuracy': 0.1429, 'hearing_word_accuracy_best_record': 0.1429, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': [['look', 'thanks'], ['great', 'a'], ['in', 'super'], ['that', 'straight']]}, {'case_id': 'paused-near-miss-roxa', 'category': 'paused_near_miss', 'prompt': 'Roxa called me back later today', 'heard': "And, access, so we're free to demo. You", 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': [['roxa', 'and'], ['called', 'access'], ['me', 'so'], ['back', 'were'], ['later', 'free'], ['today', 'to']]}, {'case_id': 'paused-near-miss-roxa2', 'category': 'paused_near_miss', 'prompt': 'Roxa and Marco argued about the schedule', 'heard': 'But what all that later / But, what the heck are you talking about, edgel', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': [['roxa', 'but'], ['and', 'what'], ['marco', 'all'], ['argued', 'that'], ['about', 'later'], ['schedule', 'what']]}, {'case_id': 'paused-near-miss-poxa', 'category': 'paused_near_miss', 'prompt': 'Poxa is a genus of head louse', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'paused-near-miss-vox-populi', 'category': 'paused_near_miss', 'prompt': 'The podcast discussed the vox populi street interviews', 'heard': 'I said the fastest to bar up your engines', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': [['the', 'i'], ['podcast', 'said'], ['discussed', 'the'], ['the', 'fastest'], ['vox', 'to'], ['populi', 'bar'], ['street', 'up'], ['interviews', 'your']]}, {'case_id': 'paused-near-miss-vox-uh', 'category': 'paused_near_miss', 'prompt': 'Vox uh what happened next', 'heard': 'The 16th simlas, the 13th headless, the Thuckest of Bhoppy Regents, I said the fastest of Bhoppy Regents', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': [['vox', 'the'], ['uh', '16th'], ['what', 'simlas'], ['happened', 'the'], ['next', '13th']]}, {'case_id': 'paused-near-miss-boxer', 'category': 'paused_near_miss', 'prompt': 'The boxer next door barks all day', 'heard': "Thanks, thanks, I'll have them. Bye / Ardour, Bartolade", 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': [['the', 'thanks'], ['boxer', 'thanks'], ['next', 'ill'], ['door', 'have'], ['barks', 'them'], ['all', 'bye'], ['day', 'ardour']]}, {'case_id': 'paused-near-miss-boxer2', 'category': 'paused_near_miss', 'prompt': 'Boxer training takes a lot of patience', 'heard': "That's a fucks-er-your-bartle day / Bye-bye", 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': [['boxer', 'thats'], ['training', 'a'], ['takes', 'fucks'], ['a', 'er'], ['lot', 'your'], ['of', 'bartle'], ['patience', 'day']]}, {'case_id': 'paused-near-miss-vox-media', 'category': 'paused_near_miss', 'prompt': 'Vox Media reported the scores last night', 'heard': 'Botraning, a lot of shit / body, ported, door slank. I', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': [['vox', 'botraning'], ['media', 'a'], ['reported', 'lot'], ['the', 'of'], ['scores', 'shit'], ['last', 'body'], ['night', 'ported']]}, {'case_id': 'paused-near-miss-box-office', 'category': 'paused_near_miss', 'prompt': 'The box office opens at ten sharp', 'heard': 'All right', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['ten', 'all'], ['sharp', 'right']]}, {'case_id': 'paused-near-miss-hoxa', 'category': 'paused_near_miss', 'prompt': 'Hoxa is a surname you rarely see', 'heard': 'What does our opens and shop / But, buzzes, and you receive', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.1429, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': [['hoxa', 'what'], ['is', 'does'], ['a', 'our'], ['surname', 'opens'], ['you', 'and'], ['rarely', 'shop'], ['see', 'but']]}, {'case_id': 'paused-near-miss-foxes', 'category': 'paused_near_miss', 'prompt': 'Foxes cache food for the winter', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'paused-exit-cancel', 'category': 'paused_exit', 'prompt': 'cancel', 'heard': 'plum', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['cancel', 'plum']]}, {'case_id': 'paused-exit-never-mind', 'category': 'paused_exit', 'prompt': 'never mind', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'paused-exit-forget-it', 'category': 'paused_exit', 'prompt': 'forget it', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': 'paused-exit-done', 'category': 'paused_exit', 'prompt': 'done', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'paused-exit-stop', 'category': 'paused_exit', 'prompt': 'stop', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'paused-exit-stop-talking', 'category': 'paused_exit', 'prompt': 'stop talking', 'heard': 'Access, downkey', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': [['stop', 'access'], ['talking', 'downkey']]}, {'case_id': 'paused-exit-offline', 'category': 'paused_exit', 'prompt': 'offline', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'paused-exit-turn-off', 'category': 'paused_exit', 'prompt': 'turn off', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'paused-exit-shut-down', 'category': 'paused_exit', 'prompt': 'shut down', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'paused-exit-thats-all', 'category': 'paused_exit', 'prompt': 'thats all', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'paused-exit-see-you', 'category': 'paused_exit', 'prompt': 'see you', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}]  yielded None/None  kept None/None  complete requests None/None  premature None/None
+  per cell:
+  per overlap:
+  per expect:

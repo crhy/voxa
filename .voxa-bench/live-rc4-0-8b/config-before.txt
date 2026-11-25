@@ -1,0 +1,8 @@
+  "ai_backend": "ollama",
+  "echo_cancel": true,
+  "echo_mode": "dtln",
+  "echo_mode_user_picked": false,
+  "face_mode": "still",
+  "gpu_device": "cpu",
+  "ollama_model": "qwen3.5-0.8b-q4km",
+  "strata_url": "http://127.0.0.1:8080",

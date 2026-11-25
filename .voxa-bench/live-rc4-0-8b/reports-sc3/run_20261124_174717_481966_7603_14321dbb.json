@@ -1,0 +1,30 @@
+{
+  "timestamp": "2026-11-24T17:48:26.125767",
+  "complete": false,
+  "summary": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0,
+    "errors": 0,
+    "average_score": 0.0,
+    "by_category": {}
+  },
+  "comprehension": {
+    "hearing_word_accuracy": null,
+    "routed_tool_accuracy": null,
+    "layer_counts": {
+      "not_heard": 0,
+      "misheard": 0,
+      "misrouted": 0,
+      "misanswered": 0,
+      "ok": 0
+    },
+    "confusions": [],
+    "cases_scored": 0,
+    "routed_cases": 0,
+    "wake_word": "voxa",
+    "by_category": {},
+    "cases": []
+  },
+  "results": []
+}

@@ -1,0 +1,2 @@
+2026-11-25 05:03:39,157 INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+2026-11-25 05:03:39,159 INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-tiny/revision/main "HTTP/1.1 200 OK"

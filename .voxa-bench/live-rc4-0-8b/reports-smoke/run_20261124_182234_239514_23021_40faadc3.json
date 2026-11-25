@@ -1,0 +1,125 @@
+{
+  "timestamp": "2026-11-24T18:24:49.987140",
+  "complete": false,
+  "summary": {
+    "total": 2,
+    "passed": 0,
+    "failed": 2,
+    "errors": 0,
+    "average_score": 0.0,
+    "by_category": {
+      "general": {
+        "total": 2,
+        "passed": 0,
+        "failed": 2
+      }
+    }
+  },
+  "comprehension": {
+    "hearing_word_accuracy": 1.0,
+    "routed_tool_accuracy": null,
+    "layer_counts": {
+      "not_heard": 0,
+      "misheard": 0,
+      "misrouted": 0,
+      "misanswered": 2,
+      "ok": 0
+    },
+    "confusions": [],
+    "cases_scored": 2,
+    "routed_cases": 0,
+    "wake_word": "voxa",
+    "by_category": {
+      "general": {
+        "cases": 2,
+        "hearing_word_accuracy": 1.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 0,
+          "misrouted": 0,
+          "misanswered": 2,
+          "ok": 0
+        }
+      }
+    },
+    "cases": [
+      {
+        "case_id": "1",
+        "category": "general",
+        "prompt": "What is the capital of France?",
+        "heard": "What is the capital of France",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "misanswered",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "2",
+        "category": "general",
+        "prompt": "Who was the first president of the United States?",
+        "heard": "Who was the first president of the United States",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "misanswered",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      }
+    ]
+  },
+  "results": [
+    {
+      "case_id": "1",
+      "category": "general",
+      "prompt": "What is the capital of France?",
+      "transcript": "",
+      "score": 0,
+      "passed": false,
+      "notes": "No spoken reply was captured.",
+      "method": "empty",
+      "error": "",
+      "duration_seconds": 24.92,
+      "expected_tool": "",
+      "heard": "What is the capital of France",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "What is the capital of France"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "2",
+      "category": "general",
+      "prompt": "Who was the first president of the United States?",
+      "transcript": "",
+      "score": 0,
+      "passed": false,
+      "notes": "No spoken reply was captured.",
+      "method": "empty",
+      "error": "",
+      "duration_seconds": 11.69,
+      "expected_tool": "",
+      "heard": "Who was the first president of the United States",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Who was the first president of the United States"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    }
+  ]
+}

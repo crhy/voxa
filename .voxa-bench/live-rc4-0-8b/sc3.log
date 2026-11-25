@@ -1,0 +1,9 @@
+Voxa settings: /home/rhy/.var/app/io.github.crhy.voxa/config/voxa/config.json — wake word "voxa", model hf.co/unsloth/Qwen3.5-0.8B-GGUF:BF16 at http://127.0.0.1:11434
+Whisper ready: base (cpu/int8)
+@@VOXATEST {"event": "case_start", "index": 1, "total": 1, "id": "1", "category": "general", "prompt": "What is the capital of France?"}
+Speaking: voxa, What is the capital of France?
+Interrupted — writing partial report.
+No test cases were run.
+JSON report: .voxa-bench/live-rc4-0-8b/reports-sc3/run_20261124_174717_481966_7603_14321dbb.json
+Text report: .voxa-bench/live-rc4-0-8b/reports-sc3/run_20261124_174717_481966_7603_14321dbb.txt
+Failure report: .voxa-bench/live-rc4-0-8b/sc3.md

@@ -1,0 +1,301 @@
+{
+  "timestamp": "2026-11-25T01:29:40.080124",
+  "complete": false,
+  "summary": {
+    "total": 5,
+    "passed": 0,
+    "failed": 5,
+    "errors": 0,
+    "average_score": 33.2,
+    "by_category": {
+      "general": {
+        "total": 5,
+        "passed": 0,
+        "failed": 5
+      }
+    }
+  },
+  "comprehension": {
+    "hearing_word_accuracy": 0.4493,
+    "routed_tool_accuracy": null,
+    "layer_counts": {
+      "not_heard": 1,
+      "misheard": 4,
+      "misrouted": 0,
+      "misanswered": 0,
+      "ok": 0
+    },
+    "confusions": [
+      {
+        "said": "by",
+        "heard": "that",
+        "count": 1
+      },
+      {
+        "said": "do",
+        "heard": "vatza",
+        "count": 1
+      },
+      {
+        "said": "how",
+        "heard": "deaf",
+        "count": 1
+      },
+      {
+        "said": "i",
+        "heard": "only",
+        "count": 1
+      },
+      {
+        "said": "name",
+        "heard": "set",
+        "count": 1
+      },
+      {
+        "said": "step",
+        "heard": "vice",
+        "count": 1
+      },
+      {
+        "said": "to",
+        "heard": "powder",
+        "count": 1
+      }
+    ],
+    "cases_scored": 5,
+    "routed_cases": 0,
+    "wake_word": "voxa",
+    "by_category": {
+      "general": {
+        "cases": 5,
+        "hearing_word_accuracy": 0.4493,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 1,
+          "misheard": 4,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 0
+        }
+      }
+    },
+    "cases": [
+      {
+        "case_id": "long-recipe-1",
+        "category": "general",
+        "prompt": "Give me a recipe for chocolate chip cookies.",
+        "heard": "Bazaar, give me a recipe for chocolate chip cookies",
+        "hearing_word_accuracy": 0.875,
+        "hearing_word_accuracy_best_record": 0.875,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "long-recipe-2",
+        "category": "general",
+        "prompt": "How do I make banana bread from scratch?",
+        "heard": "Vatza, only make banana from scratch",
+        "hearing_word_accuracy": 0.5,
+        "hearing_word_accuracy_best_record": 0.5,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "do",
+            "vatza"
+          ],
+          [
+            "i",
+            "only"
+          ]
+        ]
+      },
+      {
+        "case_id": "long-recipe-3",
+        "category": "general",
+        "prompt": "Tell me step by step how to cook chicken soup.",
+        "heard": "Tell that vice-deaf powder cook chicken",
+        "hearing_word_accuracy": 0.3,
+        "hearing_word_accuracy_best_record": 0.3,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "by",
+            "that"
+          ],
+          [
+            "step",
+            "vice"
+          ],
+          [
+            "how",
+            "deaf"
+          ],
+          [
+            "to",
+            "powder"
+          ]
+        ]
+      },
+      {
+        "case_id": "long-list-1",
+        "category": "general",
+        "prompt": "Give me a list of the ten best mountains in the world.",
+        "heard": "",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": null,
+        "layer": "not_heard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "long-list-2",
+        "category": "general",
+        "prompt": "Name five interesting facts about the ocean.",
+        "heard": "Set, mate 5, interesting facts, the ocean",
+        "hearing_word_accuracy": 0.5714,
+        "hearing_word_accuracy_best_record": 0.5714,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "name",
+            "set"
+          ]
+        ]
+      }
+    ]
+  },
+  "results": [
+    {
+      "case_id": "long-recipe-1",
+      "category": "general",
+      "prompt": "Give me a recipe for chocolate chip cookies.",
+      "transcript": "Here's a quick recipe for chai. Thank you.",
+      "score": 50,
+      "passed": false,
+      "notes": "The reply did not contain: bake|oven.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 25.66,
+      "expected_tool": "",
+      "heard": "Bazaar, give me a recipe for chocolate chip cookies",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Bazaar, give me a recipe for chocolate chip cookies"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "long-recipe-2",
+      "category": "general",
+      "prompt": "How do I make banana bread from scratch?",
+      "transcript": "No, that's not possible. Making a benign order for scratch is too tricky. is how to make one problem.",
+      "score": 66,
+      "passed": false,
+      "notes": "The reply did not contain: banana.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 21.55,
+      "expected_tool": "",
+      "heard": "Vatza, only make banana from scratch",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Vatza, only make banana from scratch"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "long-recipe-3",
+      "category": "general",
+      "prompt": "Tell me step by step how to cook chicken soup.",
+      "transcript": "I can't generate recipes. or provides specific instructions for...",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: chicken, soup, cook|simmer.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 18.62,
+      "expected_tool": "",
+      "heard": "Tell that vice-deaf powder cook chicken",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Tell that vice-deaf powder cook chicken"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "long-list-1",
+      "category": "general",
+      "prompt": "Give me a list of the ten best mountains in the world.",
+      "transcript": "I'm happy to look for you. BUNNY JAPPERSEN VIDEO BUNNY GRIME PERSEN VIDEO LARDS ARE IN BIRDING BUNNY JAPPERSEN VIDEO",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: mountain|everest, ten|10.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 13.53,
+      "expected_tool": "",
+      "heard": "",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "long-list-2",
+      "category": "general",
+      "prompt": "Name five interesting facts about the ocean.",
+      "transcript": "I couldn't work out how... You can do that.",
+      "score": 50,
+      "passed": false,
+      "notes": "The reply did not contain: five|1.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 17.46,
+      "expected_tool": "",
+      "heard": "Set, mate 5, interesting facts, the ocean",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Set, mate 5, interesting facts, the ocean"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    }
+  ]
+}

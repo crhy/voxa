@@ -1,0 +1,12 @@
+	Name: alsa_output.pci-0000_01_00.1.hdmi-stereo
+	Mute: no
+	Volume: front-left: 65536 / 100% / 0.00 dB,   front-right: 65536 / 100% / 0.00 dB
+	Base Volume: 65536 / 100% / 0.00 dB
+	Name: alsa_output.usb-Generic_Blue_Microphones_2111BAB03T18-00.analog-stereo
+	Mute: no
+	Volume: front-left: 65536 / 100% / 0.00 dB,   front-right: 65536 / 100% / 0.00 dB
+	Base Volume: 65536 / 100% / 0.00 dB
+	Name: alsa_output.pci-0000_10_00.6.analog-stereo
+	Mute: no
+	Volume: front-left: 42596 /  65% / -11.23 dB,   front-right: 42596 /  65% / -11.23 dB
+	Base Volume: 65536 / 100% / 0.00 dB

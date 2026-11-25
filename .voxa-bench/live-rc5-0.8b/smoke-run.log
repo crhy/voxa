@@ -1,0 +1,219 @@
+Voxa settings: /home/rhy/.var/app/io.github.crhy.voxa/config/voxa/config.json — wake word "voxa", model qwen3.5-0.8b-q4km:latest at http://127.0.0.1:11434
+Whisper ready: base (cpu/int8)
+@@VOXATEST {"event": "case_start", "index": 1, "total": 20, "id": "1", "category": "general", "prompt": "What is the capital of France?"}
+Speaking: voxa, What is the capital of France?
+@@VOXATEST {"event": "case_result", "index": 1, "total": 20, "id": "1", "category": "general", "prompt": "What is the capital of France?", "status": "FAIL", "reply": "Paris is the capital.", "heard": "what is the capital of France", "layer": "misanswered", "notes": "The reply did not contain: France.", "seconds": 13.0}
+[1/20] FAIL 1 score 75 (13.0s)
+@@VOXATEST {"event": "case_start", "index": 2, "total": 20, "id": "2", "category": "general", "prompt": "Who was the first president of the United States?"}
+Speaking: voxa, Who was the first president of the United States?
+@@VOXATEST {"event": "case_result", "index": 2, "total": 20, "id": "2", "category": "general", "prompt": "Who was the first president of the United States?", "status": "PASS", "reply": "George Washington said it took the first part of the interview.", "heard": "Who was the first president of the United States", "layer": "ok", "notes": "The reply contained every expected word.", "seconds": 18.4}
+[2/20] PASS 2 score 100 (18.4s)
+@@VOXATEST {"event": "case_start", "index": 3, "total": 20, "id": "3", "category": "general", "prompt": "How do you make lemonade?"}
+Speaking: voxa, How do you make lemonade?
+@@VOXATEST {"event": "case_result", "index": 3, "total": 20, "id": "3", "category": "general", "prompt": "How do you make lemonade?", "status": "FAIL", "reply": "Mixing fresh lemonade is easy. Just a little bit. to energies and to your mind. 19th century. So you can go sugar or lemon to feel it to taste.", "heard": "How do you make lemonade", "layer": "misanswered", "notes": "The reply did not contain: water, water.", "seconds": 25.3}
+[3/20] FAIL 3 score 66 (25.3s)
+@@VOXATEST {"event": "case_start", "index": 4, "total": 20, "id": "4", "category": "general", "prompt": "What is the tallest mountain in the world?"}
+Speaking: voxa, What is the tallest mountain in the world?
+Empty transcript for 4; retrying (attempt 2 of 2).
+Speaking: voxa, What is the tallest mountain in the world?
+@@VOXATEST {"event": "case_result", "index": 4, "total": 20, "id": "4", "category": "general", "prompt": "What is the tallest mountain in the world?", "status": "FAIL", "reply": "Not looking at it. The world's tallest mountain.", "heard": "What is the tallest mountain in the world", "layer": "misanswered", "notes": "The reply did not contain: Mount Everest, Everest.", "seconds": 16.7}
+[4/20] FAIL 4 score 50 (16.7s)
+@@VOXATEST {"event": "case_start", "index": 5, "total": 20, "id": "5", "category": "general", "prompt": "Who wrote the play Hamlet?"}
+Speaking: voxa, Who wrote the play Hamlet?
+@@VOXATEST {"event": "case_result", "index": 5, "total": 20, "id": "5", "category": "general", "prompt": "Who wrote the play Hamlet?", "status": "FAIL", "reply": "William Shakespeare.", "heard": "Who wrote the play, Hamlet", "layer": "misanswered", "notes": "The reply did not contain: Hamlet.", "seconds": 12.3}
+[5/20] FAIL 5 score 66 (12.3s)
+@@VOXATEST {"event": "case_start", "index": 6, "total": 20, "id": "6", "category": "math", "prompt": "What is 5 times 4?"}
+Speaking: voxa, What is 5 times 4?
+@@VOXATEST {"event": "case_result", "index": 6, "total": 20, "id": "6", "category": "math", "prompt": "What is 5 times 4?", "status": "FAIL", "reply": "Bye, thanks for watching. specific type of industrial for working. He's primarily interior handling equipment. especially for pork lifts and heavy powers. and a widely available abounds like toys.", "heard": "what is 5x fork", "layer": "misheard", "notes": "The reply did not contain: 20, 20, times, five.", "seconds": 24.4}
+[6/20] FAIL 6 score 0 (24.4s)
+@@VOXATEST {"event": "case_start", "index": 7, "total": 20, "id": "7", "category": "memory", "prompt": "Remember that my cat is named Mittens."}
+Speaking: voxa, Remember that my cat is named Mittens.
+@@VOXATEST {"event": "case_result", "index": 7, "total": 20, "id": "7", "category": "memory", "prompt": "Remember that my cat is named Mittens.", "status": "FAIL", "reply": "I remember that you can.", "heard": "Remember that my cat is named Vittons", "layer": "misheard", "notes": "The reply did not contain: Mittens, Mittens, cat.", "seconds": 13.4}
+[7/20] FAIL 7 score 25 (13.4s)
+@@VOXATEST {"event": "case_start", "index": 8, "total": 20, "id": "8", "category": "instructions", "prompt": "Set a timer for 10 minutes."}
+Speaking: voxa, Set a timer for 10 minutes.
+@@VOXATEST {"event": "case_result", "index": 8, "total": 20, "id": "8", "category": "instructions", "prompt": "Set a timer for 10 minutes.", "status": "PASS", "reply": "Time reset for 10 minutes.", "heard": "set a timer for 10 minutes", "layer": "ok", "notes": "The reply contained every expected word.", "seconds": 11.5}
+[8/20] PASS 8 score 100 (11.5s)
+@@VOXATEST {"event": "case_start", "index": 9, "total": 20, "id": "9", "category": "reasoning", "prompt": "If all dogs are mammals, are poodles mammals?"}
+Speaking: voxa, If all dogs are mammals, are poodles mammals?
+@@VOXATEST {"event": "case_result", "index": 9, "total": 20, "id": "9", "category": "reasoning", "prompt": "If all dogs are mammals, are poodles mammals?", "status": "FAIL", "reply": "No, do those aren't dogs. so they can't be mothers and mothers and mothers. But little is indeed a breed of dogs.", "heard": "Bazaar, if all dogs are mammals, are poodles mammals", "layer": "misheard", "notes": "The reply did not contain: Yes, Yes, poodle, mammal.", "seconds": 23.2}
+[9/20] FAIL 9 score 0 (23.2s)
+@@VOXATEST {"event": "case_start", "index": 10, "total": 20, "id": "10", "category": "science", "prompt": "What is the chemical symbol for water?"}
+Speaking: voxa, What is the chemical symbol for water?
+Empty transcript for 10; retrying (attempt 2 of 2).
+Speaking: voxa, What is the chemical symbol for water?
+@@VOXATEST {"event": "case_result", "index": 10, "total": 20, "id": "10", "category": "science", "prompt": "What is the chemical symbol for water?", "status": "FAIL", "reply": "H.O.", "heard": "What is the chemical symbol for water", "layer": "misanswered", "notes": "The reply did not contain: H2O, H2O|H 2 O|h2o.", "seconds": 14.0}
+[10/20] FAIL 10 score 0 (14.0s)
+@@VOXATEST {"event": "case_start", "index": 11, "total": 20, "id": "1", "category": "math", "prompt": "What is the square root of 144?"}
+Speaking: voxa, What is the square root of 144?
+@@VOXATEST {"event": "case_result", "index": 11, "total": 20, "id": "1", "category": "math", "prompt": "What is the square root of 144?", "status": "FAIL", "reply": "Square use of 100% for one.", "heard": "what is the square root of 144", "layer": "misanswered", "notes": "The reply did not contain: 12, 12.", "seconds": 12.6}
+[11/20] FAIL 1 score 0 (12.6s)
+@@VOXATEST {"event": "case_start", "index": 12, "total": 20, "id": "2", "category": "math", "prompt": "Multiply 7 by 8."}
+Speaking: voxa, Multiply 7 by 8.
+@@VOXATEST {"event": "case_result", "index": 12, "total": 20, "id": "2", "category": "math", "prompt": "Multiply 7 by 8.", "status": "PASS", "reply": "56", "heard": "multiply 7x8", "layer": "misheard", "notes": "The reply contained every expected word.", "seconds": 12.6}
+[12/20] PASS 2 score 100 (12.6s)
+@@VOXATEST {"event": "case_start", "index": 13, "total": 20, "id": "3", "category": "math", "prompt": "Divide 100 by 4."}
+Speaking: voxa, Divide 100 by 4.
+@@VOXATEST {"event": "case_result", "index": 13, "total": 20, "id": "3", "category": "math", "prompt": "Divide 100 by 4.", "status": "FAIL", "reply": "100 divided by 4.", "heard": "divide 100x4", "layer": "misheard", "notes": "The reply did not contain: 25, 25.", "seconds": 13.2}
+[13/20] FAIL 3 score 0 (13.2s)
+@@VOXATEST {"event": "case_start", "index": 14, "total": 20, "id": "4", "category": "math", "prompt": "Add 15 and 20."}
+Speaking: voxa, Add 15 and 20.
+@@VOXATEST {"event": "case_result", "index": 14, "total": 20, "id": "4", "category": "math", "prompt": "Add 15 and 20.", "status": "FAIL", "reply": "Watch the beach. I'm ready to keep you going.", "heard": "Watch, alting the beat", "layer": "misheard", "notes": "The reply did not contain: 35, 35.", "seconds": 14.9}
+[14/20] FAIL 4 score 0 (14.9s)
+@@VOXATEST {"event": "case_start", "index": 15, "total": 20, "id": "5", "category": "math", "prompt": "Subtract 10 from 50."}
+Speaking: voxa, Subtract 10 from 50.
+@@VOXATEST {"event": "case_result", "index": 15, "total": 20, "id": "5", "category": "math", "prompt": "Subtract 10 from 50.", "status": "FAIL", "reply": "That's a great exercise. I've been catching it. Let's count together. One, two, three, four, five, six, seven, eight. 910.", "heard": "The track 10 from 50", "layer": "misheard", "notes": "The reply did not contain: 40, 40.", "seconds": 25.3}
+[15/20] FAIL 5 score 0 (25.3s)
+@@VOXATEST {"event": "case_start", "index": 16, "total": 20, "id": "7", "category": "time", "prompt": "What is the current date?"}
+Speaking: voxa, What is the current date?
+@@VOXATEST {"event": "case_result", "index": 16, "total": 20, "id": "7", "category": "time", "prompt": "What is the current date?", "status": "PASS", "reply": "Find out today's date. Curntime. Day 3. We can.", "heard": "what is the current date", "layer": "ok", "notes": "The reply contained every expected word.", "seconds": 22.1}
+[16/20] PASS 7 score 100 (22.1s)
+@@VOXATEST {"event": "case_start", "index": 17, "total": 20, "id": "9", "category": "reasoning", "prompt": "If it rains, should I take an umbrella?"}
+Speaking: voxa, If it rains, should I take an umbrella?
+@@VOXATEST {"event": "case_result", "index": 17, "total": 20, "id": "9", "category": "reasoning", "prompt": "If it rains, should I take an umbrella?", "status": "FAIL", "reply": "Want to date in town time, doc?", "heard": "", "layer": "not_heard", "notes": "The reply did not contain: yes, yes, umbrella.", "seconds": 10.5}
+[17/20] FAIL 9 score 0 (10.5s)
+@@VOXATEST {"event": "case_start", "index": 18, "total": 20, "id": "10", "category": "science", "prompt": "What gas do plants absorb?"}
+Speaking: voxa, What gas do plants absorb?
+@@VOXATEST {"event": "case_result", "index": 18, "total": 20, "id": "10", "category": "science", "prompt": "What gas do plants absorb?", "status": "FAIL", "reply": "Today, if you look at lenses... What is that?", "heard": "That's a look-ass lens of Zor", "layer": "misheard", "notes": "The reply did not contain: carbon dioxide, carbon, dioxide.", "seconds": 18.2}
+[18/20] FAIL 10 score 0 (18.2s)
+@@VOXATEST {"event": "case_start", "index": 19, "total": 20, "id": "1", "category": "memory", "prompt": "Remember that my favorite color is blue."}
+Speaking: voxa, Remember that my favorite color is blue.
+@@VOXATEST {"event": "case_result", "index": 19, "total": 20, "id": "1", "category": "memory", "prompt": "Remember that my favorite color is blue.", "status": "PASS", "reply": "I'll remember that your favorite color is blue.", "heard": "remember that my favorite color is blue", "layer": "ok", "notes": "The reply contained every expected word.", "seconds": 11.6}
+[19/20] PASS 1 score 100 (11.6s)
+@@VOXATEST {"event": "case_start", "index": 20, "total": 20, "id": "2", "category": "math", "prompt": "What is the sum of five and seven?"}
+Speaking: voxa, What is the sum of five and seven?
+@@VOXATEST {"event": "case_result", "index": 20, "total": 20, "id": "2", "category": "math", "prompt": "What is the sum of five and seven?", "status": "FAIL", "reply": "I cannot say no to him. But I can tell you that the war is on. and look for your endorsement.", "heard": "The wallet on my concept", "layer": "misheard", "notes": "The reply did not contain: 12, 12.", "seconds": 34.9}
+[20/20] FAIL 2 score 0 (34.9s)
+Total: 20
+Passed: 5
+Failed: 15
+Errors: 0
+Average score: 39.1
+
+FAIL [general] 1: score 75 (13.0s) - Paris is the capital.
+  Voxa heard: what is the capital of France
+  comprehension: layer=misanswered hearing=1.0000 routed=n/a
+  notes: The reply did not contain: France.
+PASS [general] 2: score 100 (18.4s) - George Washington said it took the first part of the interview.
+  Voxa heard: Who was the first president of the United States
+  comprehension: layer=ok hearing=1.0000 routed=n/a
+  notes: The reply contained every expected word.
+FAIL [general] 3: score 66 (25.3s) - Mixing fresh lemonade is easy. Just a little bit. to energies and to your mind. 19th century. So you can go sugar or lemon to feel it to taste.
+  Voxa heard: How do you make lemonade
+  comprehension: layer=misanswered hearing=1.0000 routed=n/a
+  notes: The reply did not contain: water, water.
+FAIL [general] 4: score 50 (16.7s) - Not looking at it. The world's tallest mountain.
+  Voxa heard: What is the tallest mountain in the world
+  comprehension: layer=misanswered hearing=1.0000 routed=n/a
+  notes: The reply did not contain: Mount Everest, Everest.
+FAIL [general] 5: score 66 (12.3s) - William Shakespeare.
+  Voxa heard: Who wrote the play, Hamlet
+  comprehension: layer=misanswered hearing=1.0000 routed=n/a
+  notes: The reply did not contain: Hamlet.
+FAIL [math] 6: score 0 (24.4s) - Bye, thanks for watching. specific type of industrial for working. He's primarily interior handling equipment. especially for pork lifts and heavy powers. and a widely available abounds like toys.
+  Voxa heard: what is 5x fork
+  comprehension: layer=misheard hearing=0.4000 routed=n/a
+  notes: The reply did not contain: 20, 20, times, five.
+FAIL [memory] 7: score 25 (13.4s) - I remember that you can.
+  Voxa heard: Remember that my cat is named Vittons
+  comprehension: layer=misheard hearing=0.8571 routed=n/a
+  notes: The reply did not contain: Mittens, Mittens, cat.
+PASS [instructions] 8: score 100 (11.5s) - Time reset for 10 minutes.
+  Voxa heard: set a timer for 10 minutes
+  comprehension: layer=ok hearing=1.0000 routed=n/a
+  notes: The reply contained every expected word.
+FAIL [reasoning] 9: score 0 (23.2s) - No, do those aren't dogs. so they can't be mothers and mothers and mothers. But little is indeed a breed of dogs.
+  Voxa heard: Bazaar, if all dogs are mammals, are poodles mammals
+  comprehension: layer=misheard hearing=0.8750 routed=n/a
+  notes: The reply did not contain: Yes, Yes, poodle, mammal.
+FAIL [science] 10: score 0 (14.0s) - H.O.
+  Voxa heard: What is the chemical symbol for water
+  comprehension: layer=misanswered hearing=1.0000 routed=n/a
+  notes: The reply did not contain: H2O, H2O|H 2 O|h2o.
+FAIL [math] 1: score 0 (12.6s) - Square use of 100% for one.
+  Voxa heard: what is the square root of 144
+  comprehension: layer=misanswered hearing=1.0000 routed=n/a
+  notes: The reply did not contain: 12, 12.
+PASS [math] 2: score 100 (12.6s) - 56
+  Voxa heard: multiply 7x8
+  comprehension: layer=misheard hearing=0.2500 routed=n/a
+  notes: The reply contained every expected word.
+FAIL [math] 3: score 0 (13.2s) - 100 divided by 4.
+  Voxa heard: divide 100x4
+  comprehension: layer=misheard hearing=0.2000 routed=n/a
+  notes: The reply did not contain: 25, 25.
+FAIL [math] 4: score 0 (14.9s) - Watch the beach. I'm ready to keep you going.
+  Voxa heard: Watch, alting the beat
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: 35, 35.
+FAIL [math] 5: score 0 (25.3s) - That's a great exercise. I've been catching it. Let's count together. One, two, three, four, five, six, seven, eight. 910.
+  Voxa heard: The track 10 from 50
+  comprehension: layer=misheard hearing=0.5000 routed=n/a
+  notes: The reply did not contain: 40, 40.
+PASS [time] 7: score 100 (22.1s) - Find out today's date. Curntime. Day 3. We can.
+  Voxa heard: what is the current date
+  comprehension: layer=ok hearing=1.0000 routed=n/a
+  notes: The reply contained every expected word.
+FAIL [reasoning] 9: score 0 (10.5s) - Want to date in town time, doc?
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: yes, yes, umbrella.
+FAIL [science] 10: score 0 (18.2s) - Today, if you look at lenses... What is that?
+  Voxa heard: That's a look-ass lens of Zor
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: carbon dioxide, carbon, dioxide.
+PASS [memory] 1: score 100 (11.6s) - I'll remember that your favorite color is blue.
+  Voxa heard: remember that my favorite color is blue
+  comprehension: layer=ok hearing=1.0000 routed=n/a
+  notes: The reply contained every expected word.
+FAIL [math] 2: score 0 (34.9s) - I cannot say no to him. But I can tell you that the war is on. and look for your endorsement.
+  Voxa heard: The wallet on my concept
+  comprehension: layer=misheard hearing=0.1250 routed=n/a
+  notes: The reply did not contain: 12, 12.
+
+Comprehension
+  hearing_word_accuracy  0.6604  (20 cases)
+  routed_tool_accuracy   null  (0 cases with an expected tool)
+  layers: not_heard 1, misheard 9, misrouted 0, misanswered 6, ok 4
+  per category:
+    general: cases 5 hearing 1.0000 routed null
+    instructions: cases 1 hearing 1.0000 routed null
+    math: cases 7 hearing 0.3536 routed null
+    memory: cases 2 hearing 0.9285 routed null
+    reasoning: cases 2 hearing 0.4375 routed null
+    science: cases 2 hearing 0.5000 routed null
+    time: cases 1 hearing 1.0000 routed null
+  CONFUSIONS (top 30):
+    1x  absorb -> lens
+    1x  add -> watch
+    1x  and -> my
+    1x  and -> the
+    1x  do -> look
+    1x  eight -> 7x8
+    1x  fifteen -> alting
+    1x  five -> on
+    1x  four -> 100x4
+    1x  four -> fork
+    1x  gas -> a
+    1x  mittens -> vittons
+    1x  of -> wallet
+    1x  plants -> ass
+    1x  seven -> concept
+    1x  subtract -> the
+    1x  times -> 5x
+    1x  twenty -> beat
+    1x  what -> thats
+Hearing suite (timed interruptions, short answers, repetitions, pauses, quiet speech)
+  interrupt_recall           null
+  keep_accuracy              null
+  stop_latency_p50_ms        null
+  stop_latency_p95_ms        null
+  premature_rate             null
+  self_interrupt_count       null
+  request_word_retention     null
+  cases [{'case_id': '1', 'category': 'general', 'prompt': 'What is the capital of France?', 'heard': 'what is the capital of France', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'misanswered', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': '2', 'category': 'general', 'prompt': 'Who was the first president of the United States?', 'heard': 'Who was the first president of the United States', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'ok', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': '3', 'category': 'general', 'prompt': 'How do you make lemonade?', 'heard': 'How do you make lemonade', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'misanswered', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': '4', 'category': 'general', 'prompt': 'What is the tallest mountain in the world?', 'heard': 'What is the tallest mountain in the world', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'misanswered', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': '5', 'category': 'general', 'prompt': 'Who wrote the play Hamlet?', 'heard': 'Who wrote the play, Hamlet', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'misanswered', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': '6', 'category': 'math', 'prompt': 'What is 5 times 4?', 'heard': 'what is 5x fork', 'hearing_word_accuracy': 0.4, 'hearing_word_accuracy_best_record': 0.4, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['times', '5x'], ['four', 'fork']]}, {'case_id': '7', 'category': 'memory', 'prompt': 'Remember that my cat is named Mittens.', 'heard': 'Remember that my cat is named Vittons', 'hearing_word_accuracy': 0.8571, 'hearing_word_accuracy_best_record': 0.8571, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': ['remember_fact'], 'routed': None, 'passed': False, 'error': '', 'confusions': [['mittens', 'vittons']]}, {'case_id': '8', 'category': 'instructions', 'prompt': 'Set a timer for 10 minutes.', 'heard': 'set a timer for 10 minutes', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'ok', 'expected_tool': '', 'tools_ran': ['set_timer'], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': '9', 'category': 'reasoning', 'prompt': 'If all dogs are mammals, are poodles mammals?', 'heard': 'Bazaar, if all dogs are mammals, are poodles mammals', 'hearing_word_accuracy': 0.875, 'hearing_word_accuracy_best_record': 0.875, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': '10', 'category': 'science', 'prompt': 'What is the chemical symbol for water?', 'heard': 'What is the chemical symbol for water', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'misanswered', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': '1', 'category': 'math', 'prompt': 'What is the square root of 144?', 'heard': 'what is the square root of 144', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'misanswered', 'expected_tool': '', 'tools_ran': ['calculate'], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': '2', 'category': 'math', 'prompt': 'Multiply 7 by 8.', 'heard': 'multiply 7x8', 'hearing_word_accuracy': 0.25, 'hearing_word_accuracy_best_record': 0.25, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': [['eight', '7x8']]}, {'case_id': '3', 'category': 'math', 'prompt': 'Divide 100 by 4.', 'heard': 'divide 100x4', 'hearing_word_accuracy': 0.2, 'hearing_word_accuracy_best_record': 0.2, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['four', '100x4']]}, {'case_id': '4', 'category': 'math', 'prompt': 'Add 15 and 20.', 'heard': 'Watch, alting the beat', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['add', 'watch'], ['fifteen', 'alting'], ['and', 'the'], ['twenty', 'beat']]}, {'case_id': '5', 'category': 'math', 'prompt': 'Subtract 10 from 50.', 'heard': 'The track 10 from 50', 'hearing_word_accuracy': 0.5, 'hearing_word_accuracy_best_record': 0.5, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['subtract', 'the']]}, {'case_id': '7', 'category': 'time', 'prompt': 'What is the current date?', 'heard': 'what is the current date', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'ok', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': '9', 'category': 'reasoning', 'prompt': 'If it rains, should I take an umbrella?', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': '10', 'category': 'science', 'prompt': 'What gas do plants absorb?', 'heard': "That's a look-ass lens of Zor", 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['what', 'thats'], ['gas', 'a'], ['do', 'look'], ['plants', 'ass'], ['absorb', 'lens']]}, {'case_id': '1', 'category': 'memory', 'prompt': 'Remember that my favorite color is blue.', 'heard': 'remember that my favorite color is blue', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'ok', 'expected_tool': '', 'tools_ran': ['remember_fact'], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': '2', 'category': 'math', 'prompt': 'What is the sum of five and seven?', 'heard': 'The wallet on my concept', 'hearing_word_accuracy': 0.125, 'hearing_word_accuracy_best_record': 0.125, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['of', 'wallet'], ['five', 'on'], ['and', 'my'], ['seven', 'concept']]}]  yielded None/None  kept None/None  complete requests None/None  premature None/None
+  per cell:
+  per overlap:
+  per expect:
+JSON report: .voxa-bench/live-rc5-0.8b/reports-smoke.json
+Text report: .voxa-bench/live-rc5-0.8b/reports-smoke/run_20261125_011843_562711_22518_ff133e88.txt
+Failure report: .voxa-bench/live-rc5-0.8b/failures-smoke.md

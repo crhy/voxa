@@ -1,0 +1,13 @@
+cannot start the selected AI server
+cannot start the selected AI server
+Traceback (most recent call last):
+  File "/app/lib/voxa/voxa/speech.py", line 197, in run
+    callback(*args)
+    ~~~~~~~~^^^^^^^
+  File "/app/lib/voxa/voxa/speech.py", line 846, in _play_file
+    self._attach_reference_tap(pipeline, "tts-file")
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/lib/voxa/voxa/speech.py", line 324, in _attach_reference_tap
+    log.info("render tap unavailable for %s: %s", path, self.tap.get("error"))
+    ^^^
+NameError: name 'log' is not defined

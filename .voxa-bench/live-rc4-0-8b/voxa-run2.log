@@ -1,0 +1,33 @@
+Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x7f8e0dbe8f50>
+Task was destroyed but it is pending!
+task: <Task pending name='Task-40' coro=<<async_generator_athrow without __name__>()> wait_for=<Future pending cb=[Task.task_wakeup()]>>
+Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x7f8e0dbeb750>
+Task was destroyed but it is pending!
+task: <Task pending name='Task-93' coro=<<async_generator_athrow without __name__>()> wait_for=<Future pending cb=[Task.task_wakeup()]>>
+Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x7f8e0dbeb9d0>
+Exception ignored in: <function ClientResponse.__del__ at 0x7f8e30cae160>
+Traceback (most recent call last):
+  File "/app/lib/python3.13/site-packages/aiohttp/client_reqrep.py", line 663, in __del__
+    self._connection.release()
+  File "/app/lib/python3.13/site-packages/aiohttp/connector.py", line 210, in release
+    self._connector._release(self._key, self._protocol)
+  File "/app/lib/python3.13/site-packages/aiohttp/connector.py", line 830, in _release
+    protocol.close()
+  File "/app/lib/python3.13/site-packages/aiohttp/client_proto.py", line 94, in close
+    transport.close()
+  File "/usr/lib/python3.13/asyncio/sslproto.py", line 116, in close
+    self._ssl_protocol._start_shutdown()
+  File "/usr/lib/python3.13/asyncio/sslproto.py", line 627, in _start_shutdown
+    self._shutdown_timeout_handle = self._loop.call_later(
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 800, in call_later
+    timer = self.call_at(self.time() + delay, callback, *args,
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 813, in call_at
+    self._check_closed()
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 557, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+Task was destroyed but it is pending!
+task: <Task pending name='Task-124' coro=<<async_generator_athrow without __name__>()> wait_for=<Future pending cb=[Task.task_wakeup()]>>

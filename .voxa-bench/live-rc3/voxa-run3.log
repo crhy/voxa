@@ -1,0 +1,149 @@
+cannot start the selected AI server
+cannot start the selected AI server
+Traceback (most recent call last):
+  File "/app/lib/voxa/voxa/speech.py", line 197, in run
+    callback(*args)
+    ~~~~~~~~^^^^^^^
+  File "/app/lib/voxa/voxa/speech.py", line 846, in _play_file
+    self._attach_reference_tap(pipeline, "tts-file")
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/lib/voxa/voxa/speech.py", line 324, in _attach_reference_tap
+    log.info("render tap unavailable for %s: %s", path, self.tap.get("error"))
+    ^^^
+NameError: name 'log' is not defined
+Traceback (most recent call last):
+  File "/app/lib/voxa/voxa/speech.py", line 197, in run
+    callback(*args)
+    ~~~~~~~~^^^^^^^
+  File "/app/lib/voxa/voxa/speech.py", line 846, in _play_file
+    self._attach_reference_tap(pipeline, "tts-file")
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/lib/voxa/voxa/speech.py", line 324, in _attach_reference_tap
+    log.info("render tap unavailable for %s: %s", path, self.tap.get("error"))
+    ^^^
+NameError: name 'log' is not defined
+Traceback (most recent call last):
+  File "/app/lib/voxa/voxa/speech.py", line 197, in run
+    callback(*args)
+    ~~~~~~~~^^^^^^^
+  File "/app/lib/voxa/voxa/speech.py", line 846, in _play_file
+    self._attach_reference_tap(pipeline, "tts-file")
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/lib/voxa/voxa/speech.py", line 324, in _attach_reference_tap
+    log.info("render tap unavailable for %s: %s", path, self.tap.get("error"))
+    ^^^
+NameError: name 'log' is not defined
+Traceback (most recent call last):
+  File "/app/lib/voxa/voxa/speech.py", line 197, in run
+    callback(*args)
+    ~~~~~~~~^^^^^^^
+  File "/app/lib/voxa/voxa/speech.py", line 846, in _play_file
+    self._attach_reference_tap(pipeline, "tts-file")
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/lib/voxa/voxa/speech.py", line 324, in _attach_reference_tap
+    log.info("render tap unavailable for %s: %s", path, self.tap.get("error"))
+    ^^^
+NameError: name 'log' is not defined
+Traceback (most recent call last):
+  File "/app/lib/voxa/voxa/speech.py", line 197, in run
+    callback(*args)
+    ~~~~~~~~^^^^^^^
+  File "/app/lib/voxa/voxa/speech.py", line 846, in _play_file
+    self._attach_reference_tap(pipeline, "tts-file")
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/lib/voxa/voxa/speech.py", line 324, in _attach_reference_tap
+    log.info("render tap unavailable for %s: %s", path, self.tap.get("error"))
+    ^^^
+NameError: name 'log' is not defined
+Traceback (most recent call last):
+  File "/app/lib/voxa/voxa/speech.py", line 197, in run
+    callback(*args)
+    ~~~~~~~~^^^^^^^
+  File "/app/lib/voxa/voxa/speech.py", line 846, in _play_file
+    self._attach_reference_tap(pipeline, "tts-file")
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/lib/voxa/voxa/speech.py", line 324, in _attach_reference_tap
+    log.info("render tap unavailable for %s: %s", path, self.tap.get("error"))
+    ^^^
+NameError: name 'log' is not defined
+Traceback (most recent call last):
+  File "/app/lib/voxa/voxa/speech.py", line 197, in run
+    callback(*args)
+    ~~~~~~~~^^^^^^^
+  File "/app/lib/voxa/voxa/speech.py", line 846, in _play_file
+    self._attach_reference_tap(pipeline, "tts-file")
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/lib/voxa/voxa/speech.py", line 324, in _attach_reference_tap
+    log.info("render tap unavailable for %s: %s", path, self.tap.get("error"))
+    ^^^
+NameError: name 'log' is not defined
+Traceback (most recent call last):
+  File "/app/lib/voxa/voxa/speech.py", line 197, in run
+    callback(*args)
+    ~~~~~~~~^^^^^^^
+  File "/app/lib/voxa/voxa/speech.py", line 846, in _play_file
+    self._attach_reference_tap(pipeline, "tts-file")
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/lib/voxa/voxa/speech.py", line 324, in _attach_reference_tap
+    log.info("render tap unavailable for %s: %s", path, self.tap.get("error"))
+    ^^^
+NameError: name 'log' is not defined
+Traceback (most recent call last):
+  File "/app/lib/voxa/voxa/speech.py", line 197, in run
+    callback(*args)
+    ~~~~~~~~^^^^^^^
+  File "/app/lib/voxa/voxa/speech.py", line 846, in _play_file
+    self._attach_reference_tap(pipeline, "tts-file")
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/lib/voxa/voxa/speech.py", line 324, in _attach_reference_tap
+    log.info("render tap unavailable for %s: %s", path, self.tap.get("error"))
+    ^^^
+NameError: name 'log' is not defined
+Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x7f27c587f110>
+Task was destroyed but it is pending!
+task: <Task pending name='Task-116' coro=<<async_generator_athrow without __name__>()> wait_for=<Future pending cb=[Task.task_wakeup()]>>
+Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x7f27c587f610>
+Exception ignored in: <function ClientResponse.__del__ at 0x7f27e991a160>
+Traceback (most recent call last):
+  File "/app/lib/python3.13/site-packages/aiohttp/client_reqrep.py", line 663, in __del__
+    self._connection.release()
+  File "/app/lib/python3.13/site-packages/aiohttp/connector.py", line 210, in release
+    self._connector._release(self._key, self._protocol)
+  File "/app/lib/python3.13/site-packages/aiohttp/connector.py", line 830, in _release
+    protocol.close()
+  File "/app/lib/python3.13/site-packages/aiohttp/client_proto.py", line 94, in close
+    transport.close()
+  File "/usr/lib/python3.13/asyncio/sslproto.py", line 116, in close
+    self._ssl_protocol._start_shutdown()
+  File "/usr/lib/python3.13/asyncio/sslproto.py", line 627, in _start_shutdown
+    self._shutdown_timeout_handle = self._loop.call_later(
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 800, in call_later
+    timer = self.call_at(self.time() + delay, callback, *args,
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 813, in call_at
+    self._check_closed()
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 557, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+Task was destroyed but it is pending!
+task: <Task pending name='Task-174' coro=<<async_generator_athrow without __name__>()> wait_for=<Future pending cb=[Task.task_wakeup()]>>
+Traceback (most recent call last):
+  File "/app/lib/voxa/voxa/speech.py", line 197, in run
+    callback(*args)
+    ~~~~~~~~^^^^^^^
+  File "/app/lib/voxa/voxa/speech.py", line 846, in _play_file
+    self._attach_reference_tap(pipeline, "tts-file")
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/lib/voxa/voxa/speech.py", line 324, in _attach_reference_tap
+    log.info("render tap unavailable for %s: %s", path, self.tap.get("error"))
+    ^^^
+NameError: name 'log' is not defined
+Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x7f2728783d90>
+Task was destroyed but it is pending!
+task: <Task pending name='Task-240' coro=<<async_generator_athrow without __name__>()> wait_for=<Future pending cb=[Task.task_wakeup()]>>
+Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x7f2728783c50>
+Task was destroyed but it is pending!
+task: <Task pending name='Task-281' coro=<<async_generator_athrow without __name__>()> wait_for=<Future pending cb=[Task.task_wakeup()]>>

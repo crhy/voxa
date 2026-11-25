@@ -1,0 +1,17 @@
+attach: True None
+sink element: autoaudiosink
+state -> 2
+t=0.5 total=10368 window_power=0.007049 submitted=10368 state=playing
+t=1.0 total=18432 window_power=0.007048 submitted=18432 state=playing
+t=1.5 total=25920 window_power=0.007047 submitted=25920 state=playing
+t=2.0 total=33984 window_power=0.007047 submitted=33984 state=playing
+t=2.5 total=42048 window_power=0.007048 submitted=42048 state=playing
+t=3.0 total=50112 window_power=0.007049 submitted=50112 state=playing
+t=3.5 total=58176 window_power=0.007048 submitted=58176 state=playing
+t=4.0 total=66240 window_power=0.007047 submitted=66240 state=playing
+t=4.5 total=74304 window_power=0.007048 submitted=74304 state=playing
+t=5.0 total=82368 window_power=0.007049 submitted=82368 state=playing
+t=5.5 total=90432 window_power=0.007048 submitted=90432 state=playing
+t=6.0 total=97344 window_power=0.007047 submitted=97344 state=playing
+t=6.5 total=97344 window_power=0.000000 submitted=97344 state=playing
+done

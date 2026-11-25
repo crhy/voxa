@@ -1,0 +1,130 @@
+Voxa settings: /home/rhy/.var/app/io.github.crhy.voxa/config/voxa/config.json — wake word "voxa", model hf.co/unsloth/Qwen3.5-0.8B-GGUF:BF16 at http://127.0.0.1:11434
+Whisper ready: base (cpu/int8)
+@@VOXATEST {"event": "case_start", "index": 1, "total": 20, "id": "1", "category": "general", "prompt": "What is the capital of France?"}
+Speaking: voxa, What is the capital of France?
+@@VOXATEST {"event": "case_result", "index": 1, "total": 20, "id": "1", "category": "general", "prompt": "What is the capital of France?", "status": "FAIL", "reply": "It's 421 maybe after.", "heard": "What's the time / Bazaar, what is the capital of France? It's 421, maybe", "layer": "misheard", "notes": "The reply did not contain: Paris, Paris, capital, France.", "seconds": 10.8}
+[1/20] FAIL 1 score 0 (10.8s)
+@@VOXATEST {"event": "case_start", "index": 2, "total": 20, "id": "2", "category": "general", "prompt": "Who was the first president of the United States?"}
+Speaking: voxa, Who was the first president of the United States?
+@@VOXATEST {"event": "case_result", "index": 2, "total": 20, "id": "2", "category": "general", "prompt": "Who was the first president of the United States?", "status": "FAIL", "reply": "How are cars?", "heard": "How are lots of cars? Wasn't the first president of the United- / How are cars", "layer": "misheard", "notes": "The reply did not contain: Washington, Washington.", "seconds": 12.5}
+[2/20] FAIL 2 score 0 (12.5s)
+@@VOXATEST {"event": "case_start", "index": 3, "total": 20, "id": "3", "category": "general", "prompt": "How do you make lemonade?"}
+Speaking: voxa, How do you make lemonade?
+@@VOXATEST {"event": "case_result", "index": 3, "total": 20, "id": "3", "category": "general", "prompt": "How do you make lemonade?", "status": "FAIL", "reply": "Cars are expensive because it...", "heard": "Highs are the most expensive / Bazaar, how do you make lemonade? Cars are expected", "layer": "misheard", "notes": "The reply did not contain: lemons, water, sugar, lemons, water, sugar.", "seconds": 12.5}
+[3/20] FAIL 3 score 0 (12.5s)
+@@VOXATEST {"event": "case_start", "index": 4, "total": 20, "id": "4", "category": "general", "prompt": "What is the tallest mountain in the world?"}
+Speaking: voxa, What is the tallest mountain in the world?
+@@VOXATEST {"event": "case_result", "index": 4, "total": 20, "id": "4", "category": "general", "prompt": "What is the tallest mountain in the world?", "status": "FAIL", "reply": "I'm sorry, I missed the question.", "heard": "You asked me how I-", "layer": "misheard", "notes": "The reply did not contain: Mount Everest, Everest, tallest, mountain.", "seconds": 10.0}
+[4/20] FAIL 4 score 0 (10.0s)
+@@VOXATEST {"event": "case_start", "index": 5, "total": 20, "id": "5", "category": "general", "prompt": "Who wrote the play Hamlet?"}
+Speaking: voxa, Who wrote the play Hamlet?
+@@VOXATEST {"event": "case_result", "index": 5, "total": 20, "id": "5", "category": "general", "prompt": "Who wrote the play Hamlet?", "status": "FAIL", "reply": "That's all. How do you make the element?", "heard": "Bazaar, what is the tallest mountain in the world? I'm sorry, I miss- / Bazaar, in real- / Bazaar, you make another mate", "layer": "misheard", "notes": "The reply did not contain: William Shakespeare, Shakespeare, Hamlet.", "seconds": 12.5}
+[5/20] FAIL 5 score 0 (12.5s)
+@@VOXATEST {"event": "case_start", "index": 6, "total": 20, "id": "6", "category": "math", "prompt": "What is 5 times 4?"}
+Speaking: voxa, What is 5 times 4?
+@@VOXATEST {"event": "case_result", "index": 6, "total": 20, "id": "6", "category": "math", "prompt": "What is 5 times 4?", "status": "FAIL", "reply": "Fly times, boy, it's time. Five times more is tough.", "heard": "what is 5x4 / what is 5x4 / 5 times more", "layer": "misheard", "notes": "The reply did not contain: 20, 20.", "seconds": 15.8}
+[6/20] FAIL 6 score 50 (15.8s)
+@@VOXATEST {"event": "case_start", "index": 7, "total": 20, "id": "7", "category": "memory", "prompt": "Remember that my cat is named Mittens."}
+Speaking: voxa, Remember that my cat is named Mittens.
+Empty transcript for 7; retrying (attempt 2 of 2).
+Speaking: voxa, Remember that my cat is named Mittens.
+@@VOXATEST {"event": "case_result", "index": 7, "total": 20, "id": "7", "category": "memory", "prompt": "Remember that my cat is named Mittens.", "status": "FAIL", "reply": "I'll remember that you cast.", "heard": "remember that my cat is named Middens / remember that my cat is named Mittens. Boxer, remember that my cat is named Mittens", "layer": "misheard", "notes": "The reply did not contain: Mittens, Mittens.", "seconds": 11.6}
+[7/20] FAIL 7 score 50 (11.6s)
+@@VOXATEST {"event": "case_start", "index": 8, "total": 20, "id": "8", "category": "instructions", "prompt": "Set a timer for 10 minutes."}
+Speaking: voxa, Set a timer for 10 minutes.
+Empty transcript for 8; retrying (attempt 2 of 2).
+Speaking: voxa, Set a timer for 10 minutes.
+@@VOXATEST {"event": "case_result", "index": 8, "total": 20, "id": "8", "category": "instructions", "prompt": "Set a timer for 10 minutes.", "status": "PASS", "reply": "Time reset for 10 minutes.", "heard": "set a timer for 10 minutes / The boxup set a timer for 10 minutes", "layer": "misheard", "notes": "The reply contained every expected word.", "seconds": 14.0}
+[8/20] PASS 8 score 100 (14.0s)
+@@VOXATEST {"event": "case_start", "index": 9, "total": 20, "id": "9", "category": "reasoning", "prompt": "If all dogs are mammals, are poodles mammals?"}
+Speaking: voxa, If all dogs are mammals, are poodles mammals?
+Empty transcript for 9; retrying (attempt 2 of 2).
+Speaking: voxa, If all dogs are mammals, are poodles mammals?
+@@VOXATEST {"event": "case_result", "index": 9, "total": 20, "id": "9", "category": "reasoning", "prompt": "If all dogs are mammals, are poodles mammals?", "status": "FAIL", "reply": "", "heard": "if all dogs are mammals, are poodles mammals", "layer": "misanswered", "notes": "No spoken reply was captured.", "seconds": 25.3}
+[9/20] FAIL 9 score 0 (25.3s)
+@@VOXATEST {"event": "case_start", "index": 10, "total": 20, "id": "10", "category": "science", "prompt": "What is the chemical symbol for water?"}
+Speaking: voxa, What is the chemical symbol for water?
+Interrupted — writing partial report.
+PARTIAL RUN (interrupted or still running)
+Total: 9
+Passed: 1
+Failed: 8
+Errors: 0
+Average score: 22.22
+
+FAIL [general] 1: score 0 (10.8s) - It's 421 maybe after.
+  Voxa heard: What's the time / Bazaar, what is the capital of France? It's 421, maybe
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: Paris, Paris, capital, France.
+FAIL [general] 2: score 0 (12.5s) - How are cars?
+  Voxa heard: How are lots of cars? Wasn't the first president of the United- / How are cars
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: Washington, Washington.
+FAIL [general] 3: score 0 (12.5s) - Cars are expensive because it...
+  Voxa heard: Highs are the most expensive / Bazaar, how do you make lemonade? Cars are expected
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: lemons, water, sugar, lemons, water, sugar.
+FAIL [general] 4: score 0 (10.0s) - I'm sorry, I missed the question.
+  Voxa heard: You asked me how I-
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: Mount Everest, Everest, tallest, mountain.
+FAIL [general] 5: score 0 (12.5s) - That's all. How do you make the element?
+  Voxa heard: Bazaar, what is the tallest mountain in the world? I'm sorry, I miss- / Bazaar, in real- / Bazaar, you make another mate
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: William Shakespeare, Shakespeare, Hamlet.
+FAIL [math] 6: score 50 (15.8s) - Fly times, boy, it's time. Five times more is tough.
+  Voxa heard: what is 5x4 / what is 5x4 / 5 times more
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: 20, 20.
+FAIL [memory] 7: score 50 (11.6s) - I'll remember that you cast.
+  Voxa heard: remember that my cat is named Middens / remember that my cat is named Mittens. Boxer, remember that my cat is named Mittens
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: Mittens, Mittens.
+PASS [instructions] 8: score 100 (14.0s) - Time reset for 10 minutes.
+  Voxa heard: set a timer for 10 minutes / The boxup set a timer for 10 minutes
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply contained every expected word.
+FAIL [reasoning] 9: score 0 (25.3s) - no transcript
+  Voxa heard: if all dogs are mammals, are poodles mammals
+  comprehension: layer=misanswered hearing=1.0000 routed=n/a
+  notes: No spoken reply was captured.
+
+Comprehension
+  hearing_word_accuracy  0.1111  (9 cases)
+  routed_tool_accuracy   null  (0 cases with an expected tool)
+  layers: not_heard 0, misheard 8, misrouted 0, misanswered 1, ok 0
+  per category:
+    general: cases 5 hearing 0.0000 routed null
+    instructions: cases 1 hearing 0.0000 routed null
+    math: cases 1 hearing 0.0000 routed null
+    memory: cases 1 hearing 0.0000 routed null
+    reasoning: cases 1 hearing 1.0000 routed null
+  CONFUSIONS (top 30):
+    1x  four -> is
+    1x  hamlet -> tallest
+    1x  in -> me
+    1x  mountain -> asked
+    1x  play -> the
+    1x  states -> president
+    1x  tallest -> you
+    1x  the -> how
+    1x  was -> are
+    1x  who -> bazaar
+    1x  who -> how
+    1x  world -> i
+    1x  wrote -> what
+Hearing suite (timed interruptions, short answers, repetitions, pauses, quiet speech)
+  interrupt_recall           null
+  keep_accuracy              null
+  stop_latency_p50_ms        null
+  stop_latency_p95_ms        null
+  premature_rate             null
+  self_interrupt_count       null
+  request_word_retention     null
+  cases [{'case_id': '1', 'category': 'general', 'prompt': 'What is the capital of France?', 'heard': "What's the time / Bazaar, what is the capital of France? It's 421, maybe", 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.1667, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': ['tell_time'], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': '2', 'category': 'general', 'prompt': 'Who was the first president of the United States?', 'heard': "How are lots of cars? Wasn't the first president of the United- / How are cars", 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.2222, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['who', 'how'], ['was', 'are'], ['states', 'president']]}, {'case_id': '3', 'category': 'general', 'prompt': 'How do you make lemonade?', 'heard': 'Highs are the most expensive / Bazaar, how do you make lemonade? Cars are expected', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.2, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': '4', 'category': 'general', 'prompt': 'What is the tallest mountain in the world?', 'heard': 'You asked me how I-', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['tallest', 'you'], ['mountain', 'asked'], ['in', 'me'], ['the', 'how'], ['world', 'i']]}, {'case_id': '5', 'category': 'general', 'prompt': 'Who wrote the play Hamlet?', 'heard': "Bazaar, what is the tallest mountain in the world? I'm sorry, I miss- / Bazaar, in real- / Bazaar, you make another mate", 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['who', 'bazaar'], ['wrote', 'what'], ['play', 'the'], ['hamlet', 'tallest']]}, {'case_id': '6', 'category': 'math', 'prompt': 'What is 5 times 4?', 'heard': 'what is 5x4 / what is 5x4 / 5 times more', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.4, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': ['calculate'], 'routed': None, 'passed': False, 'error': '', 'confusions': [['four', 'is']]}, {'case_id': '7', 'category': 'memory', 'prompt': 'Remember that my cat is named Mittens.', 'heard': 'remember that my cat is named Middens / remember that my cat is named Mittens. Boxer, remember that my cat is named Mittens', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.8571, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': ['remember_fact'], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': '8', 'category': 'instructions', 'prompt': 'Set a timer for 10 minutes.', 'heard': 'set a timer for 10 minutes / The boxup set a timer for 10 minutes', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': ['set_timer'], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': '9', 'category': 'reasoning', 'prompt': 'If all dogs are mammals, are poodles mammals?', 'heard': 'if all dogs are mammals, are poodles mammals', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'misanswered', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}]  yielded None/None  kept None/None  complete requests None/None  premature None/None
+  per cell:
+  per overlap:
+  per expect:
+JSON report: .voxa-bench/live-rc3-0.8b/smoke.json
+Text report: .voxa-bench/live-rc3-0.8b/smoke.txt
+Failure report: .voxa-bench/live-rc3-0.8b/smoke-failures.md

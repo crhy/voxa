@@ -1,0 +1,36 @@
+PARTIAL RUN (interrupted or still running)
+Total: 2
+Passed: 0
+Failed: 2
+Errors: 0
+Average score: 0.0
+
+FAIL [general] 1: score 0 (24.9s) - no transcript
+  Voxa heard: What is the capital of France
+  comprehension: layer=misanswered hearing=1.0000 routed=n/a
+  notes: No spoken reply was captured.
+FAIL [general] 2: score 0 (11.7s) - no transcript
+  Voxa heard: Who was the first president of the United States
+  comprehension: layer=misanswered hearing=1.0000 routed=n/a
+  notes: No spoken reply was captured.
+
+Comprehension
+  hearing_word_accuracy  1.0000  (2 cases)
+  routed_tool_accuracy   null  (0 cases with an expected tool)
+  layers: not_heard 0, misheard 0, misrouted 0, misanswered 2, ok 0
+  per category:
+    general: cases 2 hearing 1.0000 routed null
+  CONFUSIONS (top 30):
+    none: every word heard as it was said
+Hearing suite (timed interruptions, short answers, repetitions, pauses, quiet speech)
+  interrupt_recall           null
+  keep_accuracy              null
+  stop_latency_p50_ms        null
+  stop_latency_p95_ms        null
+  premature_rate             null
+  self_interrupt_count       null
+  request_word_retention     null
+  cases [{'case_id': '1', 'category': 'general', 'prompt': 'What is the capital of France?', 'heard': 'What is the capital of France', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'misanswered', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': '2', 'category': 'general', 'prompt': 'Who was the first president of the United States?', 'heard': 'Who was the first president of the United States', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'misanswered', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}]  yielded None/None  kept None/None  complete requests None/None  premature None/None
+  per cell:
+  per overlap:
+  per expect:

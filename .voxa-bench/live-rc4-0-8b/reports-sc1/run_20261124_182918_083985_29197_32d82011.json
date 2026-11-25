@@ -1,0 +1,88 @@
+{
+  "timestamp": "2026-11-24T18:29:45.634310",
+  "complete": true,
+  "summary": {
+    "total": 1,
+    "passed": 1,
+    "failed": 0,
+    "errors": 0,
+    "average_score": 100.0,
+    "by_category": {
+      "general": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0
+      }
+    }
+  },
+  "comprehension": {
+    "hearing_word_accuracy": 1.0,
+    "routed_tool_accuracy": null,
+    "layer_counts": {
+      "not_heard": 0,
+      "misheard": 0,
+      "misrouted": 0,
+      "misanswered": 0,
+      "ok": 1
+    },
+    "confusions": [],
+    "cases_scored": 1,
+    "routed_cases": 0,
+    "wake_word": "voxa",
+    "by_category": {
+      "general": {
+        "cases": 1,
+        "hearing_word_accuracy": 1.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 0,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 1
+        }
+      }
+    },
+    "cases": [
+      {
+        "case_id": "voice-1",
+        "category": "general",
+        "prompt": "Give me one quick fact about honey.",
+        "heard": "give me one quick fact about honey",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      }
+    ]
+  },
+  "results": [
+    {
+      "case_id": "voice-1",
+      "category": "general",
+      "prompt": "Give me one quick fact about honey.",
+      "transcript": "Voxa give me one quick fact about honey.",
+      "score": 100,
+      "passed": true,
+      "notes": "The reply contained every expected word.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 26.51,
+      "expected_tool": "",
+      "heard": "give me one quick fact about honey",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "give me one quick fact about honey"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    }
+  ]
+}

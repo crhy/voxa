@@ -1,0 +1,599 @@
+{
+  "timestamp": "2026-11-24T16:24:18.540686",
+  "complete": false,
+  "summary": {
+    "total": 9,
+    "passed": 1,
+    "failed": 8,
+    "errors": 0,
+    "average_score": 22.22,
+    "by_category": {
+      "general": {
+        "total": 5,
+        "passed": 0,
+        "failed": 5
+      },
+      "math": {
+        "total": 1,
+        "passed": 0,
+        "failed": 1
+      },
+      "memory": {
+        "total": 1,
+        "passed": 0,
+        "failed": 1
+      },
+      "instructions": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0
+      },
+      "reasoning": {
+        "total": 1,
+        "passed": 0,
+        "failed": 1
+      }
+    }
+  },
+  "comprehension": {
+    "hearing_word_accuracy": 0.1111,
+    "routed_tool_accuracy": null,
+    "layer_counts": {
+      "not_heard": 0,
+      "misheard": 8,
+      "misrouted": 0,
+      "misanswered": 1,
+      "ok": 0
+    },
+    "confusions": [
+      {
+        "said": "four",
+        "heard": "is",
+        "count": 1
+      },
+      {
+        "said": "hamlet",
+        "heard": "tallest",
+        "count": 1
+      },
+      {
+        "said": "in",
+        "heard": "me",
+        "count": 1
+      },
+      {
+        "said": "mountain",
+        "heard": "asked",
+        "count": 1
+      },
+      {
+        "said": "play",
+        "heard": "the",
+        "count": 1
+      },
+      {
+        "said": "states",
+        "heard": "president",
+        "count": 1
+      },
+      {
+        "said": "tallest",
+        "heard": "you",
+        "count": 1
+      },
+      {
+        "said": "the",
+        "heard": "how",
+        "count": 1
+      },
+      {
+        "said": "was",
+        "heard": "are",
+        "count": 1
+      },
+      {
+        "said": "who",
+        "heard": "bazaar",
+        "count": 1
+      },
+      {
+        "said": "who",
+        "heard": "how",
+        "count": 1
+      },
+      {
+        "said": "world",
+        "heard": "i",
+        "count": 1
+      },
+      {
+        "said": "wrote",
+        "heard": "what",
+        "count": 1
+      }
+    ],
+    "cases_scored": 9,
+    "routed_cases": 0,
+    "wake_word": "voxa",
+    "by_category": {
+      "general": {
+        "cases": 5,
+        "hearing_word_accuracy": 0.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 5,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 0
+        }
+      },
+      "instructions": {
+        "cases": 1,
+        "hearing_word_accuracy": 0.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 1,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 0
+        }
+      },
+      "math": {
+        "cases": 1,
+        "hearing_word_accuracy": 0.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 1,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 0
+        }
+      },
+      "memory": {
+        "cases": 1,
+        "hearing_word_accuracy": 0.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 1,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 0
+        }
+      },
+      "reasoning": {
+        "cases": 1,
+        "hearing_word_accuracy": 1.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 0,
+          "misrouted": 0,
+          "misanswered": 1,
+          "ok": 0
+        }
+      }
+    },
+    "cases": [
+      {
+        "case_id": "1",
+        "category": "general",
+        "prompt": "What is the capital of France?",
+        "heard": "What's the time / Bazaar, what is the capital of France? It's 421, maybe",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.1667,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [
+          "tell_time"
+        ],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "2",
+        "category": "general",
+        "prompt": "Who was the first president of the United States?",
+        "heard": "How are lots of cars? Wasn't the first president of the United- / How are cars",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.2222,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "who",
+            "how"
+          ],
+          [
+            "was",
+            "are"
+          ],
+          [
+            "states",
+            "president"
+          ]
+        ]
+      },
+      {
+        "case_id": "3",
+        "category": "general",
+        "prompt": "How do you make lemonade?",
+        "heard": "Highs are the most expensive / Bazaar, how do you make lemonade? Cars are expected",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.2,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "4",
+        "category": "general",
+        "prompt": "What is the tallest mountain in the world?",
+        "heard": "You asked me how I-",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "tallest",
+            "you"
+          ],
+          [
+            "mountain",
+            "asked"
+          ],
+          [
+            "in",
+            "me"
+          ],
+          [
+            "the",
+            "how"
+          ],
+          [
+            "world",
+            "i"
+          ]
+        ]
+      },
+      {
+        "case_id": "5",
+        "category": "general",
+        "prompt": "Who wrote the play Hamlet?",
+        "heard": "Bazaar, what is the tallest mountain in the world? I'm sorry, I miss- / Bazaar, in real- / Bazaar, you make another mate",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "who",
+            "bazaar"
+          ],
+          [
+            "wrote",
+            "what"
+          ],
+          [
+            "play",
+            "the"
+          ],
+          [
+            "hamlet",
+            "tallest"
+          ]
+        ]
+      },
+      {
+        "case_id": "6",
+        "category": "math",
+        "prompt": "What is 5 times 4?",
+        "heard": "what is 5x4 / what is 5x4 / 5 times more",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.4,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [
+          "calculate"
+        ],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "four",
+            "is"
+          ]
+        ]
+      },
+      {
+        "case_id": "7",
+        "category": "memory",
+        "prompt": "Remember that my cat is named Mittens.",
+        "heard": "remember that my cat is named Middens / remember that my cat is named Mittens. Boxer, remember that my cat is named Mittens",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.8571,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [
+          "remember_fact"
+        ],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "8",
+        "category": "instructions",
+        "prompt": "Set a timer for 10 minutes.",
+        "heard": "set a timer for 10 minutes / The boxup set a timer for 10 minutes",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [
+          "set_timer"
+        ],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "9",
+        "category": "reasoning",
+        "prompt": "If all dogs are mammals, are poodles mammals?",
+        "heard": "if all dogs are mammals, are poodles mammals",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "misanswered",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      }
+    ]
+  },
+  "results": [
+    {
+      "case_id": "1",
+      "category": "general",
+      "prompt": "What is the capital of France?",
+      "transcript": "It's 421 maybe after.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: Paris, Paris, capital, France.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 10.79,
+      "expected_tool": "",
+      "heard": "What's the time / Bazaar, what is the capital of France? It's 421, maybe",
+      "capability": 0,
+      "observed_tools": [
+        "tell_time"
+      ],
+      "heard_records": [
+        "What's the time",
+        "Bazaar, what is the capital of France? It's 421, maybe"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "2",
+      "category": "general",
+      "prompt": "Who was the first president of the United States?",
+      "transcript": "How are cars?",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: Washington, Washington.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 12.53,
+      "expected_tool": "",
+      "heard": "How are lots of cars? Wasn't the first president of the United- / How are cars",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "How are lots of cars? Wasn't the first president of the United-",
+        "How are cars"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "3",
+      "category": "general",
+      "prompt": "How do you make lemonade?",
+      "transcript": "Cars are expensive because it...",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: lemons, water, sugar, lemons, water, sugar.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 12.45,
+      "expected_tool": "",
+      "heard": "Highs are the most expensive / Bazaar, how do you make lemonade? Cars are expected",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Highs are the most expensive",
+        "Bazaar, how do you make lemonade? Cars are expected"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "4",
+      "category": "general",
+      "prompt": "What is the tallest mountain in the world?",
+      "transcript": "I'm sorry, I missed the question.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: Mount Everest, Everest, tallest, mountain.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 9.98,
+      "expected_tool": "",
+      "heard": "You asked me how I-",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "You asked me how I-"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "5",
+      "category": "general",
+      "prompt": "Who wrote the play Hamlet?",
+      "transcript": "That's all. How do you make the element?",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: William Shakespeare, Shakespeare, Hamlet.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 12.49,
+      "expected_tool": "",
+      "heard": "Bazaar, what is the tallest mountain in the world? I'm sorry, I miss- / Bazaar, in real- / Bazaar, you make another mate",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Bazaar, what is the tallest mountain in the world? I'm sorry, I miss-",
+        "Bazaar, in real-",
+        "Bazaar, you make another mate"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "6",
+      "category": "math",
+      "prompt": "What is 5 times 4?",
+      "transcript": "Fly times, boy, it's time. Five times more is tough.",
+      "score": 50,
+      "passed": false,
+      "notes": "The reply did not contain: 20, 20.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 15.83,
+      "expected_tool": "",
+      "heard": "what is 5x4 / what is 5x4 / 5 times more",
+      "capability": 0,
+      "observed_tools": [
+        "calculate"
+      ],
+      "heard_records": [
+        "what is 5x4",
+        "what is 5x4",
+        "5 times more"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "7",
+      "category": "memory",
+      "prompt": "Remember that my cat is named Mittens.",
+      "transcript": "I'll remember that you cast.",
+      "score": 50,
+      "passed": false,
+      "notes": "The reply did not contain: Mittens, Mittens.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 11.57,
+      "expected_tool": "",
+      "heard": "remember that my cat is named Middens / remember that my cat is named Mittens. Boxer, remember that my cat is named Mittens",
+      "capability": 0,
+      "observed_tools": [
+        "remember_fact"
+      ],
+      "heard_records": [
+        "remember that my cat is named Middens",
+        "remember that my cat is named Mittens. Boxer, remember that my cat is named Mittens"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "8",
+      "category": "instructions",
+      "prompt": "Set a timer for 10 minutes.",
+      "transcript": "Time reset for 10 minutes.",
+      "score": 100,
+      "passed": true,
+      "notes": "The reply contained every expected word.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 14.01,
+      "expected_tool": "",
+      "heard": "set a timer for 10 minutes / The boxup set a timer for 10 minutes",
+      "capability": 0,
+      "observed_tools": [
+        "set_timer"
+      ],
+      "heard_records": [
+        "set a timer for 10 minutes",
+        "The boxup set a timer for 10 minutes"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "9",
+      "category": "reasoning",
+      "prompt": "If all dogs are mammals, are poodles mammals?",
+      "transcript": "",
+      "score": 0,
+      "passed": false,
+      "notes": "No spoken reply was captured.",
+      "method": "empty",
+      "error": "",
+      "duration_seconds": 25.25,
+      "expected_tool": "",
+      "heard": "if all dogs are mammals, are poodles mammals",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "if all dogs are mammals, are poodles mammals"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    }
+  ]
+}

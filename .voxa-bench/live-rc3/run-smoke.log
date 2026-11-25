@@ -1,0 +1,229 @@
+Voxa settings: /home/rhy/.var/app/io.github.crhy.voxa/config/voxa/config.json — wake word "voxa", model qwen2.5:0.5b at http://127.0.0.1:11434
+Whisper ready: base (cpu/int8)
+@@VOXATEST {"event": "case_start", "index": 1, "total": 20, "id": "1", "category": "general", "prompt": "What is the capital of France?"}
+Speaking: voxa, What is the capital of France?
+@@VOXATEST {"event": "case_result", "index": 1, "total": 20, "id": "1", "category": "general", "prompt": "What is the capital of France?", "status": "FAIL", "reply": "Searching the lab for a practice.", "heard": "Google Apprentice", "layer": "misheard", "notes": "The reply did not contain: Paris, Paris, capital, France.", "seconds": 12.2}
+[1/20] FAIL 1 score 0 (12.2s)
+@@VOXATEST {"event": "case_start", "index": 2, "total": 20, "id": "2", "category": "general", "prompt": "Who was the first president of the United States?"}
+Speaking: voxa, Who was the first president of the United States?
+@@VOXATEST {"event": "case_result", "index": 2, "total": 20, "id": "2", "category": "general", "prompt": "Who was the first president of the United States?", "status": "FAIL", "reply": "based on the search results.", "heard": "Who was the first president of the United States", "layer": "misanswered", "notes": "The reply did not contain: Washington, Washington.", "seconds": 13.6}
+[2/20] FAIL 2 score 0 (13.6s)
+@@VOXATEST {"event": "case_start", "index": 3, "total": 20, "id": "3", "category": "general", "prompt": "How do you make lemonade?"}
+Speaking: voxa, How do you make lemonade?
+@@VOXATEST {"event": "case_result", "index": 3, "total": 20, "id": "3", "category": "general", "prompt": "How do you make lemonade?", "status": "FAIL", "reply": "Paris, to be, is the capital and largest city of France. is an estimated city population. 2.0 for minion and an area of 105 points. It's quite a long time. seven square miles. as of January 2026 for a major tourism. Congratulations.", "heard": "what is the capital of France? Searching the lab for a sentence. Voxa, who was the first president of the United States? Based on the search results. Voxa, how do you make / Paris, Vim, if the capital unlined it, gitlab, did an estimated city population of 2.0, Dominion, in an area of 105.4 square kilometers, 40.7 square miles, as of January 20, 206, 4", "layer": "misheard", "notes": "The reply did not contain: lemons, water, sugar, lemons, water, sugar.", "seconds": 31.8}
+[3/20] FAIL 3 score 0 (31.8s)
+@@VOXATEST {"event": "case_start", "index": 4, "total": 20, "id": "4", "category": "general", "prompt": "What is the tallest mountain in the world?"}
+Speaking: voxa, What is the tallest mountain in the world?
+@@VOXATEST {"event": "case_result", "index": 4, "total": 20, "id": "4", "category": "general", "prompt": "What is the tallest mountain in the world?", "status": "FAIL", "reply": "I'm not sure what you mean by cat was a-", "heard": "It looks like you're asking about the capital of thangs", "layer": "misheard", "notes": "The reply did not contain: Mount Everest, Everest, tallest, mountain.", "seconds": 13.3}
+[4/20] FAIL 4 score 0 (13.3s)
+@@VOXATEST {"event": "case_start", "index": 5, "total": 20, "id": "5", "category": "general", "prompt": "Who wrote the play Hamlet?"}
+Speaking: voxa, Who wrote the play Hamlet?
+@@VOXATEST {"event": "case_result", "index": 5, "total": 20, "id": "5", "category": "general", "prompt": "Who wrote the play Hamlet?", "status": "FAIL", "reply": "I'm not sure that you mean by your castle. Thanks.", "heard": "I'm not sure what you mean by a cat or a prince. Bazaar, who wrote the f-", "layer": "misheard", "notes": "The reply did not contain: William Shakespeare, Shakespeare, Hamlet.", "seconds": 15.1}
+[5/20] FAIL 5 score 0 (15.1s)
+@@VOXATEST {"event": "case_start", "index": 6, "total": 20, "id": "6", "category": "math", "prompt": "What is 5 times 4?"}
+Speaking: voxa, What is 5 times 4?
+@@VOXATEST {"event": "case_result", "index": 6, "total": 20, "id": "6", "category": "math", "prompt": "What is 5 times 4?", "status": "FAIL", "reply": "I'm not sure what you mean by in case... your friends.", "heard": "I'm not sure what you mean by your cat's or prince", "layer": "misheard", "notes": "The reply did not contain: 20, 20, times, five.", "seconds": 15.1}
+[6/20] FAIL 6 score 0 (15.1s)
+@@VOXATEST {"event": "case_start", "index": 7, "total": 20, "id": "7", "category": "memory", "prompt": "Remember that my cat is named Mittens."}
+Speaking: voxa, Remember that my cat is named Mittens.
+@@VOXATEST {"event": "case_result", "index": 7, "total": 20, "id": "7", "category": "memory", "prompt": "Remember that my cat is named Mittens.", "status": "FAIL", "reply": "5 times more is 20.", "heard": "what is 5x4", "layer": "misheard", "notes": "The reply did not contain: Mittens, Mittens, cat, remember.", "seconds": 11.5}
+[7/20] FAIL 7 score 0 (11.5s)
+@@VOXATEST {"event": "case_start", "index": 8, "total": 20, "id": "8", "category": "instructions", "prompt": "Set a timer for 10 minutes."}
+Speaking: voxa, Set a timer for 10 minutes.
+@@VOXATEST {"event": "case_result", "index": 8, "total": 20, "id": "8", "category": "instructions", "prompt": "Set a timer for 10 minutes.", "status": "PASS", "reply": "Time reset for 10 minutes.", "heard": "Set a timer for 10 minutes", "layer": "ok", "notes": "The reply contained every expected word.", "seconds": 13.0}
+[8/20] PASS 8 score 100 (13.0s)
+@@VOXATEST {"event": "case_start", "index": 9, "total": 20, "id": "9", "category": "reasoning", "prompt": "If all dogs are mammals, are poodles mammals?"}
+Speaking: voxa, If all dogs are mammals, are poodles mammals?
+@@VOXATEST {"event": "case_result", "index": 9, "total": 20, "id": "9", "category": "reasoning", "prompt": "If all dogs are mammals, are poodles mammals?", "status": "FAIL", "reply": "Bye. Yes, since older, the modern simple user type it.", "heard": "remember that my cat is named mittensly. 5x4 is 20. Voxa, set a timer for 10 minutes. I reset for 10 minutes / remember that my cat is named mittensly. 5x4 is 20. Voxa, set a timer for 10 minutes. I reset for 10 minutes / remember that my cat is named mittensly. 5x4 is 20. Voxa, set a timer for 10 minutes. I reset for 10 minutes / Boxups, if all dogs are mammals, are poodles mammals", "layer": "misheard", "notes": "The reply did not contain: poodle, mammal.", "seconds": 18.7}
+[9/20] FAIL 9 score 50 (18.7s)
+@@VOXATEST {"event": "case_start", "index": 10, "total": 20, "id": "10", "category": "science", "prompt": "What is the chemical symbol for water?"}
+Speaking: voxa, What is the chemical symbol for water?
+@@VOXATEST {"event": "case_result", "index": 10, "total": 20, "id": "10", "category": "science", "prompt": "What is the chemical symbol for water?", "status": "FAIL", "reply": "Yes.", "heard": "if all dogs are mammals, are poodles mammals? Yes, since all dogs are mammals and poodles are type of dogs. Voxa, what is the k", "layer": "misheard", "notes": "The reply did not contain: H2O, H2O|H 2 O|h2o.", "seconds": 13.1}
+[10/20] FAIL 10 score 0 (13.1s)
+@@VOXATEST {"event": "case_start", "index": 11, "total": 20, "id": "1", "category": "math", "prompt": "What is the square root of 144?"}
+Speaking: voxa, What is the square root of 144?
+@@VOXATEST {"event": "case_result", "index": 11, "total": 20, "id": "1", "category": "math", "prompt": "What is the square root of 144?", "status": "FAIL", "reply": "I'm not sure what you mean.", "heard": "We'll put water. Yes, do you know what we're doing", "layer": "misheard", "notes": "The reply did not contain: 12, 12.", "seconds": 13.1}
+[11/20] FAIL 1 score 0 (13.1s)
+@@VOXATEST {"event": "case_start", "index": 12, "total": 20, "id": "2", "category": "math", "prompt": "Multiply 7 by 8."}
+Speaking: voxa, Multiply 7 by 8.
+@@VOXATEST {"event": "case_result", "index": 12, "total": 20, "id": "2", "category": "math", "prompt": "Multiply 7 by 8.", "status": "FAIL", "reply": "Squarage of 144 is 12.", "heard": "what is the square root of 144", "layer": "misheard", "notes": "The reply did not contain: 56, 56.", "seconds": 11.4}
+[12/20] FAIL 2 score 0 (11.4s)
+@@VOXATEST {"event": "case_start", "index": 13, "total": 20, "id": "3", "category": "math", "prompt": "Divide 100 by 4."}
+Speaking: voxa, Divide 100 by 4.
+@@VOXATEST {"event": "case_result", "index": 13, "total": 20, "id": "3", "category": "math", "prompt": "Divide 100 by 4.", "status": "FAIL", "reply": "56", "heard": "multiply 7x8", "layer": "misheard", "notes": "The reply did not contain: 25, 25.", "seconds": 11.5}
+[13/20] FAIL 3 score 0 (11.5s)
+@@VOXATEST {"event": "case_start", "index": 14, "total": 20, "id": "4", "category": "math", "prompt": "Add 15 and 20."}
+Speaking: voxa, Add 15 and 20.
+@@VOXATEST {"event": "case_result", "index": 14, "total": 20, "id": "4", "category": "math", "prompt": "Add 15 and 20.", "status": "FAIL", "reply": "I can't perform calculations directly.", "heard": "divide 100x4. Take 2 seconds / at 15 to 20. I can't perform calculations, director, XTerm", "layer": "misheard", "notes": "The reply did not contain: 35, 35.", "seconds": 12.6}
+[14/20] FAIL 4 score 0 (12.6s)
+@@VOXATEST {"event": "case_start", "index": 15, "total": 20, "id": "5", "category": "math", "prompt": "Subtract 10 from 50."}
+Speaking: voxa, Subtract 10 from 50.
+@@VOXATEST {"event": "case_result", "index": 15, "total": 20, "id": "5", "category": "math", "prompt": "Subtract 10 from 50.", "status": "FAIL", "reply": "I couldn't do that.", "heard": "I can't put the mods up in a subtraction from 50 / I couldn't do that", "layer": "misheard", "notes": "The reply did not contain: 40, 40.", "seconds": 13.9}
+[15/20] FAIL 5 score 0 (13.9s)
+@@VOXATEST {"event": "case_start", "index": 16, "total": 20, "id": "7", "category": "time", "prompt": "What is the current date?"}
+Speaking: voxa, What is the current date?
+@@VOXATEST {"event": "case_result", "index": 16, "total": 20, "id": "7", "category": "time", "prompt": "What is the current date?", "status": "PASS", "reply": "But today's day The current time, day of the week, week number, and more. Check the current days on top. I'm going to date on an update.", "heard": "what is the current date", "layer": "ok", "notes": "The reply contained every expected word.", "seconds": 24.3}
+[16/20] PASS 7 score 100 (24.3s)
+@@VOXATEST {"event": "case_start", "index": 17, "total": 20, "id": "9", "category": "reasoning", "prompt": "If it rains, should I take an umbrella?"}
+Speaking: voxa, If it rains, should I take an umbrella?
+@@VOXATEST {"event": "case_result", "index": 17, "total": 20, "id": "9", "category": "reasoning", "prompt": "If it rains, should I take an umbrella?", "status": "FAIL", "reply": "Oh", "heard": "56. Voxup, what is the current date? Fight out your date, date, current time, date of the week, leak number, math. Check the current date and time online, but your date time isn't dead / 56. Voxup, what is the current date? Fight out your date, date, current time, date of the week, leak number, math. Check the current date and time online, but your date time isn't dead", "layer": "misheard", "notes": "The reply did not contain: yes, yes, umbrella.", "seconds": 16.2}
+[17/20] FAIL 9 score 0 (16.2s)
+@@VOXATEST {"event": "case_start", "index": 18, "total": 20, "id": "10", "category": "science", "prompt": "What gas do plants absorb?"}
+Speaking: voxa, What gas do plants absorb?
+@@VOXATEST {"event": "case_result", "index": 18, "total": 20, "id": "10", "category": "science", "prompt": "What gas do plants absorb?", "status": "FAIL", "reply": "I don't stuck on that pain.", "heard": "56. Voxup, what is the current date? Fight out your date, date, current time, date of the week, leak number, math. Check the current date and time online, but your date time isn't dead / 56. Voxup, what is the current date? Fight out your date, date, current time, date of the week, leak number, math. Check the current date and time online, but your date time isn't dead / what does", "layer": "misheard", "notes": "The reply did not contain: carbon dioxide, carbon, dioxide.", "seconds": 8.7}
+[18/20] FAIL 10 score 0 (8.7s)
+@@VOXATEST {"event": "case_start", "index": 19, "total": 20, "id": "1", "category": "memory", "prompt": "Remember that my favorite color is blue."}
+Speaking: voxa, Remember that my favorite color is blue.
+@@VOXATEST {"event": "case_result", "index": 19, "total": 20, "id": "1", "category": "memory", "prompt": "Remember that my favorite color is blue.", "status": "FAIL", "reply": "Plants of solid carbon dioxide", "heard": "if it rains, should I take an umbrella? Voxa, what gas do plants absorb? I got stuck on that patient", "layer": "misheard", "notes": "The reply did not contain: blue.", "seconds": 13.5}
+[19/20] FAIL 1 score 0 (13.5s)
+@@VOXATEST {"event": "case_start", "index": 20, "total": 20, "id": "2", "category": "math", "prompt": "What is the sum of five and seven?"}
+Speaking: voxa, What is the sum of five and seven?
+Empty transcript for 2; retrying (attempt 2 of 3).
+Speaking: voxa, What is the sum of five and seven?
+@@VOXATEST {"event": "case_result", "index": 20, "total": 20, "id": "2", "category": "math", "prompt": "What is the sum of five and seven?", "status": "FAIL", "reply": "So I'm gonna buy you a seven. in time.", "heard": "What is the sum of 5 and 7", "layer": "misanswered", "notes": "The reply did not contain: 12, 12.", "seconds": 14.6}
+[20/20] FAIL 2 score 0 (14.6s)
+Total: 20
+Passed: 2
+Failed: 18
+Errors: 0
+Average score: 12.5
+
+FAIL [general] 1: score 0 (12.2s) - Searching the lab for a practice.
+  Voxa heard: Google Apprentice
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: Paris, Paris, capital, France.
+FAIL [general] 2: score 0 (13.6s) - based on the search results.
+  Voxa heard: Who was the first president of the United States
+  comprehension: layer=misanswered hearing=1.0000 routed=n/a
+  notes: The reply did not contain: Washington, Washington.
+FAIL [general] 3: score 0 (31.8s) - Paris, to be, is the capital and largest city of France. is an estimated city population. 2.0 for minion and an area of 105 points. It's quite a long time. seven square miles. as of January 2026 for a major tourism. Congratulations.
+  Voxa heard: what is the capital of France? Searching the lab for a sentence. Voxa, who was the first president of the United States? Based on the search results. Voxa, how do you make / Paris, Vim, if the capital unlined it, gitlab, did an estimated city population of 2.0, Dominion, in an area of 105.4 square kilometers, 40.7 square miles, as of January 20, 206, 4
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: lemons, water, sugar, lemons, water, sugar.
+FAIL [general] 4: score 0 (13.3s) - I'm not sure what you mean by cat was a-
+  Voxa heard: It looks like you're asking about the capital of thangs
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: Mount Everest, Everest, tallest, mountain.
+FAIL [general] 5: score 0 (15.1s) - I'm not sure that you mean by your castle. Thanks.
+  Voxa heard: I'm not sure what you mean by a cat or a prince. Bazaar, who wrote the f-
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: William Shakespeare, Shakespeare, Hamlet.
+FAIL [math] 6: score 0 (15.1s) - I'm not sure what you mean by in case... your friends.
+  Voxa heard: I'm not sure what you mean by your cat's or prince
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: 20, 20, times, five.
+FAIL [memory] 7: score 0 (11.5s) - 5 times more is 20.
+  Voxa heard: what is 5x4
+  comprehension: layer=misheard hearing=0.1429 routed=n/a
+  notes: The reply did not contain: Mittens, Mittens, cat, remember.
+PASS [instructions] 8: score 100 (13.0s) - Time reset for 10 minutes.
+  Voxa heard: Set a timer for 10 minutes
+  comprehension: layer=ok hearing=1.0000 routed=n/a
+  notes: The reply contained every expected word.
+FAIL [reasoning] 9: score 50 (18.7s) - Bye. Yes, since older, the modern simple user type it.
+  Voxa heard: remember that my cat is named mittensly. 5x4 is 20. Voxa, set a timer for 10 minutes. I reset for 10 minutes / remember that my cat is named mittensly. 5x4 is 20. Voxa, set a timer for 10 minutes. I reset for 10 minutes / remember that my cat is named mittensly. 5x4 is 20. Voxa, set a timer for 10 minutes. I reset for 10 minutes / Boxups, if all dogs are mammals, are poodles mammals
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: poodle, mammal.
+FAIL [science] 10: score 0 (13.1s) - Yes.
+  Voxa heard: if all dogs are mammals, are poodles mammals? Yes, since all dogs are mammals and poodles are type of dogs. Voxa, what is the k
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: H2O, H2O|H 2 O|h2o.
+FAIL [math] 1: score 0 (13.1s) - I'm not sure what you mean.
+  Voxa heard: We'll put water. Yes, do you know what we're doing
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: 12, 12.
+FAIL [math] 2: score 0 (11.4s) - Squarage of 144 is 12.
+  Voxa heard: what is the square root of 144
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: 56, 56.
+FAIL [math] 3: score 0 (11.5s) - 56
+  Voxa heard: multiply 7x8
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: 25, 25.
+FAIL [math] 4: score 0 (12.6s) - I can't perform calculations directly.
+  Voxa heard: divide 100x4. Take 2 seconds / at 15 to 20. I can't perform calculations, director, XTerm
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: 35, 35.
+FAIL [math] 5: score 0 (13.9s) - I couldn't do that.
+  Voxa heard: I can't put the mods up in a subtraction from 50 / I couldn't do that
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: 40, 40.
+PASS [time] 7: score 100 (24.3s) - But today's day The current time, day of the week, week number, and more. Check the current days on top. I'm going to date on an update.
+  Voxa heard: what is the current date
+  comprehension: layer=ok hearing=1.0000 routed=n/a
+  notes: The reply contained every expected word.
+FAIL [reasoning] 9: score 0 (16.2s) - Oh
+  Voxa heard: 56. Voxup, what is the current date? Fight out your date, date, current time, date of the week, leak number, math. Check the current date and time online, but your date time isn't dead / 56. Voxup, what is the current date? Fight out your date, date, current time, date of the week, leak number, math. Check the current date and time online, but your date time isn't dead
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: yes, yes, umbrella.
+FAIL [science] 10: score 0 (8.7s) - I don't stuck on that pain.
+  Voxa heard: 56. Voxup, what is the current date? Fight out your date, date, current time, date of the week, leak number, math. Check the current date and time online, but your date time isn't dead / 56. Voxup, what is the current date? Fight out your date, date, current time, date of the week, leak number, math. Check the current date and time online, but your date time isn't dead / what does
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: carbon dioxide, carbon, dioxide.
+FAIL [memory] 1: score 0 (13.5s) - Plants of solid carbon dioxide
+  Voxa heard: if it rains, should I take an umbrella? Voxa, what gas do plants absorb? I got stuck on that patient
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: blue.
+FAIL [math] 2: score 0 (14.6s) - So I'm gonna buy you a seven. in time.
+  Voxa heard: What is the sum of 5 and 7
+  comprehension: layer=misanswered hearing=1.0000 routed=n/a
+  notes: The reply did not contain: 12, 12.
+
+Comprehension
+  hearing_word_accuracy  0.2071  (20 cases)
+  routed_tool_accuracy   null  (0 cases with an expected tool)
+  layers: not_heard 0, misheard 16, misrouted 0, misanswered 2, ok 2
+  per category:
+    general: cases 5 hearing 0.2000 routed null
+    instructions: cases 1 hearing 1.0000 routed null
+    math: cases 7 hearing 0.1429 routed null
+    memory: cases 2 hearing 0.0714 routed null
+    reasoning: cases 2 hearing 0.0000 routed null
+    science: cases 2 hearing 0.0000 routed null
+    time: cases 1 hearing 1.0000 routed null
+  CONFUSIONS (top 30):
+    1x  absorb -> is
+    1x  add -> divide
+    1x  an -> current
+    1x  and -> take
+    1x  blue -> an
+    1x  by -> multiply
+    1x  by -> the
+    1x  cat -> what
+    1x  chemical -> are
+    1x  color -> i
+    1x  do -> voxup
+    1x  eight -> square
+    1x  favorite -> should
+    1x  five -> sure
+    1x  for -> are
+    1x  forty -> were
+    1x  four -> 7x8
+    1x  four -> doing
+    1x  four -> you
+    1x  france -> apprentice
+    1x  gas -> six
+    1x  hamlet -> what
+    1x  hundred -> what
+    1x  i -> is
+    1x  if -> fifty
+    1x  in -> about
+    1x  is -> all
+    1x  is -> looks
+    1x  is -> not
+    1x  is -> put
+Hearing suite (timed interruptions, short answers, repetitions, pauses, quiet speech)
+  interrupt_recall           null
+  keep_accuracy              null
+  stop_latency_p50_ms        null
+  stop_latency_p95_ms        null
+  premature_rate             null
+  self_interrupt_count       null
+  request_word_retention     null
+  cases [{'case_id': '1', 'category': 'general', 'prompt': 'What is the capital of France?', 'heard': 'Google Apprentice', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': ['web_search'], 'routed': None, 'passed': False, 'error': '', 'confusions': [['of', 'google'], ['france', 'apprentice']]}, {'case_id': '2', 'category': 'general', 'prompt': 'Who was the first president of the United States?', 'heard': 'Who was the first president of the United States', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'misanswered', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': '3', 'category': 'general', 'prompt': 'How do you make lemonade?', 'heard': 'what is the capital of France? Searching the lab for a sentence. Voxa, who was the first president of the United States? Based on the search results. Voxa, how do you make / Paris, Vim, if the capital unlined it, gitlab, did an estimated city population of 2.0, Dominion, in an area of 105.4 square kilometers, 40.7 square miles, as of January 20, 206, 4', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['lemonade', 'of']]}, {'case_id': '4', 'category': 'general', 'prompt': 'What is the tallest mountain in the world?', 'heard': "It looks like you're asking about the capital of thangs", 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['what', 'it'], ['is', 'looks'], ['the', 'like'], ['tallest', 'youre'], ['mountain', 'asking'], ['in', 'about'], ['world', 'capital']]}, {'case_id': '5', 'category': 'general', 'prompt': 'Who wrote the play Hamlet?', 'heard': "I'm not sure what you mean by a cat or a prince. Bazaar, who wrote the f-", 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['hamlet', 'what']]}, {'case_id': '6', 'category': 'math', 'prompt': 'What is 5 times 4?', 'heard': "I'm not sure what you mean by your cat's or prince", 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['is', 'not'], ['five', 'sure'], ['times', 'what'], ['four', 'you']]}, {'case_id': '7', 'category': 'memory', 'prompt': 'Remember that my cat is named Mittens.', 'heard': 'what is 5x4', 'hearing_word_accuracy': 0.1429, 'hearing_word_accuracy_best_record': 0.1429, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': ['calculate'], 'routed': None, 'passed': False, 'error': '', 'confusions': [['cat', 'what'], ['mittens', '5x4']]}, {'case_id': '8', 'category': 'instructions', 'prompt': 'Set a timer for 10 minutes.', 'heard': 'Set a timer for 10 minutes', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'ok', 'expected_tool': '', 'tools_ran': ['set_timer'], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': '9', 'category': 'reasoning', 'prompt': 'If all dogs are mammals, are poodles mammals?', 'heard': 'remember that my cat is named mittensly. 5x4 is 20. Voxa, set a timer for 10 minutes. I reset for 10 minutes / remember that my cat is named mittensly. 5x4 is 20. Voxa, set a timer for 10 minutes. I reset for 10 minutes / remember that my cat is named mittensly. 5x4 is 20. Voxa, set a timer for 10 minutes. I reset for 10 minutes / Boxups, if all dogs are mammals, are poodles mammals', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.875, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': ['remember_fact', 'calculate', 'set_timer'], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': '10', 'category': 'science', 'prompt': 'What is the chemical symbol for water?', 'heard': 'if all dogs are mammals, are poodles mammals? Yes, since all dogs are mammals and poodles are type of dogs. Voxa, what is the k', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['what', 'if'], ['is', 'all'], ['the', 'dogs'], ['chemical', 'are'], ['symbol', 'mammals'], ['for', 'are'], ['water', 'poodles']]}, {'case_id': '1', 'category': 'math', 'prompt': 'What is the square root of 144?', 'heard': "We'll put water. Yes, do you know what we're doing", 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['what', 'well'], ['is', 'put'], ['the', 'water'], ['square', 'yes'], ['root', 'do'], ['of', 'you'], ['one', 'know'], ['hundred', 'what'], ['forty', 'were'], ['four', 'doing']]}, {'case_id': '2', 'category': 'math', 'prompt': 'Multiply 7 by 8.', 'heard': 'what is the square root of 144', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': ['calculate'], 'routed': None, 'passed': False, 'error': '', 'confusions': [['multiply', 'what'], ['seven', 'is'], ['by', 'the'], ['eight', 'square']]}, {'case_id': '3', 'category': 'math', 'prompt': 'Divide 100 by 4.', 'heard': 'multiply 7x8', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['by', 'multiply'], ['four', '7x8']]}, {'case_id': '4', 'category': 'math', 'prompt': 'Add 15 and 20.', 'heard': "divide 100x4. Take 2 seconds / at 15 to 20. I can't perform calculations, director, XTerm", 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['add', 'divide'], ['and', 'take']]}, {'case_id': '5', 'category': 'math', 'prompt': 'Subtract 10 from 50.', 'heard': "I can't put the mods up in a subtraction from 50 / I couldn't do that", 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['subtract', 'i'], ['ten', 'cant']]}, {'case_id': '7', 'category': 'time', 'prompt': 'What is the current date?', 'heard': 'what is the current date', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'ok', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': []}, {'case_id': '9', 'category': 'reasoning', 'prompt': 'If it rains, should I take an umbrella?', 'heard': "56. Voxup, what is the current date? Fight out your date, date, current time, date of the week, leak number, math. Check the current date and time online, but your date time isn't dead / 56. Voxup, what is the current date? Fight out your date, date, current time, date of the week, leak number, math. Check the current date and time online, but your date time isn't dead", 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': ['search_web', 'click_on'], 'routed': None, 'passed': False, 'error': '', 'confusions': [['if', 'fifty'], ['it', 'six'], ['rains', 'voxup'], ['should', 'what'], ['i', 'is'], ['take', 'the'], ['an', 'current'], ['umbrella', 'date']]}, {'case_id': '10', 'category': 'science', 'prompt': 'What gas do plants absorb?', 'heard': "56. Voxup, what is the current date? Fight out your date, date, current time, date of the week, leak number, math. Check the current date and time online, but your date time isn't dead / 56. Voxup, what is the current date? Fight out your date, date, current time, date of the week, leak number, math. Check the current date and time online, but your date time isn't dead / what does", 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.2, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': ['read_page'], 'routed': None, 'passed': False, 'error': '', 'confusions': [['gas', 'six'], ['do', 'voxup'], ['plants', 'what'], ['absorb', 'is']]}, {'case_id': '1', 'category': 'memory', 'prompt': 'Remember that my favorite color is blue.', 'heard': 'if it rains, should I take an umbrella? Voxa, what gas do plants absorb? I got stuck on that patient', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['remember', 'if'], ['that', 'it'], ['my', 'rains'], ['favorite', 'should'], ['color', 'i'], ['is', 'take'], ['blue', 'an']]}, {'case_id': '2', 'category': 'math', 'prompt': 'What is the sum of five and seven?', 'heard': 'What is the sum of 5 and 7', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'misanswered', 'expected_tool': '', 'tools_ran': ['calculate'], 'routed': None, 'passed': False, 'error': '', 'confusions': []}]  yielded None/None  kept None/None  complete requests None/None  premature None/None
+  per cell:
+  per overlap:
+  per expect:
+JSON report: .voxa-bench/live-rc3/reports/smoke.json
+Text report: .voxa-bench/live-rc3/reports/smoke.txt
+Failure report: VOXATEST_FAILURES.md

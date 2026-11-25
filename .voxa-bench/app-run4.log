@@ -1,0 +1,6 @@
+2026-11-25 05:05:34,420 INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-tiny/revision/main "HTTP/1.1 200 OK"
+2026-11-25 05:05:34,420 INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+V11B attach tap tts-stream timeline= True
+V11B tap attached= True err= None
+V11B _natural_worker start
+V11B _on_eos current= True

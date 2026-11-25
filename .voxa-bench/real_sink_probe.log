@@ -1,0 +1,4 @@
+piece attach: True error: None
+piece tap samples: 0 turn: {'id': 'turn-1-72073.012', 'opened_at': 72073.011880204, 'first_index': 0, 'last_index': 2048, 'last_audible_at': 72073.201279962, 'pieces': 0, 'samples': 2048, 'peak': 0.366180419921875, 'generations': [], 'state': 'open', 'closed_at': None}
+whole-reply attach: True error: None
+whole-reply tap samples: 0 turn: {'id': 'turn-1-72076.977', 'opened_at': 72076.97661874, 'first_index': 0, 'last_index': 16000, 'last_audible_at': 72078.02924297801, 'pieces': 0, 'samples': 16000, 'peak': 0.366180419921875, 'generations': [], 'state': 'open', 'closed_at': None}

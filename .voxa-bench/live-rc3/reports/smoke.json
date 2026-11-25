@@ -1,0 +1,1358 @@
+{
+  "timestamp": "2026-11-24T15:36:09.673314",
+  "complete": true,
+  "summary": {
+    "total": 20,
+    "passed": 2,
+    "failed": 18,
+    "errors": 0,
+    "average_score": 12.5,
+    "by_category": {
+      "general": {
+        "total": 5,
+        "passed": 0,
+        "failed": 5
+      },
+      "math": {
+        "total": 7,
+        "passed": 0,
+        "failed": 7
+      },
+      "memory": {
+        "total": 2,
+        "passed": 0,
+        "failed": 2
+      },
+      "instructions": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0
+      },
+      "reasoning": {
+        "total": 2,
+        "passed": 0,
+        "failed": 2
+      },
+      "science": {
+        "total": 2,
+        "passed": 0,
+        "failed": 2
+      },
+      "time": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0
+      }
+    }
+  },
+  "comprehension": {
+    "hearing_word_accuracy": 0.2071,
+    "routed_tool_accuracy": null,
+    "layer_counts": {
+      "not_heard": 0,
+      "misheard": 16,
+      "misrouted": 0,
+      "misanswered": 2,
+      "ok": 2
+    },
+    "confusions": [
+      {
+        "said": "absorb",
+        "heard": "is",
+        "count": 1
+      },
+      {
+        "said": "add",
+        "heard": "divide",
+        "count": 1
+      },
+      {
+        "said": "an",
+        "heard": "current",
+        "count": 1
+      },
+      {
+        "said": "and",
+        "heard": "take",
+        "count": 1
+      },
+      {
+        "said": "blue",
+        "heard": "an",
+        "count": 1
+      },
+      {
+        "said": "by",
+        "heard": "multiply",
+        "count": 1
+      },
+      {
+        "said": "by",
+        "heard": "the",
+        "count": 1
+      },
+      {
+        "said": "cat",
+        "heard": "what",
+        "count": 1
+      },
+      {
+        "said": "chemical",
+        "heard": "are",
+        "count": 1
+      },
+      {
+        "said": "color",
+        "heard": "i",
+        "count": 1
+      },
+      {
+        "said": "do",
+        "heard": "voxup",
+        "count": 1
+      },
+      {
+        "said": "eight",
+        "heard": "square",
+        "count": 1
+      },
+      {
+        "said": "favorite",
+        "heard": "should",
+        "count": 1
+      },
+      {
+        "said": "five",
+        "heard": "sure",
+        "count": 1
+      },
+      {
+        "said": "for",
+        "heard": "are",
+        "count": 1
+      },
+      {
+        "said": "forty",
+        "heard": "were",
+        "count": 1
+      },
+      {
+        "said": "four",
+        "heard": "7x8",
+        "count": 1
+      },
+      {
+        "said": "four",
+        "heard": "doing",
+        "count": 1
+      },
+      {
+        "said": "four",
+        "heard": "you",
+        "count": 1
+      },
+      {
+        "said": "france",
+        "heard": "apprentice",
+        "count": 1
+      },
+      {
+        "said": "gas",
+        "heard": "six",
+        "count": 1
+      },
+      {
+        "said": "hamlet",
+        "heard": "what",
+        "count": 1
+      },
+      {
+        "said": "hundred",
+        "heard": "what",
+        "count": 1
+      },
+      {
+        "said": "i",
+        "heard": "is",
+        "count": 1
+      },
+      {
+        "said": "if",
+        "heard": "fifty",
+        "count": 1
+      },
+      {
+        "said": "in",
+        "heard": "about",
+        "count": 1
+      },
+      {
+        "said": "is",
+        "heard": "all",
+        "count": 1
+      },
+      {
+        "said": "is",
+        "heard": "looks",
+        "count": 1
+      },
+      {
+        "said": "is",
+        "heard": "not",
+        "count": 1
+      },
+      {
+        "said": "is",
+        "heard": "put",
+        "count": 1
+      }
+    ],
+    "cases_scored": 20,
+    "routed_cases": 0,
+    "wake_word": "voxa",
+    "by_category": {
+      "general": {
+        "cases": 5,
+        "hearing_word_accuracy": 0.2,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 4,
+          "misrouted": 0,
+          "misanswered": 1,
+          "ok": 0
+        }
+      },
+      "instructions": {
+        "cases": 1,
+        "hearing_word_accuracy": 1.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 0,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 1
+        }
+      },
+      "math": {
+        "cases": 7,
+        "hearing_word_accuracy": 0.1429,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 6,
+          "misrouted": 0,
+          "misanswered": 1,
+          "ok": 0
+        }
+      },
+      "memory": {
+        "cases": 2,
+        "hearing_word_accuracy": 0.0714,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 2,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 0
+        }
+      },
+      "reasoning": {
+        "cases": 2,
+        "hearing_word_accuracy": 0.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 2,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 0
+        }
+      },
+      "science": {
+        "cases": 2,
+        "hearing_word_accuracy": 0.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 2,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 0
+        }
+      },
+      "time": {
+        "cases": 1,
+        "hearing_word_accuracy": 1.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 0,
+          "misheard": 0,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 1
+        }
+      }
+    },
+    "cases": [
+      {
+        "case_id": "1",
+        "category": "general",
+        "prompt": "What is the capital of France?",
+        "heard": "Google Apprentice",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [
+          "web_search"
+        ],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "of",
+            "google"
+          ],
+          [
+            "france",
+            "apprentice"
+          ]
+        ]
+      },
+      {
+        "case_id": "2",
+        "category": "general",
+        "prompt": "Who was the first president of the United States?",
+        "heard": "Who was the first president of the United States",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "misanswered",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "3",
+        "category": "general",
+        "prompt": "How do you make lemonade?",
+        "heard": "what is the capital of France? Searching the lab for a sentence. Voxa, who was the first president of the United States? Based on the search results. Voxa, how do you make / Paris, Vim, if the capital unlined it, gitlab, did an estimated city population of 2.0, Dominion, in an area of 105.4 square kilometers, 40.7 square miles, as of January 20, 206, 4",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "lemonade",
+            "of"
+          ]
+        ]
+      },
+      {
+        "case_id": "4",
+        "category": "general",
+        "prompt": "What is the tallest mountain in the world?",
+        "heard": "It looks like you're asking about the capital of thangs",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "what",
+            "it"
+          ],
+          [
+            "is",
+            "looks"
+          ],
+          [
+            "the",
+            "like"
+          ],
+          [
+            "tallest",
+            "youre"
+          ],
+          [
+            "mountain",
+            "asking"
+          ],
+          [
+            "in",
+            "about"
+          ],
+          [
+            "world",
+            "capital"
+          ]
+        ]
+      },
+      {
+        "case_id": "5",
+        "category": "general",
+        "prompt": "Who wrote the play Hamlet?",
+        "heard": "I'm not sure what you mean by a cat or a prince. Bazaar, who wrote the f-",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "hamlet",
+            "what"
+          ]
+        ]
+      },
+      {
+        "case_id": "6",
+        "category": "math",
+        "prompt": "What is 5 times 4?",
+        "heard": "I'm not sure what you mean by your cat's or prince",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "is",
+            "not"
+          ],
+          [
+            "five",
+            "sure"
+          ],
+          [
+            "times",
+            "what"
+          ],
+          [
+            "four",
+            "you"
+          ]
+        ]
+      },
+      {
+        "case_id": "7",
+        "category": "memory",
+        "prompt": "Remember that my cat is named Mittens.",
+        "heard": "what is 5x4",
+        "hearing_word_accuracy": 0.1429,
+        "hearing_word_accuracy_best_record": 0.1429,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [
+          "calculate"
+        ],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "cat",
+            "what"
+          ],
+          [
+            "mittens",
+            "5x4"
+          ]
+        ]
+      },
+      {
+        "case_id": "8",
+        "category": "instructions",
+        "prompt": "Set a timer for 10 minutes.",
+        "heard": "Set a timer for 10 minutes",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [
+          "set_timer"
+        ],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "9",
+        "category": "reasoning",
+        "prompt": "If all dogs are mammals, are poodles mammals?",
+        "heard": "remember that my cat is named mittensly. 5x4 is 20. Voxa, set a timer for 10 minutes. I reset for 10 minutes / remember that my cat is named mittensly. 5x4 is 20. Voxa, set a timer for 10 minutes. I reset for 10 minutes / remember that my cat is named mittensly. 5x4 is 20. Voxa, set a timer for 10 minutes. I reset for 10 minutes / Boxups, if all dogs are mammals, are poodles mammals",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.875,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [
+          "remember_fact",
+          "calculate",
+          "set_timer"
+        ],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "10",
+        "category": "science",
+        "prompt": "What is the chemical symbol for water?",
+        "heard": "if all dogs are mammals, are poodles mammals? Yes, since all dogs are mammals and poodles are type of dogs. Voxa, what is the k",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "what",
+            "if"
+          ],
+          [
+            "is",
+            "all"
+          ],
+          [
+            "the",
+            "dogs"
+          ],
+          [
+            "chemical",
+            "are"
+          ],
+          [
+            "symbol",
+            "mammals"
+          ],
+          [
+            "for",
+            "are"
+          ],
+          [
+            "water",
+            "poodles"
+          ]
+        ]
+      },
+      {
+        "case_id": "1",
+        "category": "math",
+        "prompt": "What is the square root of 144?",
+        "heard": "We'll put water. Yes, do you know what we're doing",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "what",
+            "well"
+          ],
+          [
+            "is",
+            "put"
+          ],
+          [
+            "the",
+            "water"
+          ],
+          [
+            "square",
+            "yes"
+          ],
+          [
+            "root",
+            "do"
+          ],
+          [
+            "of",
+            "you"
+          ],
+          [
+            "one",
+            "know"
+          ],
+          [
+            "hundred",
+            "what"
+          ],
+          [
+            "forty",
+            "were"
+          ],
+          [
+            "four",
+            "doing"
+          ]
+        ]
+      },
+      {
+        "case_id": "2",
+        "category": "math",
+        "prompt": "Multiply 7 by 8.",
+        "heard": "what is the square root of 144",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [
+          "calculate"
+        ],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "multiply",
+            "what"
+          ],
+          [
+            "seven",
+            "is"
+          ],
+          [
+            "by",
+            "the"
+          ],
+          [
+            "eight",
+            "square"
+          ]
+        ]
+      },
+      {
+        "case_id": "3",
+        "category": "math",
+        "prompt": "Divide 100 by 4.",
+        "heard": "multiply 7x8",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "by",
+            "multiply"
+          ],
+          [
+            "four",
+            "7x8"
+          ]
+        ]
+      },
+      {
+        "case_id": "4",
+        "category": "math",
+        "prompt": "Add 15 and 20.",
+        "heard": "divide 100x4. Take 2 seconds / at 15 to 20. I can't perform calculations, director, XTerm",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "add",
+            "divide"
+          ],
+          [
+            "and",
+            "take"
+          ]
+        ]
+      },
+      {
+        "case_id": "5",
+        "category": "math",
+        "prompt": "Subtract 10 from 50.",
+        "heard": "I can't put the mods up in a subtraction from 50 / I couldn't do that",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "subtract",
+            "i"
+          ],
+          [
+            "ten",
+            "cant"
+          ]
+        ]
+      },
+      {
+        "case_id": "7",
+        "category": "time",
+        "prompt": "What is the current date?",
+        "heard": "what is the current date",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "ok",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "9",
+        "category": "reasoning",
+        "prompt": "If it rains, should I take an umbrella?",
+        "heard": "56. Voxup, what is the current date? Fight out your date, date, current time, date of the week, leak number, math. Check the current date and time online, but your date time isn't dead / 56. Voxup, what is the current date? Fight out your date, date, current time, date of the week, leak number, math. Check the current date and time online, but your date time isn't dead",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [
+          "search_web",
+          "click_on"
+        ],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "if",
+            "fifty"
+          ],
+          [
+            "it",
+            "six"
+          ],
+          [
+            "rains",
+            "voxup"
+          ],
+          [
+            "should",
+            "what"
+          ],
+          [
+            "i",
+            "is"
+          ],
+          [
+            "take",
+            "the"
+          ],
+          [
+            "an",
+            "current"
+          ],
+          [
+            "umbrella",
+            "date"
+          ]
+        ]
+      },
+      {
+        "case_id": "10",
+        "category": "science",
+        "prompt": "What gas do plants absorb?",
+        "heard": "56. Voxup, what is the current date? Fight out your date, date, current time, date of the week, leak number, math. Check the current date and time online, but your date time isn't dead / 56. Voxup, what is the current date? Fight out your date, date, current time, date of the week, leak number, math. Check the current date and time online, but your date time isn't dead / what does",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.2,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [
+          "read_page"
+        ],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "gas",
+            "six"
+          ],
+          [
+            "do",
+            "voxup"
+          ],
+          [
+            "plants",
+            "what"
+          ],
+          [
+            "absorb",
+            "is"
+          ]
+        ]
+      },
+      {
+        "case_id": "1",
+        "category": "memory",
+        "prompt": "Remember that my favorite color is blue.",
+        "heard": "if it rains, should I take an umbrella? Voxa, what gas do plants absorb? I got stuck on that patient",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "remember",
+            "if"
+          ],
+          [
+            "that",
+            "it"
+          ],
+          [
+            "my",
+            "rains"
+          ],
+          [
+            "favorite",
+            "should"
+          ],
+          [
+            "color",
+            "i"
+          ],
+          [
+            "is",
+            "take"
+          ],
+          [
+            "blue",
+            "an"
+          ]
+        ]
+      },
+      {
+        "case_id": "2",
+        "category": "math",
+        "prompt": "What is the sum of five and seven?",
+        "heard": "What is the sum of 5 and 7",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "misanswered",
+        "expected_tool": "",
+        "tools_ran": [
+          "calculate"
+        ],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      }
+    ]
+  },
+  "results": [
+    {
+      "case_id": "1",
+      "category": "general",
+      "prompt": "What is the capital of France?",
+      "transcript": "Searching the lab for a practice.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: Paris, Paris, capital, France.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 12.16,
+      "expected_tool": "",
+      "heard": "Google Apprentice",
+      "capability": 0,
+      "observed_tools": [
+        "web_search"
+      ],
+      "heard_records": [
+        "Google Apprentice"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "2",
+      "category": "general",
+      "prompt": "Who was the first president of the United States?",
+      "transcript": "based on the search results.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: Washington, Washington.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 13.61,
+      "expected_tool": "",
+      "heard": "Who was the first president of the United States",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Who was the first president of the United States"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "3",
+      "category": "general",
+      "prompt": "How do you make lemonade?",
+      "transcript": "Paris, to be, is the capital and largest city of France. is an estimated city population. 2.0 for minion and an area of 105 points. It's quite a long time. seven square miles. as of January 2026 for a major tourism. Congratulations.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: lemons, water, sugar, lemons, water, sugar.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 31.83,
+      "expected_tool": "",
+      "heard": "what is the capital of France? Searching the lab for a sentence. Voxa, who was the first president of the United States? Based on the search results. Voxa, how do you make / Paris, Vim, if the capital unlined it, gitlab, did an estimated city population of 2.0, Dominion, in an area of 105.4 square kilometers, 40.7 square miles, as of January 20, 206, 4",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "what is the capital of France? Searching the lab for a sentence. Voxa, who was the first president of the United States? Based on the search results. Voxa, how do you make",
+        "Paris, Vim, if the capital unlined it, gitlab, did an estimated city population of 2.0, Dominion, in an area of 105.4 square kilometers, 40.7 square miles, as of January 20, 206, 4"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "4",
+      "category": "general",
+      "prompt": "What is the tallest mountain in the world?",
+      "transcript": "I'm not sure what you mean by cat was a-",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: Mount Everest, Everest, tallest, mountain.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 13.3,
+      "expected_tool": "",
+      "heard": "It looks like you're asking about the capital of thangs",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "It looks like you're asking about the capital of thangs"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "5",
+      "category": "general",
+      "prompt": "Who wrote the play Hamlet?",
+      "transcript": "I'm not sure that you mean by your castle. Thanks.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: William Shakespeare, Shakespeare, Hamlet.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 15.15,
+      "expected_tool": "",
+      "heard": "I'm not sure what you mean by a cat or a prince. Bazaar, who wrote the f-",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "I'm not sure what you mean by a cat or a prince. Bazaar, who wrote the f-"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "6",
+      "category": "math",
+      "prompt": "What is 5 times 4?",
+      "transcript": "I'm not sure what you mean by in case... your friends.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: 20, 20, times, five.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 15.09,
+      "expected_tool": "",
+      "heard": "I'm not sure what you mean by your cat's or prince",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "I'm not sure what you mean by your cat's or prince"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "7",
+      "category": "memory",
+      "prompt": "Remember that my cat is named Mittens.",
+      "transcript": "5 times more is 20.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: Mittens, Mittens, cat, remember.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 11.48,
+      "expected_tool": "",
+      "heard": "what is 5x4",
+      "capability": 0,
+      "observed_tools": [
+        "calculate"
+      ],
+      "heard_records": [
+        "what is 5x4"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "8",
+      "category": "instructions",
+      "prompt": "Set a timer for 10 minutes.",
+      "transcript": "Time reset for 10 minutes.",
+      "score": 100,
+      "passed": true,
+      "notes": "The reply contained every expected word.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 12.98,
+      "expected_tool": "",
+      "heard": "Set a timer for 10 minutes",
+      "capability": 0,
+      "observed_tools": [
+        "set_timer"
+      ],
+      "heard_records": [
+        "Set a timer for 10 minutes"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "9",
+      "category": "reasoning",
+      "prompt": "If all dogs are mammals, are poodles mammals?",
+      "transcript": "Bye. Yes, since older, the modern simple user type it.",
+      "score": 50,
+      "passed": false,
+      "notes": "The reply did not contain: poodle, mammal.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 18.65,
+      "expected_tool": "",
+      "heard": "remember that my cat is named mittensly. 5x4 is 20. Voxa, set a timer for 10 minutes. I reset for 10 minutes / remember that my cat is named mittensly. 5x4 is 20. Voxa, set a timer for 10 minutes. I reset for 10 minutes / remember that my cat is named mittensly. 5x4 is 20. Voxa, set a timer for 10 minutes. I reset for 10 minutes / Boxups, if all dogs are mammals, are poodles mammals",
+      "capability": 0,
+      "observed_tools": [
+        "remember_fact",
+        "calculate",
+        "set_timer"
+      ],
+      "heard_records": [
+        "remember that my cat is named mittensly. 5x4 is 20. Voxa, set a timer for 10 minutes. I reset for 10 minutes",
+        "remember that my cat is named mittensly. 5x4 is 20. Voxa, set a timer for 10 minutes. I reset for 10 minutes",
+        "remember that my cat is named mittensly. 5x4 is 20. Voxa, set a timer for 10 minutes. I reset for 10 minutes",
+        "Boxups, if all dogs are mammals, are poodles mammals"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "10",
+      "category": "science",
+      "prompt": "What is the chemical symbol for water?",
+      "transcript": "Yes.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: H2O, H2O|H 2 O|h2o.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 13.11,
+      "expected_tool": "",
+      "heard": "if all dogs are mammals, are poodles mammals? Yes, since all dogs are mammals and poodles are type of dogs. Voxa, what is the k",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "if all dogs are mammals, are poodles mammals? Yes, since all dogs are mammals and poodles are type of dogs. Voxa, what is the k"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "1",
+      "category": "math",
+      "prompt": "What is the square root of 144?",
+      "transcript": "I'm not sure what you mean.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: 12, 12.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 13.12,
+      "expected_tool": "",
+      "heard": "We'll put water. Yes, do you know what we're doing",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "We'll put water. Yes, do you know what we're doing"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "2",
+      "category": "math",
+      "prompt": "Multiply 7 by 8.",
+      "transcript": "Squarage of 144 is 12.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: 56, 56.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 11.42,
+      "expected_tool": "",
+      "heard": "what is the square root of 144",
+      "capability": 0,
+      "observed_tools": [
+        "calculate"
+      ],
+      "heard_records": [
+        "what is the square root of 144"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "3",
+      "category": "math",
+      "prompt": "Divide 100 by 4.",
+      "transcript": "56",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: 25, 25.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 11.53,
+      "expected_tool": "",
+      "heard": "multiply 7x8",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "multiply 7x8"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "4",
+      "category": "math",
+      "prompt": "Add 15 and 20.",
+      "transcript": "I can't perform calculations directly.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: 35, 35.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 12.62,
+      "expected_tool": "",
+      "heard": "divide 100x4. Take 2 seconds / at 15 to 20. I can't perform calculations, director, XTerm",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "divide 100x4. Take 2 seconds",
+        "at 15 to 20. I can't perform calculations, director, XTerm"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "5",
+      "category": "math",
+      "prompt": "Subtract 10 from 50.",
+      "transcript": "I couldn't do that.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: 40, 40.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 13.9,
+      "expected_tool": "",
+      "heard": "I can't put the mods up in a subtraction from 50 / I couldn't do that",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "I can't put the mods up in a subtraction from 50",
+        "I couldn't do that"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "7",
+      "category": "time",
+      "prompt": "What is the current date?",
+      "transcript": "But today's day The current time, day of the week, week number, and more. Check the current days on top. I'm going to date on an update.",
+      "score": 100,
+      "passed": true,
+      "notes": "The reply contained every expected word.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 24.34,
+      "expected_tool": "",
+      "heard": "what is the current date",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "what is the current date"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "9",
+      "category": "reasoning",
+      "prompt": "If it rains, should I take an umbrella?",
+      "transcript": "Oh",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: yes, yes, umbrella.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 16.19,
+      "expected_tool": "",
+      "heard": "56. Voxup, what is the current date? Fight out your date, date, current time, date of the week, leak number, math. Check the current date and time online, but your date time isn't dead / 56. Voxup, what is the current date? Fight out your date, date, current time, date of the week, leak number, math. Check the current date and time online, but your date time isn't dead",
+      "capability": 0,
+      "observed_tools": [
+        "search_web",
+        "click_on"
+      ],
+      "heard_records": [
+        "56. Voxup, what is the current date? Fight out your date, date, current time, date of the week, leak number, math. Check the current date and time online, but your date time isn't dead",
+        "56. Voxup, what is the current date? Fight out your date, date, current time, date of the week, leak number, math. Check the current date and time online, but your date time isn't dead"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "10",
+      "category": "science",
+      "prompt": "What gas do plants absorb?",
+      "transcript": "I don't stuck on that pain.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: carbon dioxide, carbon, dioxide.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 8.71,
+      "expected_tool": "",
+      "heard": "56. Voxup, what is the current date? Fight out your date, date, current time, date of the week, leak number, math. Check the current date and time online, but your date time isn't dead / 56. Voxup, what is the current date? Fight out your date, date, current time, date of the week, leak number, math. Check the current date and time online, but your date time isn't dead / what does",
+      "capability": 0,
+      "observed_tools": [
+        "read_page"
+      ],
+      "heard_records": [
+        "56. Voxup, what is the current date? Fight out your date, date, current time, date of the week, leak number, math. Check the current date and time online, but your date time isn't dead",
+        "56. Voxup, what is the current date? Fight out your date, date, current time, date of the week, leak number, math. Check the current date and time online, but your date time isn't dead",
+        "what does"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "1",
+      "category": "memory",
+      "prompt": "Remember that my favorite color is blue.",
+      "transcript": "Plants of solid carbon dioxide",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: blue.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 13.46,
+      "expected_tool": "",
+      "heard": "if it rains, should I take an umbrella? Voxa, what gas do plants absorb? I got stuck on that patient",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "if it rains, should I take an umbrella? Voxa, what gas do plants absorb? I got stuck on that patient"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "2",
+      "category": "math",
+      "prompt": "What is the sum of five and seven?",
+      "transcript": "So I'm gonna buy you a seven. in time.",
+      "score": 0,
+      "passed": false,
+      "notes": "The reply did not contain: 12, 12.",
+      "method": "keywords",
+      "error": "",
+      "duration_seconds": 14.58,
+      "expected_tool": "",
+      "heard": "What is the sum of 5 and 7",
+      "capability": 0,
+      "observed_tools": [
+        "calculate"
+      ],
+      "heard_records": [
+        "What is the sum of 5 and 7"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    }
+  ]
+}

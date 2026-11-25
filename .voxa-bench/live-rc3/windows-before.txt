@@ -1,0 +1,11 @@
+0x01e002a8  0 bigboy rhy
+0x01200003  0 bigboy Bottom Panel
+0x01e00006 -1 bigboy Desktop
+0x01400006  0 bigboy rhy@bigboy: ~
+0x03200006  0 bigboy Strata - qwen3.8-flash-next-iq3_s - 256K
+0x03400007  0 bigboy Spaced Monitor
+0x03800004  0 bigboy (704) Fine-Tuning Small Models To Beat GPT-6 Luna - YouTube - Brave
+0x01e00e35  0 bigboy files
+0x0420012e  0 bigboy *Button_Extender_50mm - OrcaSlicer
+0x00e0033c  0 bigboy Low Disk Space
+0x03600006  0 bigboy OC | v04-voxa-rc3-live-run-voxatest

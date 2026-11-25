@@ -1,0 +1,72 @@
+Voxa settings: /home/rhy/.var/app/io.github.crhy.voxa/config/voxa/config.json — wake word "voxa", model qwen3.5-0.8b-q4km:latest at http://127.0.0.1:11434
+Whisper ready: base (cpu/int8)
+@@VOXATEST {"event": "case_start", "index": 1, "total": 5, "id": "desktop-01", "category": "desktop_apps", "prompt": "Open the calculator"}
+Speaking: voxa, Open the calculator
+@@VOXATEST {"event": "case_result", "index": 1, "total": 5, "id": "desktop-01", "category": "desktop_apps", "prompt": "Open the calculator", "status": "ERROR", "reply": "", "heard": "", "layer": "not_heard", "notes": "TTS failed.", "seconds": 1.0}
+[1/5] ERROR desktop-01 score 0 (1.0s)
+@@VOXATEST {"event": "case_start", "index": 2, "total": 5, "id": "desktop-02", "category": "desktop_apps", "prompt": "Open the file manager"}
+Speaking: voxa, Open the file manager
+@@VOXATEST {"event": "case_result", "index": 2, "total": 5, "id": "desktop-02", "category": "desktop_apps", "prompt": "Open the file manager", "status": "ERROR", "reply": "", "heard": "", "layer": "not_heard", "notes": "TTS failed.", "seconds": 1.0}
+[2/5] ERROR desktop-02 score 0 (1.0s)
+@@VOXATEST {"event": "case_start", "index": 3, "total": 5, "id": "desktop-03", "category": "desktop_apps", "prompt": "Open the terminal"}
+Speaking: voxa, Open the terminal
+@@VOXATEST {"event": "case_result", "index": 3, "total": 5, "id": "desktop-03", "category": "desktop_apps", "prompt": "Open the terminal", "status": "ERROR", "reply": "", "heard": "", "layer": "not_heard", "notes": "TTS failed.", "seconds": 1.0}
+[3/5] ERROR desktop-03 score 0 (1.0s)
+@@VOXATEST {"event": "case_start", "index": 4, "total": 5, "id": "desktop-04", "category": "desktop_apps", "prompt": "Show the desktop"}
+Speaking: voxa, Show the desktop
+@@VOXATEST {"event": "case_result", "index": 4, "total": 5, "id": "desktop-04", "category": "desktop_apps", "prompt": "Show the desktop", "status": "ERROR", "reply": "", "heard": "", "layer": "not_heard", "notes": "TTS failed.", "seconds": 1.0}
+[4/5] ERROR desktop-04 score 0 (1.0s)
+@@VOXATEST {"event": "case_start", "index": 5, "total": 5, "id": "desktop-05", "category": "desktop_apps", "prompt": "What windows do I have open"}
+Speaking: voxa, What windows do I have open
+@@VOXATEST {"event": "case_result", "index": 5, "total": 5, "id": "desktop-05", "category": "desktop_apps", "prompt": "What windows do I have open", "status": "ERROR", "reply": "", "heard": "", "layer": "not_heard", "notes": "TTS failed.", "seconds": 1.0}
+[5/5] ERROR desktop-05 score 0 (1.0s)
+Total: 5
+Passed: 0
+Failed: 5
+Errors: 5
+Average score: 0.0
+
+FAIL [desktop_apps] desktop-01: score 0 (1.0s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: TTS failed.
+  error: Natural test voice unavailable; acoustic test was not run. Edge TTS failed (Edge TTS is unavailable)
+FAIL [desktop_apps] desktop-02: score 0 (1.0s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: TTS failed.
+  error: Natural test voice unavailable; acoustic test was not run. Edge TTS failed (Edge TTS is unavailable)
+FAIL [desktop_apps] desktop-03: score 0 (1.0s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: TTS failed.
+  error: Natural test voice unavailable; acoustic test was not run. Edge TTS failed (Edge TTS is unavailable)
+FAIL [desktop_apps] desktop-04: score 0 (1.0s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: TTS failed.
+  error: Natural test voice unavailable; acoustic test was not run. Edge TTS failed (Edge TTS is unavailable)
+FAIL [desktop_apps] desktop-05: score 0 (1.0s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: TTS failed.
+  error: Natural test voice unavailable; acoustic test was not run. Edge TTS failed (Edge TTS is unavailable)
+
+Comprehension
+  hearing_word_accuracy  0.0000  (5 cases)
+  routed_tool_accuracy   null  (0 cases with an expected tool)
+  layers: not_heard 5, misheard 0, misrouted 0, misanswered 0, ok 0
+  per category:
+    desktop_apps: cases 5 hearing 0.0000 routed null
+  CONFUSIONS (top 30):
+    none: every word heard as it was said
+Hearing suite (timed interruptions, short answers, repetitions, pauses, quiet speech)
+  interrupt_recall           null
+  keep_accuracy              null
+  stop_latency_p50_ms        null
+  stop_latency_p95_ms        null
+  premature_rate             null
+  self_interrupt_count       null
+  request_word_retention     null
+  cases [{'case_id': 'desktop-01', 'category': 'desktop_apps', 'prompt': 'Open the calculator', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': 'Natural test voice unavailable; acoustic test was not run. Edge TTS failed (Edge TTS is unavailable)', 'confusions': []}, {'case_id': 'desktop-02', 'category': 'desktop_apps', 'prompt': 'Open the file manager', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': 'Natural test voice unavailable; acoustic test was not run. Edge TTS failed (Edge TTS is unavailable)', 'confusions': []}, {'case_id': 'desktop-03', 'category': 'desktop_apps', 'prompt': 'Open the terminal', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': 'Natural test voice unavailable; acoustic test was not run. Edge TTS failed (Edge TTS is unavailable)', 'confusions': []}, {'case_id': 'desktop-04', 'category': 'desktop_apps', 'prompt': 'Show the desktop', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': 'Natural test voice unavailable; acoustic test was not run. Edge TTS failed (Edge TTS is unavailable)', 'confusions': []}, {'case_id': 'desktop-05', 'category': 'desktop_apps', 'prompt': 'What windows do I have open', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': 'Natural test voice unavailable; acoustic test was not run. Edge TTS failed (Edge TTS is unavailable)', 'confusions': []}]  yielded None/None  kept None/None  complete requests None/None  premature None/None
+  per cell:
+  per overlap:
+  per expect:
+JSON report: /home/rhy/strata-fleet/opencode-home/state/voxatest/reports/run_20261125_060656_822822_30832_61b81e88.json
+Text report: /home/rhy/strata-fleet/opencode-home/state/voxatest/reports/run_20261125_060656_822822_30832_61b81e88.txt
+Failure report: VOXATEST_FAILURES.md

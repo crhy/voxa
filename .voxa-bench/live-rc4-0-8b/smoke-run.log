@@ -1,0 +1,58 @@
+Voxa settings: /home/rhy/.var/app/io.github.crhy.voxa/config/voxa/config.json — wake word "voxa", model hf.co/ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-GGUF:IQ3_S at http://127.0.0.1:11434
+Whisper ready: base (cpu/int8)
+@@VOXATEST {"event": "case_start", "index": 1, "total": 20, "id": "1", "category": "general", "prompt": "What is the capital of France?"}
+Speaking: voxa, What is the capital of France?
+Empty transcript for 1; retrying (attempt 2 of 2).
+Speaking: voxa, What is the capital of France?
+@@VOXATEST {"event": "case_result", "index": 1, "total": 20, "id": "1", "category": "general", "prompt": "What is the capital of France?", "status": "FAIL", "reply": "", "heard": "What is the capital of France", "layer": "misanswered", "notes": "No spoken reply was captured.", "seconds": 24.9}
+[1/20] FAIL 1 score 0 (24.9s)
+@@VOXATEST {"event": "case_start", "index": 2, "total": 20, "id": "2", "category": "general", "prompt": "Who was the first president of the United States?"}
+Speaking: voxa, Who was the first president of the United States?
+Empty transcript for 2; retrying (attempt 2 of 2).
+Speaking: voxa, Who was the first president of the United States?
+@@VOXATEST {"event": "case_result", "index": 2, "total": 20, "id": "2", "category": "general", "prompt": "Who was the first president of the United States?", "status": "FAIL", "reply": "", "heard": "Who was the first president of the United States", "layer": "misanswered", "notes": "No spoken reply was captured.", "seconds": 11.7}
+[2/20] FAIL 2 score 0 (11.7s)
+@@VOXATEST {"event": "case_start", "index": 3, "total": 20, "id": "3", "category": "general", "prompt": "How do you make lemonade?"}
+Speaking: voxa, How do you make lemonade?
+Empty transcript for 3; retrying (attempt 2 of 2).
+Speaking: voxa, How do you make lemonade?
+Interrupted — writing partial report.
+PARTIAL RUN (interrupted or still running)
+Total: 2
+Passed: 0
+Failed: 2
+Errors: 0
+Average score: 0.0
+
+FAIL [general] 1: score 0 (24.9s) - no transcript
+  Voxa heard: What is the capital of France
+  comprehension: layer=misanswered hearing=1.0000 routed=n/a
+  notes: No spoken reply was captured.
+FAIL [general] 2: score 0 (11.7s) - no transcript
+  Voxa heard: Who was the first president of the United States
+  comprehension: layer=misanswered hearing=1.0000 routed=n/a
+  notes: No spoken reply was captured.
+
+Comprehension
+  hearing_word_accuracy  1.0000  (2 cases)
+  routed_tool_accuracy   null  (0 cases with an expected tool)
+  layers: not_heard 0, misheard 0, misrouted 0, misanswered 2, ok 0
+  per category:
+    general: cases 2 hearing 1.0000 routed null
+  CONFUSIONS (top 30):
+    none: every word heard as it was said
+Hearing suite (timed interruptions, short answers, repetitions, pauses, quiet speech)
+  interrupt_recall           null
+  keep_accuracy              null
+  stop_latency_p50_ms        null
+  stop_latency_p95_ms        null
+  premature_rate             null
+  self_interrupt_count       null
+  request_word_retention     null
+  cases [{'case_id': '1', 'category': 'general', 'prompt': 'What is the capital of France?', 'heard': 'What is the capital of France', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'misanswered', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': '2', 'category': 'general', 'prompt': 'Who was the first president of the United States?', 'heard': 'Who was the first president of the United States', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'misanswered', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}]  yielded None/None  kept None/None  complete requests None/None  premature None/None
+  per cell:
+  per overlap:
+  per expect:
+JSON report: .voxa-bench/live-rc4-0-8b/reports-smoke/run_20261124_182234_239514_23021_40faadc3.json
+Text report: .voxa-bench/live-rc4-0-8b/reports-smoke/run_20261124_182234_239514_23021_40faadc3.txt
+Failure report: .voxa-bench/live-rc4-0-8b/smoke-failures.md

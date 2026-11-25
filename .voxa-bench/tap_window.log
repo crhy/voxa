@@ -1,0 +1,14 @@
+attach: True None
+state -> 2
+t=0.5 latency=0.05 query=query failed 'Pipeline' object has no attribute 'query_latency' total=16000 window_now=0.067048 turn_live=True turn_stats_samples=?
+t=1.0 latency=0.05 query=query failed 'Pipeline' object has no attribute 'query_latency' total=32000 window_now=0.067048 turn_live=True turn_stats_samples=?
+t=1.5 latency=0.05 query=query failed 'Pipeline' object has no attribute 'query_latency' total=32000 window_now=0.067048 turn_live=True turn_stats_samples=?
+t=2.0 latency=0.05 query=query failed 'Pipeline' object has no attribute 'query_latency' total=48000 window_now=0.067048 turn_live=True turn_stats_samples=?
+t=2.5 latency=0.05 query=query failed 'Pipeline' object has no attribute 'query_latency' total=48000 window_now=0.067048 turn_live=True turn_stats_samples=?
+t=3.0 latency=0.05 query=query failed 'Pipeline' object has no attribute 'query_latency' total=64000 window_now=0.067048 turn_live=True turn_stats_samples=?
+t=3.5 latency=0.05 query=query failed 'Pipeline' object has no attribute 'query_latency' total=64000 window_now=0.067048 turn_live=True turn_stats_samples=?
+t=4.0 latency=0.05 query=query failed 'Pipeline' object has no attribute 'query_latency' total=80000 window_now=0.067048 turn_live=True turn_stats_samples=?
+t=4.5 latency=0.05 query=query failed 'Pipeline' object has no attribute 'query_latency' total=80000 window_now=0.067048 turn_live=True turn_stats_samples=?
+t=5.0 latency=0.05 query=query failed 'Pipeline' object has no attribute 'query_latency' total=96000 window_now=0.067048 turn_live=True turn_stats_samples=?
+t=5.5 latency=0.05 query=query failed 'Pipeline' object has no attribute 'query_latency' total=96000 window_now=0.067048 turn_live=True turn_stats_samples=?
+t=6.0 latency=0.05 query=query failed 'Pipeline' object has no attribute 'query_latency' total=112000 window_now=0.067048 turn_live=True turn_stats_samples=?

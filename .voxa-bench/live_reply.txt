@@ -1,0 +1,1 @@
+The first sentence is long enough that Voxa will still be speaking when the check begins. The second sentence keeps her talking so the reference has to stay non-silent across the gap. The third sentence ends the reply so the render tap can report its peak for the whole turn.

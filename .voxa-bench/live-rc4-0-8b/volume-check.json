@@ -1,0 +1,1 @@
+{"time": "2026-11-24T18:09:15-0800", "initial": {"sink_volume": 100, "sink_mute": 0, "source_volume": 75}, "steps": [{"sink_volume": 100, "noise_rms_dbfs": -60.3, "phrase_peak_dbfs": -21.0, "phrase_rms_dbfs": -34.8}], "pass": false, "fail": "default sink at 100% still below target: raise it or fix the mic by hand; never lowered below the initial level"}

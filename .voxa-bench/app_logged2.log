@@ -1,0 +1,23 @@
+2026-11-25 06:10:57,580 INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+2026-11-25 06:10:57,582 INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-tiny/revision/main "HTTP/1.1 200 OK"
+2026-11-25 06:11:13,902 INFO voxa.audio: echo reference: Voxa's own rendered samples; the test voice cannot enter it
+2026-11-25 06:11:19,786 INFO faster_whisper: Processing audio with duration 00:01.480
+2026-11-25 06:11:19,788 INFO faster_whisper: VAD filter removed 00:00.112 of audio
+2026-11-25 06:11:21,690 INFO faster_whisper: Processing audio with duration 00:01.010
+2026-11-25 06:11:21,692 INFO faster_whisper: VAD filter removed 00:00.000 of audio
+2026-11-25 06:11:21,902 INFO faster_whisper: Processing audio with duration 00:00.580
+2026-11-25 06:11:21,903 INFO faster_whisper: VAD filter removed 00:00.000 of audio
+2026-11-25 06:11:22,543 INFO faster_whisper: Processing audio with duration 00:01.010
+2026-11-25 06:11:22,544 INFO faster_whisper: VAD filter removed 00:00.000 of audio
+2026-11-25 06:11:22,906 INFO faster_whisper: Processing audio with duration 00:01.580
+2026-11-25 06:11:22,908 INFO faster_whisper: VAD filter removed 00:00.156 of audio
+2026-11-25 06:11:23,387 INFO faster_whisper: Processing audio with duration 00:01.010
+2026-11-25 06:11:23,388 INFO faster_whisper: VAD filter removed 00:00.000 of audio
+2026-11-25 06:11:24,209 INFO faster_whisper: Processing audio with duration 00:02.880
+2026-11-25 06:11:24,215 INFO faster_whisper: VAD filter removed 00:00.032 of audio
+2026-11-25 06:11:25,293 INFO faster_whisper: Processing audio with duration 00:01.010
+2026-11-25 06:11:25,295 INFO faster_whisper: VAD filter removed 00:00.000 of audio
+2026-11-25 06:11:25,363 INFO faster_whisper: Processing audio with duration 00:04.030
+2026-11-25 06:11:25,373 INFO faster_whisper: VAD filter removed 00:00.032 of audio
+2026-11-25 06:11:26,364 INFO faster_whisper: Processing audio with duration 00:05.040
+2026-11-25 06:11:26,371 INFO faster_whisper: VAD filter removed 00:00.032 of audio

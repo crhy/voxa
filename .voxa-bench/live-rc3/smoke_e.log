@@ -1,0 +1,1 @@
+Voxa echo cancellation is enabled, so it will remove VoxaTest's spoken prompts. In Voxa, set Preferences > Speech > Echo cancellation to Off before running acoustic tests.

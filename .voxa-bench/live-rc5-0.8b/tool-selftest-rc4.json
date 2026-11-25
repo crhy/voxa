@@ -1,0 +1,494 @@
+{
+ "words_lines_while_speaking": 67,
+ "echo_lines_decided_user_A": 5,
+ "echo_interrupts_B": 1,
+ "self_replies_C": 2,
+ "self_hearing_events": 8,
+ "real_barge_ins_obeyed_D": 0,
+ "real_barge_ins_total": 0,
+ "reference_silent_while_speaking_E": 20,
+ "unmatched_words_lines": 18,
+ "detail": [
+  {
+   "line": 2104,
+   "time": "18:25:05",
+   "kind": "other",
+   "source": "uncertain",
+   "heard": "Do you know what I do next?"
+  },
+  {
+   "line": 2110,
+   "time": "18:25:06",
+   "kind": "other",
+   "source": "uncertain",
+   "heard": "We are too late to make leveling up on you."
+  },
+  {
+   "line": 2114,
+   "time": "18:25:08",
+   "kind": "echo",
+   "source": "user",
+   "heard": "We are two ways to make leveling up on one."
+  },
+  {
+   "line": 2116,
+   "time": "18:25:10",
+   "kind": "other",
+   "source": "uncertain",
+   "heard": "We are two ways to make leveling and coming. One, use your GY, place the j-"
+  },
+  {
+   "line": 2119,
+   "time": "18:25:11",
+   "kind": "other",
+   "source": "uncertain",
+   "heard": "We owe two ways to make leveling and coming. One, use your Gide, place the Gideo"
+  },
+  {
+   "line": 2122,
+   "time": "18:25:12",
+   "kind": "other",
+   "source": "uncertain",
+   "heard": "We are two ways to make leveling up on you. One, use your drive, place the job o"
+  },
+  {
+   "line": 2125,
+   "time": "18:25:14",
+   "kind": "user",
+   "source": "uncertain",
+   "heard": "We are two ways to make leveling and coming. One, use your drive, place the job "
+  },
+  {
+   "line": 2128,
+   "time": "18:25:15",
+   "kind": "user",
+   "source": "user",
+   "heard": "We are two ways to make leveling and coming. One, use your drive, place the job "
+  },
+  {
+   "line": 2165,
+   "time": "18:29:51",
+   "kind": "echo",
+   "source": "uncertain",
+   "heard": "Codium is actually a lot of-"
+  },
+  {
+   "line": 2168,
+   "time": "18:29:52",
+   "kind": "echo",
+   "source": "user",
+   "heard": "How he is actually one of the box natural sources acquired in the online."
+  },
+  {
+   "line": 2176,
+   "time": "18:29:55",
+   "kind": "self-request-answered",
+   "heard": "How he is actually one of the box natural sources of protein, the owner, sparkle"
+  },
+  {
+   "line": 2180,
+   "time": "18:29:59",
+   "kind": "user",
+   "source": "uncertain",
+   "heard": "What is the capital of France?"
+  },
+  {
+   "line": 2183,
+   "time": "18:30:01",
+   "kind": "user",
+   "source": "uncertain",
+   "heard": "What is the capital of France? Your life is definitely one of the box..."
+  },
+  {
+   "line": 2186,
+   "time": "18:30:02",
+   "kind": "user",
+   "source": "uncertain",
+   "heard": "What is the capital of France?"
+  },
+  {
+   "line": 2190,
+   "time": "18:30:03",
+   "kind": "user",
+   "source": "user",
+   "heard": "What is the capital of France? Your life is definitely one of the box natural so"
+  },
+  {
+   "line": 2197,
+   "time": "18:30:17",
+   "kind": "user",
+   "source": "uncertain",
+   "heard": "Bazaar, what is the capital of France? Bazaar, who was the first president of th"
+  },
+  {
+   "line": 2200,
+   "time": "18:30:18",
+   "kind": "user",
+   "source": "uncertain",
+   "heard": "Boksa, what is the capital of France? Boksa, who was the first president of the "
+  },
+  {
+   "line": 2216,
+   "time": "18:30:20",
+   "kind": "user",
+   "source": "uncertain",
+   "heard": "Boksa, what is the capital of France? Boksa, who was the first president of the "
+  },
+  {
+   "line": 2219,
+   "time": "18:30:26",
+   "kind": "user",
+   "source": "user",
+   "heard": "Bazaar, what is the capital of France? Bazaar, who was the first president of th"
+  },
+  {
+   "line": 2227,
+   "time": "18:30:32",
+   "kind": "other",
+   "source": "uncertain",
+   "heard": ""
+  },
+  {
+   "line": 2251,
+   "time": "18:30:34",
+   "kind": "echo",
+   "source": "user",
+   "heard": "Paris, is the capital of Paris."
+  },
+  {
+   "line": 2253,
+   "time": "18:30:35",
+   "kind": "echo",
+   "source": "uncertain",
+   "heard": "Hi, this is the Capital of Bans, and it's one of the world's most important-"
+  },
+  {
+   "line": 2256,
+   "time": "18:30:36",
+   "kind": "echo",
+   "source": "uncertain",
+   "heard": "Hi, this is the Capitolo fans, and it's one of the world's most important cultur"
+  },
+  {
+   "line": 2259,
+   "time": "18:30:37",
+   "kind": "user",
+   "source": "user",
+   "heard": "Hi, this is the capital of banks, and it's won the world's most important cultur"
+  },
+  {
+   "line": 2268,
+   "time": "18:30:52",
+   "kind": "user",
+   "source": "uncertain",
+   "heard": "Voxup, what is the tallest mountain in the world?"
+  },
+  {
+   "line": 2271,
+   "time": "18:30:53",
+   "kind": "user",
+   "source": "uncertain",
+   "heard": "Voxup, what is the tallest mountain in the world?"
+  },
+  {
+   "line": 2274,
+   "time": "18:30:55",
+   "kind": "user",
+   "source": "uncertain",
+   "heard": "Voxa, what is the tallest mountain in the world?"
+  },
+  {
+   "line": 2277,
+   "time": "18:30:56",
+   "kind": "user",
+   "source": "uncertain",
+   "heard": "Voxa, what is the tallest mountain in the world?"
+  },
+  {
+   "line": 2281,
+   "time": "18:30:57",
+   "kind": "user",
+   "source": "user",
+   "heard": "Voxa, what is the tallest mountain in the world?"
+  },
+  {
+   "line": 2288,
+   "time": "18:31:11",
+   "kind": "other",
+   "source": "uncertain",
+   "heard": "Voxa, he wrote the playhamlet."
+  },
+  {
+   "line": 2291,
+   "time": "18:31:12",
+   "kind": "other",
+   "source": "uncertain",
+   "heard": "Voxa, he wrote the playhandler."
+  },
+  {
+   "line": 2294,
+   "time": "18:31:14",
+   "kind": "other",
+   "source": "uncertain",
+   "heard": "Voxa, he wrote the playhandler."
+  },
+  {
+   "line": 2297,
+   "time": "18:31:15",
+   "kind": "other",
+   "source": "uncertain",
+   "heard": "Voxa, he wrote the playhandler."
+  },
+  {
+   "line": 2300,
+   "time": "18:31:16",
+   "kind": "other",
+   "source": "user",
+   "heard": "Voxa, he wrote the playhandler."
+  },
+  {
+   "line": 2307,
+   "time": "18:31:31",
+   "kind": "echo",
+   "source": "uncertain",
+   "heard": "Bazaar, what is 5x4?"
+  },
+  {
+   "line": 2311,
+   "time": "18:31:32",
+   "kind": "user",
+   "source": "user",
+   "heard": "Boxa, what is 5x4? You get it right, the play's under that."
+  },
+  {
+   "line": 2317,
+   "time": "18:31:42",
+   "kind": "user",
+   "source": "uncertain",
+   "heard": "Bazaar, remember that my CAD is named Middense."
+  },
+  {
+   "line": 2320,
+   "time": "18:31:43",
+   "kind": "user",
+   "source": "user",
+   "heard": "Bazaar, remember that my CAD is named Middens."
+  },
+  {
+   "line": 2327,
+   "time": "18:31:59",
+   "kind": "user",
+   "source": "uncertain",
+   "heard": "Voxa, set a timer for 10 minutes."
+  },
+  {
+   "line": 2330,
+   "time": "18:32:00",
+   "kind": "user",
+   "source": "uncertain",
+   "heard": "Voxa, set a timer for 10 minutes."
+  },
+  {
+   "line": 2337,
+   "time": "18:32:02",
+   "kind": "user",
+   "source": "user",
+   "heard": "Voxa, set a timer for 10 minutes. There was nothing the means of playhunterite w"
+  },
+  {
+   "line": 2358,
+   "time": "18:32:08",
+   "kind": "other",
+   "source": "uncertain",
+   "heard": "Now I'm gonna slap pretend-"
+  },
+  {
+   "line": 2401,
+   "time": "18:32:11",
+   "kind": "other",
+   "source": "uncertain",
+   "heard": "I'm gonna select, pretend- Bazaar, simple, doctor, mammal, don't wanna-"
+  },
+  {
+   "line": 2409,
+   "time": "18:32:25",
+   "kind": "user",
+   "source": "uncertain",
+   "heard": "Boxup, give all dogs a mammal, give the logic commands. Boxup, what is the chemi"
+  },
+  {
+   "line": 2414,
+   "time": "18:32:27",
+   "kind": "user",
+   "source": "user",
+   "heard": "I'm going to set the 10th, Bazaar, give all dogs a mammal, give the logic comman"
+  },
+  {
+   "line": 2421,
+   "time": "18:32:32",
+   "kind": "user",
+   "source": "user",
+   "heard": "Voxa, what is the square root of-"
+  },
+  {
+   "line": 2429,
+   "time": "18:32:42",
+   "kind": "echo",
+   "source": "uncertain",
+   "heard": "The square we should choose is a-"
+  },
+  {
+   "line": 2432,
+   "time": "18:32:43",
+   "kind": "echo",
+   "source": "uncertain",
+   "heard": "The square we should choose is approximately 1.4."
+  },
+  {
+   "line": 2435,
+   "time": "18:32:44",
+   "kind": "echo",
+   "source": "user",
+   "heard": "The square we should choose is approximately 1.4114."
+  },
+  {
+   "line": 2458,
+   "time": "18:32:54",
+   "kind": "other",
+   "source": "uncertain",
+   "heard": "Notch.ai, set, and back."
+  },
+  {
+   "line": 2465,
+   "time": "18:33:09",
+   "kind": "other",
+   "source": "uncertain",
+   "heard": "Multiply 7x8, 5gz, Voxa, divide 100x4, divide 100x4,"
+  },
+  {
+   "line": 2468,
+   "time": "18:33:10",
+   "kind": "other",
+   "source": "uncertain",
+   "heard": "Multiply 7x8, dispatch, X. Voxa, divide 100x4. Divide 100x4, equals 20x4."
+  },
+  {
+   "line": 2471,
+   "time": "18:33:11",
+   "kind": "other",
+   "source": "user",
+   "heard": "Multiply 7x8, dispatch, X. Voxa, divide 100x4. Divide 100x4, equals 25."
+  },
+  {
+   "line": 2478,
+   "time": "18:33:24",
+   "kind": "user",
+   "source": "uncertain",
+   "heard": "Voxup at 15 to 20."
+  },
+  {
+   "line": 2481,
+   "time": "18:33:25",
+   "kind": "user",
+   "source": "uncertain",
+   "heard": "Voxa, at 15 to 20. No, you can't abide 100x4."
+  },
+  {
+   "line": 2484,
+   "time": "18:33:26",
+   "kind": "user",
+   "source": "uncertain",
+   "heard": "Voxa, at 15 and 20. No, you can't abide 100 by 4 by a number like that."
+  },
+  {
+   "line": 2488,
+   "time": "18:33:28",
+   "kind": "user",
+   "source": "uncertain",
+   "heard": "Boxer, at 15 to 20. No, you can't divide 100 by 4 by a number like that. You nee"
+  },
+  {
+   "line": 2491,
+   "time": "18:33:30",
+   "kind": "user",
+   "source": "uncertain",
+   "heard": "Boxer, at 15 to 20. No, you can't divide 100 by 4 by a number like that. You nee"
+  },
+  {
+   "line": 2494,
+   "time": "18:33:31",
+   "kind": "user",
+   "source": "uncertain",
+   "heard": "Boxer at 15 to 20. No, you can't divide 100 by 4 by a number like that. You need"
+  },
+  {
+   "line": 2497,
+   "time": "18:33:33",
+   "kind": "user",
+   "source": "user",
+   "heard": "Boxer at 15 to 20. No, you can't divide 100 by 4 by a number like that. You need"
+  },
+  {
+   "line": 2504,
+   "time": "18:33:41",
+   "kind": "user",
+   "source": "user",
+   "heard": "Bazaar, subtract 10,"
+  },
+  {
+   "line": 2512,
+   "time": "18:33:47",
+   "kind": "other",
+   "source": "uncertain",
+   "heard": ""
+  },
+  {
+   "line": 2515,
+   "time": "18:33:48",
+   "kind": "echo",
+   "source": "uncertain",
+   "heard": "Let's start. What is the chemical simple thing, what?"
+  },
+  {
+   "line": 2544,
+   "time": "18:33:50",
+   "kind": "echo",
+   "source": "user",
+   "heard": "Dirty, Bazaar, what is the chemical simple thing like that?"
+  },
+  {
+   "line": 2549,
+   "time": "18:33:56",
+   "kind": "self-request-answered",
+   "heard": "Dirty, Bazaar, what is the chemical simple thing like that?"
+  },
+  {
+   "line": 2552,
+   "time": "18:34:02",
+   "kind": "user",
+   "source": "uncertain",
+   "heard": "Bazaar, what is the current date?"
+  },
+  {
+   "line": 2555,
+   "time": "18:34:03",
+   "kind": "user",
+   "source": "uncertain",
+   "heard": "Bazaar, what is the current date?"
+  },
+  {
+   "line": 2558,
+   "time": "18:34:04",
+   "kind": "user",
+   "source": "uncertain",
+   "heard": "Bazaar, what is the current date?"
+  },
+  {
+   "line": 2561,
+   "time": "18:34:05",
+   "kind": "user",
+   "source": "user",
+   "heard": "Bazaar, what is the current date?"
+  }
+ ]
+}

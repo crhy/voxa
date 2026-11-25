@@ -1,0 +1,21 @@
+error: Unknown option --bind=/home/rhy/strata-fleet/repos/voxa/.voxa-bench/voxa-activate=/inject
+Traceback (most recent call last):
+  File "/app/lib/voxa/voxa/speech.py", line 197, in run
+    callback(*args)
+    ~~~~~~~~^^^^^^^
+  File "/app/lib/voxa/voxa/speech.py", line 846, in _play_file
+    self._attach_reference_tap(pipeline, "tts-file")
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/lib/voxa/voxa/speech.py", line 324, in _attach_reference_tap
+    log.info("render tap unavailable for %s: %s", path, self.tap.get("error"))
+    ^^^
+NameError: name 'log' is not defined
+Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x7f40a625f250>
+Task was destroyed but it is pending!
+task: <Task pending name='Task-52' coro=<<async_generator_athrow without __name__>()> wait_for=<Future finished result=None>>
+WARNING:root:AI request failed: Ollama returned HTTP 500: {"error":"an error was encountered while running the model: CUDA error: out of memory\nCUDA error"}
+WARNING:root:AI request failed: Ollama returned HTTP 500: {"error":"llama-server process no longer running: unknown CUDA error: out of memory\nCUDA error"}
+WARNING:root:AI request failed: Ollama returned HTTP 500: {"error":"an error was encountered while running the model: CUDA error: out of memory\nCUDA error"}
+WARNING:root:AI request failed: Ollama returned HTTP 500: {"error":"llama-server process no longer running: unknown CUDA error: out of memory\nCUDA error"}
+WARNING:root:AI request failed: Ollama returned HTTP 500: {"error":"an error was encountered while running the model: CUDA error: out of memory\nCUDA error"}

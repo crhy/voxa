@@ -1,0 +1,8 @@
+get_by_name sink: None audio-sink prop: None
+attach: True error: None
+elements: ['appsink', 'audioconvert', 'audioresample', 'autoaudiosink', 'bin', 'capsfilter', 'queue', 'tee']
+state -> 2
+state: 1 4 0
+counts: {'bin': 8, 'tee': 8, 'queue': 8, 'autoaudiosink': 8, 'audioconvert': 1, 'audioresample': 1, 'capsfilter': 1, 'appsink': 1} tap new-sample: 0 0
+ring stats: n/a
+ring max abs: 0.366180419921875 sum abs: 477.5632019042969

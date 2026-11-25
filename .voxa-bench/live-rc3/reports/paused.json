@@ -1,0 +1,1949 @@
+{
+  "timestamp": "2026-11-24T15:55:30.450218",
+  "complete": false,
+  "summary": {
+    "total": 36,
+    "passed": 19,
+    "failed": 17,
+    "errors": 0,
+    "average_score": 47.61,
+    "by_category": {
+      "paused_wake": {
+        "total": 12,
+        "passed": 7,
+        "failed": 5
+      },
+      "paused_near_miss": {
+        "total": 13,
+        "passed": 10,
+        "failed": 3
+      },
+      "paused_exit": {
+        "total": 11,
+        "passed": 2,
+        "failed": 9
+      }
+    }
+  },
+  "comprehension": {
+    "hearing_word_accuracy": 0.0608,
+    "routed_tool_accuracy": null,
+    "layer_counts": {
+      "not_heard": 13,
+      "misheard": 22,
+      "misrouted": 0,
+      "misanswered": 1,
+      "ok": 0
+    },
+    "confusions": [
+      {
+        "said": "a",
+        "heard": "er",
+        "count": 1
+      },
+      {
+        "said": "a",
+        "heard": "open",
+        "count": 1
+      },
+      {
+        "said": "a",
+        "heard": "our",
+        "count": 1
+      },
+      {
+        "said": "about",
+        "heard": "later",
+        "count": 1
+      },
+      {
+        "said": "all",
+        "heard": "bye",
+        "count": 1
+      },
+      {
+        "said": "and",
+        "heard": "what",
+        "count": 1
+      },
+      {
+        "said": "argued",
+        "heard": "that",
+        "count": 1
+      },
+      {
+        "said": "back",
+        "heard": "were",
+        "count": 1
+      },
+      {
+        "said": "barks",
+        "heard": "them",
+        "count": 1
+      },
+      {
+        "said": "boxer",
+        "heard": "thanks",
+        "count": 1
+      },
+      {
+        "said": "boxer",
+        "heard": "thats",
+        "count": 1
+      },
+      {
+        "said": "called",
+        "heard": "access",
+        "count": 1
+      },
+      {
+        "said": "cancel",
+        "heard": "plum",
+        "count": 1
+      },
+      {
+        "said": "cat",
+        "heard": "search",
+        "count": 1
+      },
+      {
+        "said": "cheese",
+        "heard": "iqds",
+        "count": 1
+      },
+      {
+        "said": "close",
+        "heard": "thats",
+        "count": 1
+      },
+      {
+        "said": "convert",
+        "heard": "but",
+        "count": 1
+      },
+      {
+        "said": "cube",
+        "heard": "bazaar",
+        "count": 1
+      },
+      {
+        "said": "day",
+        "heard": "absolutely",
+        "count": 1
+      },
+      {
+        "said": "day",
+        "heard": "ardour",
+        "count": 1
+      },
+      {
+        "said": "dictation",
+        "heard": "to",
+        "count": 1
+      },
+      {
+        "said": "discussed",
+        "heard": "the",
+        "count": 1
+      },
+      {
+        "said": "door",
+        "heard": "have",
+        "count": 1
+      },
+      {
+        "said": "door",
+        "heard": "show",
+        "count": 1
+      },
+      {
+        "said": "firefox",
+        "heard": "firebox",
+        "count": 1
+      },
+      {
+        "said": "for",
+        "heard": "and",
+        "count": 1
+      },
+      {
+        "said": "for",
+        "heard": "but",
+        "count": 1
+      },
+      {
+        "said": "great",
+        "heard": "a",
+        "count": 1
+      },
+      {
+        "said": "happened",
+        "heard": "the",
+        "count": 1
+      },
+      {
+        "said": "hoxa",
+        "heard": "what",
+        "count": 1
+      }
+    ],
+    "cases_scored": 36,
+    "routed_cases": 0,
+    "wake_word": "voxa",
+    "by_category": {
+      "paused_exit": {
+        "cases": 11,
+        "hearing_word_accuracy": 0.0,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 9,
+          "misheard": 2,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 0
+        }
+      },
+      "paused_near_miss": {
+        "cases": 13,
+        "hearing_word_accuracy": 0.0195,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 2,
+          "misheard": 11,
+          "misrouted": 0,
+          "misanswered": 0,
+          "ok": 0
+        }
+      },
+      "paused_wake": {
+        "cases": 12,
+        "hearing_word_accuracy": 0.1611,
+        "routed_tool_accuracy": null,
+        "layer_counts": {
+          "not_heard": 2,
+          "misheard": 9,
+          "misrouted": 0,
+          "misanswered": 1,
+          "ok": 0
+        }
+      }
+    },
+    "cases": [
+      {
+        "case_id": "paused-wake-time",
+        "category": "paused_wake",
+        "prompt": "Voxa, what time is it?",
+        "heard": "what time is it",
+        "hearing_word_accuracy": 1.0,
+        "hearing_word_accuracy_best_record": 1.0,
+        "layer": "misanswered",
+        "expected_tool": "",
+        "tools_ran": [
+          "tell_time"
+        ],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "paused-wake-open-firefox",
+        "category": "paused_wake",
+        "prompt": "Voxa, open firefox",
+        "heard": "open firebox / Bazaar, open firebox, and an app called BIOS",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.5,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [
+          "open_app"
+        ],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": [
+          [
+            "firefox",
+            "firebox"
+          ]
+        ]
+      },
+      {
+        "case_id": "paused-wake-timer",
+        "category": "paused_wake",
+        "prompt": "Voxa, set a timer for ten minutes",
+        "heard": "Bazaar, open firebox, and an app called BIOS / I couldn't find the quiet set of time-tens, be open to the jack home, to the side",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [
+          "open_app"
+        ],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": [
+          [
+            "a",
+            "open"
+          ],
+          [
+            "timer",
+            "firebox"
+          ],
+          [
+            "for",
+            "and"
+          ],
+          [
+            "ten",
+            "an"
+          ],
+          [
+            "minutes",
+            "app"
+          ]
+        ]
+      },
+      {
+        "case_id": "paused-wake-weather",
+        "category": "paused_wake",
+        "prompt": "Voxa, what is the weather today",
+        "heard": "What are you weather today",
+        "hearing_word_accuracy": 0.6,
+        "hearing_word_accuracy_best_record": 0.6,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "is",
+            "are"
+          ],
+          [
+            "the",
+            "you"
+          ]
+        ]
+      },
+      {
+        "case_id": "paused-wake-jazz",
+        "category": "paused_wake",
+        "prompt": "Voxa, play some jazz",
+        "heard": "Vichyx? Boxa, what weather today? I call in specific weather to play the stuff on",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": [
+          [
+            "some",
+            "boxa"
+          ],
+          [
+            "jazz",
+            "what"
+          ]
+        ]
+      },
+      {
+        "case_id": "paused-wake-joke",
+        "category": "paused_wake",
+        "prompt": "Voxa, tell me a joke",
+        "heard": "",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": null,
+        "layer": "not_heard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "paused-wake-search",
+        "category": "paused_wake",
+        "prompt": "Voxa, search for cat videos",
+        "heard": "But search advids",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "for",
+            "but"
+          ],
+          [
+            "cat",
+            "search"
+          ],
+          [
+            "videos",
+            "advids"
+          ]
+        ]
+      },
+      {
+        "case_id": "paused-wake-dictation",
+        "category": "paused_wake",
+        "prompt": "Voxa, start dictation",
+        "heard": "start to take",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [
+          "open_app"
+        ],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": [
+          [
+            "dictation",
+            "to"
+          ]
+        ]
+      },
+      {
+        "case_id": "paused-wake-news",
+        "category": "paused_wake",
+        "prompt": "Voxa, read the news",
+        "heard": "I need the news",
+        "hearing_word_accuracy": 0.3333,
+        "hearing_word_accuracy_best_record": 0.3333,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": [
+          [
+            "read",
+            "i"
+          ]
+        ]
+      },
+      {
+        "case_id": "paused-wake-convert",
+        "category": "paused_wake",
+        "prompt": "Voxa, convert 100 kilometers to miles",
+        "heard": "But, could one have allowed but are silence / Hi. What? How do I have a lot of other styles",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": [
+          [
+            "convert",
+            "but"
+          ],
+          [
+            "hundred",
+            "one"
+          ],
+          [
+            "kilometers",
+            "have"
+          ],
+          [
+            "to",
+            "allowed"
+          ],
+          [
+            "miles",
+            "but"
+          ]
+        ]
+      },
+      {
+        "case_id": "paused-wake-list",
+        "category": "paused_wake",
+        "prompt": "Voxa, add milk to my shopping list",
+        "heard": "",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": null,
+        "layer": "not_heard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "paused-wake-door",
+        "category": "paused_wake",
+        "prompt": "Voxa, close the door",
+        "heard": "That's guilt, show me, Boxer hasn't got my sh-",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "close",
+            "thats"
+          ],
+          [
+            "the",
+            "guilt"
+          ],
+          [
+            "door",
+            "show"
+          ]
+        ]
+      },
+      {
+        "case_id": "paused-near-miss-voxel",
+        "category": "paused_near_miss",
+        "prompt": "Voxel of the day, a tiny cube of cheese",
+        "heard": "absolutely, a QDs / Bazaar, excellent, IQDs",
+        "hearing_word_accuracy": 0.1111,
+        "hearing_word_accuracy_best_record": 0.1111,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": [
+          [
+            "day",
+            "absolutely"
+          ],
+          [
+            "tiny",
+            "qds"
+          ],
+          [
+            "cube",
+            "bazaar"
+          ],
+          [
+            "of",
+            "excellent"
+          ],
+          [
+            "cheese",
+            "iqds"
+          ]
+        ]
+      },
+      {
+        "case_id": "paused-near-miss-voxel2",
+        "category": "paused_near_miss",
+        "prompt": "Voxel graphics look great in that demo",
+        "heard": "Thanks, a super straight demo",
+        "hearing_word_accuracy": 0.1429,
+        "hearing_word_accuracy_best_record": 0.1429,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": [
+          [
+            "look",
+            "thanks"
+          ],
+          [
+            "great",
+            "a"
+          ],
+          [
+            "in",
+            "super"
+          ],
+          [
+            "that",
+            "straight"
+          ]
+        ]
+      },
+      {
+        "case_id": "paused-near-miss-roxa",
+        "category": "paused_near_miss",
+        "prompt": "Roxa called me back later today",
+        "heard": "And, access, so we're free to demo. You",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": [
+          [
+            "roxa",
+            "and"
+          ],
+          [
+            "called",
+            "access"
+          ],
+          [
+            "me",
+            "so"
+          ],
+          [
+            "back",
+            "were"
+          ],
+          [
+            "later",
+            "free"
+          ],
+          [
+            "today",
+            "to"
+          ]
+        ]
+      },
+      {
+        "case_id": "paused-near-miss-roxa2",
+        "category": "paused_near_miss",
+        "prompt": "Roxa and Marco argued about the schedule",
+        "heard": "But what all that later / But, what the heck are you talking about, edgel",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": [
+          [
+            "roxa",
+            "but"
+          ],
+          [
+            "and",
+            "what"
+          ],
+          [
+            "marco",
+            "all"
+          ],
+          [
+            "argued",
+            "that"
+          ],
+          [
+            "about",
+            "later"
+          ],
+          [
+            "schedule",
+            "what"
+          ]
+        ]
+      },
+      {
+        "case_id": "paused-near-miss-poxa",
+        "category": "paused_near_miss",
+        "prompt": "Poxa is a genus of head louse",
+        "heard": "",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": null,
+        "layer": "not_heard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "paused-near-miss-vox-populi",
+        "category": "paused_near_miss",
+        "prompt": "The podcast discussed the vox populi street interviews",
+        "heard": "I said the fastest to bar up your engines",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": [
+          [
+            "the",
+            "i"
+          ],
+          [
+            "podcast",
+            "said"
+          ],
+          [
+            "discussed",
+            "the"
+          ],
+          [
+            "the",
+            "fastest"
+          ],
+          [
+            "vox",
+            "to"
+          ],
+          [
+            "populi",
+            "bar"
+          ],
+          [
+            "street",
+            "up"
+          ],
+          [
+            "interviews",
+            "your"
+          ]
+        ]
+      },
+      {
+        "case_id": "paused-near-miss-vox-uh",
+        "category": "paused_near_miss",
+        "prompt": "Vox uh what happened next",
+        "heard": "The 16th simlas, the 13th headless, the Thuckest of Bhoppy Regents, I said the fastest of Bhoppy Regents",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": [
+          [
+            "vox",
+            "the"
+          ],
+          [
+            "uh",
+            "16th"
+          ],
+          [
+            "what",
+            "simlas"
+          ],
+          [
+            "happened",
+            "the"
+          ],
+          [
+            "next",
+            "13th"
+          ]
+        ]
+      },
+      {
+        "case_id": "paused-near-miss-boxer",
+        "category": "paused_near_miss",
+        "prompt": "The boxer next door barks all day",
+        "heard": "Thanks, thanks, I'll have them. Bye / Ardour, Bartolade",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": [
+          [
+            "the",
+            "thanks"
+          ],
+          [
+            "boxer",
+            "thanks"
+          ],
+          [
+            "next",
+            "ill"
+          ],
+          [
+            "door",
+            "have"
+          ],
+          [
+            "barks",
+            "them"
+          ],
+          [
+            "all",
+            "bye"
+          ],
+          [
+            "day",
+            "ardour"
+          ]
+        ]
+      },
+      {
+        "case_id": "paused-near-miss-boxer2",
+        "category": "paused_near_miss",
+        "prompt": "Boxer training takes a lot of patience",
+        "heard": "That's a fucks-er-your-bartle day / Bye-bye",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": [
+          [
+            "boxer",
+            "thats"
+          ],
+          [
+            "training",
+            "a"
+          ],
+          [
+            "takes",
+            "fucks"
+          ],
+          [
+            "a",
+            "er"
+          ],
+          [
+            "lot",
+            "your"
+          ],
+          [
+            "of",
+            "bartle"
+          ],
+          [
+            "patience",
+            "day"
+          ]
+        ]
+      },
+      {
+        "case_id": "paused-near-miss-vox-media",
+        "category": "paused_near_miss",
+        "prompt": "Vox Media reported the scores last night",
+        "heard": "Botraning, a lot of shit / body, ported, door slank. I",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": [
+          [
+            "vox",
+            "botraning"
+          ],
+          [
+            "media",
+            "a"
+          ],
+          [
+            "reported",
+            "lot"
+          ],
+          [
+            "the",
+            "of"
+          ],
+          [
+            "scores",
+            "shit"
+          ],
+          [
+            "last",
+            "body"
+          ],
+          [
+            "night",
+            "ported"
+          ]
+        ]
+      },
+      {
+        "case_id": "paused-near-miss-box-office",
+        "category": "paused_near_miss",
+        "prompt": "The box office opens at ten sharp",
+        "heard": "All right",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "ten",
+            "all"
+          ],
+          [
+            "sharp",
+            "right"
+          ]
+        ]
+      },
+      {
+        "case_id": "paused-near-miss-hoxa",
+        "category": "paused_near_miss",
+        "prompt": "Hoxa is a surname you rarely see",
+        "heard": "What does our opens and shop / But, buzzes, and you receive",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.1429,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": [
+          [
+            "hoxa",
+            "what"
+          ],
+          [
+            "is",
+            "does"
+          ],
+          [
+            "a",
+            "our"
+          ],
+          [
+            "surname",
+            "opens"
+          ],
+          [
+            "you",
+            "and"
+          ],
+          [
+            "rarely",
+            "shop"
+          ],
+          [
+            "see",
+            "but"
+          ]
+        ]
+      },
+      {
+        "case_id": "paused-near-miss-foxes",
+        "category": "paused_near_miss",
+        "prompt": "Foxes cache food for the winter",
+        "heard": "",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": null,
+        "layer": "not_heard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "paused-exit-cancel",
+        "category": "paused_exit",
+        "prompt": "cancel",
+        "heard": "plum",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": [
+          [
+            "cancel",
+            "plum"
+          ]
+        ]
+      },
+      {
+        "case_id": "paused-exit-never-mind",
+        "category": "paused_exit",
+        "prompt": "never mind",
+        "heard": "",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": null,
+        "layer": "not_heard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "paused-exit-forget-it",
+        "category": "paused_exit",
+        "prompt": "forget it",
+        "heard": "",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": null,
+        "layer": "not_heard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "paused-exit-done",
+        "category": "paused_exit",
+        "prompt": "done",
+        "heard": "",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": null,
+        "layer": "not_heard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "paused-exit-stop",
+        "category": "paused_exit",
+        "prompt": "stop",
+        "heard": "",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": null,
+        "layer": "not_heard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "paused-exit-stop-talking",
+        "category": "paused_exit",
+        "prompt": "stop talking",
+        "heard": "Access, downkey",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": 0.0,
+        "layer": "misheard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": true,
+        "error": "",
+        "confusions": [
+          [
+            "stop",
+            "access"
+          ],
+          [
+            "talking",
+            "downkey"
+          ]
+        ]
+      },
+      {
+        "case_id": "paused-exit-offline",
+        "category": "paused_exit",
+        "prompt": "offline",
+        "heard": "",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": null,
+        "layer": "not_heard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "paused-exit-turn-off",
+        "category": "paused_exit",
+        "prompt": "turn off",
+        "heard": "",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": null,
+        "layer": "not_heard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "paused-exit-shut-down",
+        "category": "paused_exit",
+        "prompt": "shut down",
+        "heard": "",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": null,
+        "layer": "not_heard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "paused-exit-thats-all",
+        "category": "paused_exit",
+        "prompt": "thats all",
+        "heard": "",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": null,
+        "layer": "not_heard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      },
+      {
+        "case_id": "paused-exit-see-you",
+        "category": "paused_exit",
+        "prompt": "see you",
+        "heard": "",
+        "hearing_word_accuracy": 0.0,
+        "hearing_word_accuracy_best_record": null,
+        "layer": "not_heard",
+        "expected_tool": "",
+        "tools_ran": [],
+        "routed": null,
+        "passed": false,
+        "error": "",
+        "confusions": []
+      }
+    ]
+  },
+  "results": [
+    {
+      "case_id": "paused-wake-time",
+      "category": "paused_wake",
+      "prompt": "Voxa, what time is it?",
+      "transcript": "It's great that you sat in the out to me.",
+      "score": 0,
+      "passed": false,
+      "notes": "Keyword fallback used because model JSON could not be parsed.",
+      "method": "fallback",
+      "error": "",
+      "duration_seconds": 37.05,
+      "expected_tool": "",
+      "heard": "what time is it",
+      "capability": 0,
+      "observed_tools": [
+        "tell_time"
+      ],
+      "heard_records": [
+        "what time is it"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-wake-open-firefox",
+      "category": "paused_wake",
+      "prompt": "Voxa, open firefox",
+      "transcript": "I couldn't find an app. called by us.",
+      "score": 100,
+      "passed": true,
+      "notes": "The reply correctly identifies that Firefox isn't an app and provides a helpful hint about possible solutions.",
+      "method": "model",
+      "error": "",
+      "duration_seconds": 15.67,
+      "expected_tool": "",
+      "heard": "open firebox / Bazaar, open firebox, and an app called BIOS",
+      "capability": 0,
+      "observed_tools": [
+        "open_app"
+      ],
+      "heard_records": [
+        "open firebox",
+        "Bazaar, open firebox, and an app called BIOS"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-wake-timer",
+      "category": "paused_wake",
+      "prompt": "Voxa, set a timer for ten minutes",
+      "transcript": "www.Viabox.com the website.",
+      "score": 50,
+      "passed": true,
+      "notes": "The reply correctly sets a timer for ten minutes and uses the website www.Viabox.com.",
+      "method": "model",
+      "error": "",
+      "duration_seconds": 10.9,
+      "expected_tool": "",
+      "heard": "Bazaar, open firebox, and an app called BIOS / I couldn't find the quiet set of time-tens, be open to the jack home, to the side",
+      "capability": 0,
+      "observed_tools": [
+        "open_app"
+      ],
+      "heard_records": [
+        "Bazaar, open firebox, and an app called BIOS",
+        "I couldn't find the quiet set of time-tens, be open to the jack home, to the side"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-wake-weather",
+      "category": "paused_wake",
+      "prompt": "Voxa, what is the weather today",
+      "transcript": "I couldn't find specific weather danger. in the center zone.",
+      "score": 0,
+      "passed": false,
+      "notes": "The response does not provide the required information about the weather in the center zone.",
+      "method": "model",
+      "error": "",
+      "duration_seconds": 16.4,
+      "expected_tool": "",
+      "heard": "What are you weather today",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "What are you weather today"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-wake-jazz",
+      "category": "paused_wake",
+      "prompt": "Voxa, play some jazz",
+      "transcript": "Whether today in a computer C.A.P. is like 40 6 degrees sunrise, 6.29 am, sunset 7.12 pm. high a low 81 degrees 47 degrees wind. Bye, it's very easy. and medicine. Medicine 51% 2.29 degrees pressure. 30.1 7 inches. Early local weather forecast. weather conditions. from whether it don't come.",
+      "score": 100,
+      "passed": true,
+      "notes": "The response accurately describes today's computer C.A.P. and weather conditions.",
+      "method": "model",
+      "error": "",
+      "duration_seconds": 43.61,
+      "expected_tool": "",
+      "heard": "Vichyx? Boxa, what weather today? I call in specific weather to play the stuff on",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Vichyx? Boxa, what weather today? I call in specific weather to play the stuff on"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-wake-joke",
+      "category": "paused_wake",
+      "prompt": "Voxa, tell me a joke",
+      "transcript": "",
+      "score": 0,
+      "passed": false,
+      "notes": "No spoken reply was captured.",
+      "method": "empty",
+      "error": "",
+      "duration_seconds": 24.05,
+      "expected_tool": "",
+      "heard": "",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-wake-search",
+      "category": "paused_wake",
+      "prompt": "Voxa, search for cat videos",
+      "transcript": "I couldn't find the weather day today.",
+      "score": 0,
+      "passed": false,
+      "notes": "Keyword fallback used because model JSON could not be parsed.",
+      "method": "fallback",
+      "error": "",
+      "duration_seconds": 13.57,
+      "expected_tool": "",
+      "heard": "But search advids",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "But search advids"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-wake-dictation",
+      "category": "paused_wake",
+      "prompt": "Voxa, start dictation",
+      "transcript": "I couldn't find that. Cool. Thank you. Say open to take dot com. the website.",
+      "score": 75,
+      "passed": true,
+      "notes": "The response confirms the user's query and provides a suggestion for a website, which is suitable for dictating.",
+      "method": "model",
+      "error": "",
+      "duration_seconds": 18.42,
+      "expected_tool": "",
+      "heard": "start to take",
+      "capability": 0,
+      "observed_tools": [
+        "open_app"
+      ],
+      "heard_records": [
+        "start to take"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-wake-news",
+      "category": "paused_wake",
+      "prompt": "Voxa, read the news",
+      "transcript": "You can find the latest breaking news on site FlexiNM, AP News.",
+      "score": 100,
+      "passed": true,
+      "notes": "The captured response fully meets the requirements of the prompt. It correctly identifies the service provided and mentions the news platforms available. No errors were found in the transcription or context.",
+      "method": "model",
+      "error": "",
+      "duration_seconds": 18.73,
+      "expected_tool": "",
+      "heard": "I need the news",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "I need the news"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-wake-convert",
+      "category": "paused_wake",
+      "prompt": "Voxa, convert 100 kilometers to miles",
+      "transcript": "I...",
+      "score": 75,
+      "passed": true,
+      "notes": "The response correctly converts 100 kilometers to miles.",
+      "method": "model",
+      "error": "",
+      "duration_seconds": 14.52,
+      "expected_tool": "",
+      "heard": "But, could one have allowed but are silence / Hi. What? How do I have a lot of other styles",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "But, could one have allowed but are silence",
+        "Hi. What? How do I have a lot of other styles"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-wake-list",
+      "category": "paused_wake",
+      "prompt": "Voxa, add milk to my shopping list",
+      "transcript": "10 minutes timer is done.",
+      "score": 95,
+      "passed": true,
+      "notes": "The reply correctly asks for the time, but does not provide the milk shopping list or answer about the milk shopping list.",
+      "method": "model",
+      "error": "",
+      "duration_seconds": 10.24,
+      "expected_tool": "",
+      "heard": "",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-wake-door",
+      "category": "paused_wake",
+      "prompt": "Voxa, close the door",
+      "transcript": "I didn't catch that. Are these for people request?",
+      "score": 55,
+      "passed": false,
+      "notes": "The captured reply is in a different context and does not directly answer the prompt about pausing and waking up. It seems the speaker is in a different state and not directly related to Voxa or its capabilities.",
+      "method": "model",
+      "error": "",
+      "duration_seconds": 19.93,
+      "expected_tool": "",
+      "heard": "That's guilt, show me, Boxer hasn't got my sh-",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "That's guilt, show me, Boxer hasn't got my sh-"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-near-miss-voxel",
+      "category": "paused_near_miss",
+      "prompt": "Voxel of the day, a tiny cube of cheese",
+      "transcript": "I",
+      "score": 80,
+      "passed": true,
+      "notes": "The captured reply is clear, relevant, and directly related to the prompt. It doesn't contain any unexpected information or details that deviate from the prompt.",
+      "method": "model",
+      "error": "",
+      "duration_seconds": 13.34,
+      "expected_tool": "",
+      "heard": "absolutely, a QDs / Bazaar, excellent, IQDs",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "absolutely, a QDs",
+        "Bazaar, excellent, IQDs"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-near-miss-voxel2",
+      "category": "paused_near_miss",
+      "prompt": "Voxel graphics look great in that demo",
+      "transcript": "You",
+      "score": 95,
+      "passed": true,
+      "notes": "The reply confirms the user's statement that Voxel graphics look great in the demo without making any assumptions or irrelevant information.",
+      "method": "model",
+      "error": "",
+      "duration_seconds": 13.96,
+      "expected_tool": "",
+      "heard": "Thanks, a super straight demo",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Thanks, a super straight demo"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-near-miss-roxa",
+      "category": "paused_near_miss",
+      "prompt": "Roxa called me back later today",
+      "transcript": "I...",
+      "score": 50,
+      "passed": true,
+      "notes": "The response is quite clear, but it could be improved to be more concise. For example, 'I said I called later today' or 'I asked you to call me back later today.'",
+      "method": "model",
+      "error": "",
+      "duration_seconds": 12.8,
+      "expected_tool": "",
+      "heard": "And, access, so we're free to demo. You",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "And, access, so we're free to demo. You"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-near-miss-roxa2",
+      "category": "paused_near_miss",
+      "prompt": "Roxa and Marco argued about the schedule",
+      "transcript": "I",
+      "score": 100,
+      "passed": true,
+      "notes": "The reply provides a clear and concise summary of the conversation between Roxa and Marco, confirming that they were discussing the schedule. No keywords or additional context were provided.",
+      "method": "model",
+      "error": "",
+      "duration_seconds": 13.04,
+      "expected_tool": "",
+      "heard": "But what all that later / But, what the heck are you talking about, edgel",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "But what all that later",
+        "But, what the heck are you talking about, edgel"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-near-miss-poxa",
+      "category": "paused_near_miss",
+      "prompt": "Poxa is a genus of head louse",
+      "transcript": "",
+      "score": 0,
+      "passed": false,
+      "notes": "No spoken reply was captured.",
+      "method": "empty",
+      "error": "",
+      "duration_seconds": 8.75,
+      "expected_tool": "",
+      "heard": "",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-near-miss-vox-populi",
+      "category": "paused_near_miss",
+      "prompt": "The podcast discussed the vox populi street interviews",
+      "transcript": "Oi.",
+      "score": 100,
+      "passed": true,
+      "notes": "The reply correctly captures the content of the prompt and provides a clear summary of the podcast's discussion.",
+      "method": "model",
+      "error": "",
+      "duration_seconds": 14.78,
+      "expected_tool": "",
+      "heard": "I said the fastest to bar up your engines",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "I said the fastest to bar up your engines"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-near-miss-vox-uh",
+      "category": "paused_near_miss",
+      "prompt": "Vox uh what happened next",
+      "transcript": "I...",
+      "score": 89,
+      "passed": true,
+      "notes": "The reply correctly answers the prompt 'Vox uh what happened next' and provides a reasonable continuation.",
+      "method": "model",
+      "error": "",
+      "duration_seconds": 11.3,
+      "expected_tool": "",
+      "heard": "The 16th simlas, the 13th headless, the Thuckest of Bhoppy Regents, I said the fastest of Bhoppy Regents",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "The 16th simlas, the 13th headless, the Thuckest of Bhoppy Regents, I said the fastest of Bhoppy Regents"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-near-miss-boxer",
+      "category": "paused_near_miss",
+      "prompt": "The boxer next door barks all day",
+      "transcript": "Oi.",
+      "score": 85,
+      "passed": true,
+      "notes": "The response captures the tone of the spoken dialogue but does not address the content or context of the prompt, so it doesn't fully fulfill the requirements.",
+      "method": "model",
+      "error": "",
+      "duration_seconds": 12.51,
+      "expected_tool": "",
+      "heard": "Thanks, thanks, I'll have them. Bye / Ardour, Bartolade",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Thanks, thanks, I'll have them. Bye",
+        "Ardour, Bartolade"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-near-miss-boxer2",
+      "category": "paused_near_miss",
+      "prompt": "Boxer training takes a lot of patience",
+      "transcript": "I",
+      "score": 80,
+      "passed": true,
+      "notes": "The captured response accurately summarizes the content of the prompt without any errors or discrepancies.",
+      "method": "model",
+      "error": "",
+      "duration_seconds": 11.88,
+      "expected_tool": "",
+      "heard": "That's a fucks-er-your-bartle day / Bye-bye",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "That's a fucks-er-your-bartle day",
+        "Bye-bye"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-near-miss-vox-media",
+      "category": "paused_near_miss",
+      "prompt": "Vox Media reported the scores last night",
+      "transcript": "I...",
+      "score": 85,
+      "passed": true,
+      "notes": "The reply is on track, but it's not entirely accurate. It's not clear if it refers to scores or a recent report from Vox Media.",
+      "method": "model",
+      "error": "",
+      "duration_seconds": 12.47,
+      "expected_tool": "",
+      "heard": "Botraning, a lot of shit / body, ported, door slank. I",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Botraning, a lot of shit",
+        "body, ported, door slank. I"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-near-miss-box-office",
+      "category": "paused_near_miss",
+      "prompt": "The box office opens at ten sharp",
+      "transcript": "I...",
+      "score": 0,
+      "passed": false,
+      "notes": "The captured reply does not contain any relevant keywords or phrases related to the prompt about the box office. It appears to be a response to the prompt without any clear indication of the box office opening time.",
+      "method": "model",
+      "error": "",
+      "duration_seconds": 12.22,
+      "expected_tool": "",
+      "heard": "All right",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "All right"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-near-miss-hoxa",
+      "category": "paused_near_miss",
+      "prompt": "Hoxa is a surname you rarely see",
+      "transcript": "I",
+      "score": 100,
+      "passed": true,
+      "notes": "The captured response is clear and relevant to the prompt. It provides accurate information about Hoxa, stating it is a surname that Hoxa rarely sees.",
+      "method": "model",
+      "error": "",
+      "duration_seconds": 12.5,
+      "expected_tool": "",
+      "heard": "What does our opens and shop / But, buzzes, and you receive",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "What does our opens and shop",
+        "But, buzzes, and you receive"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-near-miss-foxes",
+      "category": "paused_near_miss",
+      "prompt": "Foxes cache food for the winter",
+      "transcript": "",
+      "score": 0,
+      "passed": false,
+      "notes": "No spoken reply was captured.",
+      "method": "empty",
+      "error": "",
+      "duration_seconds": 24.84,
+      "expected_tool": "",
+      "heard": "",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-exit-cancel",
+      "category": "paused_exit",
+      "prompt": "cancel",
+      "transcript": "I",
+      "score": 0,
+      "passed": false,
+      "notes": "Keyword fallback used because model JSON could not be parsed.",
+      "method": "fallback",
+      "error": "",
+      "duration_seconds": 16.35,
+      "expected_tool": "",
+      "heard": "plum",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "plum"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-exit-never-mind",
+      "category": "paused_exit",
+      "prompt": "never mind",
+      "transcript": "",
+      "score": 0,
+      "passed": false,
+      "notes": "No spoken reply was captured.",
+      "method": "empty",
+      "error": "",
+      "duration_seconds": 12.61,
+      "expected_tool": "",
+      "heard": "",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-exit-forget-it",
+      "category": "paused_exit",
+      "prompt": "forget it",
+      "transcript": "I",
+      "score": 100,
+      "passed": true,
+      "notes": "The response is a direct continuation of the prompt without making assumptions about the speaker's intentions.",
+      "method": "model",
+      "error": "",
+      "duration_seconds": 25.09,
+      "expected_tool": "",
+      "heard": "",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-exit-done",
+      "category": "paused_exit",
+      "prompt": "done",
+      "transcript": "",
+      "score": 0,
+      "passed": false,
+      "notes": "No spoken reply was captured.",
+      "method": "empty",
+      "error": "",
+      "duration_seconds": 23.98,
+      "expected_tool": "",
+      "heard": "",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-exit-stop",
+      "category": "paused_exit",
+      "prompt": "stop",
+      "transcript": "",
+      "score": 0,
+      "passed": false,
+      "notes": "No spoken reply was captured.",
+      "method": "empty",
+      "error": "",
+      "duration_seconds": 24.0,
+      "expected_tool": "",
+      "heard": "",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-exit-stop-talking",
+      "category": "paused_exit",
+      "prompt": "stop talking",
+      "transcript": "I",
+      "score": 100,
+      "passed": true,
+      "notes": "The response is grammatically correct, but it doesn't clearly answer the question. It could have provided a clearer example.",
+      "method": "model",
+      "error": "",
+      "duration_seconds": 16.99,
+      "expected_tool": "",
+      "heard": "Access, downkey",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [
+        "Access, downkey"
+      ],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-exit-offline",
+      "category": "paused_exit",
+      "prompt": "offline",
+      "transcript": "",
+      "score": 0,
+      "passed": false,
+      "notes": "No spoken reply was captured.",
+      "method": "empty",
+      "error": "",
+      "duration_seconds": 23.96,
+      "expected_tool": "",
+      "heard": "",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-exit-turn-off",
+      "category": "paused_exit",
+      "prompt": "turn off",
+      "transcript": "",
+      "score": 0,
+      "passed": false,
+      "notes": "No spoken reply was captured.",
+      "method": "empty",
+      "error": "",
+      "duration_seconds": 23.98,
+      "expected_tool": "",
+      "heard": "",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-exit-shut-down",
+      "category": "paused_exit",
+      "prompt": "shut down",
+      "transcript": "",
+      "score": 0,
+      "passed": false,
+      "notes": "No spoken reply was captured.",
+      "method": "empty",
+      "error": "",
+      "duration_seconds": 24.0,
+      "expected_tool": "",
+      "heard": "",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-exit-thats-all",
+      "category": "paused_exit",
+      "prompt": "thats all",
+      "transcript": "",
+      "score": 0,
+      "passed": false,
+      "notes": "No spoken reply was captured.",
+      "method": "empty",
+      "error": "",
+      "duration_seconds": 24.04,
+      "expected_tool": "",
+      "heard": "",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    },
+    {
+      "case_id": "paused-exit-see-you",
+      "category": "paused_exit",
+      "prompt": "see you",
+      "transcript": "",
+      "score": 0,
+      "passed": false,
+      "notes": "No spoken reply was captured.",
+      "method": "empty",
+      "error": "",
+      "duration_seconds": 23.96,
+      "expected_tool": "",
+      "heard": "",
+      "capability": 0,
+      "observed_tools": [],
+      "heard_records": [],
+      "offline": null,
+      "hearing": null,
+      "action_record": null
+    }
+  ]
+}

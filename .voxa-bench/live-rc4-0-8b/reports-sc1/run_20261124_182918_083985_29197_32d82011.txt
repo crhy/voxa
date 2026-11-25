@@ -1,0 +1,31 @@
+Total: 1
+Passed: 1
+Failed: 0
+Errors: 0
+Average score: 100.0
+
+PASS [general] voice-1: score 100 (26.5s) - Voxa give me one quick fact about honey.
+  Voxa heard: give me one quick fact about honey
+  comprehension: layer=ok hearing=1.0000 routed=n/a
+  notes: The reply contained every expected word.
+
+Comprehension
+  hearing_word_accuracy  1.0000  (1 cases)
+  routed_tool_accuracy   null  (0 cases with an expected tool)
+  layers: not_heard 0, misheard 0, misrouted 0, misanswered 0, ok 1
+  per category:
+    general: cases 1 hearing 1.0000 routed null
+  CONFUSIONS (top 30):
+    none: every word heard as it was said
+Hearing suite (timed interruptions, short answers, repetitions, pauses, quiet speech)
+  interrupt_recall           null
+  keep_accuracy              null
+  stop_latency_p50_ms        null
+  stop_latency_p95_ms        null
+  premature_rate             null
+  self_interrupt_count       null
+  request_word_retention     null
+  cases [{'case_id': 'voice-1', 'category': 'general', 'prompt': 'Give me one quick fact about honey.', 'heard': 'give me one quick fact about honey', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'ok', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': True, 'error': '', 'confusions': []}]  yielded None/None  kept None/None  complete requests None/None  premature None/None
+  per cell:
+  per overlap:
+  per expect:

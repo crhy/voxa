@@ -1,0 +1,209 @@
+Voxa settings: /home/rhy/.var/app/io.github.crhy.voxa/config/voxa/config.json — wake word "voxa", model qwen3.5-0.8b-q4km:latest at http://127.0.0.1:11434
+Whisper ready: base (cpu/int8)
+@@VOXATEST {"event": "case_start", "index": 1, "total": 20, "id": "1", "category": "general", "prompt": "What is the capital of France?"}
+Speaking: voxa, What is the capital of France?
+@@VOXATEST {"event": "case_result", "index": 1, "total": 20, "id": "1", "category": "general", "prompt": "What is the capital of France?", "status": "FAIL", "reply": "Your right is definitely one of the box natural sources", "heard": "How he is actually one of the box natural sources of protein, the owner, sparkles", "layer": "misheard", "notes": "The reply did not contain: Paris, Paris, capital, France.", "seconds": 13.2}
+[1/20] FAIL 1 score 0 (13.2s)
+@@VOXATEST {"event": "case_start", "index": 2, "total": 20, "id": "2", "category": "general", "prompt": "Who was the first president of the United States?"}
+Speaking: voxa, Who was the first president of the United States?
+@@VOXATEST {"event": "case_result", "index": 2, "total": 20, "id": "2", "category": "general", "prompt": "Who was the first president of the United States?", "status": "FAIL", "reply": "Paris is the only box match. So is it pretty? The owner.", "heard": "What is the capital of France? Your life is definitely one of the box natural sources of Thank you", "layer": "misheard", "notes": "The reply did not contain: Washington, Washington.", "seconds": 17.2}
+[2/20] FAIL 2 score 0 (17.2s)
+@@VOXATEST {"event": "case_start", "index": 3, "total": 20, "id": "3", "category": "general", "prompt": "How do you make lemonade?"}
+Speaking: voxa, How do you make lemonade?
+@@VOXATEST {"event": "case_result", "index": 3, "total": 20, "id": "3", "category": "general", "prompt": "How do you make lemonade?", "status": "FAIL", "reply": "If you can't... and it's one of the world's most important cultural and commercial centers.", "heard": "Bazaar, what is the capital of France? Bazaar, who was the first president of the United States? How is it the only box natural source of costumes? The owner? Bazaar, how do you make-", "layer": "misheard", "notes": "The reply did not contain: lemons, water, sugar, lemons, water, sugar.", "seconds": 18.0}
+[3/20] FAIL 3 score 0 (18.0s)
+@@VOXATEST {"event": "case_start", "index": 4, "total": 20, "id": "4", "category": "general", "prompt": "What is the tallest mountain in the world?"}
+Speaking: voxa, What is the tallest mountain in the world?
+@@VOXATEST {"event": "case_result", "index": 4, "total": 20, "id": "4", "category": "general", "prompt": "What is the tallest mountain in the world?", "status": "FAIL", "reply": "Ariel, you remind everyone. It's the only box now. So that's it. in costumes. experience.", "heard": "Hi, this is the capital of banks, and it's won the world's most important cultural and commercial centers / What is the tallest m-", "layer": "misheard", "notes": "The reply did not contain: Mount Everest, Everest, tallest, mountain.", "seconds": 20.4}
+[4/20] FAIL 4 score 0 (20.4s)
+@@VOXATEST {"event": "case_start", "index": 5, "total": 20, "id": "5", "category": "general", "prompt": "Who wrote the play Hamlet?"}
+Speaking: voxa, Who wrote the play Hamlet?
+@@VOXATEST {"event": "case_result", "index": 5, "total": 20, "id": "5", "category": "general", "prompt": "Who wrote the play Hamlet?", "status": "FAIL", "reply": "Madok here is the tallest mountain in the world, with the height of the clock. And still, I don't fight with you.", "heard": "what is the tallest mountain in the world", "layer": "misheard", "notes": "The reply did not contain: William Shakespeare, Shakespeare, Hamlet.", "seconds": 18.6}
+[5/20] FAIL 5 score 0 (18.6s)
+@@VOXATEST {"event": "case_start", "index": 6, "total": 20, "id": "6", "category": "math", "prompt": "What is 5 times 4?"}
+Speaking: voxa, What is 5 times 4?
+@@VOXATEST {"event": "case_result", "index": 6, "total": 20, "id": "6", "category": "math", "prompt": "What is 5 times 4?", "status": "FAIL", "reply": "You didn't rise up, right? That's a lot of work.", "heard": "he wrote the playhandler", "layer": "misheard", "notes": "The reply did not contain: 20, 20, times, five.", "seconds": 15.3}
+[6/20] FAIL 6 score 0 (15.3s)
+@@VOXATEST {"event": "case_start", "index": 7, "total": 20, "id": "7", "category": "memory", "prompt": "Remember that my cat is named Mittens."}
+Speaking: voxa, Remember that my cat is named Mittens.
+@@VOXATEST {"event": "case_result", "index": 7, "total": 20, "id": "7", "category": "memory", "prompt": "Remember that my cat is named Mittens.", "status": "FAIL", "reply": "Five times more is 20.", "heard": "what is 5x4", "layer": "misheard", "notes": "The reply did not contain: Mittens, Mittens, cat, remember.", "seconds": 10.4}
+[7/20] FAIL 7 score 0 (10.4s)
+@@VOXATEST {"event": "case_start", "index": 8, "total": 20, "id": "8", "category": "instructions", "prompt": "Set a timer for 10 minutes."}
+Speaking: voxa, Set a timer for 10 minutes.
+@@VOXATEST {"event": "case_result", "index": 8, "total": 20, "id": "8", "category": "instructions", "prompt": "Set a timer for 10 minutes.", "status": "FAIL", "reply": "There was no human name to play. I'm glad we've got no complaints.", "heard": "Bazaar, remember that my CAD is named Middens / set a timer for 10 minutes. There was nothing the means of playhunterite with the logic claims", "layer": "misheard", "notes": "The reply did not contain: 10 minutes, timer, 10, minutes.", "seconds": 19.9}
+[8/20] FAIL 8 score 0 (19.9s)
+@@VOXATEST {"event": "case_start", "index": 9, "total": 20, "id": "9", "category": "reasoning", "prompt": "If all dogs are mammals, are poodles mammals?"}
+Speaking: voxa, If all dogs are mammals, are poodles mammals?
+@@VOXATEST {"event": "case_result", "index": 9, "total": 20, "id": "9", "category": "reasoning", "prompt": "If all dogs are mammals, are poodles mammals?", "status": "FAIL", "reply": "with the logic behind us.", "heard": "", "layer": "not_heard", "notes": "The reply did not contain: Yes, Yes, poodle, mammal.", "seconds": 9.2}
+[9/20] FAIL 9 score 0 (9.2s)
+@@VOXATEST {"event": "case_start", "index": 10, "total": 20, "id": "10", "category": "science", "prompt": "What is the chemical symbol for water?"}
+Speaking: voxa, What is the chemical symbol for water?
+@@VOXATEST {"event": "case_result", "index": 10, "total": 20, "id": "10", "category": "science", "prompt": "What is the chemical symbol for water?", "status": "FAIL", "reply": "What's your self?", "heard": "What is the chemical simple for water", "layer": "misheard", "notes": "The reply did not contain: H2O, H2O|H 2 O|h2o.", "seconds": 13.7}
+[10/20] FAIL 10 score 0 (13.7s)
+@@VOXATEST {"event": "case_start", "index": 11, "total": 20, "id": "1", "category": "math", "prompt": "What is the square root of 144?"}
+Speaking: voxa, What is the square root of 144?
+@@VOXATEST {"event": "case_result", "index": 11, "total": 20, "id": "1", "category": "math", "prompt": "What is the square root of 144?", "status": "FAIL", "reply": "The square root of 2 is approximately 1.414.", "heard": "I'm going to set the 10th, Bazaar, give all dogs a mammal, give the logic commands. Bazaar, what is the chemical simple for water? Water Excited is a chemical / what is the square root of", "layer": "misheard", "notes": "The reply did not contain: 12, 12.", "seconds": 18.1}
+[11/20] FAIL 1 score 0 (18.1s)
+@@VOXATEST {"event": "case_start", "index": 12, "total": 20, "id": "2", "category": "math", "prompt": "Multiply 7 by 8."}
+Speaking: voxa, Multiply 7 by 8.
+@@VOXATEST {"event": "case_result", "index": 12, "total": 20, "id": "2", "category": "math", "prompt": "Multiply 7 by 8.", "status": "FAIL", "reply": "Multi-guys, 7 bi-m-is-", "heard": "multiply 7 by 8", "layer": "misanswered", "notes": "The reply did not contain: 56, 56.", "seconds": 11.1}
+[12/20] FAIL 2 score 0 (11.1s)
+@@VOXATEST {"event": "case_start", "index": 13, "total": 20, "id": "3", "category": "math", "prompt": "Divide 100 by 4."}
+Speaking: voxa, Divide 100 by 4.
+@@VOXATEST {"event": "case_result", "index": 13, "total": 20, "id": "3", "category": "math", "prompt": "Divide 100 by 4.", "status": "FAIL", "reply": "Divide 100 by 40.", "heard": "divide 100x4", "layer": "misheard", "notes": "The reply did not contain: 25, 25.", "seconds": 14.3}
+[13/20] FAIL 3 score 0 (14.3s)
+@@VOXATEST {"event": "case_start", "index": 14, "total": 20, "id": "4", "category": "math", "prompt": "Add 15 and 20."}
+Speaking: voxa, Add 15 and 20.
+@@VOXATEST {"event": "case_result", "index": 14, "total": 20, "id": "4", "category": "math", "prompt": "Add 15 and 20.", "status": "FAIL", "reply": "No, you can't abide 100 by 4 by a number like that. You need a number about the vision. Did you mean to write it to write 100 by 4? or something similar.", "heard": "Multiply 7x8, dispatch, X. , divide 100x4. Divide 100x4, equals 25 / at 15 to 20. No, you can't divide 100 by 4 by a number like that. You need a number like a box of vision. Did you need to write 100 by 4 or something similar", "layer": "misheard", "notes": "The reply did not contain: 35, 35.", "seconds": 25.8}
+[14/20] FAIL 4 score 0 (25.8s)
+@@VOXATEST {"event": "case_start", "index": 15, "total": 20, "id": "5", "category": "math", "prompt": "Subtract 10 from 50."}
+Speaking: voxa, Subtract 10 from 50.
+@@VOXATEST {"event": "case_result", "index": 15, "total": 20, "id": "5", "category": "math", "prompt": "Subtract 10 from 50.", "status": "FAIL", "reply": "Azar, what is the chemical simple for water?", "heard": "Bazaar, subtract 10", "layer": "misheard", "notes": "The reply did not contain: 40, 40.", "seconds": 13.3}
+[15/20] FAIL 5 score 0 (13.3s)
+@@VOXATEST {"event": "case_start", "index": 16, "total": 20, "id": "7", "category": "time", "prompt": "What is the current date?"}
+Speaking: voxa, What is the current date?
+@@VOXATEST {"event": "case_result", "index": 16, "total": 20, "id": "7", "category": "time", "prompt": "What is the current date?", "status": "FAIL", "reply": "No, she means just the substance. so make sure that the next step is complete. everything in her body.", "heard": "Dirty, Bazaar, what is the chemical simple thing like that", "layer": "misheard", "notes": "The reply did not contain: date, today.", "seconds": 17.3}
+[16/20] FAIL 7 score 0 (17.3s)
+@@VOXATEST {"event": "case_start", "index": 17, "total": 20, "id": "9", "category": "reasoning", "prompt": "If it rains, should I take an umbrella?"}
+Speaking: voxa, If it rains, should I take an umbrella?
+Empty transcript for 9; retrying (attempt 2 of 2).
+Speaking: voxa, If it rains, should I take an umbrella?
+@@VOXATEST {"event": "case_result", "index": 17, "total": 20, "id": "9", "category": "reasoning", "prompt": "If it rains, should I take an umbrella?", "status": "FAIL", "reply": "", "heard": "", "layer": "not_heard", "notes": "No spoken reply was captured.", "seconds": 8.6}
+[17/20] FAIL 9 score 0 (8.6s)
+@@VOXATEST {"event": "case_start", "index": 18, "total": 20, "id": "10", "category": "science", "prompt": "What gas do plants absorb?"}
+Speaking: voxa, What gas do plants absorb?
+Empty transcript for 10; retrying (attempt 2 of 2).
+Speaking: voxa, What gas do plants absorb?
+Interrupted — writing partial report.
+PARTIAL RUN (interrupted or still running)
+Total: 17
+Passed: 0
+Failed: 17
+Errors: 0
+Average score: 0.0
+
+FAIL [general] 1: score 0 (13.2s) - Your right is definitely one of the box natural sources
+  Voxa heard: How he is actually one of the box natural sources of protein, the owner, sparkles
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: Paris, Paris, capital, France.
+FAIL [general] 2: score 0 (17.2s) - Paris is the only box match. So is it pretty? The owner.
+  Voxa heard: What is the capital of France? Your life is definitely one of the box natural sources of Thank you
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: Washington, Washington.
+FAIL [general] 3: score 0 (18.0s) - If you can't... and it's one of the world's most important cultural and commercial centers.
+  Voxa heard: Bazaar, what is the capital of France? Bazaar, who was the first president of the United States? How is it the only box natural source of costumes? The owner? Bazaar, how do you make-
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: lemons, water, sugar, lemons, water, sugar.
+FAIL [general] 4: score 0 (20.4s) - Ariel, you remind everyone. It's the only box now. So that's it. in costumes. experience.
+  Voxa heard: Hi, this is the capital of banks, and it's won the world's most important cultural and commercial centers / What is the tallest m-
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: Mount Everest, Everest, tallest, mountain.
+FAIL [general] 5: score 0 (18.6s) - Madok here is the tallest mountain in the world, with the height of the clock. And still, I don't fight with you.
+  Voxa heard: what is the tallest mountain in the world
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: William Shakespeare, Shakespeare, Hamlet.
+FAIL [math] 6: score 0 (15.3s) - You didn't rise up, right? That's a lot of work.
+  Voxa heard: he wrote the playhandler
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: 20, 20, times, five.
+FAIL [memory] 7: score 0 (10.4s) - Five times more is 20.
+  Voxa heard: what is 5x4
+  comprehension: layer=misheard hearing=0.1429 routed=n/a
+  notes: The reply did not contain: Mittens, Mittens, cat, remember.
+FAIL [instructions] 8: score 0 (19.9s) - There was no human name to play. I'm glad we've got no complaints.
+  Voxa heard: Bazaar, remember that my CAD is named Middens / set a timer for 10 minutes. There was nothing the means of playhunterite with the logic claims
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: 10 minutes, timer, 10, minutes.
+FAIL [reasoning] 9: score 0 (9.2s) - with the logic behind us.
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: Yes, Yes, poodle, mammal.
+FAIL [science] 10: score 0 (13.7s) - What's your self?
+  Voxa heard: What is the chemical simple for water
+  comprehension: layer=misheard hearing=0.8571 routed=n/a
+  notes: The reply did not contain: H2O, H2O|H 2 O|h2o.
+FAIL [math] 1: score 0 (18.1s) - The square root of 2 is approximately 1.414.
+  Voxa heard: I'm going to set the 10th, Bazaar, give all dogs a mammal, give the logic commands. Bazaar, what is the chemical simple for water? Water Excited is a chemical / what is the square root of
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: 12, 12.
+FAIL [math] 2: score 0 (11.1s) - Multi-guys, 7 bi-m-is-
+  Voxa heard: multiply 7 by 8
+  comprehension: layer=misanswered hearing=1.0000 routed=n/a
+  notes: The reply did not contain: 56, 56.
+FAIL [math] 3: score 0 (14.3s) - Divide 100 by 40.
+  Voxa heard: divide 100x4
+  comprehension: layer=misheard hearing=0.2000 routed=n/a
+  notes: The reply did not contain: 25, 25.
+FAIL [math] 4: score 0 (25.8s) - No, you can't abide 100 by 4 by a number like that. You need a number about the vision. Did you mean to write it to write 100 by 4? or something similar.
+  Voxa heard: Multiply 7x8, dispatch, X. , divide 100x4. Divide 100x4, equals 25 / at 15 to 20. No, you can't divide 100 by 4 by a number like that. You need a number like a box of vision. Did you need to write 100 by 4 or something similar
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: 35, 35.
+FAIL [math] 5: score 0 (13.3s) - Azar, what is the chemical simple for water?
+  Voxa heard: Bazaar, subtract 10
+  comprehension: layer=misheard hearing=0.2500 routed=n/a
+  notes: The reply did not contain: 40, 40.
+FAIL [time] 7: score 0 (17.3s) - No, she means just the substance. so make sure that the next step is complete. everything in her body.
+  Voxa heard: Dirty, Bazaar, what is the chemical simple thing like that
+  comprehension: layer=misheard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: date, today.
+FAIL [reasoning] 9: score 0 (8.6s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: No spoken reply was captured.
+
+Comprehension
+  hearing_word_accuracy  0.1441  (17 cases)
+  routed_tool_accuracy   null  (0 cases with an expected tool)
+  layers: not_heard 2, misheard 14, misrouted 0, misanswered 1, ok 0
+  per category:
+    general: cases 5 hearing 0.0000 routed null
+    instructions: cases 1 hearing 0.0000 routed null
+    math: cases 6 hearing 0.2417 routed null
+    memory: cases 1 hearing 0.1429 routed null
+    reasoning: cases 2 hearing 0.0000 routed null
+    science: cases 1 hearing 0.8571 routed null
+    time: cases 1 hearing 0.0000 routed null
+  CONFUSIONS (top 30):
+    2x  who -> what
+    1x  add -> multiply
+    1x  and -> dispatch
+    1x  capital -> actually
+    1x  cat -> what
+    1x  current -> is
+    1x  date -> the
+    1x  first -> capital
+    1x  five -> wrote
+    1x  forty -> all
+    1x  four -> 100x4
+    1x  four -> dogs
+    1x  four -> playhandler
+    1x  france -> of
+    1x  hamlet -> mountain
+    1x  hundred -> give
+    1x  in -> of
+    1x  is -> he
+    1x  mittens -> 5x4
+    1x  mountain -> capital
+    1x  of -> 10th
+    1x  one -> bazaar
+    1x  play -> tallest
+    1x  president -> of
+    1x  root -> the
+    1x  square -> set
+    1x  states -> is
+    1x  symbol -> simple
+    1x  tallest -> the
+    1x  times -> the
+Hearing suite (timed interruptions, short answers, repetitions, pauses, quiet speech)
+  interrupt_recall           null
+  keep_accuracy              null
+  stop_latency_p50_ms        null
+  stop_latency_p95_ms        null
+  premature_rate             null
+  self_interrupt_count       null
+  request_word_retention     null
+  cases [{'case_id': '1', 'category': 'general', 'prompt': 'What is the capital of France?', 'heard': 'How he is actually one of the box natural sources of protein, the owner, sparkles', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['what', 'how'], ['capital', 'actually'], ['france', 'of']]}, {'case_id': '2', 'category': 'general', 'prompt': 'Who was the first president of the United States?', 'heard': 'What is the capital of France? Your life is definitely one of the box natural sources of Thank you', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['who', 'what'], ['was', 'is'], ['first', 'capital'], ['president', 'of'], ['united', 'life'], ['states', 'is']]}, {'case_id': '3', 'category': 'general', 'prompt': 'How do you make lemonade?', 'heard': 'Bazaar, what is the capital of France? Bazaar, who was the first president of the United States? How is it the only box natural source of costumes? The owner? Bazaar, how do you make-', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': '4', 'category': 'general', 'prompt': 'What is the tallest mountain in the world?', 'heard': "Hi, this is the capital of banks, and it's won the world's most important cultural and commercial centers / What is the tallest m-", 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.5, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['what', 'hi'], ['tallest', 'the'], ['mountain', 'capital'], ['in', 'of'], ['world', 'and']]}, {'case_id': '5', 'category': 'general', 'prompt': 'Who wrote the play Hamlet?', 'heard': 'what is the tallest mountain in the world', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['who', 'what'], ['wrote', 'is'], ['play', 'tallest'], ['hamlet', 'mountain']]}, {'case_id': '6', 'category': 'math', 'prompt': 'What is 5 times 4?', 'heard': 'he wrote the playhandler', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['is', 'he'], ['five', 'wrote'], ['times', 'the'], ['four', 'playhandler']]}, {'case_id': '7', 'category': 'memory', 'prompt': 'Remember that my cat is named Mittens.', 'heard': 'what is 5x4', 'hearing_word_accuracy': 0.1429, 'hearing_word_accuracy_best_record': 0.1429, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': ['calculate'], 'routed': None, 'passed': False, 'error': '', 'confusions': [['cat', 'what'], ['mittens', '5x4']]}, {'case_id': '8', 'category': 'instructions', 'prompt': 'Set a timer for 10 minutes.', 'heard': 'Bazaar, remember that my CAD is named Middens / set a timer for 10 minutes. There was nothing the means of playhunterite with the logic claims', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': ['set_timer'], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': '9', 'category': 'reasoning', 'prompt': 'If all dogs are mammals, are poodles mammals?', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': '10', 'category': 'science', 'prompt': 'What is the chemical symbol for water?', 'heard': 'What is the chemical simple for water', 'hearing_word_accuracy': 0.8571, 'hearing_word_accuracy_best_record': 0.8571, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['symbol', 'simple']]}, {'case_id': '1', 'category': 'math', 'prompt': 'What is the square root of 144?', 'heard': "I'm going to set the 10th, Bazaar, give all dogs a mammal, give the logic commands. Bazaar, what is the chemical simple for water? Water Excited is a chemical / what is the square root of", 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.6, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['square', 'set'], ['root', 'the'], ['of', '10th'], ['one', 'bazaar'], ['hundred', 'give'], ['forty', 'all'], ['four', 'dogs']]}, {'case_id': '2', 'category': 'math', 'prompt': 'Multiply 7 by 8.', 'heard': 'multiply 7 by 8', 'hearing_word_accuracy': 1.0, 'hearing_word_accuracy_best_record': 1.0, 'layer': 'misanswered', 'expected_tool': '', 'tools_ran': ['calculate'], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': '3', 'category': 'math', 'prompt': 'Divide 100 by 4.', 'heard': 'divide 100x4', 'hearing_word_accuracy': 0.2, 'hearing_word_accuracy_best_record': 0.2, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['four', '100x4']]}, {'case_id': '4', 'category': 'math', 'prompt': 'Add 15 and 20.', 'heard': "Multiply 7x8, dispatch, X. , divide 100x4. Divide 100x4, equals 25 / at 15 to 20. No, you can't divide 100 by 4 by a number like that. You need a number like a box of vision. Did you need to write 100 by 4 or something similar", 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['add', 'multiply'], ['and', 'dispatch']]}, {'case_id': '5', 'category': 'math', 'prompt': 'Subtract 10 from 50.', 'heard': 'Bazaar, subtract 10', 'hearing_word_accuracy': 0.25, 'hearing_word_accuracy_best_record': 0.25, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': '7', 'category': 'time', 'prompt': 'What is the current date?', 'heard': 'Dirty, Bazaar, what is the chemical simple thing like that', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': 0.0, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['current', 'is'], ['date', 'the']]}, {'case_id': '9', 'category': 'reasoning', 'prompt': 'If it rains, should I take an umbrella?', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}]  yielded None/None  kept None/None  complete requests None/None  premature None/None
+  per cell:
+  per overlap:
+  per expect:
+JSON report: .voxa-bench/live-rc4-0-8b/reports-smoke/run_20261124_182951_591698_31008_3d311f22.json
+Text report: .voxa-bench/live-rc4-0-8b/reports-smoke/run_20261124_182951_591698_31008_3d311f22.txt
+Failure report: .voxa-bench/live-rc4-0-8b/smoke-failures.md

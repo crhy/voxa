@@ -1,0 +1,614 @@
+[
+ {
+  "t": "18:25:05",
+  "heard": "Do you know what I do next?",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Here are two ways to make lemonade at home:\\n\\n1. **Using a jar:** Place the jar on a pot of boiling",
+  "overlap": 0.0,
+  "sound": 0.3
+ },
+ {
+  "t": "18:25:06",
+  "heard": "We are too late to make leveling up on you.",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Here are two ways to make lemonade at home:\\n\\n1. **Using a jar:** Place the jar on a pot of boiling",
+  "overlap": 0.4,
+  "sound": 0.545
+ },
+ {
+  "t": "18:25:08",
+  "heard": "We are two ways to make leveling up on one.",
+  "src": "user",
+  "reasons": "reference silent: no echo possible",
+  "turn": "Here are two ways to make lemonade at home:\\n\\n1. **Using a jar:** Place the jar on a pot of boiling",
+  "overlap": 0.6,
+  "sound": 0.667
+ },
+ {
+  "t": "18:25:10",
+  "heard": "We are two ways to make leveling and coming. One, use your GY, place the j-",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Here are two ways to make lemonade at home:\\n\\n1. **Using a jar:** Place the jar on a pot of boiling",
+  "overlap": 0.467,
+  "sound": 0.607
+ },
+ {
+  "t": "18:25:11",
+  "heard": "We owe two ways to make leveling and coming. One, use your Gide, place the Gideon on a proper volume.",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Here are two ways to make lemonade at home:\\n\\n1. **Using a jar:** Place the jar on a pot of boiling",
+  "overlap": 0.368,
+  "sound": 0.507
+ },
+ {
+  "t": "18:25:12",
+  "heard": "We are two ways to make leveling up on you. One, use your drive, place the job on a proper volume washer, add legging soon sugar.",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Here are two ways to make lemonade at home:\\n\\n1. **Using a jar:** Place the jar on a pot of boiling",
+  "overlap": 0.36,
+  "sound": 0.503
+ },
+ {
+  "t": "18:25:14",
+  "heard": "We are two ways to make leveling and coming. One, use your drive, place the job on a proper volume washer, add legging and sugar, sterile, and let it-",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Here are two ways to make lemonade at home:\\n\\n1. **Using a jar:** Place the jar on a pot of boiling",
+  "overlap": 0.286,
+  "sound": 0.471
+ },
+ {
+  "t": "18:25:15",
+  "heard": "We are two ways to make leveling and coming. One, use your drive, place the job on a proper volume washer, add lexins and sugar, sterile, and let it cool before cooling.",
+  "src": "user",
+  "reasons": "reference silent: no echo possible",
+  "turn": "Here are two ways to make lemonade at home:\\n\\n1. **Using a jar:** Place the jar on a pot of boiling",
+  "overlap": 0.258,
+  "sound": 0.443
+ },
+ {
+  "t": "18:29:51",
+  "heard": "Codium is actually a lot of-",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Honey is actually one of the best natural sources  \ud83e\uddea\u2728 You're right, he's definitely one of the box natur Sparkles offers this as a direct meal replacement.",
+  "overlap": 0.6,
+  "sound": 0.636
+ },
+ {
+  "t": "18:29:52",
+  "heard": "How he is actually one of the box natural sources acquired in the online.",
+  "src": "user",
+  "reasons": "reference silent: no echo possible",
+  "turn": "Honey is actually one of the best natural sources  \ud83e\uddea\u2728 You're right, he's definitely one of the box natur Sparkles offers this as a direct meal replacement.",
+  "overlap": 0.714,
+  "sound": 0.763
+ },
+ {
+  "t": "18:29:54",
+  "heard": "How he is actually one of the box natural sources of protein, the owner, sparkles.",
+  "src": "user",
+  "reasons": "reference silent: no echo possible",
+  "turn": "Honey is actually one of the best natural sources  \ud83e\uddea\u2728 You're right, he's definitely one of the box natur Sparkles offers this as a direct meal replacement.",
+  "overlap": 0.8,
+  "sound": 0.693
+ },
+ {
+  "t": "18:29:59",
+  "heard": "What is the capital of France?",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Honey is actually one of the best natural sources  \ud83e\uddea\u2728 You're right, he's definitely one of the box natur Sparkles offers this as a direct meal replacement.",
+  "overlap": 0.5,
+  "sound": 0.458
+ },
+ {
+  "t": "18:30:01",
+  "heard": "What is the capital of France? Your life is definitely one of the box...",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Honey is actually one of the best natural sources  \ud83e\uddea\u2728 You're right, he's definitely one of the box natur Sparkles offers this as a direct meal replacement.",
+  "overlap": 0.643,
+  "sound": 0.655
+ },
+ {
+  "t": "18:30:02",
+  "heard": "What is the capital of France?",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Honey is actually one of the best natural sources  \ud83e\uddea\u2728 You're right, he's definitely one of the box natur Sparkles offers this as a direct meal replacement.",
+  "overlap": 0.5,
+  "sound": 0.458
+ },
+ {
+  "t": "18:30:03",
+  "heard": "What is the capital of France? Your life is definitely one of the box natural sources of Thank you.",
+  "src": "user",
+  "reasons": "reference silent: no echo possible",
+  "turn": "Honey is actually one of the best natural sources  \ud83e\uddea\u2728 You're right, he's definitely one of the box natur Sparkles offers this as a direct meal replacement.",
+  "overlap": 0.684,
+  "sound": 0.658
+ },
+ {
+  "t": "18:30:17",
+  "heard": "Bazaar, what is the capital of France? Bazaar, who was the first president of the United States? How is it the only Bazaar?",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Paris is the only box natural source of protein, t estimated city population of 2.04 million in an ar Paris is the capital of France, and it's one of the world's most important cultura",
+  "overlap": 0.522,
+  "sound": 0.406
+ },
+ {
+  "t": "18:30:18",
+  "heard": "Boksa, what is the capital of France? Boksa, who was the first president of the United States? How is it the only Bok's natural source of party?",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Paris is the only box natural source of protein, t estimated city population of 2.04 million in an ar Paris is the capital of France, and it's one of the world's most important cultura",
+  "overlap": 0.556,
+  "sound": 0.33
+ },
+ {
+  "t": "18:30:20",
+  "heard": "Boksa, what is the capital of France? Boksa, who was the first president of the United States? How is it the only Bok's natural source of costumes? The owner?",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Paris is the only box natural source of protein, t estimated city population of 2.04 million in an ar Paris is the capital of France, and it's one of the world's most important cultura",
+  "overlap": 0.552,
+  "sound": 0.305
+ },
+ {
+  "t": "18:30:26",
+  "heard": "Bazaar, what is the capital of France? Bazaar, who was the first president of the United States? How is it the only box natural source of costumes? The owner? Bazaar, how do you make-",
+  "src": "user",
+  "reasons": "reference silent: no echo possible",
+  "turn": "Paris is the only box natural source of protein, t estimated city population of 2.04 million in an ar Paris is the capital of France, and it's one of the world's most important cultura",
+  "overlap": 0.5,
+  "sound": 0.317
+ },
+ {
+  "t": "18:30:32",
+  "heard": "",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Paris is the only box natural source of protein, t estimated city population of 2.04 million in an ar Paris is the capital of France, and it's one of the world's most important cultura",
+  "overlap": 0.0,
+  "sound": 0.0
+ },
+ {
+  "t": "18:30:34",
+  "heard": "Paris, is the capital of Paris.",
+  "src": "user",
+  "reasons": "reference silent: no echo possible",
+  "turn": "Paris is the only box natural source of protein, t estimated city population of 2.04 million in an ar Paris is the capital of France, and it's one of the world's most important cultura",
+  "overlap": 1.0,
+  "sound": 0.833
+ },
+ {
+  "t": "18:30:35",
+  "heard": "Hi, this is the Capital of Bans, and it's one of the world's most important-",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Paris is the only box natural source of protein, t estimated city population of 2.04 million in an ar Paris is the capital of France, and it's one of the world's most important cultura",
+  "overlap": 0.8,
+  "sound": 0.895
+ },
+ {
+  "t": "18:30:36",
+  "heard": "Hi, this is the Capitolo fans, and it's one of the world's most important cultural and commercial-",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Paris is the only box natural source of protein, t estimated city population of 2.04 million in an ar Paris is the capital of France, and it's one of the world's most important cultura",
+  "overlap": 0.647,
+  "sound": 0.597
+ },
+ {
+  "t": "18:30:37",
+  "heard": "Hi, this is the capital of banks, and it's won the world's most important cultural and commercial centers.",
+  "src": "user",
+  "reasons": "reference silent: no echo possible",
+  "turn": "Paris is the only box natural source of protein, t estimated city population of 2.04 million in an ar Paris is the capital of France, and it's one of the world's most important cultura",
+  "overlap": 0.611,
+  "sound": 0.44
+ },
+ {
+  "t": "18:30:52",
+  "heard": "Voxup, what is the tallest mountain in the world?",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Bazaar is the capital of banks in France, Aerial view of Mount Everest from the south is the so the capital of France is Bazaar and the first U Mauna Kea is the tallest mountain in the world wit",
+  "overlap": 0.778,
+  "sound": 0.692
+ },
+ {
+  "t": "18:30:53",
+  "heard": "Voxup, what is the tallest mountain in the world?",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Bazaar is the capital of banks in France, Aerial view of Mount Everest from the south is the so the capital of France is Bazaar and the first U Mauna Kea is the tallest mountain in the world wit",
+  "overlap": 0.778,
+  "sound": 0.692
+ },
+ {
+  "t": "18:30:55",
+  "heard": "Voxa, what is the tallest mountain in the world?",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Bazaar is the capital of banks in France, Aerial view of Mount Everest from the south is the so the capital of France is Bazaar and the first U Mauna Kea is the tallest mountain in the world wit",
+  "overlap": 0.778,
+  "sound": 0.842
+ },
+ {
+  "t": "18:30:56",
+  "heard": "Voxa, what is the tallest mountain in the world?",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Bazaar is the capital of banks in France, Aerial view of Mount Everest from the south is the so the capital of France is Bazaar and the first U Mauna Kea is the tallest mountain in the world wit",
+  "overlap": 0.778,
+  "sound": 0.842
+ },
+ {
+  "t": "18:30:57",
+  "heard": "Voxa, what is the tallest mountain in the world?",
+  "src": "user",
+  "reasons": "reference silent: no echo possible",
+  "turn": "Bazaar is the capital of banks in France, Aerial view of Mount Everest from the south is the so the capital of France is Bazaar and the first U Mauna Kea is the tallest mountain in the world wit",
+  "overlap": 0.778,
+  "sound": 0.842
+ },
+ {
+  "t": "18:31:11",
+  "heard": "Voxa, he wrote the playhamlet.",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Bazaar is the capital of banks in France, Aerial view of Mount Everest from the south is the so the capital of France is Bazaar and the first U Mauna Kea is the tallest mountain in the world wit",
+  "overlap": 0.2,
+  "sound": 0.417
+ },
+ {
+  "t": "18:31:12",
+  "heard": "Voxa, he wrote the playhandler.",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Bazaar is the capital of banks in France, Aerial view of Mount Everest from the south is the so the capital of France is Bazaar and the first U Mauna Kea is the tallest mountain in the world wit",
+  "overlap": 0.2,
+  "sound": 0.44
+ },
+ {
+  "t": "18:31:14",
+  "heard": "Voxa, he wrote the playhandler.",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Bazaar is the capital of banks in France, Aerial view of Mount Everest from the south is the so the capital of France is Bazaar and the first U Mauna Kea is the tallest mountain in the world wit",
+  "overlap": 0.2,
+  "sound": 0.44
+ },
+ {
+  "t": "18:31:15",
+  "heard": "Voxa, he wrote the playhandler.",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Bazaar is the capital of banks in France, Aerial view of Mount Everest from the south is the so the capital of France is Bazaar and the first U Mauna Kea is the tallest mountain in the world wit",
+  "overlap": 0.2,
+  "sound": 0.44
+ },
+ {
+  "t": "18:31:16",
+  "heard": "Voxa, he wrote the playhandler.",
+  "src": "user",
+  "reasons": "reference silent: no echo possible",
+  "turn": "Bazaar is the capital of banks in France, Aerial view of Mount Everest from the south is the so the capital of France is Bazaar and the first U Mauna Kea is the tallest mountain in the world wit",
+  "overlap": 0.2,
+  "sound": 0.44
+ },
+ {
+  "t": "18:31:31",
+  "heard": "Bazaar, what is 5x4?",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "You didn't write a play handler; bove sea level) is the world 's tallest mountain a 5 times 4 is 20.",
+  "overlap": 0.333,
+  "sound": 0.4
+ },
+ {
+  "t": "18:31:32",
+  "heard": "Boxa, what is 5x4? You get it right, the play's under that.",
+  "src": "user",
+  "reasons": "reference silent: no echo possible",
+  "turn": "You didn't write a play handler; bove sea level) is the world 's tallest mountain a 5 times 4 is 20.",
+  "overlap": 0.364,
+  "sound": 0.395
+ },
+ {
+  "t": "18:31:42",
+  "heard": "Bazaar, remember that my CAD is named Middense.",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "You didn't write a play handler; bove sea level) is the world 's tallest mountain a 5 times 4 is 20.",
+  "overlap": 0.125,
+  "sound": 0.316
+ },
+ {
+  "t": "18:31:43",
+  "heard": "Bazaar, remember that my CAD is named Middens.",
+  "src": "user",
+  "reasons": "reference silent: no echo possible",
+  "turn": "You didn't write a play handler; bove sea level) is the world 's tallest mountain a 5 times 4 is 20.",
+  "overlap": 0.125,
+  "sound": 0.324
+ },
+ {
+  "t": "18:31:59",
+  "heard": "Voxa, set a timer for 10 minutes.",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "There was no human named \"playhandler\" who wrote a and the world's highest mountain is Mauna Kea, not Timer set for 10 minutes. There was nothing the me",
+  "overlap": 0.8,
+  "sound": 0.76
+ },
+ {
+  "t": "18:32:00",
+  "heard": "Voxa, set a timer for 10 minutes.",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "There was no human named \"playhandler\" who wrote a and the world's highest mountain is Mauna Kea, not Timer set for 10 minutes. There was nothing the me",
+  "overlap": 0.8,
+  "sound": 0.76
+ },
+ {
+  "t": "18:32:02",
+  "heard": "Voxa, set a timer for 10 minutes. There was nothing the means of playhunterite with the logic claims.",
+  "src": "user",
+  "reasons": "reference silent: no echo possible",
+  "turn": "There was no human named \"playhandler\" who wrote a and the world's highest mountain is Mauna Kea, not Timer set for 10 minutes. There was nothing the me",
+  "overlap": 0.562,
+  "sound": 0.309
+ },
+ {
+  "t": "18:32:08",
+  "heard": "Now I'm gonna slap pretend-",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "There was no human named \"playhandler\" who wrote a and the world's highest mountain is Mauna Kea, not Timer set for 10 minutes. There was nothing the me",
+  "overlap": 0.0,
+  "sound": 0.408
+ },
+ {
+  "t": "18:32:11",
+  "heard": "I'm gonna select, pretend- Bazaar, simple, doctor, mammal, don't wanna-",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "There was no human named \"playhandler\" who wrote a and the world's highest mountain is Mauna Kea, not Timer set for 10 minutes. There was nothing the me",
+  "overlap": 0.0,
+  "sound": 0.17
+ },
+ {
+  "t": "18:32:25",
+  "heard": "Boxup, give all dogs a mammal, give the logic commands. Boxup, what is the chemical simple for water? Water-exotic, is it-",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Water itself is a chemical, so there isn\\'t a \"simple\" formula to make it. Howe Where to buy pets in Story of Seasons: Grand Bazaa The square root of 2 is approximately 1.4142.",
+  "overlap": 0.429,
+  "sound": 0.362
+ },
+ {
+  "t": "18:32:27",
+  "heard": "I'm going to set the 10th, Bazaar, give all dogs a mammal, give the logic commands. Bazaar, what is the chemical simple for water? Water Excited is a chemical.",
+  "src": "user",
+  "reasons": "reference silent: no echo possible",
+  "turn": "Water itself is a chemical, so there isn\\'t a \"simple\" formula to make it. Howe Where to buy pets in Story of Seasons: Grand Bazaa The square root of 2 is approximately 1.4142.",
+  "overlap": 0.423,
+  "sound": 0.154
+ },
+ {
+  "t": "18:32:32",
+  "heard": "Voxa, what is the square root of-",
+  "src": "user",
+  "reasons": "reference silent: no echo possible",
+  "turn": "Water itself is a chemical, so there isn\\'t a \"simple\" formula to make it. Howe Where to buy pets in Story of Seasons: Grand Bazaa The square root of 2 is approximately 1.4142.",
+  "overlap": 0.714,
+  "sound": 0.68
+ },
+ {
+  "t": "18:32:42",
+  "heard": "The square we should choose is a-",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Water itself is a chemical, so there isn\\'t a \"simple\" formula to make it. Howe Where to buy pets in Story of Seasons: Grand Bazaa The square root of 2 is approximately 1.4142.",
+  "overlap": 0.5,
+  "sound": 0.538
+ },
+ {
+  "t": "18:32:43",
+  "heard": "The square we should choose is approximately 1.4.",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Water itself is a chemical, so there isn\\'t a \"simple\" formula to make it. Howe Where to buy pets in Story of Seasons: Grand Bazaa The square root of 2 is approximately 1.4142.",
+  "overlap": 0.571,
+  "sound": 0.65
+ },
+ {
+  "t": "18:32:44",
+  "heard": "The square we should choose is approximately 1.4114.",
+  "src": "user",
+  "reasons": "reference silent: no echo possible",
+  "turn": "Water itself is a chemical, so there isn\\'t a \"simple\" formula to make it. Howe Where to buy pets in Story of Seasons: Grand Bazaa The square root of 2 is approximately 1.4142.",
+  "overlap": 0.571,
+  "sound": 0.674
+ },
+ {
+  "t": "18:32:54",
+  "heard": "Notch.ai, set, and back.",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "multiply 7 by 8 is 56. Divide 100 by 4 equals 25.",
+  "overlap": 0.0,
+  "sound": 0.235
+ },
+ {
+  "t": "18:33:09",
+  "heard": "Multiply 7x8, 5gz, Voxa, divide 100x4, divide 100x4,",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "multiply 7 by 8 is 56. Divide 100 by 4 equals 25.",
+  "overlap": 0.6,
+  "sound": 0.579
+ },
+ {
+  "t": "18:33:10",
+  "heard": "Multiply 7x8, dispatch, X. Voxa, divide 100x4. Divide 100x4, equals 20x4.",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "multiply 7 by 8 is 56. Divide 100 by 4 equals 25.",
+  "overlap": 0.667,
+  "sound": 0.63
+ },
+ {
+  "t": "18:33:11",
+  "heard": "Multiply 7x8, dispatch, X. Voxa, divide 100x4. Divide 100x4, equals 25.",
+  "src": "user",
+  "reasons": "reference silent: no echo possible",
+  "turn": "multiply 7 by 8 is 56. Divide 100 by 4 equals 25.",
+  "overlap": 0.667,
+  "sound": 0.667
+ },
+ {
+  "t": "18:33:24",
+  "heard": "Voxup at 15 to 20.",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "No, you can't divide 100x4 by a number like that. You need a number for that division. Did you mean  I need to use a box of vision or the number \"100\"",
+  "overlap": 0.333,
+  "sound": 0.333
+ },
+ {
+  "t": "18:33:25",
+  "heard": "Voxa, at 15 to 20. No, you can't abide 100x4.",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "No, you can't divide 100x4 by a number like that. You need a number for that division. Did you mean  I need to use a box of vision or the number \"100\"",
+  "overlap": 0.571,
+  "sound": 0.548
+ },
+ {
+  "t": "18:33:26",
+  "heard": "Voxa, at 15 and 20. No, you can't abide 100 by 4 by a number like that.",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "No, you can't divide 100x4 by a number like that. You need a number for that division. Did you mean  I need to use a box of vision or the number \"100\"",
+  "overlap": 0.667,
+  "sound": 0.66
+ },
+ {
+  "t": "18:33:28",
+  "heard": "Boxer, at 15 to 20. No, you can't divide 100 by 4 by a number like that. You need a number about a bit...",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "No, you can't divide 100x4 by a number like that. You need a number for that division. Did you mean  I need to use a box of vision or the number \"100\"",
+  "overlap": 0.765,
+  "sound": 0.716
+ },
+ {
+  "t": "18:33:30",
+  "heard": "Boxer, at 15 to 20. No, you can't divide 100 by 4 by a number like that. You need a number about a vision. Did you need to write the byte?",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "No, you can't divide 100x4 by a number like that. You need a number for that division. Did you mean  I need to use a box of vision or the number \"100\"",
+  "overlap": 0.792,
+  "sound": 0.714
+ },
+ {
+  "t": "18:33:31",
+  "heard": "Boxer at 15 to 20. No, you can't divide 100 by 4 by a number like that. You need a number of boxers. Did you need to write 100 by 4?",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "No, you can't divide 100x4 by a number like that. You need a number for that division. Did you mean  I need to use a box of vision or the number \"100\"",
+  "overlap": 0.826,
+  "sound": 0.677
+ },
+ {
+  "t": "18:33:33",
+  "heard": "Boxer at 15 to 20. No, you can't divide 100 by 4 by a number like that. You need a number like a box of vision. Did you need to write 100 by 4 or something similar?",
+  "src": "user",
+  "reasons": "reference silent: no echo possible",
+  "turn": "No, you can't divide 100x4 by a number like that. You need a number for that division. Did you mean  I need to use a box of vision or the number \"100\"",
+  "overlap": 0.821,
+  "sound": 0.607
+ },
+ {
+  "t": "18:33:41",
+  "heard": "Bazaar, subtract 10,",
+  "src": "user",
+  "reasons": "reference silent: no echo possible",
+  "turn": "No, you can't divide 100x4 by a number like that. You need a number for that division. Did you mean  I need to use a box of vision or the number \"100\"",
+  "overlap": 0.0,
+  "sound": 0.25
+ },
+ {
+  "t": "18:33:47",
+  "heard": "",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Bazaar, what is the chemical simple for water? Water Excited is a chemical. Divide 100x4. Divide  Water is just a substance that makes up about 7% o",
+  "overlap": 0.0,
+  "sound": 0.0
+ },
+ {
+  "t": "18:33:48",
+  "heard": "Let's start. What is the chemical simple thing, what?",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Bazaar, what is the chemical simple for water? Water Excited is a chemical. Divide 100x4. Divide  Water is just a substance that makes up about 7% o",
+  "overlap": 0.667,
+  "sound": 0.683
+ },
+ {
+  "t": "18:33:50",
+  "heard": "Dirty, Bazaar, what is the chemical simple thing like that?",
+  "src": "user",
+  "reasons": "reference silent: no echo possible",
+  "turn": "Bazaar, what is the chemical simple for water? Water Excited is a chemical. Divide 100x4. Divide  Water is just a substance that makes up about 7% o",
+  "overlap": 0.7,
+  "sound": 0.66
+ },
+ {
+  "t": "18:34:02",
+  "heard": "Bazaar, what is the current date?",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Bazaar, what is the chemical simple for water? Water Excited is a chemical. Divide 100x4. Divide  Water is just a substance that makes up about 7% o",
+  "overlap": 0.667,
+  "sound": 0.692
+ },
+ {
+  "t": "18:34:03",
+  "heard": "Bazaar, what is the current date?",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Bazaar, what is the chemical simple for water? Water Excited is a chemical. Divide 100x4. Divide  Water is just a substance that makes up about 7% o",
+  "overlap": 0.667,
+  "sound": 0.692
+ },
+ {
+  "t": "18:34:04",
+  "heard": "Bazaar, what is the current date?",
+  "src": "uncertain",
+  "reasons": "alignment unhealthy: audio unqualified, ",
+  "turn": "Bazaar, what is the chemical simple for water? Water Excited is a chemical. Divide 100x4. Divide  Water is just a substance that makes up about 7% o",
+  "overlap": 0.667,
+  "sound": 0.692
+ },
+ {
+  "t": "18:34:05",
+  "heard": "Bazaar, what is the current date?",
+  "src": "user",
+  "reasons": "reference silent: no echo possible",
+  "turn": "Bazaar, what is the chemical simple for water? Water Excited is a chemical. Divide 100x4. Divide  Water is just a substance that makes up about 7% o",
+  "overlap": 0.667,
+  "sound": 0.692
+ }
+]

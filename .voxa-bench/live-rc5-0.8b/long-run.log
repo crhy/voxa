@@ -1,0 +1,81 @@
+Voxa settings: /home/rhy/.var/app/io.github.crhy.voxa/config/voxa/config.json — wake word "voxa", model qwen3.5-0.8b-q4km:latest at http://127.0.0.1:11434
+Whisper ready: base (cpu/int8)
+@@VOXATEST {"event": "case_start", "index": 1, "total": 12, "id": "long-recipe-1", "category": "general", "prompt": "Give me a recipe for chocolate chip cookies."}
+Speaking: voxa, Give me a recipe for chocolate chip cookies.
+@@VOXATEST {"event": "case_result", "index": 1, "total": 12, "id": "long-recipe-1", "category": "general", "prompt": "Give me a recipe for chocolate chip cookies.", "status": "FAIL", "reply": "Here's a quick recipe for chai. Thank you.", "heard": "Bazaar, give me a recipe for chocolate chip cookies", "layer": "misheard", "notes": "The reply did not contain: bake|oven.", "seconds": 25.7}
+[1/12] FAIL long-recipe-1 score 50 (25.7s)
+@@VOXATEST {"event": "case_start", "index": 2, "total": 12, "id": "long-recipe-2", "category": "general", "prompt": "How do I make banana bread from scratch?"}
+Speaking: voxa, How do I make banana bread from scratch?
+@@VOXATEST {"event": "case_result", "index": 2, "total": 12, "id": "long-recipe-2", "category": "general", "prompt": "How do I make banana bread from scratch?", "status": "FAIL", "reply": "No, that's not possible. Making a benign order for scratch is too tricky. is how to make one problem.", "heard": "Vatza, only make banana from scratch", "layer": "misheard", "notes": "The reply did not contain: banana.", "seconds": 21.5}
+[2/12] FAIL long-recipe-2 score 66 (21.5s)
+@@VOXATEST {"event": "case_start", "index": 3, "total": 12, "id": "long-recipe-3", "category": "general", "prompt": "Tell me step by step how to cook chicken soup."}
+Speaking: voxa, Tell me step by step how to cook chicken soup.
+@@VOXATEST {"event": "case_result", "index": 3, "total": 12, "id": "long-recipe-3", "category": "general", "prompt": "Tell me step by step how to cook chicken soup.", "status": "FAIL", "reply": "I can't generate recipes. or provides specific instructions for...", "heard": "Tell that vice-deaf powder cook chicken", "layer": "misheard", "notes": "The reply did not contain: chicken, soup, cook|simmer.", "seconds": 18.6}
+[3/12] FAIL long-recipe-3 score 0 (18.6s)
+@@VOXATEST {"event": "case_start", "index": 4, "total": 12, "id": "long-list-1", "category": "general", "prompt": "Give me a list of the ten best mountains in the world."}
+Speaking: voxa, Give me a list of the ten best mountains in the world.
+@@VOXATEST {"event": "case_result", "index": 4, "total": 12, "id": "long-list-1", "category": "general", "prompt": "Give me a list of the ten best mountains in the world.", "status": "FAIL", "reply": "I'm happy to look for you. BUNNY JAPPERSEN VIDEO BUNNY GRIME PERSEN VIDEO LARDS ARE IN BIRDING BUNNY JAPPERSEN VIDEO", "heard": "", "layer": "not_heard", "notes": "The reply did not contain: mountain|everest, ten|10.", "seconds": 13.5}
+[4/12] FAIL long-list-1 score 0 (13.5s)
+@@VOXATEST {"event": "case_start", "index": 5, "total": 12, "id": "long-list-2", "category": "general", "prompt": "Name five interesting facts about the ocean."}
+Speaking: voxa, Name five interesting facts about the ocean.
+@@VOXATEST {"event": "case_result", "index": 5, "total": 12, "id": "long-list-2", "category": "general", "prompt": "Name five interesting facts about the ocean.", "status": "FAIL", "reply": "I couldn't work out how... You can do that.", "heard": "Set, mate 5, interesting facts, the ocean", "layer": "misheard", "notes": "The reply did not contain: five|1.", "seconds": 17.5}
+[5/12] FAIL long-list-2 score 50 (17.5s)
+@@VOXATEST {"event": "case_start", "index": 6, "total": 12, "id": "long-list-3", "category": "general", "prompt": "List the planets in our solar system in order."}
+Speaking: voxa, List the planets in our solar system in order.
+Interrupted — writing partial report.
+PARTIAL RUN (interrupted or still running)
+Total: 5
+Passed: 0
+Failed: 5
+Errors: 0
+Average score: 33.2
+
+FAIL [general] long-recipe-1: score 50 (25.7s) - Here's a quick recipe for chai. Thank you.
+  Voxa heard: Bazaar, give me a recipe for chocolate chip cookies
+  comprehension: layer=misheard hearing=0.8750 routed=n/a
+  notes: The reply did not contain: bake|oven.
+FAIL [general] long-recipe-2: score 66 (21.5s) - No, that's not possible. Making a benign order for scratch is too tricky. is how to make one problem.
+  Voxa heard: Vatza, only make banana from scratch
+  comprehension: layer=misheard hearing=0.5000 routed=n/a
+  notes: The reply did not contain: banana.
+FAIL [general] long-recipe-3: score 0 (18.6s) - I can't generate recipes. or provides specific instructions for...
+  Voxa heard: Tell that vice-deaf powder cook chicken
+  comprehension: layer=misheard hearing=0.3000 routed=n/a
+  notes: The reply did not contain: chicken, soup, cook|simmer.
+FAIL [general] long-list-1: score 0 (13.5s) - I'm happy to look for you. BUNNY JAPPERSEN VIDEO BUNNY GRIME PERSEN VIDEO LARDS ARE IN BIRDING BUNNY JAPPERSEN VIDEO
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: The reply did not contain: mountain|everest, ten|10.
+FAIL [general] long-list-2: score 50 (17.5s) - I couldn't work out how... You can do that.
+  Voxa heard: Set, mate 5, interesting facts, the ocean
+  comprehension: layer=misheard hearing=0.5714 routed=n/a
+  notes: The reply did not contain: five|1.
+
+Comprehension
+  hearing_word_accuracy  0.4493  (5 cases)
+  routed_tool_accuracy   null  (0 cases with an expected tool)
+  layers: not_heard 1, misheard 4, misrouted 0, misanswered 0, ok 0
+  per category:
+    general: cases 5 hearing 0.4493 routed null
+  CONFUSIONS (top 30):
+    1x  by -> that
+    1x  do -> vatza
+    1x  how -> deaf
+    1x  i -> only
+    1x  name -> set
+    1x  step -> vice
+    1x  to -> powder
+Hearing suite (timed interruptions, short answers, repetitions, pauses, quiet speech)
+  interrupt_recall           null
+  keep_accuracy              null
+  stop_latency_p50_ms        null
+  stop_latency_p95_ms        null
+  premature_rate             null
+  self_interrupt_count       null
+  request_word_retention     null
+  cases [{'case_id': 'long-recipe-1', 'category': 'general', 'prompt': 'Give me a recipe for chocolate chip cookies.', 'heard': 'Bazaar, give me a recipe for chocolate chip cookies', 'hearing_word_accuracy': 0.875, 'hearing_word_accuracy_best_record': 0.875, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'long-recipe-2', 'category': 'general', 'prompt': 'How do I make banana bread from scratch?', 'heard': 'Vatza, only make banana from scratch', 'hearing_word_accuracy': 0.5, 'hearing_word_accuracy_best_record': 0.5, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['do', 'vatza'], ['i', 'only']]}, {'case_id': 'long-recipe-3', 'category': 'general', 'prompt': 'Tell me step by step how to cook chicken soup.', 'heard': 'Tell that vice-deaf powder cook chicken', 'hearing_word_accuracy': 0.3, 'hearing_word_accuracy_best_record': 0.3, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['by', 'that'], ['step', 'vice'], ['how', 'deaf'], ['to', 'powder']]}, {'case_id': 'long-list-1', 'category': 'general', 'prompt': 'Give me a list of the ten best mountains in the world.', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'long-list-2', 'category': 'general', 'prompt': 'Name five interesting facts about the ocean.', 'heard': 'Set, mate 5, interesting facts, the ocean', 'hearing_word_accuracy': 0.5714, 'hearing_word_accuracy_best_record': 0.5714, 'layer': 'misheard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': [['name', 'set']]}]  yielded None/None  kept None/None  complete requests None/None  premature None/None
+  per cell:
+  per overlap:
+  per expect:
+JSON report: .voxa-bench/live-rc5-0.8b/reports-long.json
+Text report: .voxa-bench/live-rc5-0.8b/reports-long/run_20261125_012728_745791_23331_ca0f9e94.txt
+Failure report: .voxa-bench/live-rc5-0.8b/failures-long.md

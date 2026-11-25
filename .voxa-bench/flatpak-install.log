@@ -1,0 +1,22 @@
+
+
+ 1.	   	io.github.crhy.voxa	master	r
+
+
+Uninstalling…
+Uninstall complete.
+
+io.github.crhy.voxa permissions:
+    ipc	network	fallback-x11	pulseaudio
+    wayland	dri	file access [1]	dbus access [2]
+
+    [1] xdg-data/voxa:ro, xdg-documents:create
+    [2] org.freedesktop.Flatpak
+
+
+ 1.	   	io.github.crhy.voxa	master	i	voxa-origin	0 bytes
+
+
+Installing…
+Installation complete.
+INSTALL_EXIT=0
