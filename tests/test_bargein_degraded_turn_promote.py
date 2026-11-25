@@ -97,3 +97,30 @@ def test_unhealthy_alignment_also_promotes(controller):
 
 def test_threshold_is_three_words():
     assert DEGRADED_FOREIGN_MIN == 3
+
+
+def test_healthy_audio_explained_never_promotes(controller):
+    """Task v11c step 5: the own voice is decided by AUDIO. When the alignment is healthy and
+    the microphone energy IS explained by the render envelope at the delay, the text veto must
+    not promote - even many foreign words do not interrupt audio that proved itself echo."""
+    ctl, _clock = controller
+    explained = SourceEvidence(reference_active=True, speaking=True, alignment_healthy=True,
+                               mic_level=0.9, echo_explained_db=0.0)
+    assert not ctl._degraded_turn_promote("banana bread from scratch", "banana bread from scratch",
+                                          "voxa", evidence=explained)
+    # The same words over a silent tap (no audio number at all) still promote.
+    silent = SourceEvidence(reference_active=False, speaking=True, alignment_healthy=True,
+                            mic_level=0.9, echo_explained_db=None)
+    assert ctl._degraded_turn_promote("banana bread from scratch", "banana bread from scratch",
+                                      "voxa", evidence=silent)
+
+
+def test_phonetic_mishearing_of_her_words_is_hers(controller):
+    """Task v11c step 5: ASR writes her own words with different letters ("Paries" for "Paris",
+    "frabik" for "fabric" style) - a word that SOUNDS like a word of her turn is hers and never
+    counts toward the foreign bar."""
+    ctl, clock = controller
+    actions = _drive(ctl,
+                     "the captal of Fraunce is Paries", "the captal of Fraunce is Paries",
+                     reference_active=False, clock=clock)
+    assert INTERRUPT not in actions

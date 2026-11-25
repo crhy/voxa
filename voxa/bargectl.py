@@ -19,7 +19,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from .attribution import ECHO, USER, SourceEvidence
+from .attribution import ECHO, ECHO_EXPLAINED_DB, USER, SourceEvidence
 from .attribution import UNCERTAIN as SOURCE_UNCERTAIN
 from .bargein import FRAME_MS, BargeInGate, STOP_WORDS, _words, overlap, sounds_like, source_decision
 from .onset import OnsetDetector
@@ -116,6 +116,12 @@ def _foreign_core(heard: str, turn_text: str, wake_word: str) -> tuple[int, int]
     tokens = _heard_tokens(turn_text)
     spoken_raw = {_NUMBER_WORDS.get(token, token) for token in tokens} | set(tokens)
     spoken = {token for token in spoken_raw if token not in _FUNCTION_WORDS}
+    # Task v11c step 5: ASR writes her own words with different letters all the time
+    # ("weather" for "whether", "receit" for "receipt"). A word that SOUNDS like a word of her
+    # turn is hers too, before it is counted foreign and promotes the text veto.
+    from .apps import phonetic_key
+    from difflib import SequenceMatcher
+    spoken_keys = {k for k in (phonetic_key(word) for word in spoken) if len(k) >= 3}
     wake = wake_word.casefold()
     hers: set[str] = set()
     foreign: set[str] = set()
@@ -127,6 +133,12 @@ def _foreign_core(heard: str, turn_text: str, wake_word: str) -> tuple[int, int]
             continue
         if token in spoken or any(len(token) > 2 and (token in word or word in token)
                                   for word in spoken):
+            hers.add(token)
+            continue
+        key = phonetic_key(token)
+        if len(key) >= 3 and any(
+                key == word_key or SequenceMatcher(None, key, word_key).ratio() >= 0.8
+                for word_key in spoken_keys):
             hers.add(token)
         else:
             foreign.add(token)
@@ -404,12 +416,22 @@ class BargeInController:
         return any("silent tap, abstain" in reason or "alignment unhealthy" in reason
                    for reason in decision.reasons)
 
-    def _degraded_turn_promote(self, heard: str, raw: str, wake_word: str) -> bool:
+    def _degraded_turn_promote(self, heard: str, raw: str, wake_word: str,
+                               evidence: SourceEvidence | None = None) -> bool:
         """Issue #72, task v11 step 3: while she speaks and the reference is UNUSABLE, promote by
         the turn-wide text veto. Heard CONTENT words that are not in her whole turn are the user;
         >= 3 of them, or the wake word plus >= 2, is a barge-in. Her own words (few foreign) never
         clear it, so an echo of her reply still never interrupts her.
+
+        Task v11c step 5: the OWN VOICE is decided by AUDIO. When the microphone energy this frame
+        IS explained by the render envelope at the alignment's delay (the same number attribution
+        used before it abstained), the text veto must not promote: text is the fallback for an
+        unusable reference, never a way to interrupt audio that already proved itself echo.
         """
+        if (evidence is not None and evidence.alignment_healthy
+                and evidence.echo_explained_db is not None
+                and evidence.echo_explained_db >= ECHO_EXPLAINED_DB):
+            return False
         turn_text = self.turn_veto_text() or self.speaking_text
         if not turn_text or not (heard or raw):
             return False
@@ -610,7 +632,8 @@ class BargeInController:
             if (self.turn_started_at > 0.0 and self.turn_ended_at <= 0.0
                     and self._reference_unusable(decision)
                     and _has_interrupt_words(heard, raw, wake_word)
-                    and self._degraded_turn_promote(heard, raw, wake_word)):
+                    and self._degraded_turn_promote(heard, raw, wake_word,
+                                                    evidence=decision.evidence)):
                 self._trace("words", heard=heard, raw=raw, source="user",
                             confidence=0.0, degraded=True,
                             reasons="degraded reference: turn-wide text veto promoted to user",
