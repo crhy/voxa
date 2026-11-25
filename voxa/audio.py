@@ -637,6 +637,8 @@ class AudioCapture:
         self._canceller_enabled = self.canceller is not None
         self._canceller_logged = False
         self.apply_clock_drift()
+        log.info("echo canceller reborn (epoch %d, mode %s): %s", self.epoch, mode,
+                 type(self.canceller).__name__)
 
     def _remeasure_latency(self) -> float | None:
         """Read the live capture latency again (an epoch may have changed the driver's buffer)."""
