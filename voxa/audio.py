@@ -245,6 +245,12 @@ class AudioCapture:
         self._delay_mic: list = []
         self._delay_ref: list = []
         self._delay_lock: ExactDelayLock | None = None
+        # Task v11c step 4 (issue #72): the wide anchor. One wide-window cross-correlation of the
+        # microphone against the aligned reference per reply, searching +-1500 ms - wide enough to
+        # catch the +-480 ms clock disagreement v11b measured, and its number is logged live so a
+        # healthy alignment is readable instead of inferred.
+        self._anchor = {"mic": [], "ref": [], "gap": 0, "done": False}
+        self._anchor_ms: float | None = None
         # Roadmap task 4 on the exact-delay output (f171): the residual stage ON the shipping
         # canceller's own output, read at the delay the lock drives the canceller at. None =
         # the mode has no residual stage (echo off, the webrtc route, or AEC3, whose delay is
@@ -403,6 +409,8 @@ class AudioCapture:
         self._delay_mic = []
         self._delay_ref = []
         self._delay_lock = None  # a fresh capture or mode change is an explicit epoch
+        self._anchor = {"mic": [], "ref": [], "gap": 0, "done": False}
+        self._anchor_ms = None
         self._residual_mask = (LockedResidualMask(rate=REFERENCE_RATE)
                                if isinstance(self.canceller, EchoCanceller)
                                else None)  # the residual stage re-learns the path with the capture
@@ -578,6 +586,8 @@ class AudioCapture:
                                if self._echo_mode == "voxa" else None)
         self._delay_mic, self._delay_ref = [], []
         self._delay_done = self.canceller is None
+        self._anchor = {"mic": [], "ref": [], "gap": 0, "done": False}
+        self._anchor_ms = None
         # 4. The recovery window (handoff 6.2): no automatic commands from unqualified audio.
         self._recovery_until = time.monotonic() + self.tuning.recovery_s
         return self.epoch
@@ -1037,6 +1047,10 @@ class AudioCapture:
         the reference), and an abrupt jump is an explicit epoch the drift never sees. The
         canceller NEVER rebuilds per sentence: only its reference offset is re-pointed, its
         filter, convergence and double-talk state carry across utterances."""
+        # Task v11c step 4: the wide anchor runs whatever the canceller does with the delay,
+        # dtln included - that mode owns the delay internally and reported nothing, which is
+        # exactly why no "echo delay:" line ever appeared live.
+        self._observe_wide_anchor(pcm)
         if self._delay_done:
             return
         if getattr(self.canceller, "delay_managed_internally", False):
@@ -1078,6 +1092,69 @@ class AudioCapture:
                 log.info("echo delay %s: %d samples (%.3f s), drift %.1f ppm", est["kind"],
                          est["delay_samples"], est["delay_samples"] / REFERENCE_RATE,
                          est["drift_ppm"])
+
+    _ANCHOR_CAP_S = 3.0
+    _ANCHOR_GAP_FRAMES = 40
+    _ANCHOR_SEARCH_S = 1.5
+
+    def _observe_wide_anchor(self, pcm: bytes) -> None:
+        """Accumulate one reply of (microphone, aligned reference) and anchor it once per reply.
+
+        The reference window is the aligned one (:meth:`_reference_window`: what the render
+        timeline says should be audible at these microphone samples), so the cross-correlation's
+        peak lag IS the map-vs-microphone disagreement - the number v11b measured at +-480 ms
+        straddling. +-1500 ms of search covers it honestly; the sign is the echo's own travel
+        (+ = the microphone hears the reference after the map promised it)."""
+        ref = self._reference_window(len(pcm) // 2)
+        st = self._anchor
+        if ref is None:
+            st["gap"] += 1
+            if not st["done"] and st["gap"] >= 10 and st["mic"]:
+                # The reply ended before the cap: anchor what it rendered.
+                self._finish_wide_anchor()
+                st["done"] = True
+            if st["done"] and st["gap"] >= self._ANCHOR_GAP_FRAMES:
+                # The reply ended: the next reply re-anchors.
+                st["mic"], st["ref"], st["gap"], st["done"] = [], [], 0, False
+            return
+        st["gap"] = 0
+        if st["done"]:
+            return
+        st["mic"].append(np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0)
+        st["ref"].append(np.asarray(ref, dtype=np.float32))
+        if sum(a.size for a in st["mic"]) >= int(self._ANCHOR_CAP_S * REFERENCE_RATE):
+            self._finish_wide_anchor()
+            st["done"] = True
+
+    def _finish_wide_anchor(self) -> None:
+        st = self._anchor
+        mic = np.concatenate(st["mic"]) if st["mic"] else np.zeros(0, np.float32)
+        ref = np.concatenate(st["ref"]) if st["ref"] else np.zeros(0, np.float32)
+        n = min(mic.size, ref.size)
+        if n < int(0.6 * REFERENCE_RATE):
+            return
+        mic, ref = mic[:n], ref[:n]
+        span = min(int(self._ANCHOR_SEARCH_S * REFERENCE_RATE), n // 2)
+        nfft = 1
+        while nfft < 2 * n - 1:
+            nfft <<= 1
+        corr = np.fft.irfft(np.fft.rfft(mic, nfft) * np.conj(np.fft.rfft(ref, nfft)), nfft)
+        # lag k (0..n-1) = mic[i]*ref[i-k]; negative lags live at nfft - k.
+        idx = list(range(1, span + 1)) + list(range(nfft - span, nfft))
+        window = corr[idx]
+        peak_i = int(np.argmax(window))
+        lag = idx[peak_i]
+        lag = lag if lag < nfft // 2 else lag - nfft
+        self._anchor_ms = lag * 1000.0 / REFERENCE_RATE
+        prominence = float(window[peak_i]) / max(1e-9, float(np.median(np.abs(window))))
+        log.info("echo delay: %+.0f ms (wide cross-correlation: %.1f s of microphone, "
+                 "+-%.0f ms search, prominence %.1f)",
+                 self._anchor_ms, n / REFERENCE_RATE, self._ANCHOR_SEARCH_S * 1000.0, prominence)
+
+    @property
+    def wide_anchor_ms(self) -> float | None:
+        """The last wide cross-correlation anchor (None until the first reply is anchored)."""
+        return self._anchor_ms
 
     @staticmethod
     def _rms(pcm: bytes) -> float:
