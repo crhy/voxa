@@ -96,8 +96,12 @@ def test_nothing_can_reach_voxa_without_gapplication(monkeypatch):
 
 
 def test_candidates_cover_the_host_and_the_flatpak_homes(monkeypatch, tmp_path):
+    from pathlib import Path
     monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
     monkeypatch.delenv("VOXATEST_LISTENING_STATE", raising=False)
+    # Keep the home-relative candidates under tmp_path so a real ~/.var/.../listening.json
+    # from a prior live run never outranks the most-specific candidate.
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
     candidates = state_path_candidates()
     assert tmp_path / "state" / "voxa" / "listening.json" in candidates
     assert any(".var" in str(candidate) and APP_ID in str(candidate) for candidate in candidates)

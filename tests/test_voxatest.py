@@ -560,7 +560,7 @@ def test_config_defaults():
     assert settings.whisper_load_timeout_seconds == 120.0
     assert settings.run_deadline_seconds == 0.0
     assert settings.max_reply_seconds == 90.0
-    assert settings.settle_seconds == 1.5
+    assert settings.settle_seconds == 1.0
     assert settings.retries == 1
     assert settings.voxa_echo_mode == ""
 
