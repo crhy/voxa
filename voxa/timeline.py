@@ -578,6 +578,14 @@ def attach_render_tap(pipeline: Any, timeline: RenderTimeline, generation: str, 
                 sink = pipeline.get_property("audio-sink")
             except Exception:  # noqa: BLE001 - not every pipeline has one
                 sink = None
+        if sink is None and _is_playbin(pipeline):
+            # A playbin that was NOT given an audio-sink builds its own chain inside its own
+            # bin: nothing outside can tap it ("no sink element to tap in front of"). The
+            # rc3 silent-speech fix stopped exactly here - every reply played through a file
+            # (the live face, prepared pieces, the offline fallback) rendered with an empty
+            # reference ("reference silent: no echo possible"). Hand the playbin a sink of
+            # OURS instead: a tee that feeds the real sink AND the tap branch.
+            return _attach_playbin_tap(pipeline, timeline, generation, path, gst, sink_clock, made)
         if sink is None:
             made["error"] = "no sink element to tap in front of"
             return made
@@ -651,6 +659,91 @@ def attach_render_tap(pipeline: Any, timeline: RenderTimeline, generation: str, 
     except Exception as exc:  # noqa: BLE001 - multimedia boundary
         made["error"] = str(exc)
         return made
+
+
+def _is_playbin(pipeline: Any) -> bool:
+    """True for a GStreamer playbin (the pipelines that build their own sink chain internally)."""
+    factory = getattr(pipeline, "get_factory", None)
+    if factory is None:
+        return False
+    try:
+        made = factory()
+        name = made.get_name() if made is not None else ""
+    except Exception:  # noqa: BLE001 - a pipeline that will not answer is not a playbin
+        return False
+    return name in ("playbin", "playbin3")
+
+
+def _attach_playbin_tap(pipeline: Any, timeline: RenderTimeline, generation: str, path: str,
+                        gst: Any, sink_clock: Any, made: dict[str, Any]) -> dict[str, Any]:
+    """Hand a playbin a sink of our own: a tee feeding BOTH the real sink and the tap branch.
+
+    The playbin then builds its usual chain (volume, audioconvert, audioresample) in front of
+    OUR tee, so the tap again sees the PCM after mixing, gain and ducking, immediately before
+    the speakers - on the file/prepared paths that rc3 left with a silent reference.
+    """
+    tee = gst.ElementFactory.make("tee")
+    tap_sink = gst.ElementFactory.make("appsink")
+    convert = gst.ElementFactory.make("audioconvert")
+    resample = gst.ElementFactory.make("audioresample")
+    capsfilter = gst.ElementFactory.make("capsfilter")
+    queue = gst.ElementFactory.make("queue")
+    real_sink = gst.ElementFactory.make("autoaudiosink")
+    if not all((tee, tap_sink, convert, resample, capsfilter, queue, real_sink)):
+        made["error"] = "GStreamer elements for the playbin tap are unavailable"
+        return made
+    if queue.find_property("async") is not None:
+        queue.set_property("async", False)
+    queue.set_property("max-size-buffers", 64)
+    if queue.find_property("leaky") is not None:
+        queue.set_property("leaky", 0)
+    capsfilter.set_property("caps", gst.Caps.from_string(
+        TAP_CAPS.format(rate=timeline.sample_rate) + ",channels=" + str(timeline.channels)))
+    tap_sink.set_property("emit-signals", True)
+    tap_sink.set_property("sync", False)
+    tap_sink.set_property("max-buffers", 64)
+    if tap_sink.find_property("drop") is not None:
+        tap_sink.set_property("drop", False)
+    tap_sink.connect("new-sample", _tap_callback(timeline, generation, path, gst, sink_clock))
+
+    tap_bin = gst.Bin.new("voxa-tapped-sink")
+    for element in (tee, queue, convert, resample, capsfilter, tap_sink, real_sink):
+        tap_bin.add(element)
+    if not tap_bin.add_pad(gst.GhostPad.new("sink", tee.get_static_pad("sink"))):
+        made["error"] = "could not open a sink pad on the tapped bin"
+        return made
+    # The tee feeds two branches: the one the reference reads, and the one the user hears.
+    to_tap = tee.request_pad_simple("src_%u")
+    to_play = tee.request_pad_simple("src_%u")
+    if to_tap is None or to_play is None:
+        made["error"] = "the tee could not open both playback branches"
+        return made
+    if not _pad_link_ok(to_tap.link(queue.get_static_pad("sink")), gst):
+        made["error"] = "could not feed the tap branch of the playbin sink"
+        return made
+    chain = (queue, convert, resample, capsfilter, tap_sink)
+    if not all(a.link(b) for a, b in zip(chain, chain[1:], strict=False)):
+        made["error"] = "could not connect the tap branch inside the playbin sink"
+        return made
+    if not _pad_link_ok(to_play.link(real_sink.get_static_pad("sink")), gst):
+        made["error"] = "could not feed the playbin's own sink"
+        return made
+    try:
+        pipeline.set_property("audio-sink", tap_bin)
+    except Exception as exc:  # noqa: BLE001 - a playbin that refuses our sink keeps its own
+        made["error"] = f"playbin refused the tapped sink: {exc}"
+        return made
+    # The playbin steals and parents the sink it was given: adding it to the tree ourselves is a
+    # second parent, and playsink's element probe asserts on that (crash, not a missed tap).
+    probe_branch = _attach_echo_probe(pipeline, tee, timeline, gst)
+    if probe_branch:
+        made["echo_probe"] = probe_branch
+    made["elements"] = {"tee": tee, "queue": queue, "audioconvert": convert,
+                        "audioresample": resample, "capsfilter": capsfilter, "appsink": tap_sink,
+                        "autoaudiosink": real_sink, "bin": tap_bin}
+    made["attached"] = True
+    made["sink_clock"] = sink_clock
+    return made
 
 
 def _attach_echo_probe(pipeline: Any, tee: Any, timeline: RenderTimeline, gst: Any) -> dict[str, Any] | None:
