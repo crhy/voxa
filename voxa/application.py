@@ -11,13 +11,12 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402
 
 from . import APP_ID, APP_NAME, APP_VERSION  # noqa: E402
-from .window import MainWindow  # noqa: E402
 
 
 class VoxaApplication(Adw.Application):
     def __init__(self) -> None:
         super().__init__(application_id=APP_ID, flags=Gio.ApplicationFlags.DEFAULT_FLAGS)
-        self.window: MainWindow | None = None
+        self.window = None
         quit_action = Gio.SimpleAction.new("quit", None)
         quit_action.connect("activate", lambda *_: self.quit())
         self.add_action(quit_action)
@@ -27,6 +26,17 @@ class VoxaApplication(Adw.Application):
         read_file_action = Gio.SimpleAction.new("read-file", GLib.VariantType.new("s"))
         read_file_action.connect("activate", lambda _action, value: self._read_file(value.get_string()))
         self.add_action(read_file_action)
+
+        # Scripted listening for live tests (issue #130) - exactly what pressing Active and
+        # turning it off do, checks included, and listening.json records what really happened:
+        #   gapplication action io.github.crhy.voxa start-listening
+        #   gapplication action io.github.crhy.voxa stop-listening
+        start_listening_action = Gio.SimpleAction.new("start-listening", None)
+        start_listening_action.connect("activate", lambda *_: self._scripted_listening(True))
+        self.add_action(start_listening_action)
+        stop_listening_action = Gio.SimpleAction.new("stop-listening", None)
+        stop_listening_action.connect("activate", lambda *_: self._scripted_listening(False))
+        self.add_action(stop_listening_action)
 
         about_action = Gio.SimpleAction.new("about", None)
         about_action.connect("activate", self._show_about)
@@ -39,8 +49,23 @@ class VoxaApplication(Adw.Application):
         if window is not None:
             window.read_text_file_aloud(path)
 
+    def _scripted_listening(self, start: bool) -> None:
+        if self.window is None:
+            self.activate()
+        window = self.window
+        if window is None:
+            return
+        if start:
+            window.scripted_start_listening()
+        else:
+            window.scripted_stop_listening()
+
     def do_activate(self) -> None:
         if self.window is None:
+            # Late: the window drags in the whole GTK stack; the app's actions work without it,
+            # and a scripted `start-listening` activates the app (this builds the window) first.
+            from .window import MainWindow
+
             self.window = MainWindow(self)
         self.window.present()
 
@@ -59,6 +84,11 @@ class VoxaApplication(Adw.Application):
                 echo = getattr(window, "_echo", None)
                 if echo is not None:
                     echo.disable()
+            except Exception:  # noqa: BLE001 - never block quitting
+                pass
+            try:
+                # Quitting while listening must not leave the state file saying "active" (#130).
+                window._write_listening_state(False, "Voxa closed")
             except Exception:  # noqa: BLE001 - never block quitting
                 pass
         Adw.Application.do_shutdown(self)

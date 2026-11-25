@@ -21,6 +21,7 @@ from . import (  # noqa: E402
     documents,
     engine,
     faceinstall,
+    listening as listening_state,
     mail,
     smallbrain,
     speechfit,
@@ -2762,11 +2763,13 @@ class MainWindow(Adw.ApplicationWindow):
             self.conversation_button.set_active(False)
             self._activate_when_ready = True
             self._start_failure = "Whisper is still loading."
+            self._write_listening_state(False, self._start_failure)
             return False
         if not self.devices:
             self.conversation_button.set_active(False)
             self._start_failure = "No microphone is available."
             self._toast(self._start_failure)
+            self._write_listening_state(False, self._start_failure)
             return False
         if self.listening:
             self.stop_recording()
@@ -2822,6 +2825,7 @@ class MainWindow(Adw.ApplicationWindow):
             self.conversation_button.set_active(False)
             self._start_failure = str(exc)
             self._toast(self._start_failure)
+            self._write_listening_state(False, self._start_failure)
             return False
 
         # Roadmap task 10: watch the user's output device (read-only). A device, headphone-jack or
@@ -2830,6 +2834,7 @@ class MainWindow(Adw.ApplicationWindow):
         # that recovers. Voxa never switches a profile or a device herself.
         self.audio.start_device_watch()
         self.conversation_active = True
+        self._write_listening_state(True)
         self._latest_level = 0.0
         self._start_level_updates()
         self.conversation_button.set_label("Stop listening")
@@ -2845,6 +2850,7 @@ class MainWindow(Adw.ApplicationWindow):
             self.conversation.unmute()
             self.conversation = None
         self.conversation_active = False
+        self._write_listening_state(False)
         # A reply may still be playing: speech.stop() fires no callbacks, so
         # the mute/barge-in state is reset explicitly here.
         self.speech.stop()
@@ -2863,6 +2869,30 @@ class MainWindow(Adw.ApplicationWindow):
         self.record_button.set_sensitive(True)
         self.level.set_value(0)
         self._set_status("Ready")
+
+    def _write_listening_state(self, active: bool, reason: str = "") -> None:
+        """Record the real listening state for scripted live runs (issue #130).
+
+        Written from the same code path the Active button uses, on every change, so
+        `gapplication action io.github.crhy.voxa start-listening` and the VoxaTest
+        preflight read the same truth the button leaves behind. Never breaks the button.
+        """
+        try:
+            listening_state.write_state(listening_state.default_path(), active, reason)
+        except OSError as exc:
+            log.warning("could not write the listening state file: %s", exc)
+
+    def scripted_start_listening(self) -> None:
+        """The scripted twin of pressing Active (issue #130): the whole button path.
+
+        Same checks: if the brain or the mic is not ready this does not fake listening -
+        start_conversation_mode says why and the listening state file carries the reason.
+        """
+        self._on_shell_active()
+
+    def scripted_stop_listening(self) -> None:
+        """The scripted twin of turning listening off (issue #130): the same kill switch."""
+        self.assistant.go_offline()
 
     def _conversation_capture_error(self, error: str) -> bool:
         self.assistant.go_offline()
