@@ -55,10 +55,11 @@ ECHO_TAIL_SECONDS = 1.5
 
 
 # Whisper writes her own content words as near-misses ("leveling" for "lemonade", "Bans" for
-# "Paris", "five" for "5"); a pure echo line therefore carries AT MOST two content words the turn
-# never said. A real question over her reply carries more ("capital", "France", "life", "thank" in
-# the logged France line). Function words carry no signal: both share them.
-_VETO_FOREIGN_CONTENT_MAX = 2
+# "Paris", "five" for "5", "online" for "only"); a pure echo line therefore carries AT MOST three
+# content words the turn never said. A real question over her reply carries more ("capital",
+# "France", "life", "thank" in the logged France line), and a real maths prompt addresses her by
+# name - the wake word exempts it from the veto outright. Function words carry no signal.
+_VETO_FOREIGN_CONTENT_MAX = 3
 
 # Closed class: never decide narrowness on these. Numbers are NOT in it - "at 15 to 20" and
 # "100x4" are words to the veto (voxa.bargein._words drops digits, which made the logged maths
@@ -101,7 +102,8 @@ def _foreign_core(heard: str, turn_text: str, wake_word: str) -> tuple[int, int]
     one mishearing. Wake and stop words never count as foreign: they are cues, and the veto
     already steps aside for them.
     """
-    spoken_raw = {_NUMBER_WORDS.get(token, token) for token in _heard_tokens(turn_text)}
+    tokens = _heard_tokens(turn_text)
+    spoken_raw = {_NUMBER_WORDS.get(token, token) for token in tokens} | set(tokens)
     spoken = {token for token in spoken_raw if token not in _FUNCTION_WORDS}
     wake = wake_word.casefold()
     hers: set[str] = set()
