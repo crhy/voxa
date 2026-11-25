@@ -23,7 +23,13 @@ from .commands import (
 )
 from .comprehension import check as check_comprehension
 from .comprehension import comprehension_main, score_case
-from .config import DEFAULT_DATA_PATH, DEFAULT_FAILURE_REPORT_PATH, DEFAULT_REPORTS_DIR, load_settings
+from .config import (
+    DEFAULT_DATA_PATH,
+    DEFAULT_FAILURE_REPORT_PATH,
+    DEFAULT_REPORTS_DIR,
+    load_settings,
+    refuses_echo_mode,
+)
 from .generate_cases import generate_cases
 from .grader import GradeResult
 from .latency import format_latency, latency_report, load_records
@@ -316,10 +322,12 @@ def _run(
     if settings.output_device:
         os.environ.setdefault("GST_AUDIOSINK", settings.output_device)
 
-    if settings.voxa_echo_mode and settings.voxa_echo_mode != "off" and not settings.output_device:
+    if refuses_echo_mode(settings.voxa_echo_mode, settings.output_device):
         print(
-            "Voxa echo cancellation is enabled, so it will remove VoxaTest's spoken prompts. "
-            "In Voxa, set Preferences > Speech > Echo cancellation to Off before running acoustic tests.",
+            "Voxa echo cancellation on this mode listens to the whole system output, so it will "
+            "remove VoxaTest's spoken prompts. In Voxa, set Preferences > Speech > Echo "
+            "cancellation to Off, or to DTLN (which cancels only her own playback), before "
+            "running acoustic tests.",
             file=sys.stderr,
             flush=True,
         )

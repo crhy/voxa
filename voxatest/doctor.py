@@ -62,8 +62,23 @@ def check_echo_mode(settings: HarnessSettings) -> Check:
     mode = (settings.voxa_echo_mode or "").strip()
     if not mode:
         return Check("AEC mode", WARN, "Voxa's config was not found, so her echo mode is unknown.")
-    if mode in ("voxa", "webrtc"):
+    from voxa.config import SELF_REFERENCE_ECHO_MODES
+
+    if mode in SELF_REFERENCE_ECHO_MODES:
         return Check("AEC mode", PASS, f"Voxa cancels her own playback ({mode}); the soak measures her own canceller")
+    if mode == "webrtc":
+        if settings.output_device:
+            return Check(
+                "AEC mode", PASS,
+                "webrtc cancels the whole system output, but VoxaTest plays to its own device: "
+                "the test voice never enters that reference.",
+            )
+        return Check(
+            "AEC mode", WARN,
+            "webrtc cancels the whole system output, VoxaTest's spoken prompts included: a soak "
+            "on this config would cancel what it is measuring. Run with --output-device, or set "
+            "Voxa's echo cancellation to DTLN.",
+        )
     if mode == "off":
         return Check(
             "AEC mode", WARN,

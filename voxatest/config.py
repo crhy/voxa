@@ -140,6 +140,24 @@ def default_action_log_path() -> Path:
     return newest
 
 
+def refuses_echo_mode(mode: str, output_device: str) -> bool:
+    """True when Voxa's echo mode would cancel VoxaTest's own spoken prompts.
+
+    Modes whose reference is Voxa's own playback (DTLN, her own canceller, AEC3) can only
+    remove her own voice: a test prompt is not in that reference, and the point of issue #72
+    is that a live soak exercises the canceller. A mode that listens to the whole system
+    output (webrtc) would cancel the prompts too - unless VoxaTest plays to its own output
+    device, which keeps them out of that monitor. Unknown modes are refused too: nothing
+    proves their reference holds only her playback.
+    """
+    from voxa.config import SELF_REFERENCE_ECHO_MODES
+
+    mode = (mode or "").strip()
+    if not mode or mode == "off" or output_device:
+        return False
+    return mode not in SELF_REFERENCE_ECHO_MODES
+
+
 DEFAULT_REPORTS_DIR = default_reports_dir()
 DEFAULT_FAILURE_REPORT_PATH = default_failure_report_path()
 

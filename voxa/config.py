@@ -14,6 +14,11 @@ from .hardware import parse_device_id
 FACE_MODES = ("live", "prerendered", "still")
 WEB_SEARCH_MODES = ("auto", "always", "never")
 ECHO_MODES = ("dtln", "voxa", "aec3", "webrtc", "off")
+# The echo modes whose reference is Voxa's OWN playback (the render timeline, voxa/timeline.py):
+# no foreign stream can ever be cancelled by them, because it is not in the reference. "webrtc"
+# is the opposite: it listens to the monitor of the whole output sink and cancels everything on
+# the speakers - another application's music AND VoxaTest's spoken test voice.
+SELF_REFERENCE_ECHO_MODES = ("dtln", "voxa", "aec3")
 # The exchanges voxa/agent/exchange.py knows how to talk to (issue #46).
 EXCHANGE_NAMES = ("kraken", "coinbase", "bitstamp")
 DEFAULT_TTS_RATE = 230

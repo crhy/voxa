@@ -14,7 +14,13 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Pango", "1.0")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
-from .config import DEFAULT_DATA_PATH, default_failure_report_path, default_reports_dir, load_settings  # noqa: E402
+from .config import (  # noqa: E402
+    DEFAULT_DATA_PATH,
+    default_failure_report_path,
+    default_reports_dir,
+    load_settings,
+    refuses_echo_mode,
+)
 from .report import parse_event_line, parse_progress_line  # noqa: E402
 
 READ_CHUNK_BYTES = 4096
@@ -460,10 +466,11 @@ class VoxaTestWindow(Adw.ApplicationWindow):
             return
 
         settings = load_settings()
-        if settings.voxa_echo_mode and settings.voxa_echo_mode != "off":
+        if refuses_echo_mode(settings.voxa_echo_mode, settings.output_device):
             message = (
-                "Turn off Voxa echo cancellation in Preferences › Speech before running acoustic tests; "
-                "otherwise Voxa removes VoxaTest's spoken prompts."
+                "Turn off Voxa echo cancellation in Preferences › Speech, or pick DTLN which "
+                "cancels only her own playback, before running acoustic tests; otherwise Voxa "
+                "removes VoxaTest's spoken prompts."
             )
             self.status_label.set_text(message)
             self._append_log(f"[preflight] {message}\n")
