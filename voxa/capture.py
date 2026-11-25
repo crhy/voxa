@@ -38,8 +38,12 @@ PRE_ROLL_SECONDS = 0.5
 # The un-pinned rolling window: what the old ``_barge_buf`` held (160000 bytes ~ 5 s).
 WINDOW_SECONDS = 5.0
 # A confirmed user turn keeps growing (bounded chunked utterance storage) instead of
-# being cut when the ring rolls over; this is the bound, and going past it is counted.
-MAX_PINNED_SECONDS = 120.0
+# being cut when the ring rolls over. Issue #72, task v11 step 4: this used to be 120 s,
+# and the live log showed one held span growing past 60 s ACROSS turns (three VoxaTest
+# prompts plus her replies in one string, re-transcribed every second by Whisper base on
+# the CPU -> garbled requests and slow turns). A single request is bounded at 15 s; the
+# span is also closed at every turn boundary so it can never span two requests at all.
+MAX_PINNED_SECONDS = 15.0
 # How long a REJECTED candidate's pin survives before the span may be trimmed again.
 EVIDENCE_SECONDS = 2.0
 

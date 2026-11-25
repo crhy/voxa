@@ -3395,6 +3395,11 @@ class MainWindow(Adw.ApplicationWindow):
         if timeline is not None:
             timeline.close_turn()
         self._hearing.reply_ended()
+        # Issue #72, task v11 step 4: her reply ending is a turn boundary. The held capture
+        # span must not survive into the next turn (the live log let one span grow past 60 s
+        # across three prompts and their replies, re-transcribed every second).
+        if self.conversation is not None:
+            self.conversation.close_span()
 
     def _conversation_speak(self, text: str) -> None:
         if not may_speak(self.assistant.is_paused):
@@ -3876,6 +3881,9 @@ class MainWindow(Adw.ApplicationWindow):
             promoted = self.conversation.promote_pinned(force=True)
             self._barge_trace("promote", frames=len(promoted),
                               span_seconds=self.conversation.capture.span_seconds)
+            # Issue #72, task v11 step 4: the interruption's words are now the request; the
+            # held span is spent and must not carry on into the reply that follows.
+            self.conversation.close_span()
             self.conversation.unmute()
         self.conversation.arm_prompt()
         self.assistant.barge_in(self.assistant.token())

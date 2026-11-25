@@ -466,6 +466,19 @@ class ConversationController:
         """
         self.capture.note_rejected()
 
+    def close_span(self) -> None:
+        """Turn boundary (issue #72, task v11 step 4): drop the held capture span.
+
+        Her reply end, a promoted request and an accepted barge-in all end a turn; the
+        pinned span must not survive into the next one, and its transcript cache must not
+        re-transcribe a span that already holds a previous request. The frames themselves
+        stay in the bounded rolling window until a trim takes them; only the pin (the span a
+        classifier reads) and its cached transcript are closed here.
+        """
+        self.capture.release()
+        self._candidate_cache = None
+        self._candidate_text = ""
+
     def promote_pinned(self) -> int:
         """Make the pinned span the beginning of the user turn, exactly once.
 
