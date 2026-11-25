@@ -241,7 +241,7 @@ def main() -> int:
                 print(json.dumps(out))
                 return 1
             run(["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"+5%"])
-            time.sleep(max(0.0, started - time.monotonic() + 0.2))
+            time.sleep(0.2)
 
 
 if __name__ == "__main__":
