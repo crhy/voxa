@@ -251,17 +251,37 @@ class GstSinkClock:
 
     def latency(self) -> float:
         queued = max(0, int(self._queued())) / self.sample_rate
-        try:
-            success, minimum, maximum, _current = self.pipeline.query_latency()
-        except Exception:  # noqa: BLE001 - a pipeline that will not answer is not an error here
-            return self.fallback + queued
-        if not success:
-            return self.fallback + queued
-        value = minimum if minimum and minimum > 0 else maximum
-        if not value or value <= 0:
+        value = self._query_min_latency()
+        if value is None or value <= 0:
             return self.fallback + queued
         # GStreamer reports nanoseconds.
         return value / 1_000_000_000.0 + queued
+
+    def _query_min_latency(self):
+        """The pipeline's minimum latency in ns, or None when it will not answer.
+
+        Issue #72 / task v11d: ``pipeline.query_latency()`` does not exist in the sandbox's gi
+        (GStreamer 1.26.11), which left every render-tap anchor on the 0.05 s fallback. The query
+        that DOES work is ``Gst.Query.new_latency()`` + ``element.query(q)``, whose
+        ``parse_latency()`` returns ``(live, min, max)``; the current latency is not exposed at
+        all, so the minimum (falling back to the maximum) is the best the pipeline reports.
+        """
+        try:
+            from gi.repository import Gst
+        except Exception:  # noqa: BLE001 - no gi here: the caller's fallback answers
+            return None
+        try:
+            query = Gst.Query.new_latency()
+            if not self.pipeline.query(query):
+                return None
+            live, minimum, maximum = query.parse_latency()
+        except Exception:  # noqa: BLE001 - a pipeline that will not answer is not an error here
+            return None
+        value = minimum if minimum and minimum > 0 else maximum
+        del live
+        if not value or value <= 0:
+            return None
+        return value
 
 
 @dataclass(slots=True)
@@ -999,6 +1019,35 @@ def _tap_callback(timeline: RenderTimeline, generation: str, path: str, gst: Any
                   sink_clock: Any):
     """The appsink callback: hand the decoded PCM to the timeline, never break playback."""
 
+    def audible_anchor(sink, buffer):
+        """When THIS buffer leaves the speakers, on the shared device clock, or None.
+
+        Issue #72 / task v11d: the render tap's audible anchor was always the 0.05 s fallback,
+        because :meth:`GstSinkClock.latency` asked the pipeline for a LATENCY query the sandbox's
+        gi does not implement (``query_latency`` is absent; only ``Gst.Query.new_latency`` +
+        ``element.query`` answer, and even they expose no current latency). A fallback anchor
+        runs the sink's preroll/queue AHEAD of real playback, so the reference window is served
+        for the wrong span (the blank windows) and the residual reads +13..+27 dB over the echo
+        path's baseline while she speaks. The buffers at the tap carry a real device-clock
+        running time; ``base_time + running_time`` is the instant that buffer is audible, on the
+        very clock the microphone stamps with. Trust it when both are valid, and only fall back
+        to the sink-clock query when they are not.
+        """
+        none = getattr(gst, "CLOCK_TIME_NONE", -1)
+        try:
+            element = sink.get_parent()
+            while element is not None and element.get_parent() is not None:
+                element = element.get_parent()
+            base = element.get_base_time() if element is not None else None
+            running = buffer.get_running_time()
+            if base is None or running is None or base == none or running == none:
+                return None
+            if base < 0 or running < 0:
+                return None
+            return (base + running) / 1_000_000_000.0
+        except Exception:  # noqa: BLE001 - an answer-less clock falls back, never breaks sound
+            return None
+
     def on_sample(sink):
         try:
             sample = sink.emit("pull-sample")
@@ -1018,7 +1067,13 @@ def _tap_callback(timeline: RenderTimeline, generation: str, path: str, gst: Any
                 channels = max(1, int(structure.get_value("channels") or 1))
             if channels > 1 and data.size % channels == 0:
                 data = data.reshape(-1, channels)
-            timeline.submit(data, generation=generation, path=path, sink=sink_clock)
+            now = audible_anchor(sink, buffer)
+            if now is not None:
+                # ``sink=None`` on purpose: ``now`` IS the audible instant, so the timeline must
+                # not add a latency to it; it chains the rest from ``_next_playable``.
+                timeline.submit(data, generation=generation, path=path, now=now, sink=None)
+            else:
+                timeline.submit(data, generation=generation, path=path, sink=sink_clock)
         except Exception as exc:  # noqa: BLE001 - the reference must never stop the sound
             log.info("render tap dropped a buffer: %s", exc)
         return gst.FlowReturn.OK
