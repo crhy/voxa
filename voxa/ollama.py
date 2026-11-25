@@ -169,6 +169,24 @@ def ollama_display_name(manifest_relative: Path) -> str:
     return "/".join(parts[:-1]) + ":" + parts[-1]
 
 
+def installed_choice(saved: str, models: list[str]) -> str:
+    """The installed model the saved picker choice names, or "" when nothing does.
+
+    A saved choice written WITHOUT a tag means Ollama's own ``:latest`` tag
+    (``ollama pull qwen3.5-0.8b-q4km`` installs ``qwen3.5-0.8b-q4km:latest``), and
+    the picker lists tagged names: reading the untagged name as gone used to replace
+    the user's small brain with ``models[0]`` — the live v07 run booted the 11.7 GB
+    27B that way (task v07/v08). Never guess: an exact hit wins, else the ``:latest``
+    form, else nothing (the caller decides whether to fall back).
+    """
+    if not saved:
+        return ""
+    if saved in models:
+        return saved
+    latest = saved if ":" in saved else f"{saved}:latest"
+    return latest if latest in models else ""
+
+
 def disk_models(models_dir: Path | None = None) -> list[str]:
     """The Ollama models installed on disk, with the server stopped.
 

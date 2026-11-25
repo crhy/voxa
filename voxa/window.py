@@ -135,7 +135,7 @@ from .hardware import (  # noqa: E402
 from .installer import InstallerError, install_ollama, ollama_installed  # noqa: E402
 from .llamacpp import LlamaCppClient, StrataClient  # noqa: E402
 from .modelwait import models_to_show, wait_for_models  # noqa: E402
-from .ollama import OllamaClient, OllamaError, disk_models, strip_reasoning  # noqa: E402
+from .ollama import OllamaClient, OllamaError, disk_models, installed_choice, strip_reasoning  # noqa: E402
 from .ownspeech import OwnSpeech  # noqa: E402
 from .pausepolicy import exit_action as paused_exit_action  # noqa: E402
 from .pausepolicy import may_speak, reminder_action, wake_allowed  # noqa: E402
@@ -1905,8 +1905,14 @@ class MainWindow(Adw.ApplicationWindow):
         elif models and self.settings.ollama_model not in models:
             # A saved choice that is still installed — live, or on disk while the
             # server is stopped — is left alone; only a model that has gone is
-            # replaced.
-            self.settings.ollama_model = models[0]
+            # replaced. An UNTAGGED saved name IS its ``:latest`` tag (task v08,
+            # v07 live: the picker read ``qwen3.5-0.8b-q4km`` as gone and silently
+            # booted ``models[0]``, the 11.7 GB 27B).
+            match = installed_choice(self.settings.ollama_model, models)
+            if match:
+                self.settings.ollama_model = match
+            else:
+                self.settings.ollama_model = models[0]
             self.config_store.save(self.settings)
         self._apply_model_combo(models)
         return False
