@@ -75,6 +75,10 @@ def normalize_gpu_device(value: object) -> str:
 class Settings:
     microphone_id: str = ""
     microphone_name: str = ""
+    # Task v11e step 3b: the microphone INPUT gain Voxa set, per microphone_id, so she
+    # can hear on a quiet far mic. Each entry is {"volume_percent": int, "user_picked":
+    # bool}; user_picked means the user set it by hand and auto-adjust is off for that mic.
+    mic_levels: dict = field(default_factory=dict)
     whisper_model: str = "base"
     # Measured real-time factors (seconds of processing per second of speech) per model on this computer.
     whisper_rtf: dict[str, float] = field(default_factory=dict)
@@ -212,6 +216,21 @@ class Settings:
             self.exchange_name = ""
         self.exchange_key = (self.exchange_key or "").strip()
         self.exchange_secret = (self.exchange_secret or "").strip()
+
+        # Per-microphone input gain (task v11e): keep only well-formed entries; a
+        # hand-edited or stale value for one microphone is dropped, never the whole map.
+        clean_levels: dict[str, dict] = {}
+        if isinstance(self.mic_levels, dict):
+            for mic_id, entry in self.mic_levels.items():
+                if not isinstance(mic_id, str) or not mic_id or not isinstance(entry, dict):
+                    continue
+                try:
+                    pct = max(0, min(150, int(entry.get("volume_percent", 0))))
+                except (TypeError, ValueError):
+                    continue
+                clean_levels[mic_id] = {"volume_percent": pct,
+                                        "user_picked": bool(entry.get("user_picked"))}
+        self.mic_levels = clean_levels
 
         if self.echo_mode not in ECHO_MODES:
             self.echo_mode = "voxa"
