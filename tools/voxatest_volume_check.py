@@ -36,6 +36,8 @@ PHRASE = "Hello, this is the Voxa volume check."
 RATE = 16000
 TARGET_PEAK_DBFS = -20.0
 TARGET_OVER_NOISE_DB = 15.0
+# VoxaTest's own test phrase, set once per run for the closed-loop mode below.
+_phrase: Path | None = None
 
 
 def run(cmd: list[str]) -> str:
@@ -244,5 +246,45 @@ def main() -> int:
             time.sleep(max(0.0, started - time.monotonic() + 0.2))
 
 
+def loop_main() -> int:
+    """Closed-loop prompt level (task v11e step 3c): hold VoxaTest's OWN playback stream
+    at the recorded talking level (never the system output), measure each prompt's arrival
+    at Voxa's microphone, nudge the stream back to target, and log every arrival. This is
+    the opposite of the pre-check below, which only raises the sink until a phrase is
+    loud - that would hide real hearing failures. Run with the VoxaTest venv python."""
+    sys.path.insert(0, str(REPO))
+    from voxatest.promptlevel import PromptLevelLoop  # noqa: E402
+
+    capture = MicCapture()
+
+    def measure(prompt: str) -> float:
+        noise = capture.record(1.5)
+        noise_db = rms_dbfs(noise)
+        proc: list = []
+
+        def start_play() -> None:
+            proc.append(subprocess.Popen(["paplay", str(_phrase)],
+                                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
+
+        arrived = capture.record(4.0, after_start=start_play)
+        if proc:
+            proc[0].wait()
+        return gated_rms_dbfs(arrived, 10.0 ** (noise_db / 20.0))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        global _phrase
+        _phrase = make_phrase(Path(tmp))
+        loop = PromptLevelLoop(measure=measure)
+        if not loop.calibrate("calibration prompt"):
+            print(json.dumps({"pass": False, "reason": loop.reason}))
+            return 1
+        # Every prompt in the run would pass its real prompt text and heard flag here;
+        # the loop never turns the volume up to make a missed prompt "heard".
+        print(json.dumps({"pass": True, "arrivals": loop.report()}))
+        return 0
+
+
 if __name__ == "__main__":
+    if "--loop" in sys.argv:
+        sys.exit(loop_main())
     sys.exit(main())
