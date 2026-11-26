@@ -212,6 +212,60 @@ def test_wake_word_phonetic_never_fires_mid_sentence() -> None:
         assert strip_wake_word(heard, "voxa") is None, heard
 
 
+def _shared_controller(texts: list[str]):
+    """A controller whose wake and prompt model are one object, so the same-breath
+    refinement pass is skipped and each segment is transcribed exactly once."""
+    prompts: list[str] = []
+    transcriber = QueueTranscriber(texts)
+    controller = ConversationController(
+        wake_whisper=transcriber,
+        prompt_whisper=transcriber,
+        language="en",
+        wake_word="voxa",
+        threshold=500,
+        silence_ms=100,
+        voice_detector=False,
+        max_segment_seconds=0.3,
+        on_woken=lambda: None,
+        on_prompt=prompts.append,
+        on_status=lambda _s: None,
+        on_error=lambda _e: None,
+        on_exit=lambda _k: None,
+    )
+    return controller, prompts
+
+
+def test_pause_never_cuts_the_wake_word_off_its_request() -> None:
+    """Issue #72, task v11e: a short pause splits one spoken request in two. The
+    first segment holds the wake word, the second is the tail. The first segment is
+    joined onto the tail, not dropped, so the whole request reaches the prompt."""
+    controller, prompts = _shared_controller(
+        ["voxa open the map for walking directions", "to the library and the door"])
+    controller.JOIN_TURN_GAP_SECONDS = 5.0
+    controller.start()
+    _feed_utterance(controller)  # the half that held "voxa"
+    _feed_utterance(controller)  # the half after the pause, with no wake word
+    _drain(controller)
+    joined = [p for p in prompts if "walking directions to the library" in p]
+    assert joined, prompts
+    # the lone fragment (no wake word) is never delivered on its own
+    assert "to the library and the door" not in prompts
+
+
+def test_a_long_gap_does_not_join_the_two_turns() -> None:
+    controller, prompts = _shared_controller(
+        ["voxa open the map", "play some jazz"])
+    controller.JOIN_TURN_GAP_SECONDS = 0.0  # the gap is never short enough
+    controller.start()
+    _feed_utterance(controller)
+    _feed_utterance(controller)
+    _drain(controller)
+    assert prompts == ["open the map"]  # second turn dropped for no wake word, not joined
+
+
+
+
+
 
 
 

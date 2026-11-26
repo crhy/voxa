@@ -11,7 +11,7 @@ from collections.abc import Callable
 from difflib import SequenceMatcher
 
 from . import spellings
-from .agent.intents import is_start_dictation
+from .agent.intents import is_start_dictation, route
 from .capture import CaptureRing, Frame
 from .dictation import DICTATION_CHUNK_SECONDS, segment_stream
 from .endpoint import (EndpointPolicy, SmartTurn, arbitrate_endpoint, ends_dangling, is_complete,
@@ -248,6 +248,10 @@ class ConversationController:
     """
 
     PROMPT_TIMEOUT_SECONDS = 12.0  # longer than the follow-up window, so silence never cuts that short
+    # Task v11e: the largest silence gap that still counts as ONE breathless turn. A
+    # pause this short never cuts the wake word off its request: the segment before it
+    # (holding "Voxa") is joined onto the segment after it.
+    JOIN_TURN_GAP_SECONDS = 1.0
 
     def __init__(
         self,
@@ -360,6 +364,10 @@ class ConversationController:
         # The raw utterance most recently heard (before wake-word stripping), so
         # the caller can still see the wake word for pause/resume phrasing.
         self.last_heard: str = ""
+        # Issue #72, task v11e: the last utterance that HELD the wake word, with the
+        # moment it ended, so a fragment that follows within JOIN_TURN_GAP_SECONDS is
+        # joined onto it (the pause never cuts the wake word off its request).
+        self._recent_wake_turn: tuple[str, float] | None = None
         # Bounded timestamped capture of the microphone with pinning (voxa/capture.py):
         # every frame gets a sequence id, speech onset pins the span, and reading it never
         # consumes it. This replaces the old five-second ``_barge_buf``, which ``candidate_text()``,
@@ -549,10 +557,36 @@ class ConversationController:
     def _followup_open(self) -> bool:
         return self.followup_deadline is not None and time.monotonic() < self.followup_deadline
 
+    def _join_recent_turn(self, fragment: str, now: float) -> str | None:
+        """Join a fragment onto the wake-word turn that just preceded it.
+
+        Issue #72, task v11e: when the previous utterance HELD the wake word but a pause
+        endpointed it, and this fragment (no wake word of its own) follows within
+        :data:`JOIN_TURN_GAP_SECONDS`, they were one spoken request. Return the joined
+        utterance (the first segment carrying "Voxa" plus this fragment) so the whole
+        request is delivered; ``None`` when the gap has closed or there is nothing to join.
+        """
+        recent = self._recent_wake_turn
+        if not recent or not fragment.strip():
+            return None
+        first_text, first_end = recent
+        if now - first_end > self.JOIN_TURN_GAP_SECONDS:
+            return None
+        if route(fragment) is not None:
+            # A fragment that routes on its own is a fresh command, not the tail of
+            # the previous turn; let the normal follow-up/ignored path judge it.
+            return None
+        joined = f"{first_text} {fragment}".strip()
+        if strip_wake_word(joined, self.wake_word) is None:
+            return None
+        self._recent_wake_turn = (joined, now)  # keep growing: a third fragment joins too
+        return joined
+
     def stop(self) -> None:
         self.stop_event.set()
         self.waiting_for_prompt = False
         self.followup_deadline = None
+        self._recent_wake_turn = None
         try:
             self.queue.put_nowait(None)
         except queue.Full:
@@ -1010,6 +1044,18 @@ class ConversationController:
                     text, remainder = self._refine_wake_utterance(segment, text, remainder)
                     self.last_heard = text
                 if remainder is None:
+                    # Issue #72, task v11e: a pause must never cut the wake word off its
+                    # request. When a previous utterance that HELD the wake word was
+                    # endpointed and this next segment follows within a short gap, the two
+                    # are ONE turn: the first segment (carrying "Voxa") is joined onto this
+                    # fragment, not dropped. This is the h-pause shape
+                    # ("voxa open the map for walking directions" | pause | "to the library…").
+                    joined = self._join_recent_turn(text, time.monotonic())
+                    if joined is not None:
+                        text = joined
+                        remainder = strip_wake_word(text, self.wake_word)
+                        self.last_heard = text
+                if remainder is None:
                     # No wake word: accept it as a follow-up only while the
                     # window is open and it is clearly addressed to Voxa (at
                     # least two words and a routed call, continuation or
@@ -1030,6 +1076,9 @@ class ConversationController:
                     continue
                 if self.stop_event.is_set():
                     break
+                # A woken utterance is the base of a possible pause-joined turn: remember it
+                # (and its end) so a fragment that follows within the gap reuses its wake word.
+                self._recent_wake_turn = (text, time.monotonic())
                 if not self._woken_early:
                     self._woken_early = True
                     self.on_woken()
