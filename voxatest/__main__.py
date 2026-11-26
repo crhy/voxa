@@ -41,7 +41,14 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     run.add_argument("--limit", type=int)
     run.add_argument("--reports", help=f"Report directory (default: {DEFAULT_REPORTS_DIR})")
     run.add_argument("--json-report")
+    run.add_argument("--json", help="Write the run's JSON report to this exact path (offline runs).")
     run.add_argument("--text-report")
+    run.add_argument(
+        "--offline",
+        action="store_true",
+        help="Grade real answers offline: TTS the prompts into WAVs, feed them through Voxa's real "
+        "hearing path and request pipeline, no speakers or microphone.",
+    )
     run.add_argument(
         "--failure-report",
         help=f"Git-friendly latest-failures Markdown file (default: {DEFAULT_FAILURE_REPORT_PATH})",
@@ -469,6 +476,18 @@ def main(argv: list[str] | None = None) -> int:
         if not cases:
             print(f"No test cases found in {args.cases}. Generate cases first.", file=sys.stderr)
             return 1
+        if getattr(args, "offline", False):
+            from .offline import run_offline
+
+            return run_offline(
+                settings,
+                cases,
+                reports_dir=args.reports or str(settings.reports_dir),
+                json_path=args.json,
+                text_path=args.text_report,
+                failure_path=args.failure_report,
+                config=str(settings.voxa_config_path) if settings.voxa_config_path else None,
+            )
         return _run(
             settings,
             cases,

@@ -1,0 +1,44 @@
+  config mic set to A: device.serial:Image+_Galyimage_Live_camera_HU12345679876543
+  busy (load 6.22), waiting
+  busy (load 4.58), waiting
+  busy (load 4.73), waiting
+  busy (load 3.95), waiting
+  busy (load 3.30), waiting
+  single live instance ok
+  stop_latency_p50_ms        null
+  stop_latency_p95_ms        null
+  premature_rate             null
+  self_interrupt_count       null
+  request_word_retention     null
+  cases [{'case_id': 'wake-0', 'category': 'wake-word', 'prompt': 'voxa what is the capital of france', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'wake-1', 'category': 'wake-word', 'prompt': 'voxa what is the capital of italy', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'wake-2', 'category': 'wake-word', 'prompt': 'voxa what is the capital of japan', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'wake-3', 'category': 'wake-word', 'prompt': 'voxa what is the capital of spain', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'wake-4', 'category': 'wake-word', 'prompt': 'voxa what is the capital of germany', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'wake-5', 'category': 'wake-word', 'prompt': 'voxa what is the capital of portugal', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'wake-6', 'category': 'wake-word', 'prompt': 'voxa what is the capital of norway', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'wake-7', 'category': 'wake-word', 'prompt': 'voxa what is the capital of poland', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'wake-8', 'category': 'wake-word', 'prompt': 'voxa what is the capital of egypt', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'wake-9', 'category': 'wake-word', 'prompt': 'voxa what is the capital of kenya', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'wake-10', 'category': 'wake-word', 'prompt': 'voxa what is the capital of india', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'wake-11', 'category': 'wake-word', 'prompt': 'voxa what is the capital of canada', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'wake-12', 'category': 'wake-word', 'prompt': 'voxa what is the capital of brazil', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'wake-13', 'category': 'wake-word', 'prompt': 'voxa what is the tallest mountain in the world', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'wake-14', 'category': 'wake-word', 'prompt': 'voxa how many continents are there', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'wake-15', 'category': 'wake-word', 'prompt': 'voxa what color do you get from blue and yellow', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'wake-16', 'category': 'wake-word', 'prompt': 'voxa spell the word box', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'wake-17', 'category': 'wake-word', 'prompt': 'voxa repeat after me vox a little fox', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'wake-18', 'category': 'wake-word', 'prompt': 'voxa what is two plus two', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}, {'case_id': 'wake-19', 'category': 'wake-word', 'prompt': 'voxa what is the capital of peru', 'heard': '', 'hearing_word_accuracy': 0.0, 'hearing_word_accuracy_best_record': None, 'layer': 'not_heard', 'expected_tool': '', 'tools_ran': [], 'routed': None, 'passed': False, 'error': '', 'confusions': []}]  yielded None/None  kept None/None  complete requests None/None  premature None/None
+  per cell:
+  per overlap:
+  per expect:
+JSON report: .voxa-bench/wake-report-A.json
+Text report: .voxa-bench/voxatest-reports/run_20261126_063115_937356_21660_d59fe2d9.txt
+Failure report: VOXATEST_FAILURES.md
+---- wake report summary (mic A) ----
+cases=20 not_heard=20 WAKE_HITS=0 of 20
+  wake-0 passed=False transcript=''
+  wake-1 passed=False transcript=''
+  wake-2 passed=False transcript=''
+  wake-3 passed=False transcript=''
+  wake-4 passed=False transcript=''
+  wake-5 passed=False transcript=''
+  wake-6 passed=False transcript=''
+  wake-7 passed=False transcript=''
+  wake-8 passed=False transcript=''
+  wake-9 passed=False transcript=''
+  wake-10 passed=False transcript=''
+  wake-11 passed=False transcript=''
+  wake-12 passed=False transcript=''
+  wake-13 passed=False transcript=''
+  wake-14 passed=False transcript=''
+  wake-15 passed=False transcript=''
+  wake-16 passed=False transcript=''
+  wake-17 passed=False transcript=''
+  wake-18 passed=False transcript=''
+  wake-19 passed=False transcript=''
+---- barge.log delta (mic A, wake) ----
+lines=0 no-wake=0 INTERRUPT=0 face-state=0 self-commands=0
+ALLDONE_wake

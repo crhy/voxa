@@ -1,0 +1,24 @@
+22:49:14.248 speak-start path='whole-reply' conversation=True turn_ms=0 muted=True level_timer=True text='The first sentence is long enough that Voxa will s'
+22:49:14.287 speak-start path='whole-reply' conversation=True turn_ms=0 muted=True level_timer=True text='最初の文は、チェックの開始時にボクサがまだ話しているほど長い文です。二番目の文は、応答の合い間に参照'
+22:49:15.403 gate-open level=0.027 baseline=0.003 settled=True ratio=2.180
+22:49:17.573 words heard="Let's get started." raw="Let's get started." source='uncertain' confidence=0.000 degraded=True reasons='reference silent for this moment while speaking: echo not arrived at this span, abstain' seconds=1.229 speaking='最初の文は、チェックの開始時にボクサがまだ話しているほど長い文です。二番目の文は、応答の合い間に参照が沈黙しないように、'
+22:49:17.574 hallucination heard="Let's get started." raw="Let's get started." vad_prob=None no_speech_prob=None avg_logprob=None compression_ratio=None speaking='最初の文は、チェックの開始時にボクサがまだ話しているほど長い文です。二番目の文は、応答の合い間に参照が沈黙しないように、'
+22:49:17.574 HOLD source='' confidence=0.000
+22:49:17.575 promote-hold frames=276 span_seconds=2.759
+22:49:17.582 gate-open level=0.024 baseline=0.006 settled=True ratio=3.290
+22:49:17.584 words heard='' raw='' source='uncertain' confidence=0.000 degraded=False reasons='no speech on the cleaned signal (no words, VAD unmeasured): abstain' seconds=0.001 speaking='最初の文は、チェックの開始時にボクサがまだ話しているほど長い文です。二番目の文は、応答の合い間に参照が沈黙しないように、'
+22:49:17.584 hallucination heard='' raw='' vad_prob=None no_speech_prob=0.562 avg_logprob=-1.191 compression_ratio=0.692 speaking='最初の文は、チェックの開始時にボクサがまだ話しているほど長い文です。二番目の文は、応答の合い間に参照が沈黙しないように、'
+22:49:17.585 HOLD source='' confidence=0.000
+22:49:17.585 promote-hold frames=2 span_seconds=2.777
+22:49:20.099 gate-open level=0.051 baseline=0.004 settled=True ratio=2.560
+22:49:21.210 words heard='' raw='' source='uncertain' confidence=0.000 degraded=True reasons='reference silent for this moment while speaking: echo not arrived at this span, abstain' seconds=0.209 speaking='最初の文は、チェックの開始時にボクサがまだ話しているほど長い文です。二番目の文は、応答の合い間に参照が沈黙しないように、'
+22:49:21.210 hallucination heard='' raw='' vad_prob=None no_speech_prob=None avg_logprob=None compression_ratio=None speaking='最初の文は、チェックの開始時にボクサがまだ話しているほど長い文です。二番目の文は、応答の合い間に参照が沈黙しないように、'
+22:49:21.211 HOLD source='' confidence=0.000
+22:49:21.212 promote-hold frames=363 span_seconds=6.404
+22:49:21.302 gate-open level=0.020 baseline=0.005 settled=True ratio=1.190
+22:49:22.398 words heard='' raw='' source='uncertain' confidence=0.000 degraded=False reasons='no speech on the cleaned signal (no words, VAD unmeasured): abstain' seconds=0.195 speaking='最初の文は、チェックの開始時にボクサがまだ話しているほど長い文です。二番目の文は、応答の合い間に参照が沈黙しないように、'
+22:49:22.398 hallucination heard='' raw='' vad_prob=None no_speech_prob=None avg_logprob=None compression_ratio=None speaking='最初の文は、チェックの開始時にボクサがまだ話しているほど長い文です。二番目の文は、応答の合い間に参照が沈黙しないように、'
+22:49:22.398 HOLD source='' confidence=0.000
+22:49:22.399 promote-hold frames=118 span_seconds=7.586
+22:49:29.837 render-tap attached=True pieces=1 samples=237312 peak=0.757 silent=False error=''
+22:49:29.837 echo-health reference_db=0.000 explained_db=-5.800 residual_db=-73.100 frames=309 travel_ms=-38.100 lock_ms=-38.100 lock_confident=False lock_degraded=True pilot_prom=13.779

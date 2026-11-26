@@ -130,3 +130,14 @@ def test_a_lone_stop_word_after_her_sentence_is_not_echo():
     assert own.is_echo(heard, protect=["voxa"]) is False
     assert own.strip(heard, protect=["voxa"])[0] == "stop"
     assert own.is_echo("and horror novelist he is best known for his works", protect=["voxa"]) is True
+
+
+def test_followup_after_wake_word_keeps_boilerplate_shared_with_last_reply():
+    # A "what is the capital of X" follow-up after her "... is the capital of Y." reply
+    # shares her own boilerplate but the user spoke (the wake word proves it): keep it all.
+    own = OwnSpeech()
+    own.started("Tokyo is the capital of Japan.")
+    own.finished()
+    heard = "voxa what is the capital of italy"
+    assert own.is_echo(heard, protect=["voxa"]) is False
+    assert own.strip(heard, protect=["voxa"])[0] == heard

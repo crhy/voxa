@@ -588,3 +588,23 @@ def test_dictation_ignores_the_followup_gate() -> None:
     _drain(controller)
     assert prompts == ["nice weather today"]
     assert exits == []
+
+
+def test_the_wake_hint_can_swallow_the_wake_word_and_bare_retry_recovers(monkeypatch) -> None:
+    monkeypatch.setattr("voxa.conversation.refresh_app_names", lambda: [])
+    wake = HintRecordingTranscriber(["nice to meet you"])
+
+    class HintAwareTranscriber(HintRecordingTranscriber):
+        """The wake word survives only a pass with no hint (mirrors real VAD+prompt behaviour)."""
+
+        def transcribe(self, segment: bytes, language: str, hint: str = "") -> str:
+            self.hints.append(hint)
+            return "Voxa, nice to meet you" if not hint else "nice to meet you"
+
+    prompt = HintAwareTranscriber([])
+    controller, prompts = _make_recording_controller(wake, prompt)
+    controller.start()
+    _feed_utterance(controller)
+    _drain(controller)
+    assert prompts == ["nice to meet you"]
+    assert prompt.hints[-2:] == ["Voxa.", ""]
