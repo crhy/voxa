@@ -183,6 +183,12 @@ BARGE_IN_GRACE_SECONDS = 0.4
 BARGE_IN_LISTEN_SECONDS = 0.9
 # How long the high-resolution face server may take to load its model before Voxa gives up on it.
 FACE_SERVER_START_SECONDS = 90.0
+# A heard question is worth waiting briefly for a stopped managed backend
+# (ollama serve / llama-server) to come back before the request fails.
+AI_SERVER_WAIT_SECONDS = 30.0
+AI_SERVER_WAIT_DELAY = 0.5
+# Hands-free users cannot see the toast, so a failed request must also say why out loud.
+AI_APOLOGY = "Sorry, I could not get an answer from the model."
 # Version 5 also gates neural rendering against the real audio playback clock,
 # so prepared or paused speech cannot make the GPU run far ahead.
 LIVE_FACE_PROTOCOL_VERSION = 5
@@ -334,6 +340,9 @@ class MainWindow(Adw.ApplicationWindow):
         self._last_search_query: str | None = None
         self._last_search_at = 0.0
         self._search_record: dict | None = None
+        # heard/route/monotonic-start of the model request whose pre-call action
+        # record was written, so its final record can carry ok/speech/ms.
+        self._action_pending: tuple[str, str, float] | None = None
         self._search_source = ""
         self._search_results: list = []
         self._last_site_url: tuple[float, str] | None = None
@@ -3768,13 +3777,33 @@ class MainWindow(Adw.ApplicationWindow):
                             prompt = f"{context}\n\nQuestion: {prompt}"
                 rec = self._search_record
                 if rec is not None:
-                    self._log_action(heard, rec["route"], args=rec["args"], detail=rec["detail"], timings=self._cmd_timings(None))
+                    route = rec["route"]
+                    self._log_action(heard, route, args=rec["args"], detail=rec["detail"], timings=self._cmd_timings(None))
                 else:
-                    self._log_action(heard, "model", timings=self._cmd_timings(None))
+                    route = "model"
+                    self._log_action(heard, route, timings=self._cmd_timings(None))
                 if isinstance(client, LlamaCppClient) and client.is_busy():
                     idle(self._on_server_busy, generation, cancel_event)
-                if hasattr(client, "is_model_loaded") and client.is_model_loaded(model) is False:
+                loaded = client.is_model_loaded(model) if hasattr(client, "is_model_loaded") else None
+                if loaded is None and hasattr(client, "is_model_loaded") and self.settings.ai_backend in ("ollama", "llamacpp"):
+                    # The managed backend was stopped (or never started) under us: a
+                    # heard question is worth restarting it and waiting briefly for
+                    # it instead of silently answering with nothing.
+                    idle(self._on_ai_server_starting, generation, cancel_event)
+                    self.ai_server.start()
+                    deadline = time.monotonic() + AI_SERVER_WAIT_SECONDS
+                    while (
+                        time.monotonic() < deadline
+                        and self._query_is_current(generation, cancel_event)
+                        and not cancel_event.is_set()
+                    ):
+                        loaded = client.is_model_loaded(model)
+                        if loaded is not None:
+                            break
+                        time.sleep(AI_SERVER_WAIT_DELAY)
+                if loaded is False:
                     idle(self._on_model_loading, model, generation, cancel_event)
+                self._action_pending = (heard, route, time.monotonic())
                 answer = client.generate_stream(
                     model=model,
                     prompt=prompt,
@@ -3787,6 +3816,10 @@ class MainWindow(Adw.ApplicationWindow):
             except OllamaError as exc:
                 flush_chunks()
                 idle(self._on_query_error, str(exc), generation, cancel_event)
+            except Exception as exc:  # noqa: BLE001 - a dead query thread must never be silent
+                flush_chunks()
+                logging.exception("the AI query thread crashed")
+                idle(self._on_query_error, f"{type(exc).__name__}: {exc}", generation, cancel_event)
 
         threading.Thread(target=worker, name=f"ollama-query-{generation}", daemon=True).start()
 
@@ -3839,6 +3872,9 @@ class MainWindow(Adw.ApplicationWindow):
                 idle(self._on_draft_finished, answer, generation, cancel_event, finish)
             except OllamaError as exc:
                 idle(self._on_draft_error, str(exc), generation, cancel_event)
+            except Exception as exc:  # noqa: BLE001 - a dead draft thread must never be silent either
+                logging.exception("the AI draft thread crashed")
+                idle(self._on_draft_error, f"{type(exc).__name__}: {exc}", generation, cancel_event)
 
         threading.Thread(target=worker, name=f"draft-{generation}", daemon=True).start()
 
@@ -4165,6 +4201,10 @@ class MainWindow(Adw.ApplicationWindow):
             except OllamaError as exc:
                 if not cancel_event.is_set():
                     idle(self._warm_up_failed, str(exc), generation, cancel_event)
+            except Exception as exc:  # noqa: BLE001 - the loading spinner must not stick forever
+                logging.exception("the AI warm-up thread crashed")
+                if not cancel_event.is_set():
+                    idle(self._warm_up_failed, f"{type(exc).__name__}: {exc}", generation, cancel_event)
 
         threading.Thread(target=worker, name=f"warm-up-{generation}", daemon=True).start()
 
@@ -4362,6 +4402,7 @@ class MainWindow(Adw.ApplicationWindow):
                 self._conversation_history.drop_last()
             self._pending_user_generation = None
             self._end_query_task("cancelled")
+            self._finish_action_record(ok=False, detail="cancelled")
             self._set_status("AI request stopped.")
             return False
         self._end_query_task("done")
@@ -4401,6 +4442,7 @@ class MainWindow(Adw.ApplicationWindow):
                 self.assistant.reply_finished(self.assistant.token(), waiting_for_prompt=waiting)
             if answer and self.settings.auto_speak:
                 self.speak_response()
+        self._finish_action_record(speech=spoken)
         return False
 
     def _on_query_error(
@@ -4416,12 +4458,54 @@ class MainWindow(Adw.ApplicationWindow):
             self._conversation_history.drop_last()
         self._pending_user_generation = None
         self._end_query_task("failed", error)
+        self._finish_action_record(ok=False, detail=error)
         logging.warning("AI request failed: %s", error)
         if self.conversation_active:
             self._fail_assistant("The AI request failed")
+            self._speak_apology()
         self._toast(error)
         self._set_status(self._conversation_idle_status() if self.conversation_active else "AI request failed.")
         return False
+
+    def _finish_action_record(self, ok: bool = True, speech: str = "", detail: str = "") -> None:
+        """Write the final record of a model request the pre-call record was logged for.
+
+        Without it the action log only ever shows the pre-call line (ok null, empty
+        speech, ms 0) for every heard request, healthy or broken alike.
+        """
+        pending, self._action_pending = self._action_pending, None
+        if pending is None:
+            return
+        heard, route, started = pending
+        self._log_action(
+            heard,
+            route,
+            ok=ok,
+            speech=speech,
+            detail=detail,
+            ms=max(0, int((time.monotonic() - started) * 1000)),
+            timings=self._cmd_timings(time.monotonic()),
+        )
+
+    def _on_ai_server_starting(self, generation: int, cancel_event: threading.Event) -> bool:
+        """A stopped managed backend is being restarted: say so instead of failing silent."""
+        if not self._query_is_current(generation, cancel_event) or cancel_event.is_set():
+            return False
+        detail = f"Starting {self._backend_label()}…"
+        self._set_status(detail, busy=True)
+        self.assistant_model.set_state(AssistantState.WORKING, detail)
+        return False
+
+    def _speak_apology(self) -> None:
+        """Hands-free users cannot see the toast: the failed request must be heard too."""
+        self.speech.speak(
+            AI_APOLOGY,
+            self.settings.tts_rate,
+            self._reply_voice(),
+            on_started=lambda: None,
+            on_done=lambda: None,
+            on_error=lambda error: idle(self._speech_error, error),
+        )
 
     def speak_response(self) -> None:
         text = self._get_text(self.response_view) or self._get_text(self.transcript_view)
