@@ -352,3 +352,18 @@ def test_open_url_uses_plain_urlopen_for_remote_urls():
     with patch("urllib.request.urlopen", return_value=response) as mocked:
         open_url(urllib.request.Request("http://example.invalid/api/tags"), timeout=1)
     assert mocked.called
+
+
+def test_generate_stream_keeps_spoken_answers_cool() -> None:
+    """Issue #72 offline: Ollama's default 0.8 temperature made small models invent facts."""
+    response = FakeResponse(b'{"message":{"content":"Sixty."},"done":true}\n')
+    with patch("voxa.ollama.open_url", return_value=response) as mocked:
+        OllamaClient().generate_stream(
+            model="qwen3.5:0.8b",
+            prompt="how many minutes are in an hour",
+            cancel_event=threading.Event(),
+            on_chunk=lambda _chunk: None,
+            messages=[{"role": "user", "content": "how many minutes are in an hour"}],
+        )
+    body = json.loads(mocked.call_args[0][0].data)
+    assert body["options"]["temperature"] == 0.2

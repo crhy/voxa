@@ -1,0 +1,31 @@
+22:51:08.781 speak-start path='whole-reply' conversation=True turn_ms=0 muted=True level_timer=True text='الجملة الأولى طويلة بما يكفي لأن تتحدث فوكسا عند ب'
+22:51:11.393 gate-open level=0.025 baseline=0.010 settled=True ratio=1.260
+22:51:12.604 words heard='' raw='' source='uncertain' confidence=0.000 degraded=False reasons='no speech on the cleaned signal (no words, VAD unmeasured): abstain' seconds=0.309 speaking='الجملة الأولى طويلة بما يكفي لأن تتحدث فوكسا عند بدء التحقق.'
+22:51:12.604 hallucination heard='' raw='' vad_prob=None no_speech_prob=None avg_logprob=None compression_ratio=None speaking='الجملة الأولى طويلة بما يكفي لأن تتحدث فوكسا عند بدء التحقق.'
+22:51:12.605 HOLD source='' confidence=0.000
+22:51:12.605 promote-hold frames=174 span_seconds=1.730
+22:51:13.096 gate-open level=0.027 baseline=0.012 settled=True ratio=1.340
+22:51:14.214 words heard='' raw='' source='uncertain' confidence=0.000 degraded=False reasons='no speech on the cleaned signal (no words, VAD unmeasured): abstain' seconds=0.217 speaking='الجملة الأولى طويلة بما يكفي لأن تتحدث فوكسا عند بدء التحقق.'
+22:51:14.214 hallucination heard='' raw='' vad_prob=None no_speech_prob=None avg_logprob=None compression_ratio=None speaking='الجملة الأولى طويلة بما يكفي لأن تتحدث فوكسا عند بدء التحقق.'
+22:51:14.214 HOLD source='' confidence=0.000
+22:51:14.215 promote-hold frames=161 span_seconds=3.342
+22:51:14.949 gate-open level=0.023 baseline=0.007 settled=True ratio=1.450
+22:51:16.075 words heard='' raw='' source='uncertain' confidence=0.000 degraded=False reasons="microphone at the echo path's floor (-120.0 dB) with no speech: abstain" seconds=0.225 speaking='الجملة الأولى طويلة بما يكفي لأن تتحدث فوكسا عند بدء التحقق.'
+22:51:16.075 hallucination heard='' raw='' vad_prob=None no_speech_prob=None avg_logprob=None compression_ratio=None speaking='الجملة الأولى طويلة بما يكفي لأن تتحدث فوكسا عند بدء التحقق.'
+22:51:16.075 HOLD source='' confidence=0.000
+22:51:16.076 promote-hold frames=186 span_seconds=5.201
+22:51:16.901 gate-open level=0.020 baseline=0.008 settled=True ratio=1.470
+22:51:19.895 words heard='' raw='' source='uncertain' confidence=0.000 degraded=False reasons='no speech on the cleaned signal (no words, VAD unmeasured): abstain' seconds=2.092 speaking='الجملة الأولى طويلة بما يكفي لأن تتحدث فوكسا عند بدء التحقق.'
+22:51:19.895 hallucination heard='' raw='' vad_prob=None no_speech_prob=None avg_logprob=None compression_ratio=None speaking='الجملة الأولى طويلة بما يكفي لأن تتحدث فوكسا عند بدء التحقق.'
+22:51:19.895 HOLD source='' confidence=0.000
+22:51:19.896 promote-hold frames=382 span_seconds=9.022
+22:51:19.901 gate-open level=0.023 baseline=0.010 settled=True ratio=1.280
+22:51:19.904 words heard='' raw='' source='uncertain' confidence=0.000 degraded=True reasons='reference silent for this moment while speaking: echo not arrived at this span, abstain' seconds=0.001 speaking='الجملة الأولى طويلة بما يكفي لأن تتحدث فوكسا عند بدء التحقق.'
+22:51:19.904 hallucination heard='' raw='' vad_prob=None no_speech_prob=None avg_logprob=None compression_ratio=None speaking='الجملة الأولى طويلة بما يكفي لأن تتحدث فوكسا عند بدء التحقق.'
+22:51:19.904 HOLD source='' confidence=0.000
+22:51:19.905 promote-hold frames=1 span_seconds=9.030
+22:51:20.612 gate-open level=0.022 baseline=0.005 settled=True ratio=1.290
+22:51:21.716 words heard='' raw='' source='uncertain' confidence=0.000 degraded=False reasons='no speech on the cleaned signal (no words, VAD unmeasured): abstain' seconds=0.202 speaking='الجملة الأولى طويلة بما يكفي لأن تتحدث فوكسا عند بدء التحقق.'
+22:51:21.716 hallucination heard='' raw='' vad_prob=None no_speech_prob=None avg_logprob=None compression_ratio=None speaking='الجملة الأولى طويلة بما يكفي لأن تتحدث فوكسا عند بدء التحقق.'
+22:51:21.716 HOLD source='' confidence=0.000
+22:51:21.717 promote-hold frames=181 span_seconds=10.842

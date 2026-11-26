@@ -1,0 +1,326 @@
+{
+  "cases": [
+    {
+      "id": "everyday-question-france-capital",
+      "category": "question",
+      "prompt": "what is the capital of France",
+      "expected_keywords": [
+        "paris"
+      ],
+      "capability": 0
+    },
+    {
+      "id": "everyday-question-twelve-times-twelve",
+      "category": "question",
+      "prompt": "what is twelve times twelve",
+      "expected_keywords": [
+        "144|a hundred and forty four|one hundred forty four"
+      ],
+      "capability": 0
+    },
+    {
+      "id": "everyday-question-leap-year-days",
+      "category": "question",
+      "prompt": "how many days are in the leap year 2024",
+      "expected_keywords": [
+        "366|three hundred and sixty six|three hundred sixty six"
+      ],
+      "capability": 0
+    },
+    {
+      "id": "everyday-question-japan-capital",
+      "category": "question",
+      "prompt": "what is the capital of Japan",
+      "expected_keywords": [
+        "tokyo"
+      ],
+      "capability": 0
+    },
+    {
+      "id": "everyday-question-divide",
+      "category": "question",
+      "prompt": "what is twenty divided by four",
+      "expected_keywords": [
+        "5|five|five point"
+      ],
+      "capability": 0
+    },
+    {
+      "id": "everyday-question-square-root",
+      "category": "question",
+      "prompt": "what is the square root of 144",
+      "expected_keywords": [
+        "12|twelve"
+      ],
+      "capability": 0
+    },
+    {
+      "id": "everyday-question-spain-capital",
+      "category": "question",
+      "prompt": "what is the capital of Spain",
+      "expected_keywords": [
+        "madrid"
+      ],
+      "capability": 0
+    },
+    {
+      "id": "everyday-question-germany-capital",
+      "category": "question",
+      "prompt": "what is the capital of Germany",
+      "expected_keywords": [
+        "berlin"
+      ],
+      "capability": 0
+    },
+    {
+      "id": "everyday-question-minutes-hour",
+      "category": "question",
+      "prompt": "how many minutes are in an hour",
+      "expected_keywords": [
+        "60|sixty"
+      ],
+      "capability": 0
+    },
+    {
+      "id": "everyday-question-half-fifty",
+      "category": "question",
+      "prompt": "what is half of fifty",
+      "expected_keywords": [
+        "25|twenty five|twenty-five"
+      ],
+      "capability": 0
+    },
+    {
+      "id": "everyday-command-set-timer",
+      "category": "command",
+      "prompt": "set a timer for five minutes",
+      "expected_tool": "set_timer",
+      "expected_args": {
+        "duration": "five minutes|5 minutes"
+      },
+      "capability": 0
+    },
+    {
+      "id": "everyday-command-set-reminder",
+      "category": "command",
+      "prompt": "remind me to drink water in twenty minutes",
+      "expected_tool": "set_reminder",
+      "expected_args": {
+        "text": "drink water"
+      },
+      "capability": 0
+    },
+    {
+      "id": "everyday-command-take-note",
+      "category": "command",
+      "prompt": "take a note to buy milk",
+      "expected_tool": "take_note",
+      "expected_args": {
+        "text": "buy milk"
+      },
+      "capability": 0
+    },
+    {
+      "id": "everyday-command-open-calculator",
+      "category": "command",
+      "prompt": "open the calculator",
+      "expected_tool": "open_app",
+      "expected_args": {
+        "name": "calculator"
+      },
+      "capability": 0
+    },
+    {
+      "id": "everyday-command-volume-up",
+      "category": "command",
+      "prompt": "turn the volume up",
+      "expected_tool": "system_volume",
+      "expected_args": {
+        "action": "louder"
+      },
+      "capability": 0
+    },
+    {
+      "id": "everyday-command-list-add-milk",
+      "category": "command",
+      "prompt": "add milk to my shopping list",
+      "expected_tool": "list_add",
+      "expected_args": {
+        "item": "milk",
+        "list": "shopping"
+      },
+      "capability": 0
+    },
+    {
+      "id": "everyday-command-read-notes",
+      "category": "command",
+      "prompt": "read my notes",
+      "expected_tool": "read_notes",
+      "capability": 0
+    },
+    {
+      "id": "everyday-command-cancel-timer",
+      "category": "command",
+      "prompt": "cancel my timer",
+      "expected_tool": "cancel_reminders",
+      "capability": 0
+    },
+    {
+      "id": "everyday-command-close-calculator",
+      "category": "command",
+      "prompt": "close the calculator",
+      "expected_tool": "close_app",
+      "expected_args": {
+        "name": "calculator"
+      },
+      "capability": 0
+    },
+    {
+      "id": "everyday-command-list-reminders",
+      "category": "command",
+      "prompt": "what reminders do I have",
+      "expected_tool": "list_reminders",
+      "capability": 0
+    },
+    {
+      "id": "everyday-chat-hello",
+      "category": "chat",
+      "prompt": "hello",
+      "expected_keywords": [
+        "hello|hi|hey|good morning|good afternoon|good evening|nice"
+      ],
+      "reply_style": {
+        "short": true,
+        "no_markdown": true,
+        "max_words": 40
+      },
+      "capability": 0
+    },
+    {
+      "id": "everyday-chat-how-are-you",
+      "category": "chat",
+      "prompt": "how are you doing",
+      "expected_keywords": [
+        "good|great|fine|well|doing|hello|hi|hey"
+      ],
+      "reply_style": {
+        "short": true,
+        "no_markdown": true,
+        "max_words": 40
+      },
+      "capability": 0
+    },
+    {
+      "id": "everyday-chat-tell-joke",
+      "category": "chat",
+      "prompt": "tell me a joke",
+      "expected_keywords": [
+        "joke|why|because|knock|once|told|here's a joke|sure|funny|laugh"
+      ],
+      "reply_style": {
+        "short": true,
+        "no_markdown": true,
+        "max_words": 40
+      },
+      "capability": 0
+    },
+    {
+      "id": "everyday-chat-your-name",
+      "category": "chat",
+      "prompt": "what is your name",
+      "expected_keywords": [
+        "voxa|name|i am|my name|they call me"
+      ],
+      "reply_style": {
+        "short": true,
+        "no_markdown": true,
+        "max_words": 40
+      },
+      "capability": 0
+    },
+    {
+      "id": "everyday-chat-who-are-you",
+      "category": "chat",
+      "prompt": "who are you",
+      "expected_keywords": [
+        "voxa|assistant|voice|here to help|help you"
+      ],
+      "reply_style": {
+        "short": true,
+        "no_markdown": true,
+        "max_words": 40
+      },
+      "capability": 0
+    },
+    {
+      "id": "everyday-chat-nice-to-meet-you",
+      "category": "chat",
+      "prompt": "nice to meet you",
+      "expected_keywords": [
+        "meet|glad|happy|nice|too|hello|help|today"
+      ],
+      "reply_style": {
+        "short": true,
+        "no_markdown": true,
+        "max_words": 40
+      },
+      "capability": 0
+    },
+    {
+      "id": "everyday-chat-thank-you",
+      "category": "chat",
+      "prompt": "thank you",
+      "expected_keywords": [
+        "welcome|anytime|happy|sure|you bet|of course|help|thanks|glad"
+      ],
+      "reply_style": {
+        "short": true,
+        "no_markdown": true,
+        "max_words": 40
+      },
+      "capability": 0
+    },
+    {
+      "id": "everyday-chat-do-you-like-music",
+      "category": "chat",
+      "prompt": "do you like music",
+      "expected_keywords": [
+        "music|like|enjoy|love|songs|yes|hear|sound"
+      ],
+      "reply_style": {
+        "short": true,
+        "no_markdown": true,
+        "max_words": 40
+      },
+      "capability": 0
+    },
+    {
+      "id": "everyday-chat-real-person",
+      "category": "chat",
+      "prompt": "are you a real person",
+      "expected_keywords": [
+        "no|not|assistant|program|computer|voice|ai"
+      ],
+      "reply_style": {
+        "short": true,
+        "no_markdown": true,
+        "max_words": 40
+      },
+      "capability": 0
+    },
+    {
+      "id": "everyday-chat-what-call-you",
+      "category": "chat",
+      "prompt": "what can I call you",
+      "expected_keywords": [
+        "voxa|name|call"
+      ],
+      "reply_style": {
+        "short": true,
+        "no_markdown": true,
+        "max_words": 40
+      },
+      "capability": 0
+    }
+  ]
+}

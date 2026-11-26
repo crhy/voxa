@@ -1,0 +1,137 @@
+  instances-before-check=1
+== jack (en-US-GuyNeural, en) rc=0 instances-after=1 avail=24G
+reference silent while speaking: 0 of 1 checks [jack]
+alignment healthy while speaking: 8 of 8 [jack]
+false interrupts while she speaks alone: 0 of 1 [jack]
+   echo-health lines: 1 echo-health reference_db=0.000 explained_db=-18.900 residual_db=-66.300 frames=268 travel_ms=-39.200 lock_ms=-40.600 lock_confident=False lock_degraded=False
+  instances-before-check=1
+== grace (en-US-AriaNeural, en) rc=0 instances-after=1 avail=23G
+reference silent while speaking: 0 of 1 checks [grace]
+alignment healthy while speaking: 10 of 10 [grace]
+false interrupts while she speaks alone: 0 of 1 [grace]
+   echo-health lines: 1 echo-health reference_db=0.000 explained_db=-19.800 residual_db=-66.900 frames=287 travel_ms=-29.500 lock_ms=87.200 lock_confident=False lock_degraded=False
+  instances-before-check=1
+== seamus (en-IE-ConnorNeural, en) rc=0 instances-after=1 avail=24G
+reference silent while speaking: 0 of 1 checks [seamus]
+alignment healthy while speaking: 12 of 12 [seamus]
+false interrupts while she speaks alone: 0 of 1 [seamus]
+   echo-health lines: 1 echo-health reference_db=0.000 explained_db=-32.700 residual_db=-62.400 frames=276 travel_ms=-3.900 lock_ms=-25.600 lock_confident=False lock_degraded=False
+  instances-before-check=1
+== aoife (en-IE-EmilyNeural, en) rc=0 instances-after=1 avail=24G
+reference silent while speaking: 0 of 1 checks [aoife]
+alignment healthy while speaking: 6 of 6 [aoife]
+false interrupts while she speaks alone: 0 of 1 [aoife]
+   echo-health lines: 1 echo-health reference_db=0.000 explained_db=-21.400 residual_db=-69.100 frames=298 travel_ms=-27.900 lock_ms=-20.000 lock_confident=False lock_degraded=False
+  instances-before-check=1
+== oliver (en-GB-RyanNeural, en) rc=0 instances-after=1 avail=24G
+reference silent while speaking: 0 of 1 checks [oliver]
+alignment healthy while speaking: 10 of 10 [oliver]
+false interrupts while she speaks alone: 0 of 1 [oliver]
+   echo-health lines: 1 echo-health reference_db=0.000 explained_db=-29.300 residual_db=-63.900 frames=272 travel_ms=-27.800 lock_ms=None lock_confident=False lock_degraded=False
+  instances-before-check=1
+== charlotte (en-GB-SoniaNeural, en) rc=0 instances-after=1 avail=24G
+reference silent while speaking: 0 of 1 checks [charlotte]
+alignment healthy while speaking: 8 of 8 [charlotte]
+false interrupts while she speaks alone: 0 of 1 [charlotte]
+   echo-health lines: 1 echo-health reference_db=0.000 explained_db=-16.700 residual_db=-67.300 frames=275 travel_ms=-32.300 lock_ms=-44.000 lock_confident=False lock_degraded=True
+  instances-before-check=1
+== juan (es-MX-JorgeNeural, es) rc=0 instances-after=1 avail=24G
+reference silent while speaking: 0 of 1 checks [juan]
+alignment healthy while speaking: 12 of 12 [juan]
+false interrupts while she speaks alone: 0 of 1 [juan]
+   echo-health lines: 1 echo-health reference_db=0.000 explained_db=-24.300 residual_db=-64.600 frames=331 travel_ms=-38.000 lock_ms=-45.500 lock_confident=False lock_degraded=True
+  machine busy (load 4.26, or pytest/build running), waiting
+  instances-before-check=1
+== valentina (es-MX-DaliaNeural, es) rc=0 instances-after=1 avail=24G
+reference silent while speaking: 0 of 1 checks [valentina]
+alignment healthy while speaking: 11 of 11 [valentina]
+false interrupts while she speaks alone: 0 of 1 [valentina]
+   echo-health lines: 1 echo-health reference_db=0.000 explained_db=-31.900 residual_db=-63.100 frames=309 travel_ms=-24.400 lock_ms=-40.000 lock_confident=False lock_degraded=True
+  instances-before-check=1
+== etienne (fr-FR-HenriNeural, fr) rc=0 instances-after=1 avail=24G
+reference silent while speaking: 0 of 1 checks [etienne]
+alignment healthy while speaking: 7 of 7 [etienne]
+false interrupts while she speaks alone: 0 of 1 [etienne]
+   echo-health lines: 1 echo-health reference_db=0.000 explained_db=-20.400 residual_db=-67.000 frames=265 travel_ms=-20.000 lock_ms=10.000 lock_confident=False lock_degraded=True
+  machine busy (load 4.77, or pytest/build running), waiting
+  instances-before-check=1
+== camille (fr-FR-DeniseNeural, fr) rc=0 instances-after=1 avail=24G
+reference silent while speaking: 0 of 1 checks [camille]
+alignment healthy while speaking: 9 of 9 [camille]
+false interrupts while she speaks alone: 0 of 1 [camille]
+   echo-health lines: 1 echo-health reference_db=0.000 explained_db=-20.100 residual_db=-67.700 frames=287 travel_ms=-24.000 lock_ms=-34.900 lock_confident=False lock_degraded=True
+  instances-before-check=1
+== klaus (de-DE-ConradNeural, de) rc=0 instances-after=1 avail=24G
+reference silent while speaking: 0 of 1 checks [klaus]
+alignment healthy while speaking: 13 of 13 [klaus]
+false interrupts while she speaks alone: 0 of 1 [klaus]
+   echo-health lines: 1 echo-health reference_db=0.000 explained_db=-29.700 residual_db=-62.600 frames=297 travel_ms=-16.100 lock_ms=-34.100 lock_confident=False lock_degraded=True
+  instances-before-check=1
+== greta (de-DE-KatjaNeural, de) rc=0 instances-after=1 avail=24G
+reference silent while speaking: 0 of 1 checks [greta]
+alignment healthy while speaking: 3 of 3 [greta]
+false interrupts while she speaks alone: 0 of 1 [greta]
+   echo-health lines: 0 
+  instances-before-check=1
+== hiroshi (ja-JP-KeitaNeural, ja) rc=0 instances-after=1 avail=24G
+reference silent while speaking: 0 of 1 checks [hiroshi]
+alignment healthy while speaking: 3 of 3 [hiroshi]
+false interrupts while she speaks alone: 0 of 1 [hiroshi]
+   echo-health lines: 1 echo-health reference_db=0.000 explained_db=-5.300 residual_db=-79.100 frames=308 travel_ms=-42.900 lock_ms=-35.200 lock_confident=False lock_degraded=True
+  instances-before-check=1
+== sakura (ja-JP-NanamiNeural, ja) rc=1 instances-after=1 avail=24G
+reference silent while speaking: 0 of 1 checks [sakura]
+alignment healthy while speaking: 8 of 8 [sakura]
+false interrupts while she speaks alone: 1 of 1 [sakura]
+   echo-health lines: 1 
+  instances-before-check=1
+== omar (ar-SA-HamedNeural, ar) rc=0 instances-after=1 avail=24G
+reference silent while speaking: 0 of 1 checks [omar]
+alignment healthy while speaking: 12 of 12 [omar]
+false interrupts while she speaks alone: 0 of 1 [omar]
+   echo-health lines: 1 echo-health reference_db=0.000 explained_db=-27.000 residual_db=-62.800 frames=319 travel_ms=None lock_ms=40.000 lock_confident=False lock_degraded=False
+  instances-before-check=1
+== layla (ar-SA-ZariyahNeural, ar) rc=0 instances-after=1 avail=24G
+reference silent while speaking: 0 of 1 checks [layla]
+alignment healthy while speaking: 7 of 7 [layla]
+false interrupts while she speaks alone: 0 of 1 [layla]
+   echo-health lines: 1 echo-health reference_db=0.000 explained_db=-26.800 residual_db=-64.700 frames=332 travel_ms=None lock_ms=None lock_confident=False lock_degraded=False
+  instances-before-check=1
+== arjun (en-IN-PrabhatNeural, en) rc=0 instances-after=1 avail=24G
+reference silent while speaking: 0 of 1 checks [arjun]
+alignment healthy while speaking: 15 of 15 [arjun]
+false interrupts while she speaks alone: 0 of 1 [arjun]
+   echo-health lines: 1 echo-health reference_db=0.000 explained_db=-34.300 residual_db=-60.300 frames=338 travel_ms=-24.700 lock_ms=368.000 lock_confident=False lock_degraded=True
+  instances-before-check=1
+== priya (en-IN-NeerjaNeural, en) rc=0 instances-after=1 avail=24G
+reference silent while speaking: 0 of 1 checks [priya]
+alignment healthy while speaking: 7 of 7 [priya]
+false interrupts while she speaks alone: 0 of 1 [priya]
+   echo-health lines: 1 echo-health reference_db=0.000 explained_db=-20.400 residual_db=-68.900 frames=316 travel_ms=22.100 lock_ms=-40.700 lock_confident=False lock_degraded=False
+  instances-before-check=1
+== koda (en-US-ChristopherNeural, en) rc=0 instances-after=1 avail=24G
+reference silent while speaking: 0 of 1 checks [koda]
+alignment healthy while speaking: 10 of 10 [koda]
+false interrupts while she speaks alone: 0 of 1 [koda]
+   echo-health lines: 1 echo-health reference_db=0.000 explained_db=-23.100 residual_db=-64.900 frames=287 travel_ms=-22.400 lock_ms=-41.500 lock_confident=False lock_degraded=True
+  instances-before-check=1
+== aiyana (en-US-JennyNeural, en) rc=0 instances-after=1 avail=24G
+reference silent while speaking: 0 of 1 checks [aiyana]
+alignment healthy while speaking: 8 of 8 [aiyana]
+false interrupts while she speaks alone: 0 of 1 [aiyana]
+   echo-health lines: 1 echo-health reference_db=0.000 explained_db=-31.700 residual_db=-64.700 frames=279 travel_ms=-25.200 lock_ms=-93.500 lock_confident=False lock_degraded=True
+  machine busy (load 3.42, or pytest/build running), waiting
+  instances-before-check=1
+== chidi (en-NG-AbeoNeural, en) rc=1 instances-after=1 avail=24G
+reference silent while speaking: 0 of 1 checks [chidi]
+alignment healthy while speaking: 0 of 0 [chidi]
+false interrupts while she speaks alone: 0 of 1 [chidi]
+   echo-health lines: 1 echo-health reference_db=0.000 explained_db=-1.800 residual_db=-73.800 frames=265 travel_ms=-34.000 lock_ms=None lock_confident=False lock_degraded=True
+  instances-before-check=1
+== amara (en-NG-EzinneNeural, en) rc=0 instances-after=1 avail=24G
+reference silent while speaking: 0 of 1 checks [amara]
+alignment healthy while speaking: 11 of 11 [amara]
+false interrupts while she speaks alone: 0 of 1 [amara]
+   echo-health lines: 1 
+ALLDONE
+RUNNER_DONE_0
