@@ -1,3 +1,0 @@
-22:48:53.886 speak-start path='whole-reply' conversation=True turn_ms=0 muted=True level_timer=True text='Der erste Satz ist lang genug, dass Voxa noch spri'
-22:49:10.784 render-tap attached=True pieces=1 samples=258816 peak=0.655 silent=False error=''
-22:49:10.785 echo-health reference_db=0.000 explained_db=-0.000 residual_db=-86.500 frames=336 travel_ms=-54.100 lock_ms=29.500 lock_confident=False lock_degraded=True pilot_prom=None

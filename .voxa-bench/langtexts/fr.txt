@@ -1,1 +1,0 @@
-La première phrase est assez longue pour que Voxa parle encore quand la vérification commence. La deuxième phrase continue afin que la référence reste active pendant les pauses de la réponse. La troisième phrase termine la réponse pour que l'outil mesure le niveau de sa propre voix.

@@ -1,1 +1,0 @@
-Der erste Satz ist lang genug, dass Voxa noch spricht, wenn die Prüfung beginnt. Der zweite Satz hält das Sprechen fort, damit die Referenz zwischen den Antwortstücken nicht stumm wird. Der dritte Satz beendet die Antwort, damit das Werkzeug ihren eigenen Pegel meldet.

@@ -16,3 +16,5 @@ repo/
 .tmp-validation/
 .claude/
 .ollama-runtime/
+
+.voxa-bench/
