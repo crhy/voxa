@@ -4577,16 +4577,15 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def _speak_apology(self) -> None:
-        """Hands-free users cannot see the toast: the failed request must be heard too."""
-        logging.info("reply audio: %s", audio_output_state())
-        self.speech.speak(
-            AI_APOLOGY,
-            self.settings.tts_rate,
-            self._reply_voice(),
-            on_started=lambda: None,
-            on_done=lambda: None,
-            on_error=lambda error: idle(self._speech_error, error),
-        )
+        """Hands-free users cannot see the toast: the failed request must be heard too.
+
+        vf04: it goes through the SAME path as a normal reply. A bare
+        ``speech.speak`` never mutes the conversation and own_speech never
+        hears it, so inside an open follow-up window Voxa took her own
+        "Sorry, I could not get an answer" as a new request and apologised
+        on and on.
+        """
+        self._conversation_speak(AI_APOLOGY)
 
     def speak_response(self) -> None:
         text = self._get_text(self.response_view) or self._get_text(self.transcript_view)
