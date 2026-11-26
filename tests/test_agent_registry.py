@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from voxa.agent.policy import RiskLevel, needs_confirmation
+from voxa.agent.policy import RiskLevel
 from voxa.agent.registry import Tool, ToolError, ToolRegistry
 from voxa.agent.result import ToolResult
 
@@ -44,7 +44,7 @@ def test_describe():
             risk=RiskLevel.REVERSIBLE,
         )
     )
-    assert registry.describe() == "open_url(url, tab): do open_url [risk 1]"
+    assert registry.describe() == "open_url(url, tab): do open_url"
 
 
 def test_validate_strips_and_converts():
@@ -95,17 +95,12 @@ def test_call_unknown_tool_raises():
         registry.call("ghost", {})
 
 
-def test_needs_confirmation_truth_table():
-    for level in (RiskLevel.READ_ONLY, RiskLevel.REVERSIBLE):
-        assert needs_confirmation(level) is False
-        assert needs_confirmation(level, granted=frozenset({"x"}), tool_name="x") is False
+def test_policy_grants_nothing_and_asks_nothing():
+    # No guardrail: needs_confirmation is gone; RiskLevel stays plain metadata.
+    from voxa.agent import policy
 
-    assert needs_confirmation(RiskLevel.EXTERNAL_WRITE) is True
-    assert needs_confirmation(RiskLevel.EXTERNAL_WRITE, granted=frozenset({"send"}), tool_name="send") is False
-    assert needs_confirmation(RiskLevel.EXTERNAL_WRITE, granted=frozenset({"send"}), tool_name="other") is True
-
-    for granted in (frozenset(), frozenset({"delete"})):
-        assert needs_confirmation(RiskLevel.SENSITIVE, granted=granted, tool_name="delete") is True
+    assert not hasattr(policy, "needs_confirmation")
+    assert RiskLevel.READ_ONLY < RiskLevel.SENSITIVE
 
 
 def test_toolresult_success_failure():

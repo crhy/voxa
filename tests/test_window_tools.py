@@ -797,6 +797,36 @@ def test_suggested_model_chip_absent_when_already_installed(window, monkeypatch)
     )
 
 
+def test_removing_a_model_happens_at_once_without_a_dialog(window, monkeypatch) -> None:
+    # No guardrail: the trash button removes the model itself; no Cancel/Remove follow-up appears.
+    _fast_model_wait(monkeypatch)
+    window.settings.ai_backend = "ollama"
+
+    class DeleteClient:
+        def __init__(self) -> None:
+            self.deleted: list[str] = []
+
+        def list_models(self):
+            return ["alpha"]
+
+        def list_models_detailed(self):
+            return []
+
+        def delete_model(self, model):
+            self.deleted.append(model)
+
+    client = DeleteClient()
+    monkeypatch.setattr("voxa.window.OllamaClient", lambda *a, **k: client)
+    dialogs = _capture_dialogs(monkeypatch)
+    window._show_model_manager()
+    dialog = dialogs[0]
+    assert _settle(window, lambda: "alpha" in _row_titles(dialog))
+    trash = next(w for w in _walk(dialog) if isinstance(w, Gtk.Button) and w.get_icon_name() == "user-trash-symbolic")
+    trash.emit("clicked")
+    assert _settle(window, lambda: client.deleted == ["alpha"])
+    assert not any(isinstance(d, Adw.AlertDialog) for d in dialogs)
+
+
 REAL_REFRESH = MainWindow._refresh_ollama_models
 
 

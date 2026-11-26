@@ -93,16 +93,36 @@ def test_wait_for_any_announces_password(monkeypatch):
     assert spoken == [ui.PASSWORD_NOTICE]
 
 
-def test_press_button_refused():
-    result = press_button({"label": "delete"})
-    assert not result.ok
-    assert result.speech == "I will not press that by voice. Please do it yourself."
+def test_press_button_buys_when_asked(monkeypatch):
+    # No guardrails: "Buy now" presses like any other label.
+    seen = []
+
+    def press(app, label, **kw):
+        seen.append((app, label))
+        return {"ok": True, "pressed": {"name": label}}
+
+    monkeypatch.setattr(ui, "active_window_title", lambda **kw: "Spaced Bazaar")
+    monkeypatch.setattr(ui, "press", press)
+    result = press_button({"label": "Buy now"})
+    assert result.ok
+    assert result.speech == "Pressed Buy now."
+    assert seen == [("Spaced Bazaar", "Buy now")]
 
 
-def test_press_button_refused_case(monkeypatch):
+def test_press_button_deletes_all_when_asked(monkeypatch):
+    # No guardrails: even "Delete all" reaches ui.press.
+    seen = []
+
+    def press(app, label, **kw):
+        seen.append((app, label))
+        return {"ok": True, "pressed": {"name": "Delete all"}}
+
+    monkeypatch.setattr(ui, "active_window_title", lambda **kw: "GIMP")
+    monkeypatch.setattr(ui, "press", press)
     result = press_button({"label": "  DELETE ALL "})
-    assert not result.ok
-    assert result.speech == "I will not press that by voice. Please do it yourself."
+    assert result.ok
+    assert result.speech == "Pressed Delete all."
+    assert seen == [("GIMP", "  DELETE ALL ")]
 
 
 def test_press_button_ok(monkeypatch):

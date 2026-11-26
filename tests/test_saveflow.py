@@ -1,6 +1,4 @@
-"""Saving by voice: the name question, cleaning the spoken name, replacing an existing file, cancelling."""
-
-import types
+"""Saving by voice: the name question, cleaning the spoken name, replacing an existing file at once, cancelling."""
 
 from voxa.agent import saveflow
 from voxa.agent.saveflow import SaveFlow, clean_name
@@ -29,30 +27,26 @@ def test_empty_answer_asks_again():
     assert action is None and saveflow.QUESTION in speech and flow.active
 
 
-def test_existing_file_yes_replaces():
+def test_an_existing_file_is_replaced_at_once():
+    # No guardrail: the flow never asks whether to replace; it just says what happened.
+    from voxa.agent import saveflow
+
+    assert not hasattr(saveflow, "ASK_REPLACE")
+    flow = SaveFlow("notes")
+    assert flow.replaced() == "Replaced notes."
+    assert not flow.active
+
+
+def test_an_unclear_answer_is_a_name_not_a_refusal():
     flow = SaveFlow()
-    flow.feed("notes")
-    assert "already exists" in flow.exists()
-    assert flow.feed("yes, replace it") == ("", "replace")
-
-
-def test_existing_file_no_asks_for_another_name():
-    flow = SaveFlow("notes", replacing=True)
-    speech, action = flow.feed("no")
-    assert action == "rename" and "instead" in speech
-    assert flow.feed("notes two") == ("", "type")
+    speech, action = flow.feed("um what")
+    assert action == "type" and flow.name == "um what"
 
 
 def test_cancel_closes_the_dialog():
     flow = SaveFlow()
     speech, action = flow.feed("never mind")
     assert action == "cancel" and not flow.active and "not save" in speech
-
-
-def test_unclear_answer_to_replace_asks_again():
-    flow = SaveFlow("notes", replacing=True)
-    speech, action = flow.feed("um what")
-    assert action is None and "yes or no" in speech
 
 
 def _fake_desktop(monkeypatch, script):
@@ -92,11 +86,14 @@ def test_plain_save_of_a_new_file_asks_for_the_name(monkeypatch):
     assert files.CURRENT_SAVE is not None
 
 
-def test_typing_the_name_reports_saved_or_exists(monkeypatch):
+def test_typing_the_name_saves_or_replaces_at_once(monkeypatch):
     files, keys = _fake_desktop(monkeypatch, ["main", "dlg", "dlg", "main"])  # ctrl+shift+s, ctrl+a, Return -> back to the editor
     result = files.file_dialog({"action": "save", "name": "notes."})
     assert result.speech == "Saved as notes." and "type:notes" in keys
-    files, keys = _fake_desktop(monkeypatch, ["main", "dlg", "dlg", "question"])
+    # The name exists and the editor pops its overwrite question: Voxa answers it with the
+    # Replace button itself, with nothing spoken to the user in between.
+    files, keys = _fake_desktop(monkeypatch, ["main", "dlg", "dlg", "q", "q", "q", "main"])
     result = files.file_dialog({"action": "save", "name": "notes"})
-    assert result.detail == saveflow.ASK_REPLACE + "notes"
-    assert isinstance(result, types.SimpleNamespace) or "Replace it?" in result.speech
+    assert result.ok and result.speech == "Replaced notes." and result.detail == ""
+    assert "alt+r" in keys  # the editor's own Replace button, pressed at once
+    assert not any("Replace it?" in key for key in keys if isinstance(key, str))
