@@ -470,14 +470,16 @@ def test_early_completion_retranscribes_when_final_pass_on() -> None:
 
 
 class HintRecordingTranscriber:
-    """Records the hint each utterance is transcribed with."""
+    """Records the hint and hotwords each utterance is transcribed with."""
 
     def __init__(self, texts: list[str]) -> None:
         self.texts = list(texts)
         self.hints: list[str] = []
+        self.hotwords: list[str] = []
 
     def transcribe(self, segment: bytes, language: str, hint: str = "", hotwords: str = "") -> str:
         self.hints.append(hint)
+        self.hotwords.append(hotwords)
         return self.texts.pop(0) if self.texts else ""
 
 
@@ -509,6 +511,9 @@ def test_wake_phase_keeps_its_short_hint(monkeypatch) -> None:
     _drain(controller)
     assert prompts == ["open gimp"]
     assert wake.hints and set(wake.hints) == {"Voxa."}
+    # Task v11e: the wake model is also handed the name as a hotword, so a quiet far
+    # mic biases towards "Voxa" instead of dropping it.
+    assert wake.hotwords and set(wake.hotwords) == {"Voxa"}
 
 
 def test_prompt_model_recovers_wake_word_dropped_from_connected_speech(monkeypatch) -> None:

@@ -762,7 +762,8 @@ class ConversationController:
             return False
         hint = f"{self.wake_word.strip().capitalize()}."
         try:
-            text = self.wake_whisper.transcribe(segment, self.language, hint)
+            text = self.wake_whisper.transcribe(segment, self.language, hint,
+                                                self.wake_word.strip().capitalize())
         except Exception as exc:  # noqa: BLE001 - early-check boundary
             logging.debug("early completion check failed: %s", exc)
             return False

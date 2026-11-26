@@ -117,7 +117,8 @@ class PinnedASR:
     ``no_speech_prob`` away, so the bench calls the model itself with the pinned parameters and
     keeps everything else the app already sets (``vad_filter=True`` with the same
     ``vad_parameters``, the wake hint as ``initial_prompt``). It exposes the same
-    ``transcribe(pcm, language, hint)`` shape the
+    It exposes the same
+    ``transcribe(pcm, language, hint, hotwords)`` shape the
     :class:`voxa.conversation.ConversationController` expects. The controller is handed this one
     object as both its wake and its prompt model: one model, one beam, no VAD filter of its own
     (the Silero detector in the pipeline decides where speech is).
@@ -139,8 +140,12 @@ class PinnedASR:
         self.audio_seconds = 0.0
         self.processing_seconds = 0.0
 
-    def transcribe_words(self, pcm: bytes, hint: str = "") -> dict:
-        """One pinned pass: text, word times (relative to the segment) and no_speech_prob."""
+    def transcribe_words(self, pcm: bytes, hint: str = "", hotwords: str = "") -> dict:
+        """One pinned pass: text, word times (relative to the segment) and no_speech_prob.
+
+        ``hotwords`` mirrors the live app since task v11e (voxa/transcription.py): the wake
+        word weighted on the model, so the bench measures the same hearing as Voxa does.
+        """
         audio = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
         started = time.perf_counter()
         segments, info = self.model.transcribe(
@@ -153,6 +158,7 @@ class PinnedASR:
             vad_filter=True,
             vad_parameters=dict(VAD_PARAMETERS),
             initial_prompt=hint or None,
+            hotwords=hotwords or None,
         )
         found = [segment for segment in segments]
         took = time.perf_counter() - started
@@ -179,9 +185,14 @@ class PinnedASR:
             "segments": len(found),
         }
 
-    def transcribe(self, pcm_s16le: bytes, language: str = "en", hint: str = "") -> str:
-        """The call shape ``ConversationController.candidate_text`` uses on the barge window."""
-        return self.transcribe_words(pcm_s16le, hint)["text"]
+    def transcribe(self, pcm_s16le: bytes, language: str = "en", hint: str = "",
+                   hotwords: str = "") -> str:
+        """The call shape ``ConversationController.candidate_text`` uses on the barge window.
+
+        Since task v11e the controller also hands the wake word as ``hotwords`` (live app
+        parity), so this must accept and forward it or the live bench dies on a TypeError.
+        """
+        return self.transcribe_words(pcm_s16le, hint, hotwords)["text"]
 
 
 class ClipRunner:
