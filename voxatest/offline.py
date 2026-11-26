@@ -13,6 +13,7 @@ executor (:data:`DRY_TOOLS`), so a "turn the volume up" case can never touch the
 
 from __future__ import annotations
 
+import concurrent.futures
 import contextlib
 import os
 import shutil
@@ -155,7 +156,12 @@ def synthesize_utterance(text: str, settings: HarnessSettings, log) -> tuple[str
     language, tld = google_voice_params(settings.tts_voice)
     google_path = str(Path(tempfile.mkdtemp(prefix="voxa-offline-tts-")) / "say.mp3")
     try:
-        _download_google_voice(text, google_path, lang=language, tld=tld)
+        # Google's socket can stall without ever erroring (seen mid-run); a hung
+        # request must not hang the whole run, so race it with a deadline.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            pool.submit(_download_google_voice, text, google_path, lang=language, tld=tld).result(
+                timeout=min(20.0, settings.speak_timeout_seconds)
+            )
         return google_path, "google-tts"
     except Exception as exc:  # noqa: BLE001 - network/service boundary
         log(f"Google voice failed for offline speech ({exc}); eSpeak NG next.")
