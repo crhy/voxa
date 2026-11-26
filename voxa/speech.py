@@ -58,10 +58,16 @@ def espeak_voice(voice: str) -> str:
 # at the common speech boundary so streamed, prepared, and fallback voices
 # all receive the same speakable text.  An optional backslash removes the
 # Markdown escape along with the mark rather than making Voxa say "backslash".
-_ASTERISK_MARKS = re.compile(r"\\?[*＊]")
+_ASTERISK_MARKS = re.compile(r"\\?[*∗＊]")
 _MD_LINK = re.compile(r"\[([^\]]*)\]\([^)]*\)")
 _MD_CODE = re.compile(r"`+")
-_MD_UNDERSCORE = re.compile(r"[_~]{1,3}")
+# vf04: Markdown emphasis is removed as a PAIR, never by stripping every _ and
+# ~: "snake_case" must survive intact. U+2217 (∗, ASTERISK OPERATOR) is back in
+# _ASTERISK_MARKS (vf02 dropped it). A leading ~ before a number ("~5 minutes")
+# is how models write "about": keep the meaning instead of dropping the tilde.
+_MD_UNDERSCORE = re.compile(r"(?<![\w~])(_{1,2})(?=\S)(.*?)(?<=\S)\1(?![\w~])", re.DOTALL)
+_MD_STRIKE = re.compile(r"~~(?=\S)(.*?)(?<=\S)~~", re.DOTALL)
+_MD_APPROX = re.compile(r"(?<![\w~])~(?=\d)")
 _MD_HEADING = re.compile(r"(?m)^[ \t]{0,3}#{1,6}[ \t]+")
 _MD_BLOCKQUOTE = re.compile(r"(?m)^[ \t]*>[ \t]?")
 _MD_BULLET = re.compile(r"(?m)^[ \t]*[-+][ \t]+")
@@ -93,7 +99,13 @@ def _speakable_text(text: str) -> str:
     text = _MD_BULLET.sub("", text)
     text = _MD_CODE.sub("", text)
     text = _ASTERISK_MARKS.sub("", text)
-    stripped = _MD_UNDERSCORE.sub("", text).strip()
+    text = _MD_UNDERSCORE.sub(r"\2", text)
+    text = _MD_STRIKE.sub(r"\1", text)
+    text = _MD_APPROX.sub("about ", text)
+    # Tildes left over are still markup ("reply: ~~ emoji" must clean to "");
+    # underscores stay, because snake_case identifiers are real words.
+    text = text.replace("~", "")
+    stripped = text.strip()
     return stripped
 
 
@@ -246,6 +258,13 @@ class SpeechService:
         before_play=None,
     ) -> None:
         text = _speakable_text(text)
+        if not text:
+            # vf04: a reply that is ONLY emoji/markup cleans to "". Hand it to
+            # no engine at all: edge-tts would raise "returned no audio" and a
+            # silent reply would look like a speech failure. Finish at once.
+            if on_done is not None:
+                on_done()
+            return
         self.stop()
         cancel_event = threading.Event()
         self.cancel_event = cancel_event
@@ -283,6 +302,11 @@ class SpeechService:
         """
         text = _speakable_text(text)
         item = Prepared(text=text, rate=rate, voice=voice)
+        if not text:
+            # vf04: emoji/markup-only reply: ready at once, no audio, no error
+            # (speak_prepared finishes it without touching a TTS engine).
+            item.ready.set()
+            return item
 
         def worker() -> None:
             try:
@@ -330,6 +354,11 @@ class SpeechService:
             item.ready.wait(30)
             if cancel_event.is_set() or cancel_event is not self.cancel_event:
                 item.discard()
+                return
+            if not item.text.strip():
+                # vf04: an emoji/markup-only reply has nothing to speak: finish
+                # at once (on_done, no TTS call, no error).
+                _ui_once(self._finish_done)
                 return
             if item.error or not item.path:
                 _ui_once(self._begin_offline_fallback, item.text, item.rate, cancel_event, item.error or "no audio")
@@ -786,6 +815,16 @@ class SpeechService:
 
     def _is_current(self, cancel_event: threading.Event) -> bool:
         return cancel_event is self.cancel_event and not cancel_event.is_set()
+
+    def _finish_done(self) -> bool:
+        """Clean end for an utterance with nothing to speak: on_done, no audio, no error."""
+        if self._finished:
+            return False
+        self._finished = True
+        self._finish_media()
+        if self._on_done is not None:
+            self._on_done()
+        return False
 
     def _emit_started_for(self, cancel_event: threading.Event) -> bool:
         if not self._is_current(cancel_event) or self._started_emitted or self._finished:
