@@ -139,6 +139,49 @@ def test_is_model_loaded_none_when_unreachable() -> None:
         assert OllamaClient().is_model_loaded("qwen2.5:7b") is None
 
 
+def test_dropped_connection_mid_handshake_is_unknown_not_a_crash() -> None:
+    # vf04 (#72): urllib leaves errors raised while reading the response
+    # status bare: a backend that closes the socket without answering raises
+    # http.client.RemoteDisconnected.  Every probe must read that as
+    # "unknown", never let it escape (the gate failure was exactly this).
+    import http.client
+
+    error = http.client.RemoteDisconnected("Remote end closed connection without response")
+    with patch("voxa.ollama.open_url", side_effect=error):
+        assert OllamaClient().is_model_loaded("qwen2.5:7b") is None
+        assert OllamaClient()._model_context_limit("qwen2.5:7b") is None
+        with pytest.raises(OllamaError):
+            OllamaClient().list_models()
+        with pytest.raises(OllamaError):
+            OllamaClient().delete_model("qwen2.5:7b")
+
+
+def test_generate_stream_retries_a_dropped_response_status_line() -> None:
+    # The retry rule must cover the bare http.client error too: first request
+    # dies on RemoteDisconnected while reading the status, second answers.
+    import http.client
+
+    answer = FakeResponse(b'{"response":"Paris.","done":true}\n')
+
+    calls = []
+
+    def flaky(request, timeout):
+        if not calls:
+            calls.append(1)
+            raise http.client.RemoteDisconnected("Remote end closed connection without response")
+        return answer
+
+    with patch("voxa.ollama.time.sleep", lambda _seconds: None), \
+            patch("voxa.ollama.open_url", side_effect=flaky):
+        reply = OllamaClient().generate_stream(
+            model="qwen2.5:7b",
+            prompt="What is the capital of France?",
+            cancel_event=threading.Event(),
+            on_chunk=lambda _chunk: None,
+        )
+    assert reply == "Paris."
+
+
 def test_is_model_loaded_none_when_reply_is_not_json() -> None:
     response = FakeResponse(b"not json at all")
     with patch("voxa.ollama.open_url", return_value=response):

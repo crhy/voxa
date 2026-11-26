@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import http.client
 import json
 import threading
 import urllib.error
@@ -43,8 +44,10 @@ class LlamaCppClient:
         try:
             with open_url(request, timeout=self.timeout) as response:
                 payload = json.load(response)
-        except (urllib.error.URLError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
+        except (OSError, http.client.HTTPException, ValueError) as exc:
             # No llama-server yet: the GGUF files on disk are what the user can pick.
+            # OSError/HTTPException cover dropped-handshake errors (RemoteDisconnected)
+            # that urllib leaves bare.
             if models_dir is not None:
                 return sorted(str(path) for path in Path(models_dir).glob("*.gguf"))
             raise LlamaCppError(f"Could not connect to the llama.cpp server: {exc}") from exc
@@ -58,7 +61,7 @@ class LlamaCppClient:
         try:
             with open_url(request, timeout=self.timeout) as response:
                 slots = json.load(response)
-        except (urllib.error.URLError, TimeoutError, ValueError, json.JSONDecodeError):
+        except (OSError, http.client.HTTPException, ValueError):
             return False
         if not isinstance(slots, list) or not slots:
             return False
@@ -74,7 +77,7 @@ class LlamaCppClient:
             if exc.code == 503:
                 return False
             return None
-        except (urllib.error.URLError, TimeoutError, ValueError, json.JSONDecodeError):
+        except (OSError, http.client.HTTPException, ValueError):
             return None
         if not isinstance(payload, dict):
             return None
@@ -153,7 +156,10 @@ class LlamaCppClient:
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")[:300]
             raise LlamaCppError(f"llama.cpp server returned HTTP {exc.code}: {detail}") from exc
-        except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+        except (OSError, http.client.HTTPException, ValueError) as exc:
+            # OSError covers URLError/TimeoutError/connection resets; the
+            # http.client errors surface when the server drops the response
+            # status line (RemoteDisconnected) mid-request.
             timed_out = isinstance(exc, TimeoutError) or isinstance(getattr(exc, "reason", None), TimeoutError)
             if timed_out:
                 raise LlamaCppError(
@@ -187,7 +193,7 @@ class StrataClient(LlamaCppClient):
         try:
             with open_url(request, timeout=2.0) as response:
                 payload = json.load(response)
-        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, ValueError, json.JSONDecodeError):
+        except (OSError, http.client.HTTPException, ValueError):
             return None
         if not isinstance(payload, dict):
             return None
@@ -204,7 +210,7 @@ class StrataClient(LlamaCppClient):
         try:
             with open_url(request, timeout=2.0) as response:
                 payload = json.load(response)
-        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, ValueError, json.JSONDecodeError):
+        except (OSError, http.client.HTTPException, ValueError):
             return None
         data = payload.get("data", []) if isinstance(payload, dict) else []
         for item in data:
@@ -219,7 +225,7 @@ def detect_backend(url: str) -> str:
     try:
         with open_url(request, timeout=2.0) as response:
             payload = json.load(response)
-    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, ValueError, json.JSONDecodeError):
+    except (OSError, http.client.HTTPException, ValueError):
         return "llamacpp"
     if isinstance(payload, dict) and payload.get("service") == "strata":
         return "strata"

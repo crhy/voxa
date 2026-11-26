@@ -151,7 +151,10 @@ class OllamaClient:
         try:
             with open_url(request, timeout=self.timeout) as response:
                 payload = json.load(response)
-        except (urllib.error.URLError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
+        except (OSError, http.client.HTTPException, ValueError) as exc:
+            # urllib does not wrap errors raised while reading the response
+            # status: RemoteDisconnected and friends escape as http.client
+            # exceptions, and every connection error is an OSError.
             raise OllamaError(f"Could not connect to Ollama: {exc}") from exc
         models = payload.get("models", []) if isinstance(payload, dict) else []
         return [item for item in models if isinstance(item, dict)]
@@ -168,7 +171,7 @@ class OllamaClient:
         try:
             with open_url(request, timeout=self.timeout) as response:
                 reply = json.load(response)
-        except (urllib.error.URLError, TimeoutError, ValueError, json.JSONDecodeError):
+        except (OSError, http.client.HTTPException, ValueError):
             return None
         model_info = reply.get("model_info", {}) if isinstance(reply, dict) else {}
         if not isinstance(model_info, dict):
@@ -343,7 +346,9 @@ class OllamaClient:
                 transient_retries += 1
                 time.sleep(min(2.0, 0.6 * transient_retries))
                 continue
-            except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+            except (OSError, ValueError) as exc:
+                # OSError covers URLError, TimeoutError and connection resets;
+                # ValueError covers malformed JSON in a streamed line.
                 raise OllamaError(f"Ollama request failed: {exc}") from exc
 
         if stream_error is not None:
@@ -395,7 +400,7 @@ class OllamaClient:
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")[:300]
             raise OllamaError(f"Ollama returned HTTP {exc.code}: {detail}") from exc
-        except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+        except (OSError, http.client.HTTPException, ValueError) as exc:
             raise OllamaError(f"Pulling {name} failed: {exc}") from exc
 
     def delete_model(self, model: str) -> None:
@@ -416,7 +421,7 @@ class OllamaClient:
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")[:300]
             raise OllamaError(f"Ollama returned HTTP {exc.code}: {detail}") from exc
-        except (urllib.error.URLError, TimeoutError) as exc:
+        except (OSError, http.client.HTTPException) as exc:
             raise OllamaError(f"Could not delete {name}: {exc}") from exc
 
     def is_model_loaded(self, model: str) -> bool | None:
@@ -425,7 +430,10 @@ class OllamaClient:
         try:
             with open_url(request, timeout=2.0) as response:
                 payload = json.load(response)
-        except (urllib.error.URLError, TimeoutError, ValueError, json.JSONDecodeError):
+        except (OSError, http.client.HTTPException, ValueError):
+            # A backend that drops the probe mid-handshake (RemoteDisconnected,
+            # ConnectionResetError) is just "unknown": the caller retries or
+            # restarts, it must never crash the query thread.
             return None
         if not isinstance(payload, dict):
             return None

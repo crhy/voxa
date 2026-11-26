@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import http.client
 import json
 import logging
 import os
@@ -305,7 +306,7 @@ class AiServerManager:
         try:
             with open_url(request, timeout=2.0) as response:
                 response.read(1)
-        except (urllib.error.URLError, TimeoutError, OSError):
+        except (OSError, http.client.HTTPException):
             log.debug("could not unload Ollama model before shutdown", exc_info=True)
 
     @staticmethod
@@ -318,7 +319,7 @@ class AiServerManager:
         except urllib.error.HTTPError:
             # Even a non-2xx response means a server is listening on that port.
             return True
-        except (urllib.error.URLError, TimeoutError, OSError):
+        except (OSError, http.client.HTTPException):
             return False
 
     @staticmethod
