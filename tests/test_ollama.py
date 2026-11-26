@@ -196,6 +196,56 @@ def test_generate_stream_uses_chat_endpoint_when_messages_are_given() -> None:
     assert "prompt" not in body
 
 
+def test_generate_stream_retries_a_dropped_connection_before_first_chunk(monkeypatch) -> None:
+    # A cold-started or restarted ollama serve can drop the streaming request
+    # before any token (RemoteDisconnected). If nothing was spoken yet, the whole
+    # request is retried instead of ending the heard question with empty speech.
+    import http.client
+
+    monkeypatch.setattr("voxa.ollama.time.sleep", lambda _seconds: None)
+    calls = {"n": 0}
+
+    def flaky(*_args, **_kwargs):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise http.client.RemoteDisconnected("Remote end closed connection without response")
+        return FakeResponse(b'{"response":"There are 60 minutes in an hour","done":true}\n')
+
+    chunks: list[str] = []
+    with patch("voxa.ollama.open_url", side_effect=flaky):
+        answer = OllamaClient().generate_stream(
+            model="test",
+            prompt="how many minutes are in an hour",
+            cancel_event=threading.Event(),
+            on_chunk=chunks.append,
+        )
+    assert calls["n"] == 2
+    assert answer == "There are 60 minutes in an hour"
+
+
+def test_generate_stream_does_not_retry_after_speech_started() -> None:
+    # Once speech has begun a retry would double-speak, so a dropped connection
+    # surfaces as an OllamaError (the apology path) rather than a second request.
+    import http.client
+
+    class _HalfStream(FakeResponse):
+        def __iter__(self):
+            yield b'{"response":"Half","done":false}\n'
+            raise http.client.RemoteDisconnected("dropped")
+
+    chunks: list[str] = []
+    with patch("voxa.ollama.open_url", return_value=_HalfStream()) as mocked:
+        with pytest.raises(OllamaError):
+            OllamaClient().generate_stream(
+                model="test",
+                prompt="start speaking",
+                cancel_event=threading.Event(),
+                on_chunk=chunks.append,
+            )
+    assert chunks == ["Half"]
+    assert mocked.call_count == 1
+
+
 def test_generate_stream_disables_thinking_for_single_shot_requests() -> None:
     response = FakeResponse(b'{"response":"Four.","done":true}\n')
     with patch("voxa.ollama.open_url", return_value=response) as mocked:

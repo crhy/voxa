@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import http.client
 import json
 import re
 import threading
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -250,6 +252,7 @@ class OllamaClient:
         chunks: list[str] = []
         stream_error: str | None = None
         grew_context = False
+        transient_retries = 0
         while True:
             payload = json.dumps(body).encode("utf-8")
             request = urllib.request.Request(
@@ -328,6 +331,18 @@ class OllamaClient:
                     grew_context = False
                     continue
                 raise OllamaError(f"Ollama returned HTTP {exc.code}: {detail[:300]}") from exc
+            except (http.client.HTTPException, ConnectionResetError, BrokenPipeError) as exc:
+                # A local backend can drop a streaming request without a clean
+                # close: an ``ollama serve`` that was cold-started for this
+                # question (vf01's restart path), a backend restarted mid-run, or
+                # Ollama closing the socket on a slow first token. That is transient:
+                # if nothing has been spoken yet, retry the whole request; once
+                # speech has started a retry would double-speak, so fail instead.
+                if chunks or cancel_event.is_set() or transient_retries >= 2:
+                    raise OllamaError(f"Ollama request failed: {exc}") from exc
+                transient_retries += 1
+                time.sleep(min(2.0, 0.6 * transient_retries))
+                continue
             except (urllib.error.URLError, TimeoutError, ValueError) as exc:
                 raise OllamaError(f"Ollama request failed: {exc}") from exc
 

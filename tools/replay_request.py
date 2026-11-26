@@ -81,6 +81,47 @@ def _find_config(explicit: str | None) -> Path:
     raise SystemExit("no Voxa config.json found (tried --config, the Flatpak app, and XDG_CONFIG_HOME)")
 
 
+def _render_reply_to_wav(GLib, text: str, wav_path: str, rate: int, voice: str, timeout: float) -> bool:
+    """Render ``text`` through Voxa's real speech pipeline into ``wav_path``.
+
+    Sets ``VOXA_AUDIO_SINK=file:<wav>`` so the streaming and fallback chains write
+    a WAV (edge-tts -> decodebin -> ... -> wavenc -> filesink) instead of the
+    user's default output: an offline proof of the whole speaking chain with no
+    speaker. Returns True only when a real WAV was written.
+    """
+    from voxa.speech import SpeechService
+
+    out = Path(wav_path).expanduser()
+    out.parent.mkdir(parents=True, exist_ok=True)
+    if out.exists():
+        out.unlink()
+    os.environ["VOXA_AUDIO_SINK"] = f"file:{out}"
+
+    service = SpeechService()
+    loop = GLib.MainLoop()
+    result = {"done": False, "error": ""}
+
+    def finish() -> bool:
+        if loop.is_running():
+            loop.quit()
+        return False
+
+    service.speak(
+        text,
+        rate,
+        voice,
+        on_started=lambda: None,
+        on_done=lambda: (result.__setitem__("done", True), finish()),
+        on_error=lambda error: (result.__setitem__("error", str(error)), finish()),
+    )
+    GLib.timeout_add(int(max(5.0, timeout) * 1000), finish)
+    loop.run()
+    ok = out.is_file() and out.stat().st_size > 44
+    if result["error"]:
+        print(f"replay_request: speak-to error: {result['error']}")
+    return ok
+
+
 class FakeSpeech:
     """Records what the pipeline would have spoken; no network, no sound."""
 
@@ -137,6 +178,12 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--config", help="config.json to use (default: the installed one)")
     parser.add_argument("--typed", action="store_true", help="ask as if typed (no conversation mode)")
     parser.add_argument("--timeout", type=float, default=180.0, help="seconds to wait for the reply")
+    parser.add_argument(
+        "--speak-to",
+        metavar="WAV",
+        help="also render the spoken reply through Voxa's real speech pipeline into this WAV "
+        "(VOXA_AUDIO_SINK=file:WAV); proves the whole speaking chain without a speaker",
+    )
     args = parser.parse_args(argv)
     request = " ".join(args.request)
     _own_virtual_display()
@@ -171,8 +218,7 @@ def main(argv: list[str]) -> int:
     action_log = tmp / "state/voxa/actions.jsonl"
     os.environ["VOXA_ACTION_LOG"] = str(action_log)
 
-    from voxa import window as window_module  # noqa: E402  (after env)
-    from voxa.window import MainWindow  # noqa: E402
+    from voxa.window import MainWindow  # noqa: E402  (after env)
 
     for name in (
         "_load_whisper",
@@ -242,6 +288,12 @@ def main(argv: list[str]) -> int:
             print(f"  {line}")
     else:
         print("  (none written)")
+
+    if args.speak_to and spoken_text.strip():
+        rate = int(getattr(window.settings, "tts_rate", 180) or 180)
+        voice = getattr(window.settings, "tts_voice", "") or ""
+        rendered = _render_reply_to_wav(GLib, spoken_text, args.speak_to, rate, voice, args.timeout)
+        print(f"replay_request: spoke to: {args.speak_to if rendered else '(NOT rendered)'}")
 
     window._closing = True
     window.destroy()
