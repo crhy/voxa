@@ -88,6 +88,28 @@ class FakeAudio:
     def stop(self):
         self._active = False
 
+    @property
+    def timeline(self):
+        return None
+
+    @property
+    def delay_frac(self):
+        return 0.0
+
+    @property
+    def delay_confident(self):
+        return False
+
+    @property
+    def delay_degraded(self):
+        return False
+
+    def echo_travel_ms(self):
+        return None
+
+    def echo_measurements(self):
+        return (0.0, None, None)
+
     def __getattr__(self, name):
         def stub(*args, **kwargs):
             return None
@@ -105,6 +127,9 @@ class FakeSpeech:
 
     def position(self):
         return 0.0
+
+    def render_pilot(self):
+        return None
 
     def stop(self):
         pass
