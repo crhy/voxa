@@ -1,0 +1,1 @@
+La primera frase es lo suficientemente larga como para que Voxa siga hablando cuando comience la comprobación. La segunda frase mantiene la conversación para que la referencia no quede en silencio entre las piezas. La tercera frase cierra la respuesta y deja que la herramienta informe del nivel de su propia voz.

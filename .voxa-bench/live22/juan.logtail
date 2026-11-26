@@ -1,0 +1,71 @@
+22:46:21.880 speak-start path='whole-reply' conversation=True turn_ms=0 muted=True level_timer=True text='La primera frase es lo suficientemente larga como '
+22:46:23.985 words heard='Why are you being so dirty? Why are you being so dirty? Why are you being so dirty?' raw='Why are you being so dirty? Why are you being so dirty? Why are you being so dirty?' source='uncertain' confidence=0.070 degraded=False reasons="microphone holds -7.7 dB beyond the reference (delay unproven: capped); residual +9.8 dB over the echo path's baseline but the delay is unproven: not independent speech; no VAD on the cleaned signal f" seconds=2.183 speaking='Der erste Satz ist lang genug, dass Voxa noch spricht, wenn '
+22:46:23.985 HOLD source='uncertain' confidence=0.070
+22:46:23.987 promote-hold frames=435 span_seconds=8.638
+22:46:24.610 gate-open level=0.021 baseline=0.008 settled=True ratio=1.090
+22:46:27.570 words heard='' raw='' source='uncertain' confidence=0.000 degraded=False reasons="microphone at the echo path's floor (-120.0 dB) with no speech: abstain" seconds=2.059 speaking='La primera frase es lo suficientemente larga como para que V'
+22:46:27.570 hallucination heard='' raw='' vad_prob=None no_speech_prob=0.565 avg_logprob=-1.382 compression_ratio=2.128 speaking='La primera frase es lo suficientemente larga como para que V'
+22:46:27.571 HOLD source='' confidence=0.000
+22:46:27.573 promote-hold frames=359 span_seconds=12.228
+22:46:27.576 gate-open level=0.027 baseline=0.009 settled=True ratio=1.480
+22:46:27.579 words heard='' raw='' source='uncertain' confidence=0.000 degraded=False reasons="microphone at the echo path's floor (-120.0 dB) with no speech: abstain" seconds=0.001 speaking='La primera frase es lo suficientemente larga como para que V'
+22:46:27.580 hallucination heard='' raw='' vad_prob=None no_speech_prob=None avg_logprob=None compression_ratio=None speaking='La primera frase es lo suficientemente larga como para que V'
+22:46:27.580 HOLD source='' confidence=0.000
+22:46:27.581 gate-open level=0.028 baseline=0.011 settled=True ratio=1.380
+22:46:27.581 promote-hold frames=1 span_seconds=12.232
+22:46:27.995 words heard='' raw='' source='uncertain' confidence=0.000 degraded=False reasons='no speech on the cleaned signal (no words, VAD unmeasured): abstain' seconds=0.178 speaking='La primera frase es lo suficientemente larga como para que V'
+22:46:27.995 hallucination heard='' raw='' vad_prob=None no_speech_prob=None avg_logprob=None compression_ratio=None speaking='La primera frase es lo suficientemente larga como para que V'
+22:46:27.995 HOLD source='' confidence=0.000
+22:46:27.996 promote-hold frames=42 span_seconds=12.651
+22:46:28.117 gate-open level=0.025 baseline=0.012 settled=True ratio=1.480
+22:46:29.232 words heard='' raw='' source='uncertain' confidence=0.000 degraded=False reasons="microphone at the echo path's floor (-120.0 dB) with no speech: abstain" seconds=0.213 speaking='La primera frase es lo suficientemente larga como para que V'
+22:46:29.232 hallucination heard='' raw='' vad_prob=None no_speech_prob=None avg_logprob=None compression_ratio=None speaking='La primera frase es lo suficientemente larga como para que V'
+22:46:29.232 HOLD source='' confidence=0.000
+22:46:29.233 promote-hold frames=123 span_seconds=13.888
+22:46:30.923 gate-open level=0.057 baseline=0.007 settled=True ratio=2.830
+22:46:32.074 words heard='' raw='' source='uncertain' confidence=0.000 degraded=False reasons='no speech on the cleaned signal (no words, VAD unmeasured): abstain' seconds=0.250 speaking='La primera frase es lo suficientemente larga como para que V'
+22:46:32.074 hallucination heard='' raw='' vad_prob=None no_speech_prob=None avg_logprob=None compression_ratio=None speaking='La primera frase es lo suficientemente larga como para que V'
+22:46:32.075 HOLD source='' confidence=0.000
+22:46:32.076 promote-hold frames=285 span_seconds=14.989
+22:46:32.077 gate-open level=0.026 baseline=0.008 settled=True ratio=1.640
+22:46:33.022 words heard='' raw='' source='uncertain' confidence=0.000 degraded=False reasons='no speech on the cleaned signal (no words, VAD unmeasured): abstain' seconds=0.196 speaking='La primera frase es lo suficientemente larga como para que V'
+22:46:33.022 hallucination heard='' raw='' vad_prob=None no_speech_prob=None avg_logprob=None compression_ratio=None speaking='La primera frase es lo suficientemente larga como para que V'
+22:46:33.022 HOLD source='' confidence=0.000
+22:46:33.023 promote-hold frames=94 span_seconds=14.993
+22:46:33.024 gate-open level=0.037 baseline=0.009 settled=True ratio=1.850
+22:46:34.083 words heard='' raw='' source='uncertain' confidence=0.000 degraded=False reasons='no speech on the cleaned signal (no words, VAD unmeasured): abstain' seconds=0.206 speaking='La primera frase es lo suficientemente larga como para que V'
+22:46:34.083 hallucination heard='' raw='' vad_prob=None no_speech_prob=None avg_logprob=None compression_ratio=None speaking='La primera frase es lo suficientemente larga como para que V'
+22:46:34.084 HOLD source='' confidence=0.000
+22:46:34.084 promote-hold frames=107 span_seconds=14.992
+22:46:34.278 gate-open level=0.023 baseline=0.010 settled=True ratio=1.460
+22:46:35.389 words heard='' raw='' source='uncertain' confidence=0.000 degraded=False reasons='no speech on the cleaned signal (no words, VAD unmeasured): abstain' seconds=0.209 speaking='La primera frase es lo suficientemente larga como para que V'
+22:46:35.389 hallucination heard='' raw='' vad_prob=None no_speech_prob=None avg_logprob=None compression_ratio=None speaking='La primera frase es lo suficientemente larga como para que V'
+22:46:35.389 HOLD source='' confidence=0.000
+22:46:35.390 promote-hold frames=130 span_seconds=14.992
+22:46:35.391 gate-open level=0.025 baseline=0.011 settled=True ratio=1.350
+22:46:36.383 words heard='' raw='' source='uncertain' confidence=0.000 degraded=False reasons='no speech on the cleaned signal (no words, VAD unmeasured): abstain' seconds=0.202 speaking='La primera frase es lo suficientemente larga como para que V'
+22:46:36.383 hallucination heard='' raw='' vad_prob=None no_speech_prob=None avg_logprob=None compression_ratio=None speaking='La primera frase es lo suficientemente larga como para que V'
+22:46:36.383 HOLD source='' confidence=0.000
+22:46:36.384 promote-hold frames=99 span_seconds=14.993
+22:46:37.583 gate-open level=0.027 baseline=0.007 settled=True ratio=1.340
+22:46:38.731 words heard='' raw='' source='uncertain' confidence=0.000 degraded=False reasons="microphone at the echo path's floor (-120.0 dB) with no speech: abstain" seconds=0.246 speaking='La primera frase es lo suficientemente larga como para que V'
+22:46:38.732 hallucination heard='' raw='' vad_prob=None no_speech_prob=None avg_logprob=None compression_ratio=None speaking='La primera frase es lo suficientemente larga como para que V'
+22:46:38.732 HOLD source='' confidence=0.000
+22:46:38.733 promote-hold frames=236 span_seconds=14.997
+22:46:38.734 gate-open level=0.025 baseline=0.009 settled=True ratio=2.030
+22:46:42.737 speak-start path='whole-reply' conversation=True turn_ms=0 muted=True level_timer=True text='最初の文は、チェックの開始時にボクサがまだ話しているほど長い文です。二番目の文は、応答の合い間に参照'
+22:46:43.836 gate-open level=0.035 baseline=0.001 settled=True ratio=1.750
+22:46:45.213 words heard='See you in the next video.' raw='See you in the next video.' source='uncertain' confidence=0.000 degraded=True reasons='reference silent for this moment while speaking: echo not arrived at this span, abstain' seconds=0.476 speaking='最初の文は、チェックの開始時にボクサがまだ話しているほど長い文です。二番目の文は、応答の合い間に参照が沈黙しないように、'
+22:46:45.214 hallucination heard='See you in the next video.' raw='See you in the next video.' vad_prob=None no_speech_prob=None avg_logprob=None compression_ratio=None speaking='最初の文は、チェックの開始時にボクサがまだ話しているほど長い文です。二番目の文は、応答の合い間に参照が沈黙しないように、'
+22:46:45.214 HOLD source='' confidence=0.000
+22:46:45.215 promote-hold frames=195 span_seconds=1.952
+22:46:45.219 gate-open level=0.028 baseline=0.004 settled=True ratio=2.950
+22:46:45.792 words heard='' raw='' source='uncertain' confidence=0.000 degraded=False reasons='no speech on the cleaned signal (no words, VAD unmeasured): abstain' seconds=0.002 speaking='最初の文は、チェックの開始時にボクサがまだ話しているほど長い文です。二番目の文は、応答の合い間に参照が沈黙しないように、'
+22:46:45.792 hallucination heard='' raw='' vad_prob=None no_speech_prob=0.447 avg_logprob=-0.906 compression_ratio=0.765 speaking='最初の文は、チェックの開始時にボクサがまだ話しているほど長い文です。二番目の文は、応答の合い間に参照が沈黙しないように、'
+22:46:45.793 HOLD source='' confidence=0.000
+22:46:45.793 promote-hold frames=59 span_seconds=2.532
+22:46:45.939 gate-open level=0.030 baseline=0.005 settled=True ratio=1.520
+22:46:46.844 words heard='' raw='' source='uncertain' confidence=0.000 degraded=False reasons='no speech on the cleaned signal (no words, VAD unmeasured): abstain' seconds=0.003 speaking='最初の文は、チェックの開始時にボクサがまだ話しているほど長い文です。二番目の文は、応答の合い間に参照が沈黙しないように、'
+22:46:46.844 hallucination heard='' raw='' vad_prob=None no_speech_prob=None avg_logprob=None compression_ratio=None speaking='最初の文は、チェックの開始時にボクサがまだ話しているほど長い文です。二番目の文は、応答の合い間に参照が沈黙しないように、'
+22:46:46.844 HOLD source='' confidence=0.000
+22:46:46.844 promote-hold frames=105 span_seconds=3.581

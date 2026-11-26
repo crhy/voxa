@@ -1,0 +1,82 @@
+Voxa settings: /home/rhy/.var/app/io.github.crhy.voxa/config/voxa/config.json — wake word "voxa", model qwen3.5-0.8b-q4km:latest at http://127.0.0.1:11434
+Whisper ready: base (cpu/int8)
+@@VOXATEST {"event": "case_start", "index": 1, "total": 5, "id": "h-pause-0", "category": "hearing-pause", "prompt": "voxa set a timer for five minutes and another for ten minutes"}
+Speaking: voxa set a timer for five minutes and another for ten minutes
+Empty transcript for h-pause-0; retrying (attempt 2 of 2).
+Speaking: voxa set a timer for five minutes and another for ten minutes
+@@VOXATEST {"event": "case_result", "index": 1, "total": 5, "id": "h-pause-0", "category": "hearing-pause", "prompt": "voxa set a timer for five minutes and another for ten minutes", "status": "FAIL", "reply": "", "heard": "", "layer": "not_heard", "notes": "No spoken reply was captured.", "seconds": 25.0}
+[1/5] FAIL h-pause-0 score 0 (25.0s)
+@@VOXATEST {"event": "case_start", "index": 2, "total": 5, "id": "h-pause-1", "category": "hearing-pause", "prompt": "voxa read the first chapter of the book and then save the notes"}
+Speaking: voxa read the first chapter of the book and then save the notes
+Empty transcript for h-pause-1; retrying (attempt 2 of 2).
+Speaking: voxa read the first chapter of the book and then save the notes
+@@VOXATEST {"event": "case_result", "index": 2, "total": 5, "id": "h-pause-1", "category": "hearing-pause", "prompt": "voxa read the first chapter of the book and then save the notes", "status": "FAIL", "reply": "", "heard": "", "layer": "not_heard", "notes": "No spoken reply was captured.", "seconds": 25.0}
+[2/5] FAIL h-pause-1 score 0 (25.0s)
+@@VOXATEST {"event": "case_start", "index": 3, "total": 5, "id": "h-pause-2", "category": "hearing-pause", "prompt": "voxa the nearest pharmacy is on fifth avenue and I need the one on third street"}
+Speaking: voxa the nearest pharmacy is on fifth avenue and I need the one on third street
+Empty transcript for h-pause-2; retrying (attempt 2 of 2).
+Speaking: voxa the nearest pharmacy is on fifth avenue and I need the one on third street
+@@VOXATEST {"event": "case_result", "index": 3, "total": 5, "id": "h-pause-2", "category": "hearing-pause", "prompt": "voxa the nearest pharmacy is on fifth avenue and I need the one on third street", "status": "FAIL", "reply": "", "heard": "", "layer": "not_heard", "notes": "No spoken reply was captured.", "seconds": 25.8}
+[3/5] FAIL h-pause-2 score 0 (25.8s)
+@@VOXATEST {"event": "case_start", "index": 4, "total": 5, "id": "h-pause-3", "category": "hearing-pause", "prompt": "voxa add milk and bread and eggs to the shopping list"}
+Speaking: voxa add milk and bread and eggs to the shopping list
+Empty transcript for h-pause-3; retrying (attempt 2 of 2).
+Speaking: voxa add milk and bread and eggs to the shopping list
+@@VOXATEST {"event": "case_result", "index": 4, "total": 5, "id": "h-pause-3", "category": "hearing-pause", "prompt": "voxa add milk and bread and eggs to the shopping list", "status": "FAIL", "reply": "", "heard": "", "layer": "not_heard", "notes": "No spoken reply was captured.", "seconds": 24.5}
+[4/5] FAIL h-pause-3 score 0 (24.5s)
+@@VOXATEST {"event": "case_start", "index": 5, "total": 5, "id": "h-pause-4", "category": "hearing-pause", "prompt": "voxa open the map for walking directions to the library and print it"}
+Speaking: voxa open the map for walking directions to the library and print it
+Empty transcript for h-pause-4; retrying (attempt 2 of 2).
+Speaking: voxa open the map for walking directions to the library and print it
+@@VOXATEST {"event": "case_result", "index": 5, "total": 5, "id": "h-pause-4", "category": "hearing-pause", "prompt": "voxa open the map for walking directions to the library and print it", "status": "FAIL", "reply": "", "heard": "", "layer": "not_heard", "notes": "No spoken reply was captured.", "seconds": 25.5}
+[5/5] FAIL h-pause-4 score 0 (25.5s)
+No reply from Voxa for 5 cases in a row. Is Voxa running with Conversation mode on, listening for the wake word "voxa"? Stopping.
+PARTIAL RUN (interrupted or still running)
+Total: 5
+Passed: 0
+Failed: 5
+Errors: 0
+Average score: 0.0
+
+FAIL [hearing-pause] h-pause-0: score 0 (25.0s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: No spoken reply was captured.
+FAIL [hearing-pause] h-pause-1: score 0 (25.0s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: No spoken reply was captured.
+FAIL [hearing-pause] h-pause-2: score 0 (25.8s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: No spoken reply was captured.
+FAIL [hearing-pause] h-pause-3: score 0 (24.5s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: No spoken reply was captured.
+FAIL [hearing-pause] h-pause-4: score 0 (25.5s) - no transcript
+  comprehension: layer=not_heard hearing=0.0000 routed=n/a
+  notes: No spoken reply was captured.
+
+Comprehension
+  hearing_word_accuracy  0.0000  (5 cases)
+  routed_tool_accuracy   null  (0 cases with an expected tool)
+  layers: not_heard 5, misheard 0, misrouted 0, misanswered 0, ok 0
+  per category:
+    hearing-pause: cases 5 hearing 0.0000 routed null
+  CONFUSIONS (top 30):
+    none: every word heard as it was said
+Hearing suite (timed interruptions, short answers, repetitions, pauses, quiet speech)
+  interrupt_recall           null
+  keep_accuracy              1.0000
+  stop_latency_p50_ms        null
+  stop_latency_p95_ms        null
+  premature_rate             1.0000
+  self_interrupt_count       0
+  request_word_retention     null
+  cases 5  yielded 0/0  kept 5/5  complete requests 0/0  premature 5/5
+  per cell:
+    normal: cases 5 recall null keep 1.0000 retention null p50 null ms self-interrupts 0 premature 1.0000
+  per overlap:
+    overlap: cases 5 recall null keep 1.0000 retention null p50 null ms self-interrupts 0 premature 1.0000
+  per expect:
+    keep: cases 5 recall null keep 1.0000 retention null p50 null ms self-interrupts 0 premature 1.0000
+JSON report: .voxa-bench/voxatest-reports/run_20261125_230725_595456_20530_b691f083.json
+Text report: .voxa-bench/voxatest-reports/run_20261125_230725_595456_20530_b691f083.txt
+Failure report: VOXATEST_FAILURES.md
