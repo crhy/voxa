@@ -640,26 +640,13 @@ class BargeInController:
             self._clear_candidate()
             return BargeOutcome(OFFLINE, heard=heard, raw=raw, level=level01)
         # Issue #72, task v11d item 2: a Whisper hallucination on the echo path's residual
-        # ("Thanks for watching.", "subscribe", ...) is not a second source. Drop it BEFORE the
-        # words are decided, unless the cleaned signal really carries speech - the one INTERRUPT
-        # that survived the v11c no-speech guard was such a phrase (her own closing line), and it
-        # stopped her on noise. A real user turn with VAD speech is never dropped here.
-        if is_whisper_hallucination(
-                heard, raw,
-                no_speech_prob=getattr(audio, "no_speech_prob", None),
-                vad_prob=getattr(audio, "vad_prob", None),
-                avg_logprob=getattr(audio, "avg_logprob", None),
-                compression_ratio=getattr(audio, "compression_ratio", None)):
-            self._trace("hallucination", heard=heard, raw=raw,
-                        vad_prob=getattr(audio, "vad_prob", None),
-                        no_speech_prob=getattr(audio, "no_speech_prob", None),
-                        avg_logprob=getattr(audio, "avg_logprob", None),
-                        compression_ratio=getattr(audio, "compression_ratio", None),
-                        speaking=self.speaking_text[:60])
-            self.gate.reset()
-            self._clear_candidate()
-            return BargeOutcome(HOLD, reason="hallucination", heard=heard, raw=raw,
-                                level=level01)
+        # ("Thanks for watching.", "subscribe", ...) is not a second source. A real user turn
+        # with VAD speech is never dropped here (and with the delay PARKED unproven, VAD alone
+        # does not keep it either). The guard runs AFTER the attribution trace so the live
+        # reference check can see that the audio engine judged this span (task v11d step 4:
+        # "alignment healthy while speaking" counts every attribution line during a reply;
+        # an empty span held by the guard without a decision made that check vacuous).
+        # A real user turn with VAD speech is never dropped here.
         decision = source_decision(heard, self.speaking_text, self.recent_spoken, raw=raw,
                                    evidence=audio,
                                    level_ratio=(self.pending_ratio
@@ -670,6 +657,23 @@ class BargeInController:
                     confidence=round(decision.confidence, 2), degraded=decision.degraded,
                     reasons="; ".join(decision.reasons)[:200],
                     seconds=self.clock() - started, speaking=self.speaking_text[:60])
+        if is_whisper_hallucination(
+                heard, raw,
+                no_speech_prob=getattr(audio, "no_speech_prob", None),
+                vad_prob=getattr(audio, "vad_prob", None),
+                avg_logprob=getattr(audio, "avg_logprob", None),
+                compression_ratio=getattr(audio, "compression_ratio", None),
+                delay_proven=getattr(audio, "delay_proven", True)):
+            self._trace("hallucination", heard=heard, raw=raw,
+                        vad_prob=getattr(audio, "vad_prob", None),
+                        no_speech_prob=getattr(audio, "no_speech_prob", None),
+                        avg_logprob=getattr(audio, "avg_logprob", None),
+                        compression_ratio=getattr(audio, "compression_ratio", None),
+                        speaking=self.speaking_text[:60])
+            self.gate.reset()
+            self._clear_candidate()
+            return BargeOutcome(HOLD, reason="hallucination", heard=heard, raw=raw,
+                                level=level01)
         if decision.source == SOURCE_UNCERTAIN:
             # Issue #72, task v11 step 3: an abstain is not permanent. When the REFERENCE is
             # unusable (silent tap while she speaks, or an unhealthy alignment) attribution can

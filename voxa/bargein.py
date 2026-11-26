@@ -449,7 +449,8 @@ def is_whisper_hallucination(heard: str, raw: str = "", *,
                              no_speech_prob: float | None = None,
                              vad_prob: float | None = None,
                              avg_logprob: float | None = None,
-                             compression_ratio: float | None = None) -> bool:
+                             compression_ratio: float | None = None,
+                             delay_proven: bool = True) -> bool:
     """True when a transcript is a Whisper hallucination on noise, not a real second source.
 
     High ``no_speech_prob`` (above :data:`REJECT_NO_SPEECH_PROB`, Whisper's own non-speech
@@ -461,10 +462,16 @@ def is_whisper_hallucination(heard: str, raw: str = "", *,
     Task v11d: the same no-real-speech condition also drops a transcript that fails Whisper's
     OWN confidence bar (``avg_logprob`` / ``compression_ratio`` from the segment), which is how
     "The link is in the description." interrupted her on her own echo.
+
+    Task v11d (the hiroshi live failure): while the echo delay is PARKED but unproven, the
+    cleaned signal's own VAD can fire on what the canceller left of her echo (Silero p=0.67
+    on a +14 dB residue). Then VAD alone does not veto this guard either: the known phrases
+    and Whisper's own bar still decide - a genuine user turn clears all three.
     """
     from .attribution import VAD_SPEECH
 
-    if vad_prob is not None and vad_prob >= VAD_SPEECH:
+    vad_real_speech = vad_prob is not None and vad_prob >= VAD_SPEECH
+    if vad_real_speech and delay_proven:
         return False  # the cleaned signal really has speech: not a hallucination
     if no_speech_prob is not None and no_speech_prob > REJECT_NO_SPEECH_PROB:
         return True

@@ -54,6 +54,24 @@ def test_real_speech_is_never_a_hallucination() -> None:
                                         no_speech_prob=0.9, vad_prob=0.8)
 
 
+def test_an_unproven_delay_makes_vad_alone_keep_a_known_phrase_issue_72_v11d():
+    """hiroshi live failure (22-char v11d): "Thanks for watching." on her Japanese echo
+    INTERRUPTED her because Silero fired at 0.67 ON THE RESIDUE the canceller left - at a
+    delay the exact aligner never confirmed. VAD alone only vetoes the guard when the echo
+    delay is a proved lock; parked, it must clear Whisper's known phrases too."""
+    assert is_whisper_hallucination("Thanks for watching.", "Thanks for watching.",
+                                    vad_prob=0.67, delay_proven=False)
+    # A proved delay keeps the old veto: real speech in the cleaned signal wins.
+    assert not is_whisper_hallucination("Thanks for watching.", "Thanks for watching.",
+                                        vad_prob=0.67, delay_proven=True)
+    # Unproven delay and real speech: an UNKNOWN, confident transcript still interrupts -
+    # the guard reads phrases and bars, not "the user is wrong".
+    assert not is_whisper_hallucination("stop the timer now please",
+                                        "stop the timer now please",
+                                        vad_prob=0.9, avg_logprob=-0.3,
+                                        compression_ratio=1.1, delay_proven=False)
+
+
 def test_a_real_user_turn_is_not_a_hallucination() -> None:
     assert not is_whisper_hallucination("open the library", "open the library", vad_prob=None)
 
@@ -112,3 +130,23 @@ def test_bad_whisper_confidence_holds_an_unknown_phrase() -> None:
     outcome = _drive(lambda: ("some fresh invention here", "some fresh invention here"), failing)
     assert outcome.action == HOLD, outcome
     assert outcome.reason == "hallucination"
+
+
+def test_an_empty_span_the_guard_holds_still_records_its_decision() -> None:
+    """Task v11d step 4 (live 22-char gate, aoife/charlotte/greta): the reference check
+    counts attribution lines during a reply ("alignment healthy: H of D", decisions must be
+    > 0). Empty spans - the echo's pauses, transcribed as nothing - were being dropped by
+    the hallucination guard BEFORE attribution, so whole replies decided nothing. The guard
+    now runs after the attribution trace: the span is still held, but it was decided."""
+    events: list[str] = []
+    control = BargeInController(trace=lambda event, **kw: events.append(event))
+    control.reply_started(HERS)
+    for _ in range(2 * int(400.0 / DT_MS)):
+        control.observe(0.05, speaking=True, muted=True, dt_ms=DT_MS)
+    outcome = None
+    for _ in range(60):
+        outcome = control.observe(0.9, speaking=True, muted=True, dt_ms=DT_MS,
+                                  candidate=lambda: ("", ""), evidence=_loud_mic_no_real_speech())
+    assert outcome.action == HOLD, outcome
+    assert "words" in events and "hallucination" in events, events
+    assert events.index("words") < events.index("hallucination"), events
