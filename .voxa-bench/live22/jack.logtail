@@ -1,0 +1,35 @@
+22:42:00.626 speak-start path='whole-reply' conversation=True turn_ms=0 muted=True level_timer=True text='The first sentence is long enough that Voxa will s'
+22:42:02.026 gate-open level=0.027 baseline=0.003 settled=True ratio=1.360
+22:42:03.259 words heard='The first seconds is long enough, think b-' raw='The first seconds is long enough, think b-' source='uncertain' confidence=0.080 degraded=False reasons="microphone holds -6.7 dB beyond the reference (delay unproven: capped); residual +22.9 dB over the echo path's baseline but the delay is unproven: not independent speech; no VAD on the cleaned signal " seconds=0.326 speaking='The first sentence is long enough that Voxa will still be sp'
+22:42:03.260 HOLD source='uncertain' confidence=0.080
+22:42:03.260 promote-hold frames=183 span_seconds=1.819
+22:42:03.262 gate-open level=0.039 baseline=0.004 settled=True ratio=1.940
+22:42:04.153 words heard='' raw='' source='uncertain' confidence=0.000 degraded=False reasons='no speech on the cleaned signal (no words, VAD unmeasured): abstain' seconds=0.219 speaking='The first sentence is long enough that Voxa will still be sp'
+22:42:04.153 hallucination heard='' raw='' vad_prob=None no_speech_prob=0.367 avg_logprob=-0.777 compression_ratio=0.840 speaking='The first sentence is long enough that Voxa will still be sp'
+22:42:04.154 HOLD source='' confidence=0.000
+22:42:04.154 promote-hold frames=89 span_seconds=2.716
+22:42:04.155 gate-open level=0.024 baseline=0.005 settled=True ratio=1.190
+22:42:05.167 words heard='Check again.' raw='Check again.' source='echo' confidence=1.000 degraded=False reasons="microphone explained by reference -0.0 dB; residual -22.9 dB at or under the echo path's baseline; no VAD on the cleaned signal for this span; delay unproven and no VAD speech measured: the level towe" seconds=0.232 speaking='The first sentence is long enough that Voxa will still be sp'
+22:42:06.037 gate-open level=0.044 baseline=0.007 settled=True ratio=2.200
+22:42:07.245 words heard='Check again. The second setting, feature, talking,' raw='Check again. The second setting, feature, talking,' source='uncertain' confidence=0.040 degraded=False reasons="microphone holds -10.7 dB beyond the reference (delay unproven: capped); residual +11.0 dB over the echo path's baseline but the delay is unproven: not independent speech; no VAD on the cleaned signal" seconds=0.306 speaking='The first sentence is long enough that Voxa will still be sp'
+22:42:07.245 hallucination heard='Check again. The second setting, feature, talking,' raw='Check again. The second setting, feature, talking,' vad_prob=None no_speech_prob=0.677 avg_logprob=-0.307 compression_ratio=0.600 speaking='The first sentence is long enough that Voxa will still be sp'
+22:42:07.245 HOLD source='' confidence=0.000
+22:42:07.246 promote-hold frames=309 span_seconds=5.801
+22:42:07.540 gate-open level=0.024 baseline=0.010 settled=True ratio=1.190
+22:42:08.677 words heard='' raw='' source='uncertain' confidence=0.000 degraded=False reasons='no speech on the cleaned signal (no words, VAD unmeasured): abstain' seconds=0.236 speaking='The first sentence is long enough that Voxa will still be sp'
+22:42:08.677 hallucination heard='' raw='' vad_prob=None no_speech_prob=0.806 avg_logprob=-0.854 compression_ratio=0.926 speaking='The first sentence is long enough that Voxa will still be sp'
+22:42:08.677 HOLD source='' confidence=0.000
+22:42:08.678 promote-hold frames=144 span_seconds=7.240
+22:42:09.042 gate-open level=0.025 baseline=0.011 settled=True ratio=1.440
+22:42:10.170 words heard='' raw='' source='uncertain' confidence=0.000 degraded=True reasons='reference silent for this moment while speaking: echo not arrived at this span, abstain' seconds=0.227 speaking='The first sentence is long enough that Voxa will still be sp'
+22:42:10.170 hallucination heard='' raw='' vad_prob=None no_speech_prob=None avg_logprob=None compression_ratio=None speaking='The first sentence is long enough that Voxa will still be sp'
+22:42:10.170 HOLD source='' confidence=0.000
+22:42:10.171 promote-hold frames=149 span_seconds=8.733
+22:42:10.193 gate-open level=0.029 baseline=0.010 settled=True ratio=1.470
+22:42:11.325 words heard='' raw='' source='uncertain' confidence=0.000 degraded=False reasons='no speech on the cleaned signal (no words, VAD unmeasured): abstain' seconds=0.230 speaking='The first sentence is long enough that Voxa will still be sp'
+22:42:11.325 hallucination heard='' raw='' vad_prob=None no_speech_prob=None avg_logprob=None compression_ratio=None speaking='The first sentence is long enough that Voxa will still be sp'
+22:42:11.325 HOLD source='' confidence=0.000
+22:42:11.326 promote-hold frames=116 span_seconds=9.892
+22:42:11.327 gate-open level=0.029 baseline=0.011 settled=True ratio=1.440
+22:42:14.207 render-tap attached=True pieces=1 samples=205824 peak=0.741 silent=False error=''
+22:42:14.207 echo-health reference_db=0.000 explained_db=-21.100 residual_db=-65.700 frames=268 travel_ms=-38.400 lock_ms=-37.500 lock_confident=False lock_degraded=False pilot_prom=None

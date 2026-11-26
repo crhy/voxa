@@ -1,0 +1,19 @@
+  machine busy (load 3.26, or pytest/build running), waiting
+  instances-before-check=1
+== jack (en-US-GuyNeural, en) rc=0 instances-after=1 avail=22G
+reference silent while speaking: 0 of 1 checks [jack]
+alignment healthy while speaking: 5 of 5 [jack]
+false interrupts while she speaks alone: 0 of 1 [jack]
+   echo-health lines: 1 echo-health reference_db=0.000 explained_db=-11.900 residual_db=-68.500 frames=267 travel_ms=-37.000 lock_ms=-39.000 lock_confident=False lock_degraded=False
+  instances-before-check=1
+== grace (en-US-AriaNeural, en) rc=0 instances-after=1 avail=22G
+reference silent while speaking: 0 of 1 checks [grace]
+alignment healthy while speaking: 8 of 8 [grace]
+false interrupts while she speaks alone: 0 of 1 [grace]
+   echo-health lines: 1 echo-health reference_db=0.000 explained_db=-24.700 residual_db=-66.300 frames=285 travel_ms=-26.900 lock_ms=-28.400 lock_confident=False lock_degraded=False
+  machine busy (load 4.98, or pytest/build running), waiting
+  machine busy (load 5.92, or pytest/build running), waiting
+  machine busy (load 7.63, or pytest/build running), waiting
+  machine busy (load 7.61, or pytest/build running), waiting
+  machine busy (load 8.16, or pytest/build running), waiting
+  machine busy (load 8.17, or pytest/build running), waiting

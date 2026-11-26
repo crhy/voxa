@@ -1,0 +1,505 @@
+Emptying app dir '.build/rc10'
+Downloading sources
+Fetching git repo https://github.com/espeak-ng/espeak-ng.git, ref refs/tags/1.52.0
+git: 'lfs' is not a git command. See 'git --help'.
+
+The most similar command is
+	refs
+Starting build of io.github.crhy.voxa
+Cache hit for espeak-ng, skipping build
+Cache hit for python3-huggingface-hub, skipping build
+Cache hit for python3-av, skipping build
+Cache hit for python3-faster-whisper, skipping build
+Cache hit for python3-numpy, skipping build
+Cache hit for python3-pywebrtc-audio, skipping build
+Cache hit for python3-onnxruntime, skipping build
+Cache hit for python3-edge-tts, skipping build
+Cache hit for python3-PyOpenGL, skipping build
+Cache hit for python3-pygltflib, skipping build
+Cache hit for python3-yt-dlp, skipping build
+Cache hit for python3-yt-dlp-ejs, skipping build
+Cache hit for python3-requirements-flatpak, skipping build
+Cache hit for nvidia-cuda-runtime, skipping build
+Cache hit for nvidia-smi-libs, skipping build
+Cache hit for voxa-faces, skipping build
+Cache hit for spirv-headers, skipping build
+Cache hit for llama-cpp, skipping build
+Cache miss, checking out last cache hit
+========================================================================
+Building module voxa in /home/rhy/strata-fleet/repos/voxa/.flatpak-builder/build/voxa-2
+========================================================================
+Running: install -d /app/lib/voxa
+Running: install -Dm755 voxa.py /app/lib/voxa/voxa.py
+Running: cp -r voxa /app/lib/voxa/
+Running: find /app/lib/voxa -name __pycache__ -prune -exec rm -rf {} +
+Running: test -f /app/lib/voxa/voxa/data/dtln/dtln_aec_512_1.onnx
+Running: test -f /app/lib/voxa/voxa/data/dtln/dtln_aec_512_2.onnx
+Running: install -Dm755 packaging/flatpak/voxa /app/bin/voxa
+Running: install -Dm755 packaging/flatpak/voxa-host-node /app/bin/voxa-host-node
+Running: install -Dm755 packaging/flatpak/voxa-backup /app/bin/voxa-backup
+Running: install -Dm644 io.github.crhy.voxa.desktop /app/share/applications/io.github.crhy.voxa.desktop
+Running: install -Dm644 io.github.crhy.voxa.metainfo.xml /app/share/metainfo/io.github.crhy.voxa.metainfo.xml
+Running: install -Dm644 icons/io.github.crhy.voxa.png /app/share/icons/hicolor/256x256/apps/io.github.crhy.voxa.png
+Running: install -Dm644 icons/io.github.crhy.voxa.png /app/share/icons/hicolor/256x256/apps/voxa.png
+Running: install -Dm644 models/smart-turn-v3.1-cpu.onnx /app/share/voxa/models/smart-turn-v3.1-cpu.onnx
+Removing stale file files/lib/python3.13/site-packages/OpenGL/AGL/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/OpenGL/GL/AMD/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/OpenGL/GL/KHR/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/OpenGL/GL/MESAX/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/OpenGL/GL/NVX/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/OpenGL/GL/VERSION/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/OpenGL/GLU/EXT/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/OpenGL/raw/EGL/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/OpenGL/raw/GLES1/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/OpenGL/raw/GLES2/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/OpenGL/raw/GLX/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/OpenGL/raw/WGL/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/OpenGL/raw/osmesa/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/anyio/_backends/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/anyio/_core/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/anyio/streams/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/av/sidedata/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/av/subtitles/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/certifi/tests/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/faster_whisper/assets/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/fsspec/implementations/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/google/protobuf/compiler/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/google/protobuf/pyext/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/google/protobuf/testdata/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/google/protobuf/util/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/httpcore/_backends/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/huggingface_hub/inference/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/huggingface_hub/inference/_generated/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/huggingface_hub/inference/_mcp/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/numpy/_pyinstaller/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/numpy/fft/tests/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/numpy/lib/tests/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/numpy/linalg/tests/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/numpy/ma/tests/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/numpy/matrixlib/tests/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/numpy/polynomial/tests/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/numpy/random/tests/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/numpy/random/tests/data/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/numpy/testing/_private/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/numpy/testing/tests/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/numpy/tests/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/numpy/typing/tests/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/onnxruntime/quantization/CalTableFlatBuffers/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/onnxruntime/tools/mobile_helpers/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/onnxruntime/tools/ort_format_model/ort_flatbuffers_py/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/onnxruntime/tools/qdq_helpers/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/yt_dlp/extractor/youtube/jsc/_builtin/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/yt_dlp/extractor/youtube/pot/_builtin/__init__.py/__pycache__/__init__.cpython-313.pyc
+Removing stale file files/lib/python3.13/site-packages/yt_dlp_ejs/yt/__init__.py/__pycache__/__init__.cpython-313.pyc
+Committing stage build-voxa to cache
+Cleaning up
+Removing files/share/pkgconfig/SPIRV-Headers.pc
+Removing files/share/pkgconfig
+Removing files/share/licenses/io.github.crhy.voxa/spirv-headers/LICENSE
+Removing files/share/licenses/io.github.crhy.voxa/spirv-headers
+Removing files/share/cmake/SPIRV-Headers/SPIRV-HeadersConfigVersion.cmake
+Removing files/share/cmake/SPIRV-Headers/SPIRV-HeadersConfig.cmake
+Removing files/share/cmake/SPIRV-Headers
+Removing files/share/cmake
+Removing files/lib/pkgconfig/llama.pc
+Removing files/lib/pkgconfig
+Removing files/lib/debug/source/llama-cpp/vendor/hash/sha256/sha256.h
+Removing files/lib/debug/source/llama-cpp/vendor/hash/sha256/sha256.c
+Removing files/lib/debug/source/llama-cpp/vendor/hash/sha256
+Removing files/lib/debug/source/llama-cpp/vendor/hash
+Removing files/lib/debug/source/llama-cpp/vendor
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml.c
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml-threading.h
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml-quants.h
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml-quants.c
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml-impl.h
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml-cpu/vec.h
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml-cpu/unary-ops.h
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml-cpu/traits.h
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml-cpu/tiled/tiled.h
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml-cpu/tiled
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml-cpu/simd-mappings.h
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml-cpu/quants.h
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml-cpu/quants.c
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml-cpu/ops.h
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml-cpu/llamafile/sgemm.h
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml-cpu/llamafile
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml-cpu/ggml-cpu.c
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml-cpu/ggml-cpu-impl.h
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml-cpu/binary-ops.h
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml-cpu/arch/x86/quants.c
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml-cpu/arch/x86
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml-cpu/arch
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml-cpu
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml-common.h
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml-backend-impl.h
+Removing files/lib/debug/source/llama-cpp/ggml/src/ggml-alloc.c
+Removing files/lib/debug/source/llama-cpp/ggml/src
+Removing files/lib/debug/source/llama-cpp/ggml/include/ggml.h
+Removing files/lib/debug/source/llama-cpp/ggml/include/ggml-cpu.h
+Removing files/lib/debug/source/llama-cpp/ggml/include/ggml-backend.h
+Removing files/lib/debug/source/llama-cpp/ggml/include/ggml-alloc.h
+Removing files/lib/debug/source/llama-cpp/ggml/include
+Removing files/lib/debug/source/llama-cpp/ggml
+Removing files/lib/debug/source/llama-cpp
+Removing files/lib/debug/source/espeak-ng/src/ucd-tools/src/tostring.c
+Removing files/lib/debug/source/espeak-ng/src/ucd-tools/src/scripts.c
+Removing files/lib/debug/source/espeak-ng/src/ucd-tools/src/proplist.c
+Removing files/lib/debug/source/espeak-ng/src/ucd-tools/src/include/ucd/ucd.h
+Removing files/lib/debug/source/espeak-ng/src/ucd-tools/src/include/ucd
+Removing files/lib/debug/source/espeak-ng/src/ucd-tools/src/include
+Removing files/lib/debug/source/espeak-ng/src/ucd-tools/src/ctype.c
+Removing files/lib/debug/source/espeak-ng/src/ucd-tools/src/categories.c
+Removing files/lib/debug/source/espeak-ng/src/ucd-tools/src/case.c
+Removing files/lib/debug/source/espeak-ng/src/ucd-tools/src
+Removing files/lib/debug/source/espeak-ng/src/ucd-tools
+Removing files/lib/debug/source/espeak-ng/src/speechPlayer/src/waveGenerator.h
+Removing files/lib/debug/source/espeak-ng/src/speechPlayer/src/utils.h
+Removing files/lib/debug/source/espeak-ng/src/speechPlayer/src/speechWaveGenerator.h
+Removing files/lib/debug/source/espeak-ng/src/speechPlayer/src/speechWaveGenerator.cpp
+Removing files/lib/debug/source/espeak-ng/src/speechPlayer/src/speechPlayer.h
+Removing files/lib/debug/source/espeak-ng/src/speechPlayer/src/speechPlayer.cpp
+Removing files/lib/debug/source/espeak-ng/src/speechPlayer/src/sample.h
+Removing files/lib/debug/source/espeak-ng/src/speechPlayer/src/frame.h
+Removing files/lib/debug/source/espeak-ng/src/speechPlayer/src/frame.cpp
+Removing files/lib/debug/source/espeak-ng/src/speechPlayer/src
+Removing files/lib/debug/source/espeak-ng/src/speechPlayer/include/speechPlayer.h
+Removing files/lib/debug/source/espeak-ng/src/speechPlayer/include
+Removing files/lib/debug/source/espeak-ng/src/speechPlayer
+Removing files/lib/debug/source/espeak-ng/src/speak-ng.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/wavegen.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/wavegen.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/voices.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/voice.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/translateword.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/translateword.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/translate.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/translate.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/tr_languages.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/synthesize.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/synthesize.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/synthdata.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/synthdata.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/ssml.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/ssml.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/speech.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/speech.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/spect.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/spect.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/soundicon.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/soundicon.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/sintab.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/setlengths.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/setlengths.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/sPlayer.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/sPlayer.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/readclause.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/readclause.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/phonemelist.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/phonemelist.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/phoneme.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/phoneme.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/numbers.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/numbers.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/mnemonics.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/mnemonics.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/langopts.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/langopts.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/klatt.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/klatt.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/intonation.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/intonation.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/ieee80.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/ieee80.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/fifo.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/fifo.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/event.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/event.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/espeak_command.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/espeak_command.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/espeak_api.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/error.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/error.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/encoding.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/dictionary.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/dictionary.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/compiledict.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/compiledict.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/compiledata.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/common.h
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng/common.c
+Removing files/lib/debug/source/espeak-ng/src/libespeak-ng
+Removing files/lib/debug/source/espeak-ng/src/include/espeak-ng/speak_lib.h
+Removing files/lib/debug/source/espeak-ng/src/include/espeak-ng/espeak_ng.h
+Removing files/lib/debug/source/espeak-ng/src/include/espeak-ng/encoding.h
+Removing files/lib/debug/source/espeak-ng/src/include/espeak-ng
+Removing files/lib/debug/source/espeak-ng/src/include
+Removing files/lib/debug/source/espeak-ng/src/espeak-ng.c
+Removing files/lib/debug/source/espeak-ng/src
+Removing files/lib/debug/source/espeak-ng
+Removing files/lib/debug/source
+Removing files/lib/debug/lib/python3.13/site-packages/yaml/_yaml.cpython-313-x86_64-linux-gnu.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/yaml
+Removing files/lib/debug/lib/python3.13/site-packages/tokenizers/tokenizers.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/tokenizers
+Removing files/lib/debug/lib/python3.13/site-packages/numpy/random/mtrand.cpython-313-x86_64-linux-gnu.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/numpy/random/bit_generator.cpython-313-x86_64-linux-gnu.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/numpy/random/_sfc64.cpython-313-x86_64-linux-gnu.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/numpy/random/_philox.cpython-313-x86_64-linux-gnu.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/numpy/random/_pcg64.cpython-313-x86_64-linux-gnu.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/numpy/random/_mt19937.cpython-313-x86_64-linux-gnu.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/numpy/random/_generator.cpython-313-x86_64-linux-gnu.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/numpy/random/_common.cpython-313-x86_64-linux-gnu.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/numpy/random/_bounded_integers.cpython-313-x86_64-linux-gnu.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/numpy/random
+Removing files/lib/debug/lib/python3.13/site-packages/numpy/linalg/lapack_lite.cpython-313-x86_64-linux-gnu.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/numpy/linalg/_umath_linalg.cpython-313-x86_64-linux-gnu.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/numpy/linalg
+Removing files/lib/debug/lib/python3.13/site-packages/numpy/fft/_pocketfft_umath.cpython-313-x86_64-linux-gnu.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/numpy/fft
+Removing files/lib/debug/lib/python3.13/site-packages/numpy/_core/_umath_tests.cpython-313-x86_64-linux-gnu.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/numpy/_core/_struct_ufunc_tests.cpython-313-x86_64-linux-gnu.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/numpy/_core/_simd.cpython-313-x86_64-linux-gnu.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/numpy/_core/_rational_tests.cpython-313-x86_64-linux-gnu.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/numpy/_core/_operand_flag_tests.cpython-313-x86_64-linux-gnu.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/numpy/_core/_multiarray_umath.cpython-313-x86_64-linux-gnu.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/numpy/_core/_multiarray_tests.cpython-313-x86_64-linux-gnu.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/numpy/_core
+Removing files/lib/debug/lib/python3.13/site-packages/numpy.libs/libscipy_openblas64_-f48b354e.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/numpy.libs
+Removing files/lib/debug/lib/python3.13/site-packages/numpy
+Removing files/lib/debug/lib/python3.13/site-packages/hf_xet/hf_xet.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/hf_xet
+Removing files/lib/debug/lib/python3.13/site-packages/ctranslate2/_ext.cpython-313-x86_64-linux-gnu.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/ctranslate2.libs/libctranslate2-fd146744.so.4.8.2.debug
+Removing files/lib/debug/lib/python3.13/site-packages/ctranslate2.libs
+Removing files/lib/debug/lib/python3.13/site-packages/ctranslate2
+Removing files/lib/debug/lib/python3.13/site-packages/av/video/stream.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/video/reformatter.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/video/plane.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/video/frame.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/video/format.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/video/codeccontext.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/video
+Removing files/lib/debug/lib/python3.13/site-packages/av/utils.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/subtitles/subtitle.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/subtitles/stream.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/subtitles/codeccontext.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/subtitles
+Removing files/lib/debug/lib/python3.13/site-packages/av/stream.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/sidedata/sidedata.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/sidedata/motionvectors.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/sidedata/encparams.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/sidedata
+Removing files/lib/debug/lib/python3.13/site-packages/av/rational.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/plane.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/packet.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/opaque.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/logging.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/index.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/frame.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/format.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/filter/loudnorm.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/filter/link.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/filter/graph.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/filter/filter.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/filter/context.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/filter
+Removing files/lib/debug/lib/python3.13/site-packages/av/error.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/dictionary.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/device.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/container/streams.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/container/pyio.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/container/output.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/container/input.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/container/core.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/container
+Removing files/lib/debug/lib/python3.13/site-packages/av/codec/hwaccel.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/codec/context.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/codec/codec.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/codec
+Removing files/lib/debug/lib/python3.13/site-packages/av/buffer.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/bitstream.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/audio/stream.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/audio/resampler.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/audio/plane.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/audio/layout.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/audio/frame.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/audio/format.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/audio/fifo.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/audio/codeccontext.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av/audio
+Removing files/lib/debug/lib/python3.13/site-packages/av/_core.abi3.so.debug
+Removing files/lib/debug/lib/python3.13/site-packages/av
+Removing files/lib/debug/lib/python3.13/site-packages
+Removing files/lib/debug/lib/python3.13
+Removing files/lib/debug/lib/libmtmd.so.0.7.0.debug
+Removing files/lib/debug/lib/libllama.so.0.7.0.debug
+Removing files/lib/debug/lib/libllama-server-impl.so.debug
+Removing files/lib/debug/lib/libllama-quantize-impl.so.debug
+Removing files/lib/debug/lib/libllama-perplexity-impl.so.debug
+Removing files/lib/debug/lib/libllama-fit-params-impl.so.debug
+Removing files/lib/debug/lib/libllama-completion-impl.so.debug
+Removing files/lib/debug/lib/libllama-common.so.0.7.0.debug
+Removing files/lib/debug/lib/libllama-cli-impl.so.debug
+Removing files/lib/debug/lib/libllama-bench-impl.so.debug
+Removing files/lib/debug/lib/libllama-batched-bench-impl.so.debug
+Removing files/lib/debug/lib/libggml.so.0.27.0.debug
+Removing files/lib/debug/lib/libggml-base.so.0.27.0.debug
+Removing files/lib/debug/lib/libespeak-ng.so.1.1.51.debug
+Removing files/lib/debug/lib
+Removing files/lib/debug/bin/speak-ng.debug
+Removing files/lib/debug/bin/llama-server.debug
+Removing files/lib/debug/bin/libggml-vulkan.so.debug
+Removing files/lib/debug/bin/libggml-cpu-zen4.so.debug
+Removing files/lib/debug/bin/libggml-cpu-x64.so.debug
+Removing files/lib/debug/bin/libggml-cpu-sse42.so.debug
+Removing files/lib/debug/bin/libggml-cpu-skylakex.so.debug
+Removing files/lib/debug/bin/libggml-cpu-sapphirerapids.so.debug
+Removing files/lib/debug/bin/libggml-cpu-sandybridge.so.debug
+Removing files/lib/debug/bin/libggml-cpu-piledriver.so.debug
+Removing files/lib/debug/bin/libggml-cpu-ivybridge.so.debug
+Removing files/lib/debug/bin/libggml-cpu-icelake.so.debug
+Removing files/lib/debug/bin/libggml-cpu-haswell.so.debug
+Removing files/lib/debug/bin/libggml-cpu-cooperlake.so.debug
+Removing files/lib/debug/bin/libggml-cpu-cascadelake.so.debug
+Removing files/lib/debug/bin/libggml-cpu-cannonlake.so.debug
+Removing files/lib/debug/bin/libggml-cpu-alderlake.so.debug
+Removing files/lib/debug/bin/espeak-ng.debug
+Removing files/lib/debug/bin
+Removing files/lib/debug
+Removing files/lib/cmake/llama/llama-config.cmake
+Removing files/lib/cmake/llama/llama-config-version.cmake
+Removing files/lib/cmake/llama
+Removing files/lib/cmake/ggml/ggml-config.cmake
+Removing files/lib/cmake/ggml/ggml-config-version.cmake
+Removing files/lib/cmake/ggml
+Removing files/lib/cmake
+Removing files/include/spirv/unified1/spv.d
+Removing files/include/spirv/unified1/spirv.py
+Removing files/include/spirv/unified1/spirv.lua
+Removing files/include/spirv/unified1/spirv.json
+Removing files/include/spirv/unified1/spirv.hpp11
+Removing files/include/spirv/unified1/spirv.hpp
+Removing files/include/spirv/unified1/spirv.h
+Removing files/include/spirv/unified1/spirv.cs
+Removing files/include/spirv/unified1/spirv.core.grammar.json
+Removing files/include/spirv/unified1/spirv.bf
+Removing files/include/spirv/unified1/extinst.tosa.001000.1.grammar.json
+Removing files/include/spirv/unified1/extinst.spv-amd-shader-trinary-minmax.grammar.json
+Removing files/include/spirv/unified1/extinst.spv-amd-shader-explicit-vertex-parameter.grammar.json
+Removing files/include/spirv/unified1/extinst.spv-amd-shader-ballot.grammar.json
+Removing files/include/spirv/unified1/extinst.spv-amd-gcn-shader.grammar.json
+Removing files/include/spirv/unified1/extinst.opencl.std.100.grammar.json
+Removing files/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json
+Removing files/include/spirv/unified1/extinst.nonsemantic.vkspreflection.grammar.json
+Removing files/include/spirv/unified1/extinst.nonsemantic.shader.debuginfo.100.grammar.json
+Removing files/include/spirv/unified1/extinst.nonsemantic.debugprintf.grammar.json
+Removing files/include/spirv/unified1/extinst.nonsemantic.debugbreak.grammar.json
+Removing files/include/spirv/unified1/extinst.nonsemantic.clspvreflection.grammar.json
+Removing files/include/spirv/unified1/extinst.glsl.std.450.grammar.json
+Removing files/include/spirv/unified1/extinst.debuginfo.grammar.json
+Removing files/include/spirv/unified1/TOSA.001000.1.h
+Removing files/include/spirv/unified1/OpenCLDebugInfo100.h
+Removing files/include/spirv/unified1/OpenCL.std.h
+Removing files/include/spirv/unified1/NonSemanticVkspReflection.h
+Removing files/include/spirv/unified1/NonSemanticShaderDebugInfo100.h
+Removing files/include/spirv/unified1/NonSemanticDebugPrintf.h
+Removing files/include/spirv/unified1/NonSemanticDebugBreak.h
+Removing files/include/spirv/unified1/NonSemanticClspvReflection.h
+Removing files/include/spirv/unified1/GLSL.std.450.h
+Removing files/include/spirv/unified1/DebugInfo.h
+Removing files/include/spirv/unified1/AMD_shader_trinary_minmax.h
+Removing files/include/spirv/unified1/AMD_shader_explicit_vertex_parameter.h
+Removing files/include/spirv/unified1/AMD_shader_ballot.h
+Removing files/include/spirv/unified1/AMD_gcn_shader.h
+Removing files/include/spirv/unified1
+Removing files/include/spirv/spir-v.xml
+Removing files/include/spirv/1.2/spirv.py
+Removing files/include/spirv/1.2/spirv.lua
+Removing files/include/spirv/1.2/spirv.json
+Removing files/include/spirv/1.2/spirv.hpp11
+Removing files/include/spirv/1.2/spirv.hpp
+Removing files/include/spirv/1.2/spirv.h
+Removing files/include/spirv/1.2/spirv.cs
+Removing files/include/spirv/1.2/spirv.core.grammar.json
+Removing files/include/spirv/1.2/extinst.opencl.std.100.grammar.json
+Removing files/include/spirv/1.2/extinst.glsl.std.450.grammar.json
+Removing files/include/spirv/1.2/OpenCL.std.h
+Removing files/include/spirv/1.2/GLSL.std.450.h
+Removing files/include/spirv/1.2
+Removing files/include/spirv/1.1/spirv.py
+Removing files/include/spirv/1.1/spirv.lua
+Removing files/include/spirv/1.1/spirv.json
+Removing files/include/spirv/1.1/spirv.hpp11
+Removing files/include/spirv/1.1/spirv.hpp
+Removing files/include/spirv/1.1/spirv.h
+Removing files/include/spirv/1.1/spirv.cs
+Removing files/include/spirv/1.1/spirv.core.grammar.json
+Removing files/include/spirv/1.1/extinst.opencl.std.100.grammar.json
+Removing files/include/spirv/1.1/extinst.glsl.std.450.grammar.json
+Removing files/include/spirv/1.1/OpenCL.std.h
+Removing files/include/spirv/1.1/GLSL.std.450.h
+Removing files/include/spirv/1.1
+Removing files/include/spirv/1.0/spirv.py
+Removing files/include/spirv/1.0/spirv.lua
+Removing files/include/spirv/1.0/spirv.json
+Removing files/include/spirv/1.0/spirv.hpp11
+Removing files/include/spirv/1.0/spirv.hpp
+Removing files/include/spirv/1.0/spirv.h
+Removing files/include/spirv/1.0/spirv.cs
+Removing files/include/spirv/1.0/spirv.core.grammar.json
+Removing files/include/spirv/1.0/extinst.opencl.std.100.grammar.json
+Removing files/include/spirv/1.0/extinst.glsl.std.450.grammar.json
+Removing files/include/spirv/1.0/OpenCL.std.h
+Removing files/include/spirv/1.0/GLSL.std.450.h
+Removing files/include/spirv/1.0
+Removing files/include/spirv
+Removing files/include/mtmd.h
+Removing files/include/mtmd-helper.h
+Removing files/include/mtmd-debug.h
+Removing files/include/llama.h
+Removing files/include/llama-cpp.h
+Removing files/include/gguf.h
+Removing files/include/ggml.h
+Removing files/include/ggml-zendnn.h
+Removing files/include/ggml-webgpu.h
+Removing files/include/ggml-vulkan.h
+Removing files/include/ggml-virtgpu.h
+Removing files/include/ggml-sycl.h
+Removing files/include/ggml-rpc.h
+Removing files/include/ggml-opt.h
+Removing files/include/ggml-openvino.h
+Removing files/include/ggml-metal.h
+Removing files/include/ggml-cuda.h
+Removing files/include/ggml-cpu.h
+Removing files/include/ggml-cpp.h
+Removing files/include/ggml-cann.h
+Removing files/include/ggml-blas.h
+Removing files/include/ggml-backend.h
+Removing files/include/ggml-alloc.h
+Removing files/include
+Running appstreamcli compose
+Only accepting components: io.github.crhy.voxa, io.github.crhy.voxa.desktop
+Processing directory: /home/rhy/strata-fleet/repos/voxa/.flatpak-builder/rofiles/rofiles-d1FI3a/files
+Composing metadata...
+Success!
+Committing stage cleanup to cache
+Finishing app
+Exporting share/applications/io.github.crhy.voxa.desktop
+Not exporting share/icons/hicolor/256x256/apps/voxa.png, non-allowed export filename
+Exporting share/icons/hicolor/256x256/apps/io.github.crhy.voxa.png
+Exporting share/metainfo/io.github.crhy.voxa.metainfo.xml
+Please review the exported files and the metadata
+Committing stage finish to cache
+Exporting io.github.crhy.voxa to repo
+WARNING: Icon not matching app id in /home/rhy/strata-fleet/repos/voxa/.build/rc10/export/share/applications/io.github.crhy.voxa.desktop: voxa
+WARNING: Icon referenced in desktop file but not exported: voxa
+Commit: fbb0ad99cf320a9b5584ccf61b5b2caf717f07229d82651cf1a6110e593b8faa
+Metadata Total: 2205
+Metadata Written: 7
+Content Total: 15443
+Content Written: 1
+Content Bytes Written: 33595 (33.6 kB)
+Pruning cache
+BUILD_RC=0

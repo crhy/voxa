@@ -1,0 +1,38 @@
+22:53:40.507 speak-start path='whole-reply' conversation=True turn_ms=0 muted=True level_timer=True text='The first sentence is long enough that Voxa will s'
+22:53:41.981 gate-open level=0.031 baseline=0.004 settled=True ratio=1.530
+22:53:43.202 words heard="The price can be paid off if you don't get enough." raw="The price can be paid off if you don't get enough." source='echo' confidence=0.630 degraded=False reasons="microphone explained by reference -0.1 dB; residual +6.9 dB over the echo path's baseline but the delay is unproven: not independent speech; no VAD on the cleaned signal for this span; delay unproven " seconds=0.319 speaking='The first sentence is long enough that Voxa will still be sp'
+22:53:43.204 gate-open level=0.026 baseline=0.005 settled=True ratio=1.910
+22:53:45.650 words heard='Depends can translate long enough that boxer is serious.' raw='Depends can translate long enough that boxer is serious.' source='echo' confidence=0.970 degraded=False reasons="microphone explained by reference -0.0 dB; residual -16.3 dB at or under the echo path's baseline; no VAD on the cleaned signal for this span; delay unproven and no VAD speech measured: the level towe" seconds=1.766 speaking='The first sentence is long enough that Voxa will still be sp'
+22:53:45.656 gate-open level=0.024 baseline=0.007 settled=True ratio=1.650
+22:53:45.927 words heard='The best and best of luck enough that Boxer and Steer be skipping one and check the game.' raw='The best and best of luck enough that Boxer and Steer be skipping one and check the game.' source='uncertain' confidence=0.000 degraded=True reasons='reference silent for this moment while speaking: echo not arrived at this span, abstain' seconds=0.270 speaking='The first sentence is long enough that Voxa will still be sp'
+22:53:45.927 hallucination heard='The best and best of luck enough that Boxer and Steer be skipping one and check the game.' raw='The best and best of luck enough that Boxer and Steer be skipping one and check the game.' vad_prob=None no_speech_prob=0.421 avg_logprob=-1.056 compression_ratio=0.918 speaking='The first sentence is long enough that Voxa will still be sp'
+22:53:45.927 HOLD source='' confidence=0.000
+22:53:45.929 promote-hold frames=445 span_seconds=4.435
+22:53:46.653 gate-open level=0.023 baseline=0.007 settled=True ratio=1.220
+22:53:49.273 words heard='Disappear, the streets are talking soon.' raw='Disappear, the streets are talking soon.' source='uncertain' confidence=0.150 degraded=False reasons="microphone holds -1.6 dB beyond the reference; residual +8.7 dB over the echo path's baseline but the delay is unproven: not independent speech; no VAD on the cleaned signal for this span; delay unpro" seconds=1.718 speaking='The first sentence is long enough that Voxa will still be sp'
+22:53:49.275 HOLD source='uncertain' confidence=0.150
+22:53:49.276 promote-hold frames=333 span_seconds=7.769
+22:53:49.283 gate-open level=0.023 baseline=0.008 settled=True ratio=1.540
+22:53:49.482 words heard='' raw='' source='uncertain' confidence=0.000 degraded=False reasons="microphone at the echo path's floor (-120.0 dB) with no speech: abstain" seconds=0.198 speaking='The first sentence is long enough that Voxa will still be sp'
+22:53:49.483 hallucination heard='' raw='' vad_prob=None no_speech_prob=0.329 avg_logprob=-1.188 compression_ratio=0.833 speaking='The first sentence is long enough that Voxa will still be sp'
+22:53:49.483 HOLD source='' confidence=0.000
+22:53:49.483 promote-hold frames=23 span_seconds=8.000
+22:53:49.485 gate-open level=0.028 baseline=0.010 settled=True ratio=1.420
+22:53:49.827 words heard='' raw='' source='uncertain' confidence=0.000 degraded=False reasons='no speech on the cleaned signal (no words, VAD unmeasured): abstain' seconds=0.002 speaking='The first sentence is long enough that Voxa will still be sp'
+22:53:49.828 hallucination heard='' raw='' vad_prob=None no_speech_prob=None avg_logprob=None compression_ratio=None speaking='The first sentence is long enough that Voxa will still be sp'
+22:53:49.828 HOLD source='' confidence=0.000
+22:53:49.828 promote-hold frames=35 span_seconds=8.344
+22:53:50.727 gate-open level=0.040 baseline=0.008 settled=True ratio=2.010
+22:53:53.009 words heard='The touch sentence ends the...' raw='The touch sentence ends the...' source='echo' confidence=0.750 degraded=False reasons="microphone at the floor the echo path leaves (-120.0 dB): fully explained by the reference; residual +14.9 dB over the echo path's baseline but the delay is unproven: not independent speech; no VAD on" seconds=1.381 speaking='The first sentence is long enough that Voxa will still be sp'
+22:53:53.015 gate-open level=0.028 baseline=0.010 settled=True ratio=1.870
+22:53:53.303 words heard='It does sentence games, they replace with the vendor version.' raw='It does sentence games, they replace with the vendor version.' source='echo' confidence=0.970 degraded=False reasons="microphone explained by reference -0.0 dB; residual -10.2 dB at or under the echo path's baseline; no VAD on the cleaned signal for this span; delay unproven and no VAD speech measured: the level towe" seconds=0.286 speaking='The first sentence is long enough that Voxa will still be sp'
+22:53:53.303 hallucination heard='It does sentence games, they replace with the vendor version.' raw='It does sentence games, they replace with the vendor version.' vad_prob=None no_speech_prob=0.568 avg_logprob=-1.069 compression_ratio=0.789 speaking='The first sentence is long enough that Voxa will still be sp'
+22:53:53.303 HOLD source='' confidence=0.000
+22:53:53.305 promote-hold frames=347 span_seconds=11.818
+22:53:53.307 gate-open level=0.031 baseline=0.011 settled=True ratio=1.530
+22:53:54.035 words heard='' raw='' source='uncertain' confidence=0.000 degraded=False reasons='no speech on the cleaned signal (no words, VAD unmeasured): abstain' seconds=0.252 speaking='The first sentence is long enough that Voxa will still be sp'
+22:53:54.036 hallucination heard='' raw='' vad_prob=None no_speech_prob=0.168 avg_logprob=-0.972 compression_ratio=0.953 speaking='The first sentence is long enough that Voxa will still be sp'
+22:53:54.036 HOLD source='' confidence=0.000
+22:53:54.036 promote-hold frames=74 span_seconds=12.555
+22:53:54.857 render-tap attached=True pieces=1 samples=217728 peak=0.541 silent=False error=''
+22:53:54.857 echo-health reference_db=0.000 explained_db=-28.200 residual_db=-65.700 frames=282 travel_ms=-17.700 lock_ms=-98.200 lock_confident=False lock_degraded=True pilot_prom=None

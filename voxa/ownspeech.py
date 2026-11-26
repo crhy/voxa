@@ -80,13 +80,21 @@ class OwnSpeech:
         for words in self.texts:
             m = len(words)
             for i in range(n):
+                # Echo is her voice leaking into the mic, so it sits at the start of the
+                # transcript (or right behind a word the user definitely spoke: her wake
+                # word, a "stop"/"cancel"). A run buried mid-transcript, surrounded by
+                # words she never said, is a coincidence: "Voxa, what is the capital of
+                # Italy?" after "Tokyo is the capital of Japan." shares only "is the
+                # capital of" -- four boilerplate words the user genuinely spoke. Require
+                # mid-transcript runs to be long enough that coincidence is unlikely.
+                mid_min = MIN_RUN if i == 0 or heard_words[i - 1] in protect or removed[i - 1] else MIN_RUN + 3
                 for p in range(m):
                     if not _fuzzy_equal(heard_words[i], words[p]):
                         continue
                     run = 1
                     while i + run < n and p + run < m and _fuzzy_equal(heard_words[i + run], words[p + run]):
                         run += 1
-                    if run >= min_run:
+                    if run >= mid_min and (i == 0 or heard_words[i - 1] in protect or removed[i - 1] or run >= MIN_RUN + 3):
                         for k in range(i, i + run):
                             if heard_words[k] not in protect:
                                 removed[k] = True

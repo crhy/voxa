@@ -235,7 +235,11 @@ class OllamaClient:
             # response, not a hidden scratchpad, so disable thinking for both
             # chat and single-shot voice requests.
             "think": False,
-            "options": {"num_predict": num_predict},
+            # Spoken answers are read aloud, so they want the same stability as a
+            # dictation: Ollama's default 0.8 temperature made small models drift into
+            # confident nonsense on plain facts ("100 minutes in an hour"). A cool 0.2
+            # keeps short spoken answers factual and repeatable.
+            "options": {"num_predict": num_predict, "temperature": 0.2},
         }
         if chat:
             body["messages"] = [dict(message) for message in messages]
