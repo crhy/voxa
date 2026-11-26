@@ -444,13 +444,37 @@ HALLUCINATION_PHRASES = frozenset({
 HALLUCINATION_AVG_LOGPROB = -1.0
 HALLUCINATION_COMPRESSION_RATIO = 2.4
 
+# Issue #72, task v11d (the sakura live failure): Whisper hallucinates WELL-FORMED LATIN
+# sentences out of her own JAPANESE echo - "The second part is the same as the original."
+# interrupted her mid-reply with an avg_logprob that cleared the bar above. The invention's
+# SCRIPT is the tell: it is a script the turn she is playing never uses. A genuine user turn
+# in a foreign language carries strong cleaned-signal VAD; a borderline VAD (0.553 live) does
+# not save a cross-script invention.
+HALLUCINATION_SCRIPT_VAD = 0.8
+
+_CJK_SCRIPT = re.compile(r"[\u3041-\u309f\u30a0-\u30ff\u4e00-\u9fff\uac00-\ud7af]")
+_LATIN_SCRIPT = re.compile(r"[A-Za-z]")
+
+
+def scripts_disagree(transcript: str, spoken: str) -> bool:
+    """True when the transcript is written in a script the spoken turn never uses."""
+    if not transcript or not spoken:
+        return False
+    transcript_cjk = bool(_CJK_SCRIPT.search(transcript))
+    if transcript_cjk != bool(_CJK_SCRIPT.search(spoken)):
+        return True
+    if transcript_cjk:
+        return False  # CJK transcript inside a CJK turn: same script family
+    return bool(_LATIN_SCRIPT.search(transcript)) and not _LATIN_SCRIPT.search(spoken)
+
 
 def is_whisper_hallucination(heard: str, raw: str = "", *,
                              no_speech_prob: float | None = None,
                              vad_prob: float | None = None,
                              avg_logprob: float | None = None,
                              compression_ratio: float | None = None,
-                             delay_proven: bool = True) -> bool:
+                             delay_proven: bool = True,
+                             script_mismatch: bool = False) -> bool:
     """True when a transcript is a Whisper hallucination on noise, not a real second source.
 
     High ``no_speech_prob`` (above :data:`REJECT_NO_SPEECH_PROB`, Whisper's own non-speech
@@ -471,6 +495,14 @@ def is_whisper_hallucination(heard: str, raw: str = "", *,
     from .attribution import VAD_SPEECH
 
     vad_real_speech = vad_prob is not None and vad_prob >= VAD_SPEECH
+    # Task v11d (the sakura live failure): a CROSS-SCRIPT transcript is Whisper inventing a
+    # language the turn she is playing does not speak, checked BEFORE the VAD veto - the
+    # cleaned-signal VAD fires hard on what the canceller left of foreign-language echo
+    # (p=0.553 on Japanese echo), and with a confident lock (proven delay) the VAD alone
+    # would let the invented sentence interrupt. A genuine foreign-language user turn clears
+    # this bar with real VAD (>= HALLUCINATION_SCRIPT_VAD).
+    if script_mismatch and not (vad_prob is not None and vad_prob >= HALLUCINATION_SCRIPT_VAD):
+        return True
     if vad_real_speech and delay_proven:
         return False  # the cleaned signal really has speech: not a hallucination
     if no_speech_prob is not None and no_speech_prob > REJECT_NO_SPEECH_PROB:

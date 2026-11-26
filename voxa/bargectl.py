@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from .attribution import ECHO, ECHO_EXPLAINED_DB, USER, SourceEvidence
 from .attribution import UNCERTAIN as SOURCE_UNCERTAIN
 from .bargein import (FRAME_MS, BargeInGate, STOP_WORDS, _words, is_whisper_hallucination,
-                      overlap, sounds_like, source_decision)
+                      overlap, scripts_disagree, sounds_like, source_decision)
 from .onset import OnsetDetector
 from .conversation import detect_addressed_exit_phrase, strip_wake_word
 
@@ -663,7 +663,9 @@ class BargeInController:
                 vad_prob=getattr(audio, "vad_prob", None),
                 avg_logprob=getattr(audio, "avg_logprob", None),
                 compression_ratio=getattr(audio, "compression_ratio", None),
-                delay_proven=getattr(audio, "delay_proven", True)):
+                delay_proven=getattr(audio, "delay_proven", True),
+                script_mismatch=scripts_disagree(
+                    heard or raw or "", self.speaking_text)):
             self._trace("hallucination", heard=heard, raw=raw,
                         vad_prob=getattr(audio, "vad_prob", None),
                         no_speech_prob=getattr(audio, "no_speech_prob", None),

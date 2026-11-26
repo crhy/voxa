@@ -7,7 +7,7 @@ signal really carries speech, so a genuine user turn is still heard.
 """
 
 from voxa.attribution import SourceEvidence
-from voxa.bargein import is_whisper_hallucination
+from voxa.bargein import is_whisper_hallucination, scripts_disagree
 from voxa.bargectl import HOLD, INTERRUPT, BargeInController
 
 DT_MS = 100.0
@@ -72,6 +72,41 @@ def test_an_unproven_delay_makes_vad_alone_keep_a_known_phrase_issue_72_v11d():
                                         compression_ratio=1.1, delay_proven=False)
 
 
+def test_a_cross_script_invention_is_a_hallucination_at_borderline_vad_issue_72_v11d() -> None:
+    """sakura live failure (22-char v11d): "The second part is the same as the original."
+    INTERRUPTED her JAPANESE reply out of her own echo - a good avg_logprob, VAD 0.553
+    fired ON THE RESIDUE. The invention's SCRIPT (Latin) is a script the language she is
+    playing (Japanese) never uses: Whisper's cross-language tell, decided before the VAD
+    veto because the cleaned-signal VAD itself fires on foreign-language residue."""
+    english_on_japanese = "The second part is the same as the original."
+    assert is_whisper_hallucination(english_on_japanese, english_on_japanese,
+                                    vad_prob=0.553, avg_logprob=-0.4,
+                                    compression_ratio=0.978, script_mismatch=True)
+    # Even with a PROVED delay lock the script rule holds: a confident lock lets the VAD
+    # veto early, and on Japanese echo that VAD is the residue talking (0.553 >= 0.5).
+    assert is_whisper_hallucination(english_on_japanese, english_on_japanese,
+                                    vad_prob=0.553, delay_proven=True,
+                                    script_mismatch=True)
+    # A genuine FOREIGN-language user turn carries strong VAD: the script rule never
+    # touches it (never a "the user is wrong" filter).
+    assert not is_whisper_hallucination("das ist keine gute idee",
+                                        "das ist keine gute idee",
+                                        vad_prob=0.92, avg_logprob=-0.2,
+                                        compression_ratio=1.1, delay_proven=True,
+                                        script_mismatch=True)
+
+
+def test_scripts_disagree_reads_scripts_not_languages_issue_72_v11d() -> None:
+    assert scripts_disagree("The second part is the same as the original.",
+                            "最初の文は、チェックの開始時にボクサがまだ話している。")
+    assert scripts_disagree("ストップして、ストップして。",
+                            "stop the timer right now please")
+    assert not scripts_disagree("ストップして。", "ストップして、チェックを開始する。")
+    assert not scripts_disagree("open the library", HERS)
+    assert not scripts_disagree("", "最初の文。")
+    assert not scripts_disagree("open the library", "")
+
+
 def test_a_real_user_turn_is_not_a_hallucination() -> None:
     assert not is_whisper_hallucination("open the library", "open the library", vad_prob=None)
 
@@ -130,6 +165,35 @@ def test_bad_whisper_confidence_holds_an_unknown_phrase() -> None:
     outcome = _drive(lambda: ("some fresh invention here", "some fresh invention here"), failing)
     assert outcome.action == HOLD, outcome
     assert outcome.reason == "hallucination"
+
+
+def test_a_cross_script_invention_never_interrupts_a_japanese_reply_issue_72_v11d() -> None:
+    """sakura live (22-char v11d, rc9i run): while she speaks Japanese the guard sees the
+    English invention with VAD 0.553 on the residue. The script rule holds it; the SAME
+    evidence with a Japanese-script transcript still interrupts (never a language filter
+    against real speech in another script)."""
+    def drive_japanese(candidate):
+        control = BargeInController()
+        control.reply_started("最初の文は、チェックの開始時にボクサがまだ話しているほど長い文です。")
+        for _ in range(2 * int(400.0 / DT_MS)):
+            control.observe(0.05, speaking=True, muted=True, dt_ms=DT_MS)
+        outcome = None
+        evidence = SourceEvidence(reference_active=False, reference_power=0.0,
+                                  mic_level=0.9, vad_prob=0.553)
+        for _ in range(60):
+            outcome = control.observe(0.9, speaking=True, muted=True, dt_ms=DT_MS,
+                                      candidate=candidate, evidence=evidence)
+            if outcome.action != "ignored":
+                break
+        return outcome
+
+    english = ("The second part is the same as the original.",) * 2
+    held = drive_japanese(lambda: english)
+    assert held.action == HOLD, held
+    assert held.reason == "hallucination"
+    japanese = ("ストップして、ストップして、ストップして。",) * 2
+    same_script = drive_japanese(lambda: japanese)
+    assert same_script.reason != "hallucination", same_script
 
 
 def test_an_empty_span_the_guard_holds_still_records_its_decision() -> None:
