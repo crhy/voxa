@@ -251,6 +251,7 @@ class AudioCapture:
         # healthy alignment is readable instead of inferred.
         self._anchor = {"mic": [], "ref": [], "gap": 0, "done": False}
         self._pilot = None
+        self._pilot_prominence: float | None = None  # the last resolved chirp peak/median
         self._anchor_ms: float | None = None
         # Task v11d (rhY's 21:48 note): the pilot chirp's travel, SIGNED seconds, once the
         # path has been SEEN by a chirp above the bar. The exact lock seeds from it (and
@@ -614,6 +615,7 @@ class AudioCapture:
         self._echo_travel_logged = False
         self._anchor = {"mic": [], "ref": [], "gap": 0, "done": False}
         self._pilot = None
+        self._pilot_prominence = None
         self._anchor_ms = None
         # 4. The recovery window (handoff 6.2): no automatic commands from unqualified audio.
         self._recovery_until = time.monotonic() + self.tuning.recovery_s
@@ -1380,29 +1382,28 @@ class AudioCapture:
                      "lock and the anchor", prominence)
             return
         travel = lag / REFERENCE_RATE
-        if prominence >= self._PILOT_SEED_PROMINENCE:
-            # Task v11d (rhY's 21:48 note): the chirp is the PROOF. Seed the exact
-            # aligner at this travel and mark the lock confident at once - speech then
-            # only tracks inside the seed window (voxa/align.py), and the seed is stored
-            # for this device pair so the next conversation locks instantly.
-            agrees = (self._echo_seed is not None
-                      and abs(travel - self._echo_seed) <= self._PILOT_SEED_AGREE_S)
-            self._echo_seed = travel
-            self._echo_travel = travel
-            if self._delay_lock is None:
-                self._delay_lock = ExactDelayLock(sample_rate=REFERENCE_RATE,
-                                                  canceller=self.canceller)
-            self._delay_lock.seed_delay(travel * REFERENCE_RATE)
-            self._save_echo_seed(travel, prominence)
-            log.info("echo delay: pilot SEED parked the reference at %.1f ms travel "
-                     "(matched-filter prominence %.1f%s)", travel * 1000.0, prominence,
-                     ", repeats agree" if agrees else ", first chirp for this path")
-            return
-        if self._delay_lock is not None and self._delay_lock.delay_confident:
-            return
+        # Task v11d (rhY's 21:48 note): a RESOLVED chirp always narrows the exact lock's
+        # tracking window to its travel (speech can no longer hunt +-400 ms of
+        # reflections); it is CONFIDENT at once only when the peak is clean (SNR >=
+        # 30 dB) or the repeats agree - the saved seed for this device pair landing
+        # within 2 ms of this chirp, the spread the probe measured at 0.3 ms.
+        self._pilot_prominence = prominence
+        agrees = (self._echo_seed is not None
+                  and abs(travel - self._echo_seed) <= self._PILOT_SEED_AGREE_S)
+        confident = prominence >= self._PILOT_SEED_PROMINENCE or agrees
+        self._echo_seed = travel
         self._echo_travel = travel
-        log.info("echo delay: pilot parked the reference at %.1f ms travel "
-                 "(matched-filter prominence %.1f)", travel * 1000.0, prominence)
+        if self._delay_lock is None:
+            self._delay_lock = ExactDelayLock(sample_rate=REFERENCE_RATE,
+                                              canceller=self.canceller)
+        self._delay_lock.seed_delay(travel * REFERENCE_RATE, confident=confident)
+        if confident:
+            self._save_echo_seed(travel, prominence)
+        log.info("echo delay: pilot %s the reference at %.1f ms travel "
+                 "(matched-filter prominence %.1f%s)",
+                 "SEEDS" if confident else "narrows the lock around",
+                 travel * 1000.0, prominence,
+                 ", repeats agree" if agrees else "")
 
     def _seed_delay_lock(self) -> None:
         """Task v11d (rhY's 21:48 note): a fresh lock starts AT the pilot chirp's travel
@@ -1491,6 +1492,12 @@ class AudioCapture:
         if self.canceller is None or not self._canceller_enabled:
             return self.reference_power(), None, None
         return self.reference_power(), self.canceller.echo_explained_db, self.canceller.residual_power_db
+
+    @property
+    def pilot_prominence(self) -> float | None:
+        """The matched-filter prominence (peak / median) of the last RESOLVED pilot chirp,
+        or None while none has resolved on this path (task v11d)."""
+        return self._pilot_prominence
 
     def echo_travel_ms(self) -> float | None:
         """The echo travel (ms) last fitted into the reference read (task v11c), SIGNED like

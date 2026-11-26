@@ -3560,7 +3560,11 @@ class MainWindow(Adw.ApplicationWindow):
                           if self.audio.echo_travel_ms() is not None else None,
                           lock_ms=round(_lock_frac / 16.0, 1) if _lock_frac else None,
                           lock_confident=self.audio.delay_confident,
-                          lock_degraded=self.audio.delay_degraded)
+                          lock_degraded=self.audio.delay_degraded,
+                          # Task v11d (rhY's 21:48 note): the pilot chirp's matched-filter
+                          # prominence — the live number that decides whether the lock was
+                          # SEEDED confident or only narrowed.
+                          pilot_prom=self.audio.pilot_prominence)
         self._hearing.reply_ended()
         # Issue #72, task v11 step 4: her reply ending is a turn boundary. The held capture
         # span must not survive into the next turn (the live log let one span grow past 60 s
