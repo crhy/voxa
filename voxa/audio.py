@@ -252,6 +252,11 @@ class AudioCapture:
         self._anchor = {"mic": [], "ref": [], "gap": 0, "done": False}
         self._pilot = None
         self._anchor_ms: float | None = None
+        # Task v11d (rhY's 21:48 note): the pilot chirp's travel, SIGNED seconds, once the
+        # path has been SEEN by a chirp above the bar. The exact lock seeds from it (and
+        # from the saved copy for this device pair, so later conversations lock instantly);
+        # an epoch clears it - the app re-chirps instead of re-searching speech.
+        self._echo_seed: float | None = None
         # Issue #72, task v11c step 3: the fitted travel from the loudspeaker to the microphone.
         # DTLN owns its internal delay but still needs the reference READ at the right place;
         # the exact lock feeds this number and _reference_window applies it.
@@ -290,6 +295,9 @@ class AudioCapture:
         self.epoch = 0
         self._recovery_until = 0.0
         self._device_watcher: DeviceWatcher | None = None
+        # Task v11d (rhY's 21:48 note): the app wires a callback so EVERY epoch/device
+        # change re-plays the pilot chirp instead of re-searching speech for the delay.
+        self.on_epoch: Any = None
         # The live capture source, kept so an epoch can re-read the driver's own latency.
         self._capture_src: Any = None
         # The speaker/microphone pair Voxa is hearing through (see voxa/anccal.py): the saved profile
@@ -415,6 +423,7 @@ class AudioCapture:
         self._delay_mic = []
         self._delay_ref = []
         self._delay_lock = None  # a fresh capture or mode change is an explicit epoch
+        self._echo_seed = None  # task v11d: the seed belongs to THIS path; a new chirp brings a new one
         self._echo_travel = 0.0
         self._echo_travel_logged = False
         self._anchor = {"mic": [], "ref": [], "gap": 0, "done": False}
@@ -594,6 +603,7 @@ class AudioCapture:
         # that estimate, cleared with it. The residual stage starts ungifted too: no delay of
         # the old path may be handed to it.
         self._delay_lock = None
+        self._echo_seed = None  # task v11d: the seed belongs to THIS path; a new chirp brings a new one
         self._delay_tracker = None
         self._residual_mask = (LockedResidualMask(rate=REFERENCE_RATE)
                                if self._echo_mode == "voxa" else None)
@@ -607,6 +617,15 @@ class AudioCapture:
         self._anchor_ms = None
         # 4. The recovery window (handoff 6.2): no automatic commands from unqualified audio.
         self._recovery_until = time.monotonic() + self.tuning.recovery_s
+        # Task v11d (rhY's 21:48 note): on EVERY epoch/device change the app should re-play
+        # the pilot chirp instead of letting speech re-search +-400 ms of reflections over
+        # the new path. The app wires this (voxa/window.py); the capture side never renders.
+        if self.on_epoch is not None:
+            try:
+                self.on_epoch()
+            except Exception:  # noqa: BLE001 - a failing replay must not break the epoch
+                log.info("the pilot replay on epoch %d failed: the lock searches speech",
+                         self.epoch)
         return self.epoch
 
     def note_echo_mode(self, mode: str) -> None:
@@ -860,6 +879,7 @@ class AudioCapture:
         self._delay_mic = []
         self._delay_ref = []
         self._delay_lock = None  # a fresh capture or mode change is an explicit epoch
+        self._echo_seed = None  # task v11d: the seed belongs to THIS path; a new chirp brings a new one
         self._residual_mask = None  # the GStreamer DSP owns the whole echo path, stage included
         self._reset_joint_frames()  # the webrtc route feeds no joint frames: drop any NLMS residue
         self._ref_ring = None
@@ -1115,6 +1135,7 @@ class AudioCapture:
         if self._delay_lock is None:
             self._delay_lock = ExactDelayLock(
                 sample_rate=REFERENCE_RATE, canceller=self.canceller)
+            self._seed_delay_lock()
         window = self._reference_window(len(pcm) // 2)
         if window is None:
             return
@@ -1163,6 +1184,7 @@ class AudioCapture:
         if self._delay_lock is None:
             # canceller=None: the neural stage is not driven by an offset, only observed.
             self._delay_lock = ExactDelayLock(sample_rate=REFERENCE_RATE)
+            self._seed_delay_lock()
         mic = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
         self._delay_lock.observe(self._mic_counter / REFERENCE_RATE,
                                  mic[:ref.size], np.asarray(ref, dtype=np.float32)[:mic.size])
@@ -1292,6 +1314,11 @@ class AudioCapture:
     _PILOT_BUFFER_S = 1.4
     _PILOT_SEARCH_S = 0.4
     _PILOT_PROMINENCE = 12.0
+    # Task v11d (rhY's 21:48 note): a pilot peak this clean (>= 30 dB over the search's
+    # median) has SEEN the echo path; the probe measured ~53 dB, repeats agreeing within
+    # 0.3 ms. That, not speech self-similarity, is what marks the lock confident at once.
+    _PILOT_SEED_PROMINENCE = 31.6
+    _PILOT_SEED_AGREE_S = 0.002  # repeats agree: 2 ms
 
     def note_pilot_playback(self) -> None:
         """Task v11d: a calibration chirp is being rendered through the tapped pipeline.
@@ -1304,6 +1331,20 @@ class AudioCapture:
         first reply needs the alignment, and every reply's attribution reads a DTLN that
         was handed a reference with a fighting chance to cancel."""
         self._pilot = {"mic": [], "ref": [], "done": False, "silent": 0}
+        # Task v11d (rhY's 21:48 note): a chirp seen in an earlier session on this exact
+        # device pair (same sink, same microphone, same sample rate) locks the aligner
+        # INSTANTLY - the physical delay does not move between conversations, only
+        # re-searching speech made it look like it did.
+        if self._echo_seed is None and self.hearing_sink and self.hearing_microphone:
+            seed = anccal.echo_seed(anccal.load_profile(self.hearing_sink,
+                                                        self.hearing_microphone),
+                                    REFERENCE_RATE)
+            if seed is not None:
+                self._echo_seed = seed / 1000.0
+                if self._delay_lock is not None:
+                    self._delay_lock.seed_delay(seed)
+                log.info("echo delay: locked instantly from the saved pilot seed "
+                         "(%.1f ms travel)", seed)
 
     def _observe_pilot(self, pcm: bytes) -> None:
         st = getattr(self, "_pilot", None)
@@ -1338,12 +1379,49 @@ class AudioCapture:
             log.info("echo pilot: unresolved (prominence %.1f): travel left to the "
                      "lock and the anchor", prominence)
             return
+        travel = lag / REFERENCE_RATE
+        if prominence >= self._PILOT_SEED_PROMINENCE:
+            # Task v11d (rhY's 21:48 note): the chirp is the PROOF. Seed the exact
+            # aligner at this travel and mark the lock confident at once - speech then
+            # only tracks inside the seed window (voxa/align.py), and the seed is stored
+            # for this device pair so the next conversation locks instantly.
+            agrees = (self._echo_seed is not None
+                      and abs(travel - self._echo_seed) <= self._PILOT_SEED_AGREE_S)
+            self._echo_seed = travel
+            self._echo_travel = travel
+            if self._delay_lock is None:
+                self._delay_lock = ExactDelayLock(sample_rate=REFERENCE_RATE,
+                                                  canceller=self.canceller)
+            self._delay_lock.seed_delay(travel * REFERENCE_RATE)
+            self._save_echo_seed(travel, prominence)
+            log.info("echo delay: pilot SEED parked the reference at %.1f ms travel "
+                     "(matched-filter prominence %.1f%s)", travel * 1000.0, prominence,
+                     ", repeats agree" if agrees else ", first chirp for this path")
+            return
         if self._delay_lock is not None and self._delay_lock.delay_confident:
             return
-        travel = lag / REFERENCE_RATE
         self._echo_travel = travel
         log.info("echo delay: pilot parked the reference at %.1f ms travel "
                  "(matched-filter prominence %.1f)", travel * 1000.0, prominence)
+
+    def _seed_delay_lock(self) -> None:
+        """Task v11d (rhY's 21:48 note): a fresh lock starts AT the pilot chirp's travel
+        when a chirp has already seen this path (this session, or the saved profile for
+        this device pair) - the physical delay does not move between replies; only
+        re-searching speech made it jump between 40, 368 and -93 ms."""
+        if self._delay_lock is not None and self._echo_seed is not None:
+            self._delay_lock.seed_delay(self._echo_seed * REFERENCE_RATE)
+
+    def _save_echo_seed(self, travel: float, prominence: float) -> None:
+        """Remember the chirp's travel for this device pair (voxa/anccal.py profile)."""
+        if not self.hearing_sink or not self.hearing_microphone:
+            return
+        try:
+            anccal.save_echo_seed(self.hearing_sink, self.hearing_microphone,
+                                  travel * 1000.0, prominence, REFERENCE_RATE)
+        except (OSError, ValueError, TypeError):
+            log.info("could not save the echo seed for %s/%s",
+                     self.hearing_sink, self.hearing_microphone)
 
     @property
     def wide_anchor_ms(self) -> float | None:
@@ -1547,6 +1625,7 @@ class AudioCapture:
             self._delay_mic = []
             self._delay_ref = []
             self._delay_lock = None  # a mode change is an explicit epoch
+            self._echo_seed = None  # task v11d: the seed belongs to THIS path; a new chirp brings a new one
             self._residual_mask = None  # no canceller output to put a stage on
             self._reset_joint_frames()
             self._ref_ring = None
@@ -1569,6 +1648,7 @@ class AudioCapture:
             self._delay_mic = []
             self._delay_ref = []
             self._delay_lock = None  # a mode change is an explicit epoch
+            self._echo_seed = None  # task v11d: the seed belongs to THIS path; a new chirp brings a new one
             self._residual_mask = None  # no canceller output to put a stage on
             self._reset_joint_frames()
             self._ref_ring = None
@@ -1606,6 +1686,7 @@ class AudioCapture:
             self._delay_mic = []
             self._delay_ref = []
             self._delay_lock = None  # a mode change is an explicit epoch
+            self._echo_seed = None  # task v11d: the seed belongs to THIS path; a new chirp brings a new one
             self._reset_joint_frames()
             self._ref_ring = None
             return
@@ -1618,3 +1699,4 @@ class AudioCapture:
         self._delay_mic = []
         self._delay_ref = []
         self._delay_lock = None  # a fresh capture or mode change is an explicit epoch
+        self._echo_seed = None  # task v11d: the seed belongs to THIS path; a new chirp brings a new one

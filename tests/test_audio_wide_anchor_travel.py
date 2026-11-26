@@ -13,6 +13,7 @@ import wave
 
 import numpy as np
 
+from voxa import anccal
 from voxa.audio import AudioCapture
 from voxa.speech import pilot_wav_bytes
 
@@ -203,3 +204,65 @@ def test_the_pilot_wav_is_deterministic_and_playable():
         assert wav.getframerate() == 16000
         frames = wav.readframes(-1)
     assert abs(len(frames) / 2 / 16000 - 0.35) < 0.01
+
+
+# --- the pilot SEED (task v11d, rhY's 21:48 note) -----------------------------------
+
+def test_a_clean_pilot_seeds_the_exact_lock_confidently_issue_72_v11d(tmp_path, monkeypatch):
+    """The pilot's matched-filter peak (the probe measured ~53 dB, repeats within 0.3 ms)
+    is the PROOF: the aligner starts confident at its travel, and the travel is stored
+    for this device pair so the next conversation locks instantly."""
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
+    capture = AudioCapture()
+    capture.hearing_sink, capture.hearing_microphone = "sinkT", "micT"
+    pilot = _pilot_pcm()
+    n = int(1.6 * 16000)
+    ref = np.zeros(n, np.float32)
+    audible = 1600
+    ref[audible:audible + pilot.size] = pilot
+    lag = -288  # -18 ms
+    rng = np.random.default_rng(3)
+    mic = rng.standard_normal(n).astype(np.float32) * 8e-3
+    mic[:n + lag] += np.float32(0.3) * ref[-lag:]  # a CLEAN echo: the chirp sees it
+    _feed_pilot(capture, mic, ref)
+    assert abs(capture.echo_travel_ms() + 18.0) <= 1.0
+    assert capture._echo_seed is not None
+    assert abs(capture._echo_seed * 1000.0 + 18.0) <= 1.0
+    lock = capture._delay_lock
+    assert lock is not None
+    assert lock.delay_confident                       # confident AT ONCE
+    assert abs(lock.delay_frac + 288) <= 2
+    # stored for the pair...
+    seed = anccal.echo_seed(anccal.load_profile("sinkT", "micT"), 16000)
+    assert seed is not None and abs(seed + 18.0) <= 1.0
+    # ...and a later conversation locks from it before its own chirp resolves
+    fresh = AudioCapture()
+    fresh.hearing_sink, fresh.hearing_microphone = "sinkT", "micT"
+    fresh.note_pilot_playback()
+    assert fresh._echo_seed is not None
+    assert abs(fresh._echo_seed * 1000.0 + 18.0) <= 1.0
+
+
+def test_an_epoch_clears_the_seed_for_the_next_chirp_issue_72_v11d(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
+    capture = AudioCapture()
+    capture.hearing_sink, capture.hearing_microphone = "sinkT", "micT"
+    capture._echo_seed = -0.018
+    capture.begin_epoch(output_class="speakers", reason="device-test")
+    assert capture._echo_seed is None
+
+
+def test_the_echo_seed_survives_the_profile_rewrites(tmp_path, monkeypatch):
+    """The filter state and the chirp travel share one profile file; neither writer may
+    clobber the other's key."""
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
+    anccal.save_echo_seed("sinkT", "micT", -18.0, 100.0, 16000)
+    profile = anccal.load_profile("sinkT", "micT")
+    assert abs(anccal.echo_seed(profile, 16000) + 18.0) < 1e-9
+    assert anccal.echo_seed(profile, 48000) is None      # another sample rate, no seed
+    assert anccal.echo_seed({"echo_seed": {"travel_ms": -18.0, "prominence": 5.0,
+                                           "sample_rate": 16000}}, 16000) is None
+    anccal.save_live_state({"w": [1.0]}, 12, "sinkT", "micT", level=0.2)
+    profile = anccal.load_profile("sinkT", "micT")
+    assert abs(anccal.echo_seed(profile, 16000) + 18.0) < 1e-9   # the filter saved, seed kept
+    assert profile["delay"] == 12

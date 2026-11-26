@@ -2860,6 +2860,9 @@ class MainWindow(Adw.ApplicationWindow):
         # latency re-measure together, and no automatic command comes from unqualified audio while
         # that recovers. Voxa never switches a profile or a device herself.
         self.audio.start_device_watch()
+        # Task v11d (rhY's 21:48 note): a device change is answered by a NEW pilot chirp,
+        # not by letting speech re-search +-400 ms of reflections on the new path.
+        self.audio.on_epoch = self._replay_pilot_on_epoch
         # Task v11d: park the echo reference before the first reply needs it. On this
         # microphone her own echo is a few percent of the captured energy, so no reply's
         # content resolves its map-vs-microphone travel; one short calibration chirp
@@ -2877,6 +2880,23 @@ class MainWindow(Adw.ApplicationWindow):
         self.record_button.set_sensitive(False)
         self._set_status(f"Conversation mode — say “{self.settings.wake_word}” to begin", busy=True)
         return True
+
+    def _replay_pilot_on_epoch(self) -> None:
+        """Task v11d (rhY's 21:48 note): one explicit epoch, one fresh chirp.
+
+        The device watcher fires on its own thread; the chirp renders through the speech
+        pipeline, so the replay hops to the main thread and only runs while she is still
+        listening. The physical delay of the NEW path is then SEEN by the matched filter
+        (and re-seeded), not hunted through speech reflections and self-similarity.
+        """
+        GLib.idle_add(self._replay_pilot_now)
+
+    def _replay_pilot_now(self) -> bool:
+        if not self.conversation_active or self.audio.timeline is None:
+            return False
+        self.audio.note_pilot_playback()
+        self.speech.render_pilot()
+        return False
 
     def stop_conversation_mode(self) -> None:
         self.audio.stop()

@@ -166,14 +166,14 @@ def _write_profile(sink: str, source: str, payload: dict) -> Path:
 
 def save_profile(result: CalibrationResult, sink: str, source: str) -> Path:
     """Write the best filter state to disk; returns the path written."""
-    return _write_profile(sink, source, {
+    return _write_profile(sink, source, _with_previous_seed({
         "delay": int(result.delay),
         "state": result.state,
         "sink": sink,
         "source": source,
         "level": float(result.level),
         "saved_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-    })
+    }, sink, source))
 
 
 def save_live_state(state: dict, delay: int, sink: str, source: str,
@@ -183,14 +183,73 @@ def save_live_state(state: dict, delay: int, sink: str, source: str,
     The live listening path keeps adapting during normal use; the filter Voxa ends up with becomes
     the starting point for the next time she hears through this speaker and microphone.
     """
-    return _write_profile(sink, source, {
+    return _write_profile(sink, source, _with_previous_seed({
         "delay": int(delay),
         "state": state,
         "sink": sink,
         "source": source,
         "level": float(level) if level is not None else 0.0,
         "saved_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-    })
+    }, sink, source))
+
+
+# Task v11d (rhY's 21:48 note): the pilot chirp's travel is stored with the profile,
+# per (output device, input device, sample rate), so the NEXT conversation locks the
+# echo delay instantly instead of re-searching speech and jumping between 40, 368 and
+# -93 ms. Only a chirp that cleared the matched-filter bar (SNR >= 30 dB over the
+# search median) is trusted, and only while the sample rate matches.
+ECHO_SEED_KEY = "echo_seed"
+ECHO_SEED_MIN_PROMINENCE = 31.6  # ~30 dB over the search median
+
+
+def save_echo_seed(sink: str, source: str, travel_ms: float, prominence: float,
+                   sample_rate: int) -> Path:
+    """Remember one resolved pilot chirp for this device pair; merge, never clobber."""
+    return _write_profile(sink, source, _with_filter_of(
+        {
+            ECHO_SEED_KEY: {
+                "travel_ms": float(travel_ms),
+                "prominence": float(prominence),
+                "sample_rate": int(sample_rate),
+                "saved_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            },
+        }, sink, source))
+
+
+def echo_seed(profile: dict | None, sample_rate: int,
+              min_prominence: float = ECHO_SEED_MIN_PROMINENCE) -> float | None:
+    """The pilot travel (SIGNED ms) a saved profile remembers, if it still applies."""
+    if not isinstance(profile, dict):
+        return None
+    seed = profile.get(ECHO_SEED_KEY)
+    if not isinstance(seed, dict):
+        return None
+    try:
+        if int(seed.get("sample_rate", 0)) != int(sample_rate):
+            return None
+        if float(seed.get("prominence", 0.0)) < float(min_prominence):
+            return None
+        return float(seed["travel_ms"])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def _with_previous_seed(payload: dict, sink: str, source: str) -> dict:
+    """Keep a stored pilot seed when another writer rewrites the same profile."""
+    previous = load_profile(sink, source)
+    if isinstance(previous, dict) and ECHO_SEED_KEY in previous:
+        payload.setdefault(ECHO_SEED_KEY, previous[ECHO_SEED_KEY])
+    return payload
+
+
+def _with_filter_of(payload: dict, sink: str, source: str) -> dict:
+    """The reverse merge: the chirp seed is written WITHOUT dropping the saved filter."""
+    previous = load_profile(sink, source)
+    if isinstance(previous, dict):
+        for key in ("delay", "state", "sink", "source", "level"):
+            if key in previous:
+                payload.setdefault(key, previous[key])
+    return payload
 
 
 def load_profile(sink: str, source: str) -> dict | None:

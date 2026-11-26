@@ -339,3 +339,64 @@ def test_confidence_fields_never_crash_on_silence_or_near_end_only():
     states = _feed(lock, user, user)
     assert set(states) <= {"hold", "estimate", "lock"}
     assert np.isfinite(lock.drift_ppm)
+
+
+# ---------------------------------------------------------------------------
+# 7. The pilot seed (task v11d, rhY's 21:48 note): a chirp that saw the path locks it
+#    instantly, and live speech - which JUMPS (40, None, 368, -40.7, -41.5, -93.5,
+#    -36.6 ms measured between replies while the chirp repeated -45 ms) - cannot move it.
+# ---------------------------------------------------------------------------
+
+
+def _seed_replay_frames(lock: ExactDelayLock, ref: np.ndarray, lags: list[float]) -> None:
+    """Feed the live geometry: short frames whose speech-derived echo lag JUMPS."""
+    for i, lag in enumerate(lags):
+        lo = i * CHUNK
+        hi = lo + CHUNK
+        mic = echo_at(ref[lo:hi], lambda t, lag=lag: lag)
+        lock.observe(hi / SR, mic, ref[lo:hi])
+
+
+def test_the_pilot_seed_is_confident_at_once_issue_72_v11d() -> None:
+    lock = ExactDelayLock(sample_rate=SR)
+    lock.seed_delay(-0.045 * SR)  # the chirp: -45 ms travel, repeats agreeing
+    assert lock.delay_confident          # the chirp IS the proof, no 3-frame refinement
+    assert lock.aligner.refined
+    assert abs(lock.delay_frac + 0.045 * SR) < 1.0
+    assert not lock.degraded
+
+
+def test_the_seed_holds_through_the_live_jumpiness_issue_72_v11d() -> None:
+    """The 21:38-21:41 measurement: lock_ms jumped 40, -40.7, -41.5, -93.5, -36.6, 368
+    ms between replies while the chirp repeated -45 ms with 0.3 ms spread. Seeded, the
+    lock must stay AT the seed: far candidates ignored, in-window speech tracked."""
+    ref = broadband(18 * CHUNK)
+    lock = ExactDelayLock(sample_rate=SR)
+    lock.seed_delay(-0.045 * SR)
+    jumps = [40.0, -40.7, -41.5, -93.5, -36.6, 368.0] * 3  # ms, as measured
+    _seed_replay_frames(lock, ref, [ms * SR / 1000.0 for ms in jumps])
+    locked = lock.aligner.locked_delay
+    assert locked is not None
+    assert abs(locked + 0.045 * SR) <= 0.005 * SR  # +-5 ms of the seed, never the jumps
+    assert lock.delay_confident                    # and it stayed proven the whole time
+
+
+def test_a_far_path_must_confirm_for_three_frames_to_move_the_seed_issue_72_v11d() -> None:
+    """Speech self-similarity lands far but never agrees; a REAL path change does, and
+    then the lock moves and its window follows (no explicit epoch reached us)."""
+    ref = broadband(10 * CHUNK)
+    lock = ExactDelayLock(sample_rate=SR)
+    lock.seed_delay(-0.045 * SR)
+    far = 6.0 * SR / 1000.0  # +6 ms: 1680 samples off the seed
+    _seed_replay_frames(lock, ref, [far] * 10)
+    assert lock.aligner.epochs >= 1
+    assert abs(lock.aligner.locked_delay - far) <= 6.0
+    assert lock.delay_confident
+
+
+def test_an_epoch_drops_the_seed_for_the_next_chirp_issue_72_v11d() -> None:
+    lock = ExactDelayLock(sample_rate=SR)
+    lock.seed_delay(-0.045 * SR)
+    lock.epoch()
+    assert not lock.delay_confident      # the new path waits for its own chirp
+    assert lock.aligner.locked_delay is None

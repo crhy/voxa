@@ -42,7 +42,9 @@ class ExactAligner:
                  window_ms: float = 6.0, epoch_ms: float = 8.0, alpha: float = 0.5,
                  slope_alpha: float = 0.05, epoch_confirm: int = 2,
                  search_ms: float = 400.0, coherence_min: float = COHERENCE_MIN,
-                 recent_ms: float = 400.0, jump_frac: float = 0.25) -> None:
+                 recent_ms: float = 400.0, jump_frac: float = 0.25,
+                 seed_window_ms: float = 5.0, seed_jitter_ms: float = 2.0,
+                 seed_confirm: int = 3, seed_coherence: float = 0.3) -> None:
         self._sr = int(sample_rate)
         self._window = max(2, int(round(window_ms / 1000.0 * self._sr)))
         self._epoch = float(epoch_ms) / 1000.0 * self._sr
@@ -59,6 +61,21 @@ class ExactAligner:
         # across a step while claiming confidence.
         self._recent = int(round(recent_ms / 1000.0 * self._sr))
         self._jump = max(4, int(round(jump_frac * self._window)))
+        # Task v11d (the pilot seed): while the chirp has SEEN the echo path, speech must
+        # not be able to move the lock. Live measurements bounce (the 22-char runs jumped
+        # 40, None, 368, -40.7, -41.5, -93.5, -36.6 ms between replies while the chirp
+        # repeated -45 ms with 0.3 ms spread): the +-400 ms search locks onto reflections
+        # and speech self-similarity. A seed narrows the search to +-seed_window_ms
+        # around the chirp, accepts speech jitter up to seed_jitter_ms without calling it
+        # a step, and only moves for seed_confirm CONSECUTIVE frames of high
+        # (seed_coherence) coherence - a real device change re-chirps through epoch().
+        self._seed_window = int(round(seed_window_ms / 1000.0 * self._sr))
+        self._seed_jitter = max(4, int(round(seed_jitter_ms / 1000.0 * self._sr)))
+        self._seed_confirm = max(2, int(seed_confirm))
+        self._seed_coherence = float(seed_coherence)
+        self._seed: float | None = None
+        self._off_n = 0
+        self._off_candidate: float | None = None
         self._locked: float | None = None
         self._slope = 0.0          # samples of extra delay per second (the clock drift)
         self._t_locked = 0.0       # seconds the slope is referenced to
@@ -90,6 +107,29 @@ class ExactAligner:
         self._slope = 0.0
         self._t_locked = 0.0
         self.confidence = float(confidence)
+
+    def seed(self, delay_samples: float) -> None:
+        """Task v11d: the PILOT CHIRP is the proof, not a prediction to refine.
+
+        A chirp that clears the matched-filter bar (SNR ~50 dB on the live microphone,
+        repeats agreeing within 0.3 ms) has SEEN the echo path directly: the lock starts
+        confident AT it, narrows its tracking window around it, and the canceller reads at
+        it from the first frame. Speech refinement outside the window is then ignored
+        until it confirms itself (consecutive high-coherence frames), which is what kept
+        the live lock jumping (40, None, 368, -40.7, ... ms) while the chirp sat at
+        -45 ms. An epoch (device change) drops the seed and the app re-chirps.
+        """
+        self._locked = float(delay_samples)
+        self._slope = 0.0
+        self._t_locked = self._t_now
+        self._seed = self._locked
+        self._off_n = 0
+        self._off_candidate = None
+        self._coherence_min = max(self._coherence_min, self._seed_coherence)
+        self._jump = max(self._jump, self._seed_jitter)
+        self._stable = self._seed_confirm
+        self.confidence = 1.0
+        self.refined = True
 
     @property
     def locked_delay(self) -> float | None:
@@ -241,6 +281,8 @@ class ExactAligner:
                 self._locked = self._predict_now(self._t_now)
                 self._t_locked = self._t_now
                 self._slope *= 0.98  # a held slope decays toward the drift, never extrapolates far
+            if self._seed is not None:
+                self.refined = True  # silence between replies disproves a seen path no less
             return self.locked_delay
         # Not yet locked: a bounded GCC-PHAT search over the buffer finds the first delay (the
         # frozen room clips carry no device-latency prediction to seed), then every later call
@@ -262,6 +304,8 @@ class ExactAligner:
             self._pending_n = 0
             self._locked = predicted
             self._t_locked = self._t_now
+            if self._seed is not None:
+                self.refined = True  # the chirp already saw this path: silence disproves nothing
             return self.locked_delay
         measured_r = self._measure(buf_m, buf_r, recent=True)
         delta = measured - predicted
@@ -275,6 +319,46 @@ class ExactAligner:
         # a step stays unconfirmed - never "confident while still on the pre-step delay", which
         # is what h02 measured and f163 must fix.
         candidate = measured_r if measured_r is not None else measured
+        # Task v11d (the pilot seed): while a chirp has seen this path, tracking is NARROW -
+        # only measurements inside the seed window move the lock, speech jitter up to
+        # seed_jitter is normal refinement, and a candidate outside the window (reflections,
+        # speech self-similarity) is ignored until seed_confirm CONSECUTIVE frames of high
+        # coherence agree on it. That is all the live replay needs to stay locked at the seed.
+        if self._seed is not None:
+            if abs(candidate - self._seed) <= self._seed_window:
+                self._locked = predicted + self._alpha * (candidate - predicted)
+                dt = max(self._t_now - self._t_locked, 1.0 / self._sr)
+                inst_slope = (candidate - predicted) / dt
+                self._slope = self._slope + self._slope_alpha * (inst_slope - self._slope)
+                self._t_locked = self._t_now
+                self.drift_ppm = self._slope / self._sr * 1e6
+                self.confidence = 1.0
+                self._stable += 1
+                self._off_n = 0
+                self.refined = True
+                return self.locked_delay
+            if (self._off_candidate is not None
+                    and abs(candidate - self._off_candidate) <= self._seed_jitter):
+                self._off_n += 1
+            else:
+                self._off_n = 1
+                self._off_candidate = float(candidate)
+            if self._off_n >= self._seed_confirm and self._coherent(buf_m, buf_r,
+                                                                    int(round(candidate))):
+                # A real, sustained path change without an explicit epoch: re-anchor and let
+                # the narrow window follow the new path.
+                self._locked = float(candidate)
+                self._t_locked = self._t_now
+                self._slope = 0.0
+                self._seed = float(candidate)
+                self._off_n = 0
+                self._stable = 0
+                self.epochs += 1
+            else:
+                self._locked = predicted
+                self._t_locked = self._t_now
+            self.refined = True
+            return self.locked_delay
         # f163 v4: the candidate only counts as step evidence once the PRE-step path is actually
         # gone from the newest audio. A recent-window peak that merely correlates - user speech
         # in a pair clip latching the 400 ms GCC to a short lag while the echo at the locked lag
@@ -373,6 +457,20 @@ class ExactDelayLock:
         self.tracker = DelayTracker(sample_rate=self._sr)
         self.degraded = False
         self.applied = False
+
+    def seed_delay(self, delay_samples: float) -> None:
+        """Task v11d: a pilot chirp cleared the matched-filter bar: the aligner starts
+        CONFIDENT at the chirp's travel, and so does the canceller's reference read.
+
+        An epoch drops the seed (the path changed): the app re-chirps, it does not
+        re-search speech over the old path's seed."""
+        self.aligner = ExactAligner(sample_rate=self._sr)
+        self.aligner.seed(float(delay_samples))
+        self.degraded = False
+        if self.canceller is not None:
+            locked = float(delay_samples)
+            self.canceller.set_offset(int(round(locked)), 0.0, locked, 0.0, locked)
+        self.applied = True
 
     @property
     def delay_frac(self) -> float | None:
