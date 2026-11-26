@@ -250,6 +250,7 @@ class AudioCapture:
         # catch the +-480 ms clock disagreement v11b measured, and its number is logged live so a
         # healthy alignment is readable instead of inferred.
         self._anchor = {"mic": [], "ref": [], "gap": 0, "done": False}
+        self._pilot = None
         self._anchor_ms: float | None = None
         # Issue #72, task v11c step 3: the fitted travel from the loudspeaker to the microphone.
         # DTLN owns its internal delay but still needs the reference READ at the right place;
@@ -417,6 +418,7 @@ class AudioCapture:
         self._echo_travel = 0.0
         self._echo_travel_logged = False
         self._anchor = {"mic": [], "ref": [], "gap": 0, "done": False}
+        self._pilot = None
         self._anchor_ms = None
         self._residual_mask = (LockedResidualMask(rate=REFERENCE_RATE)
                                if isinstance(self.canceller, EchoCanceller)
@@ -601,6 +603,7 @@ class AudioCapture:
         self._echo_travel = 0.0
         self._echo_travel_logged = False
         self._anchor = {"mic": [], "ref": [], "gap": 0, "done": False}
+        self._pilot = None
         self._anchor_ms = None
         # 4. The recovery window (handoff 6.2): no automatic commands from unqualified audio.
         self._recovery_until = time.monotonic() + self.tuning.recovery_s
@@ -1091,6 +1094,7 @@ class AudioCapture:
         # dtln included - that mode owns the delay internally and reported nothing, which is
         # exactly why no "echo delay:" line ever appeared live.
         self._observe_wide_anchor(pcm)
+        self._observe_pilot(pcm)
         if (getattr(self.canceller, "delay_managed_internally", False)
                 and self._echo_mode == "dtln"):
             # Task v11c step 3: the neural stage owns its delay inside its 32 ms analysis
@@ -1179,9 +1183,9 @@ class AudioCapture:
                          travel * 1000.0, self._delay_lock.drift_ppm)
                 self._echo_travel_logged = True
 
-    _ANCHOR_CAP_S = 3.0
+    _ANCHOR_CAP_S = 1.5
     _ANCHOR_GAP_FRAMES = 40
-    _ANCHOR_SEARCH_S = 1.5
+    _ANCHOR_SEARCH_S = 0.4
 
     def _observe_wide_anchor(self, pcm: bytes) -> None:
         """Accumulate one reply of (microphone, aligned reference) and anchor it once per reply.
@@ -1189,8 +1193,10 @@ class AudioCapture:
         The reference window is the aligned one (:meth:`_reference_window`: what the render
         timeline says should be audible at these microphone samples), so the cross-correlation's
         peak lag IS the map-vs-microphone disagreement - the number v11b measured at +-480 ms
-        straddling. +-1500 ms of search covers it honestly; the sign is the echo's own travel
-        (+ = the microphone hears the reference after the map promised it)."""
+        straddling, which is why the search is capped at +-400 ms (the straddle was this search
+        landing on a junk path outside every sane travel) and only a prominence-gated peak
+        inside it parks the reference. The sign is the echo's own travel (+ = the microphone
+        hears the reference after the map promised it)."""
         ref = self._reference_window(len(pcm) // 2)
         st = self._anchor
         if ref is None:
@@ -1212,6 +1218,33 @@ class AudioCapture:
             self._finish_wide_anchor()
             st["done"] = True
 
+    def _energy_peak(self, mic: np.ndarray, ref: np.ndarray, span: int):
+        """Signed sub-sample peak lag of an energy cross-correlation over +-``span``.
+
+        Returns ``(lag, prominence, at_edge)``: lag is fractional samples (negative = the
+        microphone carries the map's samples before the map said they were audible),
+        prominence is the peak over the median of the search, at_edge flags a peak pinned
+        to the edge of the search (an unresolved path, not a travel)."""
+        nfft = 1
+        while nfft < 2 * min(mic.size, ref.size) - 1:
+            nfft <<= 1
+        corr = np.fft.irfft(np.fft.rfft(mic, nfft) * np.conj(np.fft.rfft(ref, nfft)), nfft)
+        # lag k (0..n-1) = mic[i]*ref[i-k]; negative lags live at nfft - k.
+        idx = list(range(1, span + 1)) + list(range(nfft - span, nfft))
+        window = corr[idx]
+        peak_i = int(np.argmax(window))
+        lag = idx[peak_i]
+        lag = lag if lag < nfft // 2 else lag - nfft
+        peak = float(window[peak_i])
+        # Sub-sample parabola through the peak (the same fine step the exact lock takes).
+        if 0 < peak_i < window.size - 1:
+            left, mid, right = window[peak_i - 1], peak, window[peak_i + 1]
+            denom = left - 2.0 * mid + right
+            if denom != 0.0:
+                lag += float(np.clip(0.5 * (left - right) / denom, -1.0, 1.0))
+        prominence = peak / max(1e-9, float(np.median(np.abs(window))))
+        return lag, prominence, abs(lag) > 0.9 * span
+
     def _finish_wide_anchor(self) -> None:
         st = self._anchor
         mic = np.concatenate(st["mic"]) if st["mic"] else np.zeros(0, np.float32)
@@ -1221,21 +1254,96 @@ class AudioCapture:
             return
         mic, ref = mic[:n], ref[:n]
         span = min(int(self._ANCHOR_SEARCH_S * REFERENCE_RATE), n // 2)
-        nfft = 1
-        while nfft < 2 * n - 1:
-            nfft <<= 1
-        corr = np.fft.irfft(np.fft.rfft(mic, nfft) * np.conj(np.fft.rfft(ref, nfft)), nfft)
-        # lag k (0..n-1) = mic[i]*ref[i-k]; negative lags live at nfft - k.
-        idx = list(range(1, span + 1)) + list(range(nfft - span, nfft))
-        window = corr[idx]
-        peak_i = int(np.argmax(window))
-        lag = idx[peak_i]
-        lag = lag if lag < nfft // 2 else lag - nfft
+        lag, prominence, at_edge = self._energy_peak(mic, ref, span)
         self._anchor_ms = lag * 1000.0 / REFERENCE_RATE
-        prominence = float(window[peak_i]) / max(1e-9, float(np.median(np.abs(window))))
         log.info("echo delay: %+.0f ms (wide cross-correlation: %.1f s of microphone, "
                  "+-%.0f ms search, prominence %.1f)",
                  self._anchor_ms, n / REFERENCE_RATE, self._ANCHOR_SEARCH_S * 1000.0, prominence)
+        # The reading is only a parking candidate when it is a resolved peak, well inside
+        # the search (a peak pinned to the edge is an unresolved path, not a travel).
+        if prominence >= 8.0 and not at_edge:
+            self._apply_anchor_travel(self._echo_travel + lag / REFERENCE_RATE)
+
+    def _apply_anchor_travel(self, travel: float) -> None:
+        """Task v11d: park the reference read at the wide anchor's travel while the exact
+        lock cannot prove one. On the live microphone the echo is only a few percent of the
+        captured energy, so the lock's confidence gates (built for the bench's strong echo)
+        never confirm, and DTLN stayed handed the reference at travel 0 - 31 ms off the
+        measured travel, outside its own 32 ms learning window, and its residual sat
+        +13..+32 dB above the echo. The wide anchor over the whole reply measures that
+        travel honestly (the v11d probe: +-25.6..-31.4 ms agreement); it is not confident,
+        so it parks the reference rather than claiming a lock. The exact lock still wins:
+        it re-points every frame, and the anchor only lands within +-80 ms of wherever the
+        last parking left off (the anchor accumulates ALREADY-PARKED reference windows, so
+        its reading is the residual of the current travel, converging toward the truth).
+        """
+        if self._delay_lock is not None and self._delay_lock.delay_confident:
+            return
+        if self._echo_travel and abs(travel - self._echo_travel) > 0.08:
+            return
+        if abs(travel - self._echo_travel) <= 0.01:
+            return
+        self._echo_travel = travel
+        if not self._echo_travel_logged:
+            log.info("echo delay: reference parked at %.1f ms travel (wide anchor, "
+                     "lock unproven)", travel * 1000.0)
+            self._echo_travel_logged = True
+
+    _PILOT_BUFFER_S = 1.4
+    _PILOT_SEARCH_S = 0.4
+    _PILOT_PROMINENCE = 12.0
+
+    def note_pilot_playback(self) -> None:
+        """Task v11d: a calibration chirp is being rendered through the tapped pipeline.
+
+        On the live microphone the echo is only a few percent of the captured energy, so
+        no reply's CONTENT resolves its own travel (the v11d measurements: the exact lock's
+        confidence gates never pass, and the wide anchor over one reply sits at the noise
+        floor). A known chirp does: its matched-filter gain is time-bandwidth, so one 0.35
+        second pilot parks the reference read at the map-vs-microphone travel before the
+        first reply needs the alignment, and every reply's attribution reads a DTLN that
+        was handed a reference with a fighting chance to cancel."""
+        self._pilot = {"mic": [], "ref": [], "done": False, "silent": 0}
+
+    def _observe_pilot(self, pcm: bytes) -> None:
+        st = getattr(self, "_pilot", None)
+        if st is None or st["done"]:
+            return
+        ref = self._reference_window(len(pcm) // 2)
+        if ref is not None and np.any(ref):
+            st["silent"] = 0
+            st["mic"].append(np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0)
+            st["ref"].append(np.asarray(ref, dtype=np.float32))
+        else:
+            st["silent"] += 1
+        # The pilot is 0.35 s: the map is silent again soon after. Resolve when the pairs
+        # span the cap, or when the reference has clearly moved past it - either way the
+        # matched filter has all the pilot it will ever get.
+        if st["mic"] and (sum(a.size for a in st["mic"]) >= int(self._PILOT_BUFFER_S * REFERENCE_RATE)
+                          or st["silent"] >= 4):
+            st["done"] = True
+            self._finish_pilot()
+
+    def _finish_pilot(self) -> None:
+        st = self._pilot
+        mic = np.concatenate(st["mic"]) if st["mic"] else np.zeros(0, np.float32)
+        ref = np.concatenate(st["ref"]) if st["ref"] else np.zeros(0, np.float32)
+        n = min(mic.size, ref.size)
+        if n < int(0.5 * REFERENCE_RATE):
+            return
+        mic, ref = mic[:n], ref[:n]
+        span = int(self._PILOT_SEARCH_S * REFERENCE_RATE)
+        lag, prominence, at_edge = self._energy_peak(mic, ref, span)
+        if prominence < self._PILOT_PROMINENCE or at_edge:
+            log.info("echo pilot: unresolved (prominence %.1f): travel left to the "
+                     "lock and the anchor", prominence)
+            return
+        if self._delay_lock is not None and self._delay_lock.delay_confident:
+            return
+        travel = lag / REFERENCE_RATE
+        self._echo_travel = travel
+        log.info("echo delay: pilot parked the reference at %.1f ms travel "
+                 "(matched-filter prominence %.1f)", travel * 1000.0, prominence)
 
     @property
     def wide_anchor_ms(self) -> float | None:

@@ -2854,6 +2854,14 @@ class MainWindow(Adw.ApplicationWindow):
         # latency re-measure together, and no automatic command comes from unqualified audio while
         # that recovers. Voxa never switches a profile or a device herself.
         self.audio.start_device_watch()
+        # Task v11d: park the echo reference before the first reply needs it. On this
+        # microphone her own echo is a few percent of the captured energy, so no reply's
+        # content resolves its map-vs-microphone travel; one short calibration chirp
+        # through the tapped pipeline does, and every reply's attribution then reads a
+        # neural stage handed a reference it can actually cancel.
+        if self.audio.timeline is not None:
+            self.audio.note_pilot_playback()
+            self.speech.render_pilot()
         self.conversation_active = True
         self._write_listening_state(True)
         self._latest_level = 0.0

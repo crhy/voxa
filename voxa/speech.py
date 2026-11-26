@@ -239,6 +239,39 @@ class Prepared:
                 os.unlink(self.path)
 
 
+def pilot_wav_bytes(seconds: float = 0.35) -> bytes:
+    """Task v11d: the deterministic 300 Hz..3.4 kHz calibration chirp as 16-bit mono WAV.
+
+    A known chirp is the only way to measure the map-vs-microphone travel on the live
+    microphone before any reply exists: its matched-filter gain is its time-bandwidth
+    product, so a few hundred milliseconds resolve a travel that is only a few percent of
+    the captured energy (the v11d probe measured it to 0.3 ms where seconds of speech
+    content did not resolve it at all). It is deterministic so the capture side can verify
+    it if it ever wants to, and tapered so it never clicks the speaker."""
+    import io
+    import math
+    import struct
+    import wave
+
+    rate = 16000
+    n = int(seconds * rate)
+    f0, f1 = 300.0, 3400.0
+    k = (f1 - f0) / seconds
+    samples = []
+    for i in range(n):
+        t = i / rate
+        edge = min(1.0, t / 0.01, max(0.0, (seconds - t) / 0.01))
+        phase = 2.0 * math.pi * (f0 * t + 0.5 * k * t * t)
+        samples.append(int(0.25 * edge * math.sin(phase) * 32767.0))
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(rate)
+        wav.writeframes(struct.pack(f"<{n}h", *samples))
+    return buf.getvalue()
+
+
 class SpeechService:
     """Stream natural speech, with optional online and eSpeak NG fallbacks."""
 
@@ -322,6 +355,55 @@ class SpeechService:
             self.tap = {"attached": False, "error": str(exc)}
         if not self.tap.get("attached"):
             log.info("render tap unavailable for %s: %s", path, self.tap.get("error"))
+
+    PILOT_SECONDS = 0.35
+
+    def render_pilot(self) -> None:
+        """Task v11d: play the calibration chirp through the tapped render pipeline.
+
+        The pilot takes the same way as a reply (decoded bytes through the same tap in
+        front of the same sink), so the render timeline files its samples exactly like any
+        reply's - and the capture side can read the travel off the pair before the first
+        reply needs to resolve one from its own content. It rides its OWN pipeline: the
+        app calls this while speech is idle (at conversation start), and a pipeline from
+        this chirp must never land in the speak() state fields where a later utterance's
+        stop()/cancel_event owns a different pipeline."""
+        if self.render_timeline is None:
+            return
+        _ensure_gstreamer()
+        cap = ""
+        if Gst.ElementFactory.make("limiter", "pilot-cap") is not None:
+            cap = f"limiter name=pilot_cap threshold={CEILING_DBFS:.1f} ! "
+        pipeline = Gst.parse_launch(
+            "appsrc name=source format=bytes block=true max-bytes=1048576 ! "
+            "queue max-size-bytes=2097152 ! "
+            f"decodebin ! audioconvert ! audioresample ! {cap}autoaudiosink name=sink"
+        )
+        appsrc = pipeline.get_by_name("source")
+        if appsrc is None:
+            pipeline.set_state(Gst.State.NULL)
+            return
+        self._tag_stream(pipeline.get_by_name("sink"))
+        self._open_generation("pilot")
+        self._attach_reference_tap(pipeline, "pilot")
+        if pipeline.set_state(Gst.State.PLAYING) == Gst.StateChangeReturn.FAILURE:
+            log.info("echo pilot: the pipeline could not start")
+            pipeline.set_state(Gst.State.NULL)
+            return
+
+        def push() -> None:
+            try:
+                appsrc.emit("push-buffer", Gst.Buffer.new_wrapped(pilot_wav_bytes(self.PILOT_SECONDS)))
+                appsrc.send_event(Gst.Event.new_eos())
+                bus = pipeline.get_bus()
+                deadline = pipeline.get_clock().get_time() + 3 * Gst.SECOND
+                bus.timed_pop_filtered(deadline, Gst.MessageType.EOS | Gst.MessageType.ERROR)
+            except Exception as exc:  # noqa: BLE001 - multimedia boundary
+                log.info("echo pilot: %s", exc)
+            finally:
+                pipeline.set_state(Gst.State.NULL)
+
+        threading.Thread(target=push, name="echo-pilot", daemon=True).start()
 
     def speak(
         self,
