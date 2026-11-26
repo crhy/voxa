@@ -3501,12 +3501,20 @@ class MainWindow(Adw.ApplicationWindow):
         # (this one), not a stream.
         _measurements = self.audio.echo_measurements() or (None, None, None)
         _ref_power, _explained_db, _residual_db = _measurements
+        # Task v11d diagnostic: the exact lock's OWN state at reply end (its fractional delay,
+        # whether it has proven itself, whether the estimate drove the reference instead) -
+        # `travel_ms=None` with a healthy alignment means the lock never confirmed, and the
+        # bench needs to see which it was.
+        _lock_frac = self.audio.delay_frac
         self._barge_trace("echo-health", reference_db=round(_ref_power, 1)
                           if _ref_power is not None else None,
                           explained_db=round(_explained_db, 1) if _explained_db is not None else None,
                           residual_db=round(_residual_db, 1) if _residual_db is not None else None,
                           travel_ms=round(self.audio.echo_travel_ms(), 1)
-                          if self.audio.echo_travel_ms() is not None else None)
+                          if self.audio.echo_travel_ms() is not None else None,
+                          lock_ms=round(_lock_frac / 16.0, 1) if _lock_frac else None,
+                          lock_confident=self.audio.delay_confident,
+                          lock_degraded=self.audio.delay_degraded)
         self._hearing.reply_ended()
         # Issue #72, task v11 step 4: her reply ending is a turn boundary. The held capture
         # span must not survive into the next turn (the live log let one span grow past 60 s
