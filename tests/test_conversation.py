@@ -131,7 +131,7 @@ class StoppingTranscriber:
     def __init__(self, controller: ConversationController) -> None:
         self.controller = controller
 
-    def transcribe(self, segment: bytes, language: str) -> str:
+    def transcribe(self, segment: bytes, language: str, hint: str = "", hotwords: str = "") -> str:
         self.controller.stop()
         return "voxa, what time is it"
 
@@ -181,6 +181,40 @@ def test_strip_wake_word_fuzzy_does_not_fire_on_ordinary_speech() -> None:
     assert strip_wake_word("the voice is loud", "voxa") is None
 
 
+# Issue #72, task v11e step 2: her name on a quiet, far microphone. The tiny model
+# mis-hears "Voxa" several ways; each must wake her, and a word that merely rhymes
+# must not. The wake word is only ever sought at the START of the utterance.
+def test_wake_word_phonetic_mishearings_wake_at_the_start() -> None:
+    for heard, want in {
+        "Boxa, open Pluma": "open Pluma",
+        "Vox what time is it": "what time is it",
+        "Vatza what time is it": "what time is it",
+        "Bazaar what windows are open": "what windows are open",
+        "Voxo open the map": "open the map",
+        "Fox-a open the map": "open the map",
+        "vox a open the map": "open the map",
+        "Voxer, what time is it": "what time is it",
+    }.items():
+        assert strip_wake_word(heard, "voxa") == want, heard
+
+
+def test_wake_word_near_misses_that_must_never_wake() -> None:
+    # ordinary words that merely rhyme with "Voxa", at the start of a sentence
+    for heard in ("box open the map", "fox run", "voxel size", "voice assistant",
+                  "pox marks", "locks the drawer", "bucks the ball"):
+        assert strip_wake_word(heard, "voxa") is None, heard
+
+
+def test_wake_word_phonetic_never_fires_mid_sentence() -> None:
+    # the same mis-hearings, but not at the start: never addressed to her
+    for heard in ("tell me about vox", "describe the box", "open the map vox",
+                  "the vatza", "a fox a"):
+        assert strip_wake_word(heard, "voxa") is None, heard
+
+
+
+
+
 def test_detect_exit_phrase_stop_and_go_offline() -> None:
     for utterance in ("Stop.", "Stop talking", "stop it", "Stop dictation"):
         assert detect_exit_phrase(utterance) == "stop", utterance
@@ -195,7 +229,7 @@ class QueueTranscriber:
     def __init__(self, texts: list[str]) -> None:
         self.texts = list(texts)
 
-    def transcribe(self, segment: bytes, language: str, hint: str = "") -> str:
+    def transcribe(self, segment: bytes, language: str, hint: str = "", hotwords: str = "") -> str:
         return self.texts.pop(0) if self.texts else ""
 
 
@@ -319,7 +353,7 @@ class CountingTranscriber:
         self.text = text
         self.calls = 0
 
-    def transcribe(self, segment: bytes, language: str, hint: str = "") -> str:
+    def transcribe(self, segment: bytes, language: str, hint: str = "", hotwords: str = "") -> str:
         self.calls += 1
         return self.text
 
@@ -382,7 +416,7 @@ class HintRecordingTranscriber:
         self.texts = list(texts)
         self.hints: list[str] = []
 
-    def transcribe(self, segment: bytes, language: str, hint: str = "") -> str:
+    def transcribe(self, segment: bytes, language: str, hint: str = "", hotwords: str = "") -> str:
         self.hints.append(hint)
         return self.texts.pop(0) if self.texts else ""
 
@@ -463,7 +497,7 @@ def test_wake_is_acknowledged_before_same_breath_refinement(monkeypatch) -> None
     prompt = HintRecordingTranscriber(["tell me the time"])
     original_transcribe = prompt.transcribe
 
-    def transcribe(segment: bytes, language: str, hint: str = "") -> str:
+    def transcribe(segment: bytes, language: str, hint: str = "", hotwords: str = "") -> str:
         events.append("refine")
         return original_transcribe(segment, language, hint)
 
@@ -514,7 +548,7 @@ class _ConstTranscriber:
     def __init__(self, text: str) -> None:
         self.text = text
 
-    def transcribe(self, segment: bytes, language: str, hint: str = "") -> str:
+    def transcribe(self, segment: bytes, language: str, hint: str = "", hotwords: str = "") -> str:
         return self.text
 
 

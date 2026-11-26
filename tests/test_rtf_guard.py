@@ -26,7 +26,7 @@ class FakeWhisper:
     def __init__(self, name: str) -> None:
         self._name = name
 
-    def transcribe(self, segment: bytes, language: str, hint: str = "") -> str:
+    def transcribe(self, segment: bytes, language: str, hint: str = "", hotwords: str = "") -> str:
         return "hello"
 
     @property

@@ -165,7 +165,8 @@ class WhisperService:
         for _segment in segments:
             pass
 
-    def transcribe(self, pcm_s16le: bytes, language: str = "en", hint: str = "") -> str:
+    def transcribe(self, pcm_s16le: bytes, language: str = "en", hint: str = "",
+                   hotwords: str = "") -> str:
         if not pcm_s16le:
             return ""
         with self._lock:
@@ -184,6 +185,11 @@ class WhisperService:
             condition_on_previous_text=False,
             word_timestamps=False,
             initial_prompt=hint or None,
+            # Issue #72, task v11e: bias the tiny wake model towards her own name. The wake
+            # hint already carries it as initial_prompt; hotwords weights the token itself, so
+            # a quiet far mic ("Boxa", "Vox") is heard as "Voxa" more often and the wake gate
+            # stops dropping the name.
+            hotwords=hotwords or None,
         )
         # The generator consumes the model's work: materialize it so the confidence figures of
         # the segments we actually used can feed the barge-in hallucination guard (issue #72,

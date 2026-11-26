@@ -118,7 +118,7 @@ class StoppingTranscriber:
     def __init__(self, controller: DictationController) -> None:
         self.controller = controller
 
-    def transcribe(self, segment: bytes, language: str) -> str:
+    def transcribe(self, segment: bytes, language: str, hint: str = "", hotwords: str = "") -> str:
         self.controller.stop()
         return "hello there"
 

@@ -39,47 +39,67 @@ def strip_wake_word(text: str, wake_word: str) -> str | None:
     return remainder.strip(" ,.!?—-\t\n")
 
 
-def _fuzzy_strip(text: str, wake: str) -> str | None:
-    """Match a wake word the tiny Whisper model spelled slightly differently.
+# Words that merely rhyme with the default wake word but are ordinary speech: at the
+# start of a sentence they never wake her. They are never a wake word a character uses.
+_WAKE_COMMON_WORDS = frozenset({"box", "fox", "pox", "voxel", "voice", "locks", "bucks"})
+# A lone short vowel article: the wake word's last syllable heard apart from it ("Fox a").
+_WAKE_SPLIT_ARTICLES = frozenset({"a", "ah", "uh"})
 
-    Only the start of the utterance is checked (wake words come first), and a
-    word or word pair must be very close to the wake word, so ordinary speech
-    is not mistaken for it.
+
+def _wake_sound(word: str) -> str:
+    """Reduce a word to the rough sound a tiny ASR model confuses for the wake word.
+
+    Vowels collapse (the model keeps that one is there, not which), every hard or
+    sibilant cluster ("x"/"ks"/"z"/"c"/"ck"/"tz") becomes one "s", the labial/fricative/
+    liquid onsets v-b-f-w-l blur together, and a trailing r/l is dropped. "Voxa/Boxa/Vox/
+    Vatza/Bazaar/Voxo/Fox" all collapse to the same key.
     """
-    words = list(re.finditer(r"[\w']+", text))
-    for count in (1, 2):
-        window = words[:count]
-        if len(window) < count:
-            continue
-        candidate = "".join(m.group().casefold() for m in window)
-        if len(candidate) < 3:
-            continue
-        matched = SequenceMatcher(None, candidate, wake).ratio() >= 0.65
-        if not matched and candidate[0] in _SOFT_ONSETS and wake[0] in _SOFT_ONSETS:
-            # Said in one breath with the command, the first consonant is what Whisper gets wrong
-            # ("Box open Pluma", "Laksa, what's the weather" for "Voxa"). Soft first consonants are
-            # treated as the same sound, and "ks"/"cks" as "x".
-            sounded = _sound(wake[0] + candidate[1:])
-            matched = SequenceMatcher(None, sounded, _sound(wake)).ratio() >= 0.65
-        if matched:
-            end = window[-1].end()
-            trailing = words[count] if len(words) > count else None
-            if (
-                trailing is not None
-                and trailing.group().casefold() in ("a", "ah", "uh")
-                and wake.endswith("a")
-                and not candidate.endswith("a")
-            ):
-                end = trailing.end()  # "Locks a open …": the wake word's last syllable written apart
-            return text[end:].strip(" ,.!?—-\t\n")
+    w = re.sub(r"[^a-z]", "", word.casefold())
+    w = re.sub(r"[aeiou]+", "a", w)
+    w = w.replace("x", "ks")
+    w = re.sub(r"ck|cs|cz|ks|kz|tz|ds|z|s|j|g|c|k", "s", w)
+    if w and w[0] in "vbfwl":
+        w = "v" + w[1:]
+    return re.sub(r"[rl]$", "", w)
+
+
+def _sounds_like(first: str, target: str) -> bool:
+    return first == target or (len(first) >= 2 and SequenceMatcher(None, first, target).ratio() >= 0.6)
+
+
+def _fuzzy_strip(text: str, wake: str) -> str | None:
+    """Match a wake word the tiny Whisper model heard as a different spelling.
+
+    Only the start of the utterance is checked (a wake word always comes first): a
+    phonetic near-miss in the middle of a sentence never wakes her. The comparison is
+    phonetic so the model's mis-hearings of "Voxa" - "Boxa", "Vox", "Vatza", "Bazaar",
+    "Voxo", "Fox a" - all wake her, while an ordinary word that merely rhymes ("box",
+    "fox", "voxel", "voice") at the start of a sentence does not.
+    """
+    wake_key = _wake_sound(wake)
+    if not wake_key:
+        return None
+    matches = list(re.finditer(r"[\w']+", text))
+    if not matches:
+        return None
+    first = matches[0].group().casefold()
+    first_key = _wake_sound(first)
+    if not first_key or first_key[0] != wake_key[0]:
+        return None
+    wake_open = re.sub(r"a$", "", wake_key)  # the wake word said without its final schwa
+    # The wake word's last syllable heard apart from it: "Fox a", "Locks a" ("Fox-a", "Vox a").
+    if (
+        len(matches) > 1
+        and wake.casefold().endswith("a")
+        and matches[1].group().casefold() in _WAKE_SPLIT_ARTICLES
+        and _sounds_like(first_key, wake_open)
+    ):
+        return text[matches[1].end():].strip(" ,.!?—-\t\n")
+    if first in _WAKE_COMMON_WORDS:
+        return None
+    if _sounds_like(first_key, wake_key) or _sounds_like(first_key, wake_open):
+        return text[matches[0].end():].strip(" ,.!?—-\t\n")
     return None
-
-
-_SOFT_ONSETS = frozenset("bvflwp")
-
-
-def _sound(word: str) -> str:
-    return re.sub(r"cks|ks|cs", "x", word)
 
 
 # Utterances that end a conversation turn, matched exactly (whitespace and
@@ -604,7 +624,8 @@ class ConversationController:
             return complete
         try:
             text = self.wake_whisper.transcribe(segment, self.language,
-                                                f"{self.wake_word.strip().capitalize()}.")
+                                                f"{self.wake_word.strip().capitalize()}.",
+                                                self.wake_word.strip().capitalize())
         except Exception as exc:  # noqa: BLE001 - a probe must not lose the turn
             logging.debug("endpoint probe transcript failed: %s", exc)
             return True
@@ -697,7 +718,8 @@ class ConversationController:
             return True
         return False
 
-    def _transcribe(self, segment: bytes, whisper: WhisperService, hint: str = "") -> str:
+    def _transcribe(self, segment: bytes, whisper: WhisperService, hint: str = "",
+                    hotwords: str = "") -> str:
         if self.stop_event.is_set():
             return ""
         try:
@@ -705,7 +727,10 @@ class ConversationController:
             prompt_model = whisper is self.prompt_whisper
             start = time.perf_counter() if prompt_model else 0.0
             language = self.prompt_language if prompt_model and self.prompt_language else self.language
-            text = whisper.transcribe(segment, language, hint) if hint else whisper.transcribe(segment, language)
+            if hint:
+                text = whisper.transcribe(segment, language, hint, hotwords)
+            else:
+                text = whisper.transcribe(segment, language)
             if prompt_model:
                 self._report_timing(whisper, len(segment) / 32000.0, time.perf_counter() - start)
         except Exception as exc:  # noqa: BLE001 - worker boundary
@@ -923,6 +948,7 @@ class ConversationController:
                     tail,
                     whisper,
                     hint=self._prompt_hint if waiting_for_prompt else f"{self.wake_word.strip().capitalize()}.",
+                    hotwords="" if waiting_for_prompt else self.wake_word.strip().capitalize(),
                 ) if tail else ""
                 tail_text = (self._filter_own_speech(tail_raw, confirmed_user=True)
                              or "") if tail_raw else ""
@@ -935,6 +961,7 @@ class ConversationController:
                     segment,
                     whisper,
                     hint=self._prompt_hint if waiting_for_prompt else f"{self.wake_word.strip().capitalize()}.",
+                    hotwords="" if waiting_for_prompt else self.wake_word.strip().capitalize(),
                 )
             if not text:
                 continue

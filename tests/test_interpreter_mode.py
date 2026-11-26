@@ -132,7 +132,7 @@ class Recorder:
     def __init__(self) -> None:
         self.asked: list[str] = []
 
-    def transcribe(self, segment: bytes, language: str, hint: str = "") -> str:
+    def transcribe(self, segment: bytes, language: str, hint: str = "", hotwords: str = "") -> str:
         self.asked.append(language)
         return "hello"
 

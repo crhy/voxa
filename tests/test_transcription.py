@@ -147,3 +147,35 @@ def test_whisper_skips_the_gpu_when_it_is_nearly_full() -> None:
     assert _gpu_has_room(GpuUsage(10.0, 15.3, 16.0)) is False
     assert _gpu_has_room(GpuUsage(10.0, 16.0 - MIN_FREE_VRAM_GB, 16.0)) is True
     assert _gpu_has_room(GpuUsage(0.0, 2.0, 16.0)) is True
+
+
+def test_transcribe_biases_whisper_towards_the_wake_word(monkeypatch) -> None:
+    """Issue #72, task v11e: the wake hint carries "Voxa" as initial_prompt, and the
+    wake word is also passed as hotwords, so a quiet far mic is heard as "Voxa" rather
+    than the model dropping her name and the wake gate abstaining."""
+
+    class PromptModel:
+        def __init__(self, _name: str, **_kw) -> None:
+            self.kwargs: dict = {}
+
+        def transcribe(self, _audio, **kwargs):
+            self.kwargs = kwargs
+            return [FakeSegment("Voxa open the map")], None
+
+        def __call__(self, *_a, **_k):  # pragma: no cover - unused
+            raise AssertionError
+
+    monkeypatch.setenv("VOXA_DEVICE", "cpu")
+    monkeypatch.setitem(sys.modules, "faster_whisper",
+                        types.SimpleNamespace(WhisperModel=PromptModel))
+    service = WhisperService()
+    ready = threading.Event()
+    service.load_async("tiny", lambda *_a: ready.set(), lambda _e: None)
+    assert ready.wait(5)
+    service.transcribe(b"\x00\x00" * 8, "en", "Voxa.", "Voxa")
+    kw = service._model.kwargs
+    assert kw["initial_prompt"] == "Voxa."
+    assert kw["hotwords"] == "Voxa"
+    # with no hotword given the token stays None (nothing forced)
+    service.transcribe(b"\x00\x00" * 8, "en", "")
+    assert service._model.kwargs["hotwords"] is None
