@@ -162,14 +162,20 @@ class ModelSelector(Gtk.Box):
         lbl = list_item.get_child()
         lbl.set_text(item.get_string())
 
-    def set_models(self, models: list[str], selected: str = "", reachable: bool = True) -> None:
+    def set_models(
+        self, models: list[str], selected: str = "", reachable: bool = True, backend: str = "ollama"
+    ) -> None:
         """Fill the dropdown from a model list without triggering the callback.
 
         The dropdown always shows a real model name, never GTK's empty "(None)":
 
         * the configured ``selected`` model is selected when it is in the list;
-        * a reachable backend whose list is missing the configured model shows it
-          with ``(not installed)`` instead of silently dropping it;
+        * a reachable Ollama whose list is missing the configured model shows it
+          with ``(not installed)`` instead of silently dropping it - the name is
+          one Ollama should have from ``/api/tags``, so "missing" really means
+          "not installed".  llama.cpp lists brain labels, and a label that is
+          not in the current list is not a missing model: it keeps its old
+          behaviour and the first item is simply selected;
         * otherwise the first item is selected.
         """
         self._updating = True
@@ -182,7 +188,7 @@ class ModelSelector(Gtk.Box):
                 items = list(self._models)
                 if selected and selected in items:
                     sel_index = items.index(selected)
-                elif selected and reachable:
+                elif selected and reachable and backend == "ollama":
                     items.append(selected + NOT_INSTALLED_SUFFIX)
                     sel_index = len(items) - 1
                 else:
