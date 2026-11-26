@@ -1510,10 +1510,12 @@ class MainWindow(Adw.ApplicationWindow):
             if generation != self._models_generation:
                 return
             if models is None:
-                # Say so in the model picker too ("Ollama not running") instead of
-                # leaving it blank or on GTK's empty "(None)", and keep the saved
-                # model selection untouched.
-                idle(self._show_no_models, label)
+                # The backend never answered at all: explain it in the status line and
+                # leave the picker at its honest "No models available" (never GTK's
+                # empty "(None)"), and keep the saved model selection untouched.
+                # A backend that is merely missing the model still names itself
+                # ("Ollama not running") via _show_no_models(label).
+                idle(self._show_no_models)
                 idle(
                     self._set_status,
                     f"The AI server ({label}) is offline. Dictation is still available.",
@@ -3854,6 +3856,10 @@ class MainWindow(Adw.ApplicationWindow):
                 if isinstance(client, LlamaCppClient) and client.is_busy():
                     idle(self._on_server_busy, generation, cancel_event)
                 loaded = client.is_model_loaded(model) if hasattr(client, "is_model_loaded") else None
+                if loaded is False:
+                    # A reachable backend that has not got the model in memory: say so
+                    # ("Loading tiny… 3s") while the first request warms it up.
+                    idle(self._on_model_loading, model, generation, cancel_event)
                 if loaded is None and hasattr(client, "is_model_loaded") and self.settings.ai_backend in ("ollama", "llamacpp"):
                     # The managed backend was stopped (or never started) under us: a
                     # heard question is worth restarting it and waiting briefly for
