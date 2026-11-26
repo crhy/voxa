@@ -551,15 +551,21 @@ class ConversationController:
         if wake_remainder is None:
             # Neither model found the wake word: preserve the original text so
             # follow-up handling and missed-wake diagnostics remain unchanged.
-            if refined_remainder is None and hint != self._wake_hint():
+            if refined_remainder is None:
                 # The vocabulary hint itself can pull the wake word towards a listed name
-                # ("Bazaar, what windows…"). One more pass with only the wake word as the hint.
-                plain = self._transcribe(segment, self.prompt_whisper, hint=self._wake_hint())
-                plain = self._filter_own_speech(plain) if plain else None
-                if plain:
-                    plain_remainder = strip_wake_word(plain, self.wake_word)
-                    if plain_remainder is not None:
-                        return plain, plain_remainder
+                # ("Bazaar, what windows…"), and with VAD in the way even the short wake
+                # hint can make Whisper swallow the wake word outright ("Voxa, nice to
+                # meet you" -> "Nice to meet you"). Retry with only the wake word as the
+                # hint, then with no hint at all.
+                for retry_hint in (self._wake_hint(), None):
+                    if retry_hint is not None and retry_hint == hint:
+                        continue
+                    plain = self._transcribe(segment, self.prompt_whisper, hint=retry_hint or "")
+                    plain = self._filter_own_speech(plain) if plain else None
+                    if plain:
+                        plain_remainder = strip_wake_word(plain, self.wake_word)
+                        if plain_remainder is not None:
+                            return plain, plain_remainder
             if refined_remainder is None:
                 return wake_text, wake_remainder
             return refined, refined_remainder
