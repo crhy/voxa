@@ -3800,6 +3800,10 @@ class MainWindow(Adw.ApplicationWindow):
                 # capture path, which already knows which backend owns the delay.
                 alignment_healthy=bool(self.audio.echo_path_qualified()
                                        or ref_power <= MIN_REFERENCE_POWER),
+                # Issue #72, task v11d: a PARKED travel (pilot chirp, wide anchor) is a good
+                # guess, not a proved lock - while the exact aligner is not confident, the
+                # residual margin and the microphone-holds readings carry less (attribution).
+                delay_proven=bool(self.audio.delay_confident),
                 mic_level=float(self._latest_level / 4000.0),
                 own_level=float(self._barge_ctl.gate.baseline),
             )

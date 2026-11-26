@@ -307,3 +307,44 @@ def test_no_speech_on_the_cleaned_signal_never_decides_user_issue_72_v11c():
     # words, and the guard stays out of the way.
     assert attribute(_over_her(word_count=0)).source == USER
     assert attribute(_over_her(vad_prob=0.10, word_count=3)).source == USER
+
+
+def test_a_parked_delay_never_carries_a_second_source_alone_issue_72_v11d():
+    """Live 22-char v11d run: the exact aligner NEVER confirms (the lock's coherence gate is
+    built for the bench's strong echo), so the travel sits PARKED from the pilot chirp - a
+    good guess, an unproven one - and a garbled mistranscription of her OWN TTS ("The bell
+    station" for "Voxa will still be speaking") interrupted her on "microphone holds
+    -5.6 dB beyond the reference" + "residual +23.9 dB over the echo path's baseline" +
+    "microphone 1.8x her own level, words 57% unlike". With the delay unproven those two
+    echo-path readings describe the echo path's own unconfirmed delay, not a second source:
+    the span abstains. With a proved delay the SAME readings decide as before."""
+    fields = dict(reference_active=True, reference_power=4e-3, speaking=True,
+                  echo_explained_db=-5.6, residual_db=-47.1, residual_margin_db=23.9,
+                  vad_prob=None, alignment_healthy=True, level_ratio=1.8,
+                  word_count=7, text_overlap=0.2, text_sound=0.43)
+    parked = attribute(SourceEvidence(delay_proven=False, **fields))
+    assert parked.source != USER, parked.reasons
+    assert any("unproven" in r for r in parked.reasons), parked.reasons
+
+    proved = attribute(SourceEvidence(delay_proven=True, **fields))
+    assert proved.source == USER, proved.reasons
+
+    # The level tower alone (arabic: 2.0x, words 100% unlike, no VAD measured) also abstains
+    # while the delay is unproven.
+    tower = attribute(SourceEvidence(delay_proven=False, reference_active=True,
+                                     reference_power=4e-3, speaking=True,
+                                     echo_explained_db=-4.9, residual_db=-52.0,
+                                     residual_margin_db=23.2, vad_prob=None,
+                                     alignment_healthy=True, level_ratio=2.0,
+                                     word_count=8, text_overlap=0.0, text_sound=0.0))
+    assert tower.source != USER, tower.reasons
+
+    # A real person talking over her reply still interrupts while the delay is unproven:
+    # speech measured in the CLEANED signal is an independent source whatever the delay is.
+    talk = attribute(SourceEvidence(delay_proven=False, reference_active=True,
+                                    reference_power=4e-3, speaking=True,
+                                    echo_explained_db=-14.0, residual_db=-21.0,
+                                    residual_margin_db=9.0, vad_prob=0.93,
+                                    alignment_healthy=True, level_ratio=2.6,
+                                    word_count=2, text_overlap=0.0, text_sound=0.0))
+    assert talk.source == USER, talk.reasons

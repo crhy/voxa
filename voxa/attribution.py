@@ -127,6 +127,14 @@ class SourceEvidence:
     avg_logprob: float | None = None
     compression_ratio: float | None = None
     alignment_healthy: bool = True           # delay known, fresh, within tolerance
+    # Issue #72, task v11d: is the echo delay a PROVEN exact lock, or only a PARKED reference
+    # (pilot chirp / wide anchor)? A parked travel is a good guess but an unproven one: the
+    # canceller then runs at a delay it cannot itself confirm, and its residual margin and the
+    # microphone-holds reading describe the echo path's own uncertainty as much as a second
+    # speaker - the live failures: residual +13..+27 dB over a floor this canceller always
+    # leaves, on spans where Voxa spoke alone. While unproven those two readings may never
+    # carry a second source alone; VAD speech, the joint gate and the words still can.
+    delay_proven: bool = True
     mic_level: float = 0.0                   # 0..1, the scale BargeInGate uses
     own_level: float = 0.0                   # the level her own voice produces in the microphone
     # How far the microphone stands above her own level (the level gate's own ratio): crude, but
@@ -288,8 +296,15 @@ def attribute(ev: SourceEvidence, baseline_db: float | None = None) -> SourceDec
                            "fully explained by the reference")
         else:
             value = min(0.5, (ECHO_EXPLAINED_DB - explained) / 12.0)
+            # A travel the pilot PARKED (not a lock proved): the canceller is running at a
+            # delay it cannot confirm, so "the microphone holds beyond the reference" is
+            # partly the guess itself. Cap how much it may lean toward a second source.
+            capped = not ev.delay_proven and value > 0.15
+            if capped:
+                value = 0.15
             add("explained", value)
-            reasons.append(f"microphone holds {explained:+.1f} dB beyond the reference")
+            reasons.append(f"microphone holds {explained:+.1f} dB beyond the reference"
+                           + (" (delay unproven: capped)" if capped else ""))
 
     # 2. Independent speech: the residual over what this echo path usually leaves, and the VAD.
     # Roadmap task 5: the mask's own margin (output over ITS predicted residual) outranks the
@@ -298,8 +313,17 @@ def attribute(ev: SourceEvidence, baseline_db: float | None = None) -> SourceDec
               else ev.residual_margin_db if ev.residual_margin_db is not None else baseline_db)
     if margin is not None:
         if margin >= USER_RESIDUAL_DB:
-            add("residual", 0.5)
-            reasons.append(f"residual +{margin:.1f} dB over the echo path's baseline")
+            if ev.delay_proven:
+                add("residual", 0.5)
+                reasons.append(f"residual +{margin:.1f} dB over the echo path's baseline")
+            else:
+                # The live v11d signature: residual +13..+27 dB over a baseline this canceller
+                # rings LOW, while Voxa spoke alone. With the travel parked and unproven that
+                # margin is the canceller missing its own delay, not a second source: it may
+                # never stand as independent speech on its own here (VAD, the joint gate and
+                # the words still can).
+                reasons.append(f"residual +{margin:.1f} dB over the echo path's baseline but "
+                               "the delay is unproven: not independent speech")
         elif margin <= 0.0:
             add("residual", -0.3)
             reasons.append(f"residual {margin:+.1f} dB at or under the echo path's baseline")
@@ -335,6 +359,13 @@ def attribute(ev: SourceEvidence, baseline_db: float | None = None) -> SourceDec
             # that heard nothing. No words: the tower abstains.
             0.0 if ev.word_count == 0 else UNKNOWN_DISSIMILARITY)
         lift = LEVEL_LIFT * tower * dissimilarity
+        if lift and not ev.delay_proven and not (ev.vad_prob is not None
+                                                and ev.vad_prob >= VAD_SPEECH):
+            # Unproven travel AND no speech measured in the cleaned signal: the tower is then
+            # her own echo sitting under an unconfirmed delay, and a microphone hot enough to
+            # tower over her level is exactly what that echo produces. It abstains.
+            lift = 0.0
+            reasons.append("delay unproven and no VAD speech measured: the level tower abstains")
         if lift:
             add("level", lift)
             reasons.append(f"microphone {ev.level_ratio:.1f}x her own level, words {dissimilarity:.0%} "
