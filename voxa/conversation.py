@@ -555,12 +555,11 @@ class ConversationController:
                 # The vocabulary hint itself can pull the wake word towards a listed name
                 # ("Bazaar, what windows…"), and with VAD in the way even the short wake
                 # hint can make Whisper swallow the wake word outright ("Voxa, nice to
-                # meet you" -> "Nice to meet you"). Retry with only the wake word as the
-                # hint, then with no hint at all.
-                for retry_hint in (self._wake_hint(), None):
-                    if retry_hint is not None and retry_hint == hint:
-                        continue
-                    plain = self._transcribe(segment, self.prompt_whisper, hint=retry_hint or "")
+                # meet you" -> "Nice to meet you"). vf04: ONE retry, with no hint, and
+                # only when the first pass used a hint -- the two vf02 retries doubled
+                # the prompt-model Whisper cost of every TV/background segment.
+                if hint:
+                    plain = self._transcribe(segment, self.prompt_whisper, hint="")
                     plain = self._filter_own_speech(plain) if plain else None
                     if plain:
                         plain_remainder = strip_wake_word(plain, self.wake_word)

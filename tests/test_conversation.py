@@ -607,4 +607,23 @@ def test_the_wake_hint_can_swallow_the_wake_word_and_bare_retry_recovers(monkeyp
     _feed_utterance(controller)
     _drain(controller)
     assert prompts == ["nice to meet you"]
-    assert prompt.hints[-2:] == ["Voxa.", ""]
+    # vf04: exactly ONE extra pass, and it is the no-hint one: the wake-hint
+    # retry that vf02 inserted is gone, so background speech costs two prompt
+    # passes total, not three.
+    assert len(prompt.hints) == 2
+    assert prompt.hints[0]  # the first pass used a hint
+    assert prompt.hints[-1] == ""
+
+
+def test_background_speech_gets_exactly_two_prompt_passes(monkeypatch) -> None:
+    """TV conversation with no wake word: the prompt model runs twice, not three times."""
+    monkeypatch.setattr("voxa.conversation.refresh_app_names", lambda: [])
+    wake = HintRecordingTranscriber(["the weather is fine today"])
+    prompt = HintRecordingTranscriber(["the weather is fine today",
+                                       "the weather is fine today"])
+    controller, prompts = _make_recording_controller(wake, prompt)
+    controller.start()
+    _feed_utterance(controller)
+    _drain(controller)
+    assert prompts == []  # never became a command
+    assert len(prompt.hints) == 2
