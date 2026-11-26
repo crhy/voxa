@@ -4,6 +4,10 @@
 
 Voxa always answers: restarts its model backend when it is down and says so out loud instead of staying silent.
 
+### Changed
+
+- Voxa does what you ask without confirmation prompts: no blocked buttons, no "are you sure".
+
 ### Fixed
 
 - A heard question restarts a stopped Ollama or llama.cpp backend, waits briefly and answers, instead of ending with empty speech (issue #72).
