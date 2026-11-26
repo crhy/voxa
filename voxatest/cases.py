@@ -30,6 +30,11 @@ class TestCase:
     verify: dict[str, Any] = field(default_factory=dict)
     # Which of the 100 assistant capabilities (GitHub issue 102) this case is evidence for; 0 for none.
     capability: int = 0
+    # Spoken-style requirements for the reply, checked by the grader:
+    #   "no_markdown": the reply may not contain markdown marks;
+    #   "short": keep it to a spoken sentence (max_words, default 40);
+    #   "max_words": explicit word budget.
+    reply_style: dict[str, Any] = field(default_factory=dict)
     # Steps run on the host before speaking: copy a sample file, open it, press keys, remove it, wait.
     setup: list[dict[str, Any]] = field(default_factory=list)
     # True when the case can only run in the test VM (needs a real desktop, xdotool, a GUI editor).
@@ -48,6 +53,7 @@ class TestCase:
             "after": self.after,
             "verify": dict(self.verify),
             "capability": self.capability,
+            "reply_style": dict(self.reply_style),
             "setup": [dict(step) for step in self.setup],
             "vm_only": self.vm_only,
         }
@@ -86,6 +92,7 @@ class TestCase:
             after=str(raw.get("after", "")).strip(),
             verify=dict(raw["verify"]) if isinstance(raw.get("verify"), dict) else {},
             capability=int(raw.get("capability") or 0) if str(raw.get("capability") or "0").isdigit() else 0,
+            reply_style=dict(raw["reply_style"]) if isinstance(raw.get("reply_style"), dict) else {},
             setup=setup,
             vm_only=bool(raw.get("vm_only", False)),
         )
