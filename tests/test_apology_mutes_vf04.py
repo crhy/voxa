@@ -22,6 +22,7 @@ if not Gtk.init_check():
     pytest.skip("no GTK display available")
 Adw.init()
 
+import voxa.window as window_module  # noqa: E402
 from voxa.ui.state import AssistantState  # noqa: E402
 from voxa.window import AI_APOLOGY, MainWindow  # noqa: E402
 
@@ -111,6 +112,9 @@ def window(application, tmp_path, monkeypatch):
         "_stop_ai_server_async",
     ):
         monkeypatch.setattr(MainWindow, name, lambda *args, **kwargs: None)
+    # The window installs the Voxa stylesheet on the real display; that CSS then
+    # sized every later GTK test (vf04 left it installed and the suite noticed).
+    monkeypatch.setattr(window_module, "install_styles", lambda *args: None)
     win = MainWindow(application)
     win.audio = FakeAudio()
     win.speech = CapturingSpeech()
