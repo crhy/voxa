@@ -185,6 +185,31 @@ def test_the_pilot_parks_the_reference_before_the_first_reply():
     assert abs(travel + 18.0) <= 1.0
 
 
+def test_the_pilot_resolves_the_live_probe_geometry_confidently_issue_72_v11d():
+    """The v11k run: against the live microphone the microphone-vs-map peak (the old
+    _energy_peak path) measured prominence 14 at a spurious -4.2 ms travel, so the seed
+    narrowed around the wrong number and no reply ever read lock_confident=True. The
+    probe's METHOD - the microphone correlated against the KNOWN chirp - reads the same
+    2%-of-energy echo at ~49 dB and at the probe's -45 ms, which crosses the seed bar:
+    the lock is confident at once from a live-weak pilot."""
+    capture = AudioCapture()
+    pilot = _pilot_pcm()
+    n = int(1.6 * 16000)
+    ref = np.zeros(n, np.float32)
+    audible = 1600
+    ref[audible:audible + pilot.size] = pilot
+    lag = -720  # the probe's -45 ms
+    rng = np.random.default_rng(7)
+    mic = rng.standard_normal(n).astype(np.float32) * 8e-3
+    mic[:n + lag] += np.float32(0.02) * ref[-lag:]  # WEAK, like the live microphone
+    _feed_pilot(capture, mic, ref)
+    assert abs(capture.echo_travel_ms() + 45.0) <= 1.0
+    assert capture._pilot_prominence >= capture._PILOT_SEED_PROMINENCE
+    lock = capture._delay_lock
+    assert lock is not None and lock.delay_confident
+    assert abs(lock.delay_frac + 720) <= 2
+
+
 def test_the_pilot_refuses_to_park_on_noise():
     capture = AudioCapture()
     n = int(1.6 * 16000)

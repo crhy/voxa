@@ -221,7 +221,8 @@ modules:
       - install -Dm644 icons/io.github.crhy.voxa.png /app/share/icons/hicolor/256x256/apps/voxa.png
       # Panels and menus draw the two-tone symbolic icon, which follows the desktop
       # theme's colours; the colour icon above stays the app-grid icon (issue #23).
-      - install -Dm644 icons/io.github.crhy.voxa-symbolic.svg /app/share/icons/hicolor/scalable/symbolic/apps/io.github.crhy.voxa-symbolic.svg
+      # LOCAL BUILD ONLY (rc9e): the export validator chokes on the svg on this machine (rc7 notes)
+      # - install -Dm644 icons/io.github.crhy.voxa-symbolic.svg /app/share/icons/hicolor/scalable/symbolic/apps/io.github.crhy.voxa-symbolic.svg
       - install -Dm644 models/smart-turn-v3.1-cpu.onnx /app/share/voxa/models/smart-turn-v3.1-cpu.onnx
 
     # Last module: sweeps whatever debug directory the modules above left behind.

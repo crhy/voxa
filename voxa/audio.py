@@ -1322,6 +1322,33 @@ class AudioCapture:
     _PILOT_SEED_PROMINENCE = 31.6
     _PILOT_SEED_AGREE_S = 0.002  # repeats agree: 2 ms
 
+    @staticmethod
+    def _pilot_template() -> np.ndarray:
+        """Task v11d: the KNOWN pilot chirp (voxa.speech.pilot_wav_bytes) as float32 mono.
+
+        The whole point of a pilot is that it is KNOWN: cross-correlating the microphone
+        against the TEMPLATE (the probe's method) has the chirp's full matched-filter
+        gain (~53 dB on the live mic), while correlating the microphone against the MAP
+        read back through an unaligned reference dilutes the same echo against the noise
+        floor and lands on a spurious near-zero peak (the v11k run measured prominence
+        14 at travel -4.2 ms against the probe's -45 ms)."""
+        import io
+        import wave
+        from .speech import pilot_wav_bytes
+        with wave.open(io.BytesIO(pilot_wav_bytes())) as wav:
+            return (np.frombuffer(wav.readframes(-1), "<i2").astype(np.float32) / 32768.0)
+
+    def _template_onset(self, signal: np.ndarray, template: np.ndarray):
+        """Where the known chirp appears in ``signal``: (valid-correlation peak index,
+        prominence = peak / median(|corr|)). None when the signal is too short or the
+        peak is not a resolved echo."""
+        if signal.size < template.size + 256:
+            return None, 0.0
+        corr = np.correlate(signal, template, mode="valid")
+        peak_i = int(np.argmax(corr))
+        prominence = float(corr[peak_i]) / max(1e-9, float(np.median(np.abs(corr))))
+        return peak_i, prominence
+
     def note_pilot_playback(self) -> None:
         """Task v11d: a calibration chirp is being rendered through the tapped pipeline.
 
@@ -1375,13 +1402,30 @@ class AudioCapture:
         if n < int(0.5 * REFERENCE_RATE):
             return
         mic, ref = mic[:n], ref[:n]
-        span = int(self._PILOT_SEARCH_S * REFERENCE_RATE)
-        lag, prominence, at_edge = self._energy_peak(mic, ref, span)
-        if prominence < self._PILOT_PROMINENCE or at_edge:
+        # Task v11d: correlate BOTH against the KNOWN chirp (the probe's method), not the
+        # microphone against the map: the map read back through an unaligned reference
+        # dilutes the same echo against the noise floor and lands on a spurious near-zero
+        # travel (the v11k run measured prominence 14 at -4.2 ms where the probe saw 53 dB
+        # at -45 ms). Travel = where the chirp appears in the microphone minus where it
+        # appears in the map, on one capture clock: negative = the microphone carries it
+        # before the map made it audible.
+        try:
+            template = self._pilot_template()
+        except (OSError, ValueError, TypeError):
+            return
+        mi, mprom = self._template_onset(mic, template)
+        ri, rprom = self._template_onset(ref, template)
+        prominence = min(mprom, rprom)
+        last = n - template.size
+        if mi is None or ri is None or prominence < self._PILOT_PROMINENCE:
             log.info("echo pilot: unresolved (prominence %.1f): travel left to the "
                      "lock and the anchor", prominence)
             return
-        travel = lag / REFERENCE_RATE
+        if mi in (0, last) or ri in (0, last):
+            log.info("echo pilot: unresolved (peak pinned to the edge of the capture): "
+                     "travel left to the lock and the anchor")
+            return
+        travel = (mi - ri) / REFERENCE_RATE
         # Task v11d (rhY's 21:48 note): a RESOLVED chirp always narrows the exact lock's
         # tracking window to its travel (speech can no longer hunt +-400 ms of
         # reflections); it is CONFIDENT at once only when the peak is clean (SNR >=
