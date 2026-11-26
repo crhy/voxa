@@ -1,0 +1,777 @@
+render-tap attached=True error=None
+render state -> 2
+mic buffers=1025 samples=164000
+  REFUSE n=1600 peak_lag=-499 (-31.2 ms) top=6.356e-02 floor=3.309e-05 prom_ok=True
+  second path refused=True rest.max=5.148e-02 half_top=3.178e-02
+  coh(lag=-499, tail=0, win=1101): 0.0092 need>=0.0144 pass=False
+  coh(lag=-499, tail=4096, win=1101): 0.0092 need>=0.0144 pass=False
+  REFUSE n=1760 peak_lag=-309 (-19.3 ms) top=6.258e-02 floor=-4.496e-05 prom_ok=True
+  second path refused=True rest.max=5.039e-02 half_top=3.129e-02
+  coh(lag=-309, tail=0, win=1451): 0.0011 need>=0.0144 pass=False
+  coh(lag=-309, tail=4096, win=1451): 0.0011 need>=0.0144 pass=False
+  REFUSE n=1920 peak_lag=-309 (-19.3 ms) top=6.287e-02 floor=-3.055e-05 prom_ok=True
+  second path refused=True rest.max=5.667e-02 half_top=3.143e-02
+  coh(lag=-309, tail=0, win=1611): 0.0016 need>=0.0144 pass=False
+  coh(lag=-309, tail=4096, win=1611): 0.0016 need>=0.0144 pass=False
+  REFUSE n=2080 peak_lag=-309 (-19.3 ms) top=5.966e-02 floor=4.547e-05 prom_ok=True
+  second path refused=True rest.max=5.495e-02 half_top=2.983e-02
+  coh(lag=-309, tail=0, win=1771): 0.0020 need>=0.0144 pass=False
+  coh(lag=-309, tail=4096, win=1771): 0.0020 need>=0.0144 pass=False
+  REFUSE n=2240 peak_lag=828 (51.8 ms) top=5.910e-02 floor=-2.879e-05 prom_ok=True
+  second path refused=True rest.max=5.821e-02 half_top=2.955e-02
+  coh(lag=828, tail=0, win=1412): 0.0009 need>=0.0144 pass=False
+  coh(lag=828, tail=4096, win=1412): 0.0009 need>=0.0144 pass=False
+  REFUSE n=2400 peak_lag=165 (10.3 ms) top=6.229e-02 floor=-1.605e-05 prom_ok=True
+  second path refused=True rest.max=5.455e-02 half_top=3.114e-02
+  coh(lag=165, tail=0, win=2235): 0.0005 need>=0.0144 pass=False
+  coh(lag=165, tail=4096, win=2235): 0.0005 need>=0.0144 pass=False
+  REFUSE n=2560 peak_lag=343 (21.4 ms) top=6.099e-02 floor=2.810e-05 prom_ok=True
+  second path refused=True rest.max=5.531e-02 half_top=3.049e-02
+  coh(lag=343, tail=0, win=2217): 0.0063 need>=0.0144 pass=False
+  coh(lag=343, tail=4096, win=2217): 0.0063 need>=0.0144 pass=False
+  REFUSE n=2720 peak_lag=343 (21.4 ms) top=6.633e-02 floor=3.462e-05 prom_ok=True
+  second path refused=True rest.max=4.898e-02 half_top=3.316e-02
+  coh(lag=343, tail=0, win=2377): 0.0070 need>=0.0144 pass=False
+  coh(lag=343, tail=4096, win=2377): 0.0070 need>=0.0144 pass=False
+  REFUSE n=2880 peak_lag=-309 (-19.3 ms) top=5.058e-02 floor=8.666e-05 prom_ok=True
+  second path refused=True rest.max=4.941e-02 half_top=2.529e-02
+  coh(lag=-309, tail=0, win=2571): 0.0010 need>=0.0144 pass=False
+  coh(lag=-309, tail=4096, win=2571): 0.0010 need>=0.0144 pass=False
+  REFUSE n=3040 peak_lag=343 (21.4 ms) top=5.427e-02 floor=5.327e-05 prom_ok=True
+  second path refused=True rest.max=4.560e-02 half_top=2.713e-02
+  coh(lag=343, tail=0, win=2697): 0.0041 need>=0.0144 pass=False
+  coh(lag=343, tail=4096, win=2697): 0.0041 need>=0.0144 pass=False
+  REFUSE n=3200 peak_lag=-499 (-31.2 ms) top=4.551e-02 floor=4.922e-05 prom_ok=True
+  second path refused=True rest.max=4.414e-02 half_top=2.275e-02
+  coh(lag=-499, tail=0, win=2701): 0.0043 need>=0.0144 pass=False
+  coh(lag=-499, tail=4096, win=2701): 0.0043 need>=0.0144 pass=False
+  REFUSE n=3360 peak_lag=-367 (-22.9 ms) top=5.123e-02 floor=4.649e-05 prom_ok=True
+  second path refused=True rest.max=4.694e-02 half_top=2.562e-02
+  coh(lag=-367, tail=0, win=2993): 0.0004 need>=0.0144 pass=False
+  coh(lag=-367, tail=4096, win=2993): 0.0004 need>=0.0144 pass=False
+  REFUSE n=3520 peak_lag=622 (38.9 ms) top=4.993e-02 floor=6.855e-05 prom_ok=True
+  second path refused=True rest.max=4.576e-02 half_top=2.497e-02
+  coh(lag=622, tail=0, win=2898): 0.0021 need>=0.0144 pass=False
+  coh(lag=622, tail=4096, win=2898): 0.0021 need>=0.0144 pass=False
+  REFUSE n=3680 peak_lag=622 (38.9 ms) top=5.606e-02 floor=6.245e-05 prom_ok=True
+  second path refused=True rest.max=4.440e-02 half_top=2.803e-02
+  coh(lag=622, tail=0, win=3058): 0.0019 need>=0.0144 pass=False
+  coh(lag=622, tail=4096, win=3058): 0.0019 need>=0.0144 pass=False
+  REFUSE n=3840 peak_lag=622 (38.9 ms) top=5.525e-02 floor=7.463e-05 prom_ok=True
+  second path refused=True rest.max=4.354e-02 half_top=2.763e-02
+  coh(lag=622, tail=0, win=3218): 0.0021 need>=0.0144 pass=False
+  coh(lag=622, tail=4096, win=3218): 0.0021 need>=0.0144 pass=False
+  REFUSE n=4000 peak_lag=622 (38.9 ms) top=4.638e-02 floor=2.447e-05 prom_ok=True
+  second path refused=True rest.max=4.323e-02 half_top=2.319e-02
+  coh(lag=622, tail=0, win=3378): 0.0020 need>=0.0144 pass=False
+  coh(lag=622, tail=4096, win=3378): 0.0020 need>=0.0144 pass=False
+  REFUSE n=4160 peak_lag=564 (35.2 ms) top=4.353e-02 floor=-6.474e-05 prom_ok=True
+  second path refused=True rest.max=4.197e-02 half_top=2.177e-02
+  coh(lag=564, tail=0, win=3596): 0.0078 need>=0.0144 pass=False
+  coh(lag=564, tail=4096, win=3596): 0.0078 need>=0.0144 pass=False
+  REFUSE n=4320 peak_lag=-1089 (-68.1 ms) top=4.391e-02 floor=-3.586e-06 prom_ok=True
+  second path refused=True rest.max=4.340e-02 half_top=2.196e-02
+  coh(lag=-1089, tail=0, win=3231): 0.0014 need>=0.0144 pass=False
+  coh(lag=-1089, tail=4096, win=3231): 0.0014 need>=0.0144 pass=False
+  REFUSE n=4480 peak_lag=-1089 (-68.1 ms) top=4.402e-02 floor=-3.862e-05 prom_ok=True
+  second path refused=True rest.max=4.080e-02 half_top=2.201e-02
+  coh(lag=-1089, tail=0, win=3391): 0.0020 need>=0.0144 pass=False
+  coh(lag=-1089, tail=4096, win=3391): 0.0020 need>=0.0144 pass=False
+  REFUSE n=4640 peak_lag=-1089 (-68.1 ms) top=4.776e-02 floor=-9.452e-06 prom_ok=True
+  second path refused=True rest.max=4.197e-02 half_top=2.388e-02
+  coh(lag=-1089, tail=0, win=3551): 0.0026 need>=0.0144 pass=False
+  coh(lag=-1089, tail=4096, win=3551): 0.0026 need>=0.0144 pass=False
+  REFUSE n=4800 peak_lag=-1089 (-68.1 ms) top=4.353e-02 floor=2.491e-05 prom_ok=True
+  second path refused=True rest.max=3.976e-02 half_top=2.176e-02
+  coh(lag=-1089, tail=0, win=3711): 0.0030 need>=0.0144 pass=False
+  coh(lag=-1089, tail=4096, win=3711): 0.0030 need>=0.0144 pass=False
+  REFUSE n=4960 peak_lag=828 (51.8 ms) top=4.005e-02 floor=-2.117e-05 prom_ok=True
+  second path refused=True rest.max=3.917e-02 half_top=2.003e-02
+  coh(lag=828, tail=0, win=4132): 0.0004 need>=0.0144 pass=False
+  coh(lag=828, tail=4096, win=4096): 0.0004 need>=0.0144 pass=False
+  REFUSE n=5120 peak_lag=1903 (118.9 ms) top=4.625e-02 floor=-3.345e-05 prom_ok=True
+  second path refused=True rest.max=4.154e-02 half_top=2.312e-02
+  coh(lag=1903, tail=0, win=3217): 0.0027 need>=0.0144 pass=False
+  coh(lag=1903, tail=4096, win=3217): 0.0027 need>=0.0144 pass=False
+  REFUSE n=5280 peak_lag=-1357 (-84.8 ms) top=4.278e-02 floor=2.696e-05 prom_ok=True
+  second path refused=True rest.max=3.866e-02 half_top=2.139e-02
+  coh(lag=-1357, tail=0, win=3923): 0.0007 need>=0.0144 pass=False
+  coh(lag=-1357, tail=4096, win=3923): 0.0007 need>=0.0144 pass=False
+  REFUSE n=5440 peak_lag=-1357 (-84.8 ms) top=3.980e-02 floor=9.642e-05 prom_ok=True
+  second path refused=True rest.max=3.674e-02 half_top=1.990e-02
+  coh(lag=-1357, tail=0, win=4083): 0.0003 need>=0.0144 pass=False
+  coh(lag=-1357, tail=4096, win=4083): 0.0003 need>=0.0144 pass=False
+  REFUSE n=5600 peak_lag=-1089 (-68.1 ms) top=3.628e-02 floor=2.799e-05 prom_ok=True
+  second path refused=True rest.max=3.494e-02 half_top=1.814e-02
+  coh(lag=-1089, tail=0, win=4511): 0.0006 need>=0.0144 pass=False
+  coh(lag=-1089, tail=4096, win=4096): 0.0004 need>=0.0144 pass=False
+  REFUSE n=5760 peak_lag=564 (35.2 ms) top=3.965e-02 floor=3.678e-05 prom_ok=True
+  second path refused=True rest.max=3.741e-02 half_top=1.982e-02
+  coh(lag=564, tail=0, win=5196): 0.0063 need>=0.0144 pass=False
+  coh(lag=564, tail=4096, win=4096): 0.0063 need>=0.0144 pass=False
+  REFUSE n=5920 peak_lag=258 (16.1 ms) top=3.990e-02 floor=3.605e-05 prom_ok=True
+  second path refused=True rest.max=3.450e-02 half_top=1.995e-02
+  coh(lag=258, tail=0, win=5662): 0.0027 need>=0.0144 pass=False
+  coh(lag=258, tail=4096, win=4096): 0.0023 need>=0.0144 pass=False
+  REFUSE n=6080 peak_lag=564 (35.2 ms) top=3.934e-02 floor=7.065e-05 prom_ok=True
+  second path refused=True rest.max=3.456e-02 half_top=1.967e-02
+  coh(lag=564, tail=0, win=5516): 0.0064 need>=0.0144 pass=False
+  coh(lag=564, tail=4096, win=4096): 0.0069 need>=0.0144 pass=False
+  REFUSE n=6240 peak_lag=564 (35.2 ms) top=4.392e-02 floor=1.396e-05 prom_ok=True
+  second path refused=True rest.max=3.502e-02 half_top=2.196e-02
+  coh(lag=564, tail=0, win=5676): 0.0067 need>=0.0144 pass=False
+  coh(lag=564, tail=4096, win=4096): 0.0075 need>=0.0144 pass=False
+  REFUSE n=6400 peak_lag=564 (35.2 ms) top=4.305e-02 floor=-5.083e-06 prom_ok=True
+  second path refused=True rest.max=3.363e-02 half_top=2.153e-02
+  coh(lag=564, tail=0, win=5836): 0.0054 need>=0.0144 pass=False
+  coh(lag=564, tail=4096, win=4096): 0.0053 need>=0.0144 pass=False
+  REFUSE n=6560 peak_lag=564 (35.2 ms) top=3.975e-02 floor=5.465e-05 prom_ok=True
+  second path refused=True rest.max=3.521e-02 half_top=1.987e-02
+  coh(lag=564, tail=0, win=5996): 0.0044 need>=0.0144 pass=False
+  coh(lag=564, tail=4096, win=4096): 0.0047 need>=0.0144 pass=False
+  REFUSE n=6720 peak_lag=726 (45.4 ms) top=3.743e-02 floor=1.831e-05 prom_ok=True
+  second path refused=True rest.max=3.441e-02 half_top=1.871e-02
+  coh(lag=726, tail=0, win=5994): 0.0023 need>=0.0144 pass=False
+  coh(lag=726, tail=4096, win=4096): 0.0048 need>=0.0144 pass=False
+  REFUSE n=6880 peak_lag=564 (35.2 ms) top=3.851e-02 floor=-4.392e-05 prom_ok=True
+  second path refused=True rest.max=3.425e-02 half_top=1.926e-02
+  coh(lag=564, tail=0, win=6316): 0.0035 need>=0.0144 pass=False
+  coh(lag=564, tail=4096, win=4096): 0.0013 need>=0.0144 pass=False
+  REFUSE n=7040 peak_lag=726 (45.4 ms) top=3.601e-02 floor=3.684e-05 prom_ok=True
+  second path refused=True rest.max=3.299e-02 half_top=1.801e-02
+  coh(lag=726, tail=0, win=6314): 0.0020 need>=0.0144 pass=False
+  coh(lag=726, tail=4096, win=4096): 0.0023 need>=0.0144 pass=False
+  REFUSE n=7200 peak_lag=564 (35.2 ms) top=3.752e-02 floor=1.080e-05 prom_ok=True
+  second path refused=True rest.max=3.164e-02 half_top=1.876e-02
+  coh(lag=564, tail=0, win=6636): 0.0028 need>=0.0144 pass=False
+  coh(lag=564, tail=4096, win=4096): 0.0008 need>=0.0144 pass=False
+  REFUSE n=7360 peak_lag=564 (35.2 ms) top=3.786e-02 floor=-4.095e-05 prom_ok=True
+  second path refused=True rest.max=3.287e-02 half_top=1.893e-02
+  coh(lag=564, tail=0, win=6796): 0.0029 need>=0.0144 pass=False
+  coh(lag=564, tail=4096, win=4096): 0.0007 need>=0.0144 pass=False
+  REFUSE n=7520 peak_lag=564 (35.2 ms) top=3.485e-02 floor=1.359e-05 prom_ok=True
+  second path refused=True rest.max=3.317e-02 half_top=1.743e-02
+  coh(lag=564, tail=0, win=6956): 0.0031 need>=0.0144 pass=False
+  coh(lag=564, tail=4096, win=4096): 0.0004 need>=0.0144 pass=False
+  REFUSE n=7680 peak_lag=-910 (-56.9 ms) top=3.258e-02 floor=4.022e-05 prom_ok=True
+  second path refused=True rest.max=3.199e-02 half_top=1.629e-02
+  coh(lag=-910, tail=0, win=6770): 0.0002 need>=0.0144 pass=False
+  coh(lag=-910, tail=4096, win=4096): 0.0001 need>=0.0144 pass=False
+  REFUSE n=7840 peak_lag=-499 (-31.2 ms) top=3.445e-02 floor=1.133e-04 prom_ok=True
+  second path refused=True rest.max=3.121e-02 half_top=1.722e-02
+  coh(lag=-499, tail=0, win=7341): 0.0028 need>=0.0144 pass=False
+  coh(lag=-499, tail=4096, win=4096): 0.0038 need>=0.0144 pass=False
+  REFUSE n=8000 peak_lag=11 (0.7 ms) top=3.594e-02 floor=7.387e-05 prom_ok=True
+  second path refused=True rest.max=3.334e-02 half_top=1.797e-02
+  coh(lag=11, tail=0, win=7989): 0.0018 need>=0.0144 pass=False
+  coh(lag=11, tail=4096, win=4096): 0.0002 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-499 (-31.2 ms) top=3.664e-02 floor=1.569e-04 prom_ok=True
+  second path refused=True rest.max=3.130e-02 half_top=1.832e-02
+  coh(lag=-499, tail=0, win=7661): 0.0027 need>=0.0144 pass=False
+  coh(lag=-499, tail=4096, win=4096): 0.0038 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-499 (-31.2 ms) top=3.530e-02 floor=1.003e-04 prom_ok=True
+  second path refused=True rest.max=3.094e-02 half_top=1.765e-02
+  coh(lag=-499, tail=0, win=7661): 0.0024 need>=0.0144 pass=False
+  coh(lag=-499, tail=4096, win=4096): 0.0036 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=11 (0.7 ms) top=3.507e-02 floor=5.489e-05 prom_ok=True
+  second path refused=True rest.max=3.248e-02 half_top=1.754e-02
+  coh(lag=11, tail=0, win=8149): 0.0013 need>=0.0144 pass=False
+  coh(lag=11, tail=4096, win=4096): 0.0001 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=11 (0.7 ms) top=3.426e-02 floor=6.319e-05 prom_ok=True
+  second path refused=True rest.max=2.900e-02 half_top=1.713e-02
+  coh(lag=11, tail=0, win=8149): 0.0010 need>=0.0144 pass=False
+  coh(lag=11, tail=4096, win=4096): 0.0001 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-1836 (-114.8 ms) top=3.513e-02 floor=6.473e-05 prom_ok=True
+  second path refused=True rest.max=3.036e-02 half_top=1.757e-02
+  coh(lag=-1836, tail=0, win=6324): 0.0046 need>=0.0144 pass=False
+  coh(lag=-1836, tail=4096, win=4096): 0.0067 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=11 (0.7 ms) top=3.789e-02 floor=4.049e-05 prom_ok=True
+  second path refused=True rest.max=3.110e-02 half_top=1.894e-02
+  coh(lag=11, tail=0, win=8149): 0.0009 need>=0.0144 pass=False
+  coh(lag=11, tail=4096, win=4096): 0.0000 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=11 (0.7 ms) top=3.641e-02 floor=1.424e-04 prom_ok=True
+  second path refused=True rest.max=3.079e-02 half_top=1.820e-02
+  coh(lag=11, tail=0, win=8149): 0.0006 need>=0.0144 pass=False
+  coh(lag=11, tail=4096, win=4096): 0.0000 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=11 (0.7 ms) top=3.391e-02 floor=7.584e-05 prom_ok=True
+  second path refused=True rest.max=3.205e-02 half_top=1.696e-02
+  coh(lag=11, tail=0, win=8149): 0.0006 need>=0.0144 pass=False
+  coh(lag=11, tail=4096, win=4096): 0.0000 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=113 (7.1 ms) top=3.997e-02 floor=3.691e-05 prom_ok=True
+  second path refused=True rest.max=3.126e-02 half_top=1.999e-02
+  coh(lag=113, tail=0, win=8047): 0.0013 need>=0.0144 pass=False
+  coh(lag=113, tail=4096, win=4096): 0.0004 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=113 (7.1 ms) top=3.731e-02 floor=4.555e-05 prom_ok=True
+  second path refused=True rest.max=3.006e-02 half_top=1.865e-02
+  coh(lag=113, tail=0, win=8047): 0.0012 need>=0.0144 pass=False
+  coh(lag=113, tail=4096, win=4096): 0.0002 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=113 (7.1 ms) top=3.401e-02 floor=-4.595e-06 prom_ok=True
+  second path refused=True rest.max=3.075e-02 half_top=1.700e-02
+  coh(lag=113, tail=0, win=8047): 0.0008 need>=0.0144 pass=False
+  coh(lag=113, tail=4096, win=4096): 0.0000 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=113 (7.1 ms) top=4.021e-02 floor=-8.601e-06 prom_ok=True
+  second path refused=True rest.max=3.160e-02 half_top=2.010e-02
+  coh(lag=113, tail=0, win=8047): 0.0006 need>=0.0144 pass=False
+  coh(lag=113, tail=4096, win=4096): 0.0000 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=113 (7.1 ms) top=3.741e-02 floor=5.251e-05 prom_ok=True
+  second path refused=True rest.max=3.072e-02 half_top=1.871e-02
+  coh(lag=113, tail=0, win=8047): 0.0004 need>=0.0144 pass=False
+  coh(lag=113, tail=4096, win=4096): 0.0001 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=113 (7.1 ms) top=3.620e-02 floor=-1.526e-06 prom_ok=True
+  second path refused=True rest.max=3.083e-02 half_top=1.810e-02
+  coh(lag=113, tail=0, win=8047): 0.0004 need>=0.0144 pass=False
+  coh(lag=113, tail=4096, win=4096): 0.0002 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=113 (7.1 ms) top=3.453e-02 floor=2.798e-05 prom_ok=True
+  second path refused=True rest.max=3.262e-02 half_top=1.726e-02
+  coh(lag=113, tail=0, win=8047): 0.0004 need>=0.0144 pass=False
+  coh(lag=113, tail=4096, win=4096): 0.0009 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-1498 (-93.6 ms) top=3.349e-02 floor=8.379e-05 prom_ok=True
+  second path refused=True rest.max=3.267e-02 half_top=1.675e-02
+  coh(lag=-1498, tail=0, win=6662): 0.0001 need>=0.0144 pass=False
+  coh(lag=-1498, tail=4096, win=4096): 0.0001 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-2478 (-154.9 ms) top=3.362e-02 floor=1.110e-04 prom_ok=True
+  second path refused=True rest.max=3.197e-02 half_top=1.681e-02
+  coh(lag=-2478, tail=0, win=5682): 0.0049 need>=0.0144 pass=False
+  coh(lag=-2478, tail=4096, win=4096): 0.0057 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=199 (12.4 ms) top=3.124e-02 floor=4.077e-05 prom_ok=True
+  second path refused=True rest.max=3.049e-02 half_top=1.562e-02
+  coh(lag=199, tail=0, win=7961): 0.0000 need>=0.0144 pass=False
+  coh(lag=199, tail=4096, win=4096): 0.0013 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-3038 (-189.9 ms) top=3.332e-02 floor=-5.792e-06 prom_ok=True
+  second path refused=True rest.max=3.080e-02 half_top=1.666e-02
+  coh(lag=-3038, tail=0, win=5122): 0.0001 need>=0.0144 pass=False
+  coh(lag=-3038, tail=4096, win=4096): 0.0000 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-3038 (-189.9 ms) top=3.174e-02 floor=4.260e-05 prom_ok=True
+  second path refused=True rest.max=3.170e-02 half_top=1.587e-02
+  coh(lag=-3038, tail=0, win=5122): 0.0001 need>=0.0144 pass=False
+  coh(lag=-3038, tail=4096, win=4096): 0.0001 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=1340 (83.8 ms) top=3.443e-02 floor=2.305e-05 prom_ok=True
+  second path refused=True rest.max=3.297e-02 half_top=1.722e-02
+  coh(lag=1340, tail=0, win=6820): 0.0009 need>=0.0144 pass=False
+  coh(lag=1340, tail=4096, win=4096): 0.0025 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=1340 (83.8 ms) top=3.331e-02 floor=4.838e-05 prom_ok=True
+  second path refused=True rest.max=3.178e-02 half_top=1.666e-02
+  coh(lag=1340, tail=0, win=6820): 0.0007 need>=0.0144 pass=False
+  coh(lag=1340, tail=4096, win=4096): 0.0027 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=1340 (83.8 ms) top=3.307e-02 floor=4.333e-05 prom_ok=True
+  second path refused=True rest.max=3.113e-02 half_top=1.653e-02
+  coh(lag=1340, tail=0, win=6820): 0.0004 need>=0.0144 pass=False
+  coh(lag=1340, tail=4096, win=4096): 0.0021 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-995 (-62.2 ms) top=3.515e-02 floor=-7.104e-05 prom_ok=True
+  second path refused=True rest.max=3.135e-02 half_top=1.757e-02
+  coh(lag=-995, tail=0, win=7165): 0.0008 need>=0.0144 pass=False
+  coh(lag=-995, tail=4096, win=4096): 0.0001 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-995 (-62.2 ms) top=3.448e-02 floor=-8.516e-05 prom_ok=True
+  second path refused=True rest.max=3.163e-02 half_top=1.724e-02
+  coh(lag=-995, tail=0, win=7165): 0.0007 need>=0.0144 pass=False
+  coh(lag=-995, tail=4096, win=4096): 0.0001 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-995 (-62.2 ms) top=3.749e-02 floor=1.695e-05 prom_ok=True
+  second path refused=True rest.max=3.141e-02 half_top=1.875e-02
+  coh(lag=-995, tail=0, win=7165): 0.0006 need>=0.0144 pass=False
+  coh(lag=-995, tail=4096, win=4096): 0.0001 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-995 (-62.2 ms) top=3.549e-02 floor=-9.424e-05 prom_ok=True
+  second path refused=True rest.max=2.985e-02 half_top=1.774e-02
+  coh(lag=-995, tail=0, win=7165): 0.0005 need>=0.0144 pass=False
+  coh(lag=-995, tail=4096, win=4096): 0.0000 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=1890 (118.1 ms) top=3.421e-02 floor=-9.065e-05 prom_ok=True
+  second path refused=True rest.max=3.376e-02 half_top=1.711e-02
+  coh(lag=1890, tail=0, win=6270): 0.0000 need>=0.0144 pass=False
+  coh(lag=1890, tail=4096, win=4096): 0.0000 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=1890 (118.1 ms) top=3.510e-02 floor=-9.934e-05 prom_ok=True
+  second path refused=True rest.max=3.094e-02 half_top=1.755e-02
+  coh(lag=1890, tail=0, win=6270): 0.0000 need>=0.0144 pass=False
+  coh(lag=1890, tail=4096, win=4096): 0.0000 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=1890 (118.1 ms) top=3.613e-02 floor=-4.006e-05 prom_ok=True
+  second path refused=True rest.max=3.563e-02 half_top=1.807e-02
+  coh(lag=1890, tail=0, win=6270): 0.0001 need>=0.0144 pass=False
+  coh(lag=1890, tail=4096, win=4096): 0.0001 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=1890 (118.1 ms) top=3.576e-02 floor=-7.051e-05 prom_ok=True
+  second path refused=True rest.max=3.276e-02 half_top=1.788e-02
+  coh(lag=1890, tail=0, win=6270): 0.0002 need>=0.0144 pass=False
+  coh(lag=1890, tail=4096, win=4096): 0.0001 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=1890 (118.1 ms) top=3.449e-02 floor=-2.775e-05 prom_ok=True
+  second path refused=True rest.max=3.303e-02 half_top=1.724e-02
+  coh(lag=1890, tail=0, win=6270): 0.0001 need>=0.0144 pass=False
+  coh(lag=1890, tail=4096, win=4096): 0.0000 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=1890 (118.1 ms) top=3.416e-02 floor=-3.283e-05 prom_ok=True
+  second path refused=True rest.max=3.294e-02 half_top=1.708e-02
+  coh(lag=1890, tail=0, win=6270): 0.0000 need>=0.0144 pass=False
+  coh(lag=1890, tail=4096, win=4096): 0.0000 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-4 (-0.2 ms) top=3.446e-02 floor=2.046e-05 prom_ok=True
+  second path refused=True rest.max=3.239e-02 half_top=1.723e-02
+  coh(lag=-4, tail=0, win=8156): 0.0005 need>=0.0144 pass=False
+  coh(lag=-4, tail=4096, win=4096): 0.0003 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=1890 (118.1 ms) top=3.440e-02 floor=-1.121e-04 prom_ok=True
+  second path refused=True rest.max=3.257e-02 half_top=1.720e-02
+  coh(lag=1890, tail=0, win=6270): 0.0000 need>=0.0144 pass=False
+  coh(lag=1890, tail=4096, win=4096): 0.0001 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-496 (-31.0 ms) top=3.557e-02 floor=-4.316e-05 prom_ok=True
+  second path refused=True rest.max=3.230e-02 half_top=1.779e-02
+  coh(lag=-496, tail=0, win=7664): 0.0016 need>=0.0144 pass=False
+  coh(lag=-496, tail=4096, win=4096): 0.0014 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-103 (-6.4 ms) top=3.815e-02 floor=-1.076e-05 prom_ok=True
+  second path refused=True rest.max=3.035e-02 half_top=1.907e-02
+  coh(lag=-103, tail=0, win=8057): 0.0005 need>=0.0144 pass=False
+  coh(lag=-103, tail=4096, win=4096): 0.0020 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-103 (-6.4 ms) top=3.281e-02 floor=3.959e-05 prom_ok=True
+  second path refused=True rest.max=2.956e-02 half_top=1.641e-02
+  coh(lag=-103, tail=0, win=8057): 0.0005 need>=0.0144 pass=False
+  coh(lag=-103, tail=4096, win=4096): 0.0016 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=779 (48.7 ms) top=3.338e-02 floor=5.406e-05 prom_ok=True
+  second path refused=True rest.max=3.136e-02 half_top=1.669e-02
+  coh(lag=779, tail=0, win=7381): 0.0003 need>=0.0144 pass=False
+  coh(lag=779, tail=4096, win=4096): 0.0009 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-8 (-0.5 ms) top=3.602e-02 floor=-1.154e-04 prom_ok=True
+  second path refused=True rest.max=3.316e-02 half_top=1.801e-02
+  coh(lag=-8, tail=0, win=8152): 0.0022 need>=0.0144 pass=False
+  coh(lag=-8, tail=4096, win=4096): 0.0019 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=779 (48.7 ms) top=3.329e-02 floor=-1.173e-04 prom_ok=True
+  second path refused=True rest.max=3.240e-02 half_top=1.665e-02
+  coh(lag=779, tail=0, win=7381): 0.0002 need>=0.0144 pass=False
+  coh(lag=779, tail=4096, win=4096): 0.0011 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-8 (-0.5 ms) top=3.215e-02 floor=-4.770e-05 prom_ok=True
+  second path refused=True rest.max=3.015e-02 half_top=1.607e-02
+  coh(lag=-8, tail=0, win=8152): 0.0023 need>=0.0144 pass=False
+  coh(lag=-8, tail=4096, win=4096): 0.0019 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-8 (-0.5 ms) top=3.635e-02 floor=-7.514e-05 prom_ok=True
+  second path refused=True rest.max=3.313e-02 half_top=1.817e-02
+  coh(lag=-8, tail=0, win=8152): 0.0030 need>=0.0144 pass=False
+  coh(lag=-8, tail=4096, win=4096): 0.0017 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-22 (-1.4 ms) top=3.223e-02 floor=-5.141e-05 prom_ok=True
+  second path refused=True rest.max=3.047e-02 half_top=1.612e-02
+  coh(lag=-22, tail=0, win=8138): 0.0003 need>=0.0144 pass=False
+  coh(lag=-22, tail=4096, win=4096): 0.0023 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-2134 (-133.4 ms) top=3.181e-02 floor=4.099e-05 prom_ok=True
+  second path refused=True rest.max=3.150e-02 half_top=1.591e-02
+  coh(lag=-2134, tail=0, win=6026): 0.0001 need>=0.0144 pass=False
+  coh(lag=-2134, tail=4096, win=4096): 0.0002 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-3845 (-240.3 ms) top=3.114e-02 floor=-2.623e-05 prom_ok=True
+  second path refused=True rest.max=3.108e-02 half_top=1.557e-02
+  coh(lag=-3845, tail=0, win=4315): 0.0026 need>=0.0144 pass=False
+  coh(lag=-3845, tail=4096, win=4096): 0.0035 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=23 (1.4 ms) top=3.538e-02 floor=5.087e-05 prom_ok=True
+  second path refused=True rest.max=3.476e-02 half_top=1.769e-02
+  coh(lag=23, tail=0, win=8137): 0.0014 need>=0.0144 pass=False
+  coh(lag=23, tail=4096, win=4096): 0.0003 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-341 (-21.3 ms) top=3.548e-02 floor=6.671e-05 prom_ok=True
+  second path refused=True rest.max=3.385e-02 half_top=1.774e-02
+  coh(lag=-341, tail=0, win=7819): 0.0012 need>=0.0144 pass=False
+  coh(lag=-341, tail=4096, win=4096): 0.0015 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-2279 (-142.4 ms) top=3.196e-02 floor=6.690e-05 prom_ok=True
+  second path refused=True rest.max=3.161e-02 half_top=1.598e-02
+  coh(lag=-2279, tail=0, win=5881): 0.0042 need>=0.0144 pass=False
+  coh(lag=-2279, tail=4096, win=4096): 0.0071 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-341 (-21.3 ms) top=3.761e-02 floor=6.261e-05 prom_ok=True
+  second path refused=True rest.max=3.384e-02 half_top=1.880e-02
+  coh(lag=-341, tail=0, win=7819): 0.0008 need>=0.0144 pass=False
+  coh(lag=-341, tail=4096, win=4096): 0.0004 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=88 (5.5 ms) top=3.658e-02 floor=1.488e-04 prom_ok=True
+  second path refused=True rest.max=3.129e-02 half_top=1.829e-02
+  coh(lag=88, tail=0, win=8072): 0.0043 need>=0.0144 pass=False
+  coh(lag=88, tail=4096, win=4096): 0.0055 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=88 (5.5 ms) top=3.672e-02 floor=1.919e-04 prom_ok=True
+  second path refused=True rest.max=3.124e-02 half_top=1.836e-02
+  coh(lag=88, tail=0, win=8072): 0.0044 need>=0.0144 pass=False
+  coh(lag=88, tail=4096, win=4096): 0.0059 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-341 (-21.3 ms) top=3.623e-02 floor=4.836e-05 prom_ok=True
+  second path refused=True rest.max=3.275e-02 half_top=1.812e-02
+  coh(lag=-341, tail=0, win=7819): 0.0006 need>=0.0144 pass=False
+  coh(lag=-341, tail=4096, win=4096): 0.0000 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=88 (5.5 ms) top=3.711e-02 floor=7.682e-05 prom_ok=True
+  second path refused=True rest.max=3.157e-02 half_top=1.855e-02
+  coh(lag=88, tail=0, win=8072): 0.0034 need>=0.0144 pass=False
+  coh(lag=88, tail=4096, win=4096): 0.0040 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-496 (-31.0 ms) top=3.417e-02 floor=7.236e-05 prom_ok=True
+  second path refused=True rest.max=3.088e-02 half_top=1.708e-02
+  coh(lag=-496, tail=0, win=7664): 0.0031 need>=0.0144 pass=False
+  coh(lag=-496, tail=4096, win=4096): 0.0041 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=1429 (89.3 ms) top=3.143e-02 floor=1.098e-04 prom_ok=True
+  second path refused=True rest.max=3.107e-02 half_top=1.571e-02
+  coh(lag=1429, tail=0, win=6731): 0.0017 need>=0.0144 pass=False
+  coh(lag=1429, tail=4096, win=4096): 0.0015 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=1429 (89.3 ms) top=3.662e-02 floor=9.393e-05 prom_ok=True
+  second path refused=True rest.max=3.141e-02 half_top=1.831e-02
+  coh(lag=1429, tail=0, win=6731): 0.0024 need>=0.0144 pass=False
+  coh(lag=1429, tail=4096, win=4096): 0.0014 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-496 (-31.0 ms) top=3.346e-02 floor=5.674e-05 prom_ok=True
+  second path refused=True rest.max=3.248e-02 half_top=1.673e-02
+  coh(lag=-496, tail=0, win=7664): 0.0025 need>=0.0144 pass=False
+  coh(lag=-496, tail=4096, win=4096): 0.0051 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=1429 (89.3 ms) top=3.446e-02 floor=1.175e-04 prom_ok=True
+  second path refused=True rest.max=3.261e-02 half_top=1.723e-02
+  coh(lag=1429, tail=0, win=6731): 0.0017 need>=0.0144 pass=False
+  coh(lag=1429, tail=4096, win=4096): 0.0003 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-496 (-31.0 ms) top=3.821e-02 floor=1.357e-04 prom_ok=True
+  second path refused=True rest.max=3.413e-02 half_top=1.911e-02
+  coh(lag=-496, tail=0, win=7664): 0.0038 need>=0.0144 pass=False
+  coh(lag=-496, tail=4096, win=4096): 0.0063 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-496 (-31.0 ms) top=3.800e-02 floor=2.133e-04 prom_ok=True
+  second path refused=True rest.max=3.021e-02 half_top=1.900e-02
+  coh(lag=-496, tail=0, win=7664): 0.0023 need>=0.0144 pass=False
+  coh(lag=-496, tail=4096, win=4096): 0.0029 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-496 (-31.0 ms) top=3.461e-02 floor=1.286e-04 prom_ok=True
+  second path refused=True rest.max=3.282e-02 half_top=1.730e-02
+  coh(lag=-496, tail=0, win=7664): 0.0022 need>=0.0144 pass=False
+  coh(lag=-496, tail=4096, win=4096): 0.0032 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-1346 (-84.1 ms) top=3.254e-02 floor=1.274e-04 prom_ok=True
+  second path refused=True rest.max=3.016e-02 half_top=1.627e-02
+  coh(lag=-1346, tail=0, win=6814): 0.0013 need>=0.0144 pass=False
+  coh(lag=-1346, tail=4096, win=4096): 0.0022 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=1272 (79.5 ms) top=3.287e-02 floor=-1.083e-05 prom_ok=True
+  second path refused=True rest.max=3.191e-02 half_top=1.643e-02
+  coh(lag=1272, tail=0, win=6888): 0.0018 need>=0.0144 pass=False
+  coh(lag=1272, tail=4096, win=4096): 0.0032 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-1346 (-84.1 ms) top=3.461e-02 floor=-7.080e-05 prom_ok=True
+  second path refused=True rest.max=3.220e-02 half_top=1.730e-02
+  coh(lag=-1346, tail=0, win=6814): 0.0021 need>=0.0144 pass=False
+  coh(lag=-1346, tail=4096, win=4096): 0.0042 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-1346 (-84.1 ms) top=3.413e-02 floor=-4.415e-05 prom_ok=True
+  second path refused=True rest.max=3.064e-02 half_top=1.707e-02
+  coh(lag=-1346, tail=0, win=6814): 0.0024 need>=0.0144 pass=False
+  coh(lag=-1346, tail=4096, win=4096): 0.0033 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-1200 (-75.0 ms) top=3.152e-02 floor=-5.662e-06 prom_ok=True
+  second path refused=True rest.max=3.102e-02 half_top=1.576e-02
+  coh(lag=-1200, tail=0, win=6960): 0.0001 need>=0.0144 pass=False
+  coh(lag=-1200, tail=4096, win=4096): 0.0004 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=2139 (133.7 ms) top=3.369e-02 floor=-6.190e-05 prom_ok=True
+  second path refused=True rest.max=3.219e-02 half_top=1.684e-02
+  coh(lag=2139, tail=0, win=6021): 0.0000 need>=0.0144 pass=False
+  coh(lag=2139, tail=4096, win=4096): 0.0002 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=2139 (133.7 ms) top=3.118e-02 floor=-7.102e-05 prom_ok=True
+  second path refused=True rest.max=3.067e-02 half_top=1.559e-02
+  coh(lag=2139, tail=0, win=6021): 0.0001 need>=0.0144 pass=False
+  coh(lag=2139, tail=4096, win=4096): 0.0002 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-1435 (-89.7 ms) top=3.204e-02 floor=1.461e-04 prom_ok=True
+  second path refused=True rest.max=3.117e-02 half_top=1.602e-02
+  coh(lag=-1435, tail=0, win=6725): 0.0002 need>=0.0144 pass=False
+  coh(lag=-1435, tail=4096, win=4096): 0.0007 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=916 (57.2 ms) top=3.078e-02 floor=1.526e-04 prom_ok=True
+  second path refused=True rest.max=2.862e-02 half_top=1.539e-02
+  coh(lag=916, tail=0, win=7244): 0.0028 need>=0.0144 pass=False
+  coh(lag=916, tail=4096, win=4096): 0.0061 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-1698 (-106.1 ms) top=3.485e-02 floor=3.597e-05 prom_ok=True
+  second path refused=True rest.max=3.068e-02 half_top=1.742e-02
+  coh(lag=-1698, tail=0, win=6462): 0.0002 need>=0.0144 pass=False
+  coh(lag=-1698, tail=4096, win=4096): 0.0001 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-1435 (-89.7 ms) top=3.441e-02 floor=7.880e-05 prom_ok=True
+  second path refused=True rest.max=3.302e-02 half_top=1.720e-02
+  coh(lag=-1435, tail=0, win=6725): 0.0007 need>=0.0144 pass=False
+  coh(lag=-1435, tail=4096, win=4096): 0.0013 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-577 (-36.1 ms) top=3.603e-02 floor=-2.460e-05 prom_ok=True
+  second path refused=True rest.max=3.286e-02 half_top=1.802e-02
+  coh(lag=-577, tail=0, win=7583): 0.0002 need>=0.0144 pass=False
+  coh(lag=-577, tail=4096, win=4096): 0.0045 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-577 (-36.1 ms) top=3.428e-02 floor=8.435e-06 prom_ok=True
+  second path refused=True rest.max=3.357e-02 half_top=1.714e-02
+  coh(lag=-577, tail=0, win=7583): 0.0003 need>=0.0144 pass=False
+  coh(lag=-577, tail=4096, win=4096): 0.0053 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-577 (-36.1 ms) top=3.519e-02 floor=6.842e-05 prom_ok=True
+  second path refused=True rest.max=3.442e-02 half_top=1.759e-02
+  coh(lag=-577, tail=0, win=7583): 0.0004 need>=0.0144 pass=False
+  coh(lag=-577, tail=4096, win=4096): 0.0032 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-1435 (-89.7 ms) top=3.217e-02 floor=2.606e-05 prom_ok=True
+  second path refused=True rest.max=3.214e-02 half_top=1.609e-02
+  coh(lag=-1435, tail=0, win=6725): 0.0003 need>=0.0144 pass=False
+  coh(lag=-1435, tail=4096, win=4096): 0.0006 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-1435 (-89.7 ms) top=3.388e-02 floor=1.301e-04 prom_ok=True
+  second path refused=True rest.max=3.378e-02 half_top=1.694e-02
+  coh(lag=-1435, tail=0, win=6725): 0.0004 need>=0.0144 pass=False
+  coh(lag=-1435, tail=4096, win=4096): 0.0004 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=32 (2.0 ms) top=3.833e-02 floor=8.752e-05 prom_ok=True
+  second path refused=True rest.max=3.713e-02 half_top=1.916e-02
+  coh(lag=32, tail=0, win=8128): 0.0001 need>=0.0144 pass=False
+  coh(lag=32, tail=4096, win=4096): 0.0016 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=32 (2.0 ms) top=3.817e-02 floor=1.218e-04 prom_ok=True
+  second path refused=True rest.max=3.222e-02 half_top=1.908e-02
+  coh(lag=32, tail=0, win=8128): 0.0003 need>=0.0144 pass=False
+  coh(lag=32, tail=4096, win=4096): 0.0010 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-2795 (-174.7 ms) top=3.144e-02 floor=1.661e-04 prom_ok=True
+  second path refused=True rest.max=3.090e-02 half_top=1.572e-02
+  coh(lag=-2795, tail=0, win=5365): 0.0001 need>=0.0144 pass=False
+  coh(lag=-2795, tail=4096, win=4096): 0.0000 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=80 (5.0 ms) top=3.404e-02 floor=4.562e-05 prom_ok=True
+  second path refused=True rest.max=3.383e-02 half_top=1.702e-02
+  coh(lag=80, tail=0, win=8080): 0.0010 need>=0.0144 pass=False
+  coh(lag=80, tail=4096, win=4096): 0.0006 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=80 (5.0 ms) top=3.485e-02 floor=8.691e-05 prom_ok=True
+  second path refused=True rest.max=3.397e-02 half_top=1.743e-02
+  coh(lag=80, tail=0, win=8080): 0.0011 need>=0.0144 pass=False
+  coh(lag=80, tail=4096, win=4096): 0.0020 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=106 (6.6 ms) top=3.295e-02 floor=5.395e-05 prom_ok=True
+  second path refused=True rest.max=3.081e-02 half_top=1.648e-02
+  coh(lag=106, tail=0, win=8054): 0.0000 need>=0.0144 pass=False
+  coh(lag=106, tail=4096, win=4096): 0.0015 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-577 (-36.1 ms) top=3.852e-02 floor=7.796e-05 prom_ok=True
+  second path refused=True rest.max=3.492e-02 half_top=1.926e-02
+  coh(lag=-577, tail=0, win=7583): 0.0004 need>=0.0144 pass=False
+  coh(lag=-577, tail=4096, win=4096): 0.0005 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-577 (-36.1 ms) top=3.465e-02 floor=1.901e-05 prom_ok=True
+  second path refused=True rest.max=3.100e-02 half_top=1.732e-02
+  coh(lag=-577, tail=0, win=7583): 0.0002 need>=0.0144 pass=False
+  coh(lag=-577, tail=4096, win=4096): 0.0000 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=80 (5.0 ms) top=3.425e-02 floor=1.579e-04 prom_ok=True
+  second path refused=True rest.max=3.121e-02 half_top=1.713e-02
+  coh(lag=80, tail=0, win=8080): 0.0011 need>=0.0144 pass=False
+  coh(lag=80, tail=4096, win=4096): 0.0026 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=2353 (147.1 ms) top=3.360e-02 floor=8.039e-05 prom_ok=True
+  second path refused=True rest.max=3.082e-02 half_top=1.680e-02
+  coh(lag=2353, tail=0, win=5807): 0.0013 need>=0.0144 pass=False
+  coh(lag=2353, tail=4096, win=4096): 0.0004 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=2353 (147.1 ms) top=3.216e-02 floor=1.101e-04 prom_ok=True
+  second path refused=True rest.max=3.181e-02 half_top=1.608e-02
+  coh(lag=2353, tail=0, win=5807): 0.0005 need>=0.0144 pass=False
+  coh(lag=2353, tail=4096, win=4096): 0.0000 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=80 (5.0 ms) top=3.352e-02 floor=1.193e-05 prom_ok=True
+  second path refused=True rest.max=3.063e-02 half_top=1.676e-02
+  coh(lag=80, tail=0, win=8080): 0.0009 need>=0.0144 pass=False
+  coh(lag=80, tail=4096, win=4096): 0.0011 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=80 (5.0 ms) top=3.282e-02 floor=2.477e-05 prom_ok=True
+  second path refused=True rest.max=2.906e-02 half_top=1.641e-02
+  coh(lag=80, tail=0, win=8080): 0.0009 need>=0.0144 pass=False
+  coh(lag=80, tail=4096, win=4096): 0.0017 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-1346 (-84.1 ms) top=3.491e-02 floor=4.016e-05 prom_ok=True
+  second path refused=True rest.max=3.486e-02 half_top=1.746e-02
+  coh(lag=-1346, tail=0, win=6814): 0.0023 need>=0.0144 pass=False
+  coh(lag=-1346, tail=4096, win=4096): 0.0014 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-1346 (-84.1 ms) top=3.236e-02 floor=1.008e-04 prom_ok=True
+  second path refused=True rest.max=3.087e-02 half_top=1.618e-02
+  coh(lag=-1346, tail=0, win=6814): 0.0018 need>=0.0144 pass=False
+  coh(lag=-1346, tail=4096, win=4096): 0.0016 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=106 (6.6 ms) top=3.884e-02 floor=4.120e-05 prom_ok=True
+  second path refused=True rest.max=3.246e-02 half_top=1.942e-02
+  coh(lag=106, tail=0, win=8054): 0.0002 need>=0.0144 pass=False
+  coh(lag=106, tail=4096, win=4096): 0.0003 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=106 (6.6 ms) top=3.936e-02 floor=1.080e-04 prom_ok=True
+  second path refused=True rest.max=3.101e-02 half_top=1.968e-02
+  coh(lag=106, tail=0, win=8054): 0.0001 need>=0.0144 pass=False
+  coh(lag=106, tail=4096, win=4096): 0.0007 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=106 (6.6 ms) top=3.282e-02 floor=6.982e-05 prom_ok=True
+  second path refused=True rest.max=3.277e-02 half_top=1.641e-02
+  coh(lag=106, tail=0, win=8054): 0.0001 need>=0.0144 pass=False
+  coh(lag=106, tail=4096, win=4096): 0.0006 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=967 (60.4 ms) top=3.379e-02 floor=2.702e-06 prom_ok=True
+  second path refused=True rest.max=3.274e-02 half_top=1.690e-02
+  coh(lag=967, tail=0, win=7193): 0.0013 need>=0.0144 pass=False
+  coh(lag=967, tail=4096, win=4096): 0.0007 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=967 (60.4 ms) top=3.578e-02 floor=7.863e-05 prom_ok=True
+  second path refused=True rest.max=3.137e-02 half_top=1.789e-02
+  coh(lag=967, tail=0, win=7193): 0.0014 need>=0.0144 pass=False
+  coh(lag=967, tail=4096, win=4096): 0.0004 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=967 (60.4 ms) top=3.614e-02 floor=2.435e-05 prom_ok=True
+  second path refused=True rest.max=2.967e-02 half_top=1.807e-02
+  coh(lag=967, tail=0, win=7193): 0.0014 need>=0.0144 pass=False
+  coh(lag=967, tail=4096, win=4096): 0.0010 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=759 (47.4 ms) top=3.962e-02 floor=6.953e-05 prom_ok=True
+  second path refused=True rest.max=3.081e-02 half_top=1.981e-02
+  coh(lag=759, tail=0, win=7401): 0.0005 need>=0.0144 pass=False
+  coh(lag=759, tail=4096, win=4096): 0.0020 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=196 (12.2 ms) top=3.748e-02 floor=-1.417e-04 prom_ok=True
+  second path refused=True rest.max=3.373e-02 half_top=1.874e-02
+  coh(lag=196, tail=0, win=7964): 0.0000 need>=0.0144 pass=False
+  coh(lag=196, tail=4096, win=4096): 0.0001 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=196 (12.2 ms) top=3.948e-02 floor=-8.793e-05 prom_ok=True
+  second path refused=True rest.max=3.188e-02 half_top=1.974e-02
+  coh(lag=196, tail=0, win=7964): 0.0000 need>=0.0144 pass=False
+  coh(lag=196, tail=4096, win=4096): 0.0000 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=196 (12.2 ms) top=3.607e-02 floor=-3.826e-05 prom_ok=True
+  second path refused=True rest.max=3.117e-02 half_top=1.803e-02
+  coh(lag=196, tail=0, win=7964): 0.0000 need>=0.0144 pass=False
+  coh(lag=196, tail=4096, win=4096): 0.0000 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-577 (-36.1 ms) top=3.763e-02 floor=-9.169e-05 prom_ok=True
+  second path refused=True rest.max=3.594e-02 half_top=1.882e-02
+  coh(lag=-577, tail=0, win=7583): 0.0013 need>=0.0144 pass=False
+  coh(lag=-577, tail=4096, win=4096): 0.0005 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-577 (-36.1 ms) top=3.941e-02 floor=-1.373e-04 prom_ok=True
+  second path refused=True rest.max=3.900e-02 half_top=1.970e-02
+  coh(lag=-577, tail=0, win=7583): 0.0010 need>=0.0144 pass=False
+  coh(lag=-577, tail=4096, win=4096): 0.0000 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=196 (12.2 ms) top=3.483e-02 floor=-1.115e-04 prom_ok=True
+  second path refused=True rest.max=3.351e-02 half_top=1.742e-02
+  coh(lag=196, tail=0, win=7964): 0.0002 need>=0.0144 pass=False
+  coh(lag=196, tail=4096, win=4096): 0.0001 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=196 (12.2 ms) top=3.409e-02 floor=-3.612e-05 prom_ok=True
+  second path refused=True rest.max=3.380e-02 half_top=1.704e-02
+  coh(lag=196, tail=0, win=7964): 0.0001 need>=0.0144 pass=False
+  coh(lag=196, tail=4096, win=4096): 0.0001 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=2368 (148.0 ms) top=3.637e-02 floor=-8.567e-05 prom_ok=True
+  second path refused=True rest.max=3.590e-02 half_top=1.819e-02
+  coh(lag=2368, tail=0, win=5792): 0.0026 need>=0.0144 pass=False
+  coh(lag=2368, tail=4096, win=4096): 0.0021 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=2368 (148.0 ms) top=3.681e-02 floor=-1.634e-04 prom_ok=True
+  second path refused=True rest.max=3.329e-02 half_top=1.841e-02
+  coh(lag=2368, tail=0, win=5792): 0.0019 need>=0.0144 pass=False
+  coh(lag=2368, tail=4096, win=4096): 0.0022 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-1395 (-87.2 ms) top=3.528e-02 floor=-1.755e-05 prom_ok=True
+  second path refused=True rest.max=3.428e-02 half_top=1.764e-02
+  coh(lag=-1395, tail=0, win=6765): 0.0004 need>=0.0144 pass=False
+  coh(lag=-1395, tail=4096, win=4096): 0.0002 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-224 (-14.0 ms) top=3.528e-02 floor=6.672e-05 prom_ok=True
+  second path refused=True rest.max=3.236e-02 half_top=1.764e-02
+  coh(lag=-224, tail=0, win=7936): 0.0009 need>=0.0144 pass=False
+  coh(lag=-224, tail=4096, win=4096): 0.0004 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-224 (-14.0 ms) top=3.981e-02 floor=8.268e-05 prom_ok=True
+  second path refused=True rest.max=3.022e-02 half_top=1.991e-02
+  coh(lag=-224, tail=0, win=7936): 0.0011 need>=0.0144 pass=False
+  coh(lag=-224, tail=4096, win=4096): 0.0006 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-224 (-14.0 ms) top=3.833e-02 floor=1.366e-04 prom_ok=True
+  second path refused=True rest.max=3.746e-02 half_top=1.917e-02
+  coh(lag=-224, tail=0, win=7936): 0.0010 need>=0.0144 pass=False
+  coh(lag=-224, tail=4096, win=4096): 0.0005 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-224 (-14.0 ms) top=3.839e-02 floor=6.100e-05 prom_ok=True
+  second path refused=True rest.max=3.252e-02 half_top=1.919e-02
+  coh(lag=-224, tail=0, win=7936): 0.0008 need>=0.0144 pass=False
+  coh(lag=-224, tail=4096, win=4096): 0.0002 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-224 (-14.0 ms) top=3.796e-02 floor=4.467e-05 prom_ok=True
+  second path refused=True rest.max=3.046e-02 half_top=1.898e-02
+  coh(lag=-224, tail=0, win=7936): 0.0009 need>=0.0144 pass=False
+  coh(lag=-224, tail=4096, win=4096): 0.0005 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-224 (-14.0 ms) top=3.531e-02 floor=1.555e-04 prom_ok=True
+  second path refused=True rest.max=3.141e-02 half_top=1.765e-02
+  coh(lag=-224, tail=0, win=7936): 0.0007 need>=0.0144 pass=False
+  coh(lag=-224, tail=4096, win=4096): 0.0004 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-224 (-14.0 ms) top=3.804e-02 floor=1.924e-05 prom_ok=True
+  second path refused=True rest.max=3.287e-02 half_top=1.902e-02
+  coh(lag=-224, tail=0, win=7936): 0.0006 need>=0.0144 pass=False
+  coh(lag=-224, tail=4096, win=4096): 0.0003 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-224 (-14.0 ms) top=3.883e-02 floor=3.689e-05 prom_ok=True
+  second path refused=True rest.max=3.013e-02 half_top=1.941e-02
+  coh(lag=-224, tail=0, win=7936): 0.0009 need>=0.0144 pass=False
+  coh(lag=-224, tail=4096, win=4096): 0.0005 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-224 (-14.0 ms) top=3.631e-02 floor=-8.268e-05 prom_ok=True
+  second path refused=True rest.max=2.991e-02 half_top=1.816e-02
+  coh(lag=-224, tail=0, win=7936): 0.0007 need>=0.0144 pass=False
+  coh(lag=-224, tail=4096, win=4096): 0.0000 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-428 (-26.8 ms) top=3.077e-02 floor=7.290e-05 prom_ok=True
+  second path refused=True rest.max=2.882e-02 half_top=1.538e-02
+  coh(lag=-428, tail=0, win=7732): 0.0020 need>=0.0144 pass=False
+  coh(lag=-428, tail=4096, win=4096): 0.0102 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=199 (12.4 ms) top=3.004e-02 floor=3.002e-06 prom_ok=True
+  second path refused=True rest.max=2.925e-02 half_top=1.502e-02
+  coh(lag=199, tail=0, win=7961): 0.0004 need>=0.0144 pass=False
+  coh(lag=199, tail=4096, win=4096): 0.0008 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-428 (-26.8 ms) top=3.823e-02 floor=-5.946e-05 prom_ok=True
+  second path refused=True rest.max=2.779e-02 half_top=1.911e-02
+  coh(lag=-428, tail=0, win=7732): 0.0015 need>=0.0144 pass=False
+  coh(lag=-428, tail=4096, win=4096): 0.0063 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-428 (-26.8 ms) top=3.706e-02 floor=-1.748e-05 prom_ok=True
+  second path refused=True rest.max=3.175e-02 half_top=1.853e-02
+  coh(lag=-428, tail=0, win=7732): 0.0020 need>=0.0144 pass=False
+  coh(lag=-428, tail=4096, win=4096): 0.0073 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-428 (-26.8 ms) top=3.364e-02 floor=1.135e-04 prom_ok=True
+  second path refused=True rest.max=2.986e-02 half_top=1.682e-02
+  coh(lag=-428, tail=0, win=7732): 0.0021 need>=0.0144 pass=False
+  coh(lag=-428, tail=4096, win=4096): 0.0060 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-468 (-29.2 ms) top=3.139e-02 floor=-5.749e-05 prom_ok=True
+  second path refused=True rest.max=2.989e-02 half_top=1.570e-02
+  coh(lag=-468, tail=0, win=7692): 0.0002 need>=0.0144 pass=False
+  coh(lag=-468, tail=4096, win=4096): 0.0000 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-428 (-26.8 ms) top=3.317e-02 floor=2.172e-05 prom_ok=True
+  second path refused=True rest.max=3.300e-02 half_top=1.658e-02
+  coh(lag=-428, tail=0, win=7732): 0.0022 need>=0.0144 pass=False
+  coh(lag=-428, tail=4096, win=4096): 0.0044 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-442 (-27.6 ms) top=3.629e-02 floor=4.387e-05 prom_ok=True
+  second path refused=True rest.max=3.221e-02 half_top=1.815e-02
+  coh(lag=-442, tail=0, win=7718): 0.0014 need>=0.0144 pass=False
+  coh(lag=-442, tail=4096, win=4096): 0.0002 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=668 (41.8 ms) top=3.317e-02 floor=1.249e-04 prom_ok=True
+  second path refused=True rest.max=3.094e-02 half_top=1.658e-02
+  coh(lag=668, tail=0, win=7492): 0.0009 need>=0.0144 pass=False
+  coh(lag=668, tail=4096, win=4096): 0.0004 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=2670 (166.9 ms) top=3.356e-02 floor=-1.215e-04 prom_ok=True
+  second path refused=True rest.max=2.962e-02 half_top=1.678e-02
+  coh(lag=2670, tail=0, win=5490): 0.0046 need>=0.0144 pass=False
+  coh(lag=2670, tail=4096, win=4096): 0.0079 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=960 (60.0 ms) top=3.412e-02 floor=4.343e-05 prom_ok=True
+  second path refused=True rest.max=3.244e-02 half_top=1.706e-02
+  coh(lag=960, tail=0, win=7200): 0.0015 need>=0.0144 pass=False
+  coh(lag=960, tail=4096, win=4096): 0.0036 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=960 (60.0 ms) top=3.310e-02 floor=8.216e-06 prom_ok=True
+  second path refused=True rest.max=3.190e-02 half_top=1.655e-02
+  coh(lag=960, tail=0, win=7200): 0.0015 need>=0.0144 pass=False
+  coh(lag=960, tail=4096, win=4096): 0.0038 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=2209 (138.1 ms) top=3.062e-02 floor=-3.603e-05 prom_ok=True
+  second path refused=True rest.max=3.044e-02 half_top=1.531e-02
+  coh(lag=2209, tail=0, win=5951): 0.0015 need>=0.0144 pass=False
+  coh(lag=2209, tail=4096, win=4096): 0.0034 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-397 (-24.8 ms) top=3.326e-02 floor=-6.005e-06 prom_ok=True
+  second path refused=True rest.max=3.209e-02 half_top=1.663e-02
+  coh(lag=-397, tail=0, win=7763): 0.0026 need>=0.0144 pass=False
+  coh(lag=-397, tail=4096, win=4096): 0.0132 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=1911 (119.4 ms) top=3.339e-02 floor=5.865e-06 prom_ok=True
+  second path refused=True rest.max=3.303e-02 half_top=1.670e-02
+  coh(lag=1911, tail=0, win=6249): 0.0007 need>=0.0144 pass=False
+  coh(lag=1911, tail=4096, win=4096): 0.0000 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-666 (-41.6 ms) top=3.214e-02 floor=-1.447e-06 prom_ok=True
+  second path refused=True rest.max=3.138e-02 half_top=1.607e-02
+  coh(lag=-666, tail=0, win=7494): 0.0000 need>=0.0144 pass=False
+  coh(lag=-666, tail=4096, win=4096): 0.0000 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-666 (-41.6 ms) top=3.279e-02 floor=1.585e-05 prom_ok=True
+  second path refused=True rest.max=3.070e-02 half_top=1.640e-02
+  coh(lag=-666, tail=0, win=7494): 0.0000 need>=0.0144 pass=False
+  coh(lag=-666, tail=4096, win=4096): 0.0001 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=898 (56.1 ms) top=3.521e-02 floor=1.337e-04 prom_ok=True
+  second path refused=True rest.max=3.295e-02 half_top=1.760e-02
+  coh(lag=898, tail=0, win=7262): 0.0003 need>=0.0144 pass=False
+  coh(lag=898, tail=4096, win=4096): 0.0001 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=898 (56.1 ms) top=3.944e-02 floor=4.984e-05 prom_ok=True
+  second path refused=True rest.max=3.491e-02 half_top=1.972e-02
+  coh(lag=898, tail=0, win=7262): 0.0003 need>=0.0144 pass=False
+  coh(lag=898, tail=4096, win=4096): 0.0001 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=898 (56.1 ms) top=3.466e-02 floor=-3.481e-05 prom_ok=True
+  second path refused=True rest.max=3.443e-02 half_top=1.733e-02
+  coh(lag=898, tail=0, win=7262): 0.0002 need>=0.0144 pass=False
+  coh(lag=898, tail=4096, win=4096): 0.0000 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-397 (-24.8 ms) top=3.291e-02 floor=-7.948e-05 prom_ok=True
+  second path refused=True rest.max=3.242e-02 half_top=1.645e-02
+  coh(lag=-397, tail=0, win=7763): 0.0056 need>=0.0144 pass=False
+  coh(lag=-397, tail=4096, win=4096): 0.0118 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=898 (56.1 ms) top=3.379e-02 floor=-7.414e-05 prom_ok=True
+  second path refused=True rest.max=3.257e-02 half_top=1.689e-02
+  coh(lag=898, tail=0, win=7262): 0.0000 need>=0.0144 pass=False
+  coh(lag=898, tail=4096, win=4096): 0.0003 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-293 (-18.3 ms) top=3.730e-02 floor=1.802e-05 prom_ok=True
+  second path refused=True rest.max=3.355e-02 half_top=1.865e-02
+  coh(lag=-293, tail=0, win=7867): 0.0039 need>=0.0144 pass=False
+  coh(lag=-293, tail=4096, win=4096): 0.0040 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-293 (-18.3 ms) top=3.860e-02 floor=-2.071e-05 prom_ok=True
+  second path refused=True rest.max=3.456e-02 half_top=1.930e-02
+  coh(lag=-293, tail=0, win=7867): 0.0046 need>=0.0144 pass=False
+  coh(lag=-293, tail=4096, win=4096): 0.0051 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-397 (-24.8 ms) top=3.660e-02 floor=-2.104e-05 prom_ok=True
+  second path refused=True rest.max=3.394e-02 half_top=1.830e-02
+  coh(lag=-397, tail=0, win=7763): 0.0082 need>=0.0144 pass=False
+  coh(lag=-397, tail=4096, win=4096): 0.0125 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=258 (16.1 ms) top=3.858e-02 floor=-3.823e-05 prom_ok=True
+  second path refused=True rest.max=3.776e-02 half_top=1.929e-02
+  coh(lag=258, tail=0, win=7902): 0.0006 need>=0.0144 pass=False
+  coh(lag=258, tail=4096, win=4096): 0.0004 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=2191 (136.9 ms) top=3.875e-02 floor=-3.344e-05 prom_ok=True
+  second path refused=True rest.max=3.436e-02 half_top=1.938e-02
+  coh(lag=2191, tail=0, win=5969): 0.0003 need>=0.0144 pass=False
+  coh(lag=2191, tail=4096, win=4096): 0.0001 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=2191 (136.9 ms) top=3.918e-02 floor=2.794e-05 prom_ok=True
+  second path refused=True rest.max=3.345e-02 half_top=1.959e-02
+  coh(lag=2191, tail=0, win=5969): 0.0002 need>=0.0144 pass=False
+  coh(lag=2191, tail=4096, win=4096): 0.0001 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=2191 (136.9 ms) top=4.139e-02 floor=4.036e-05 prom_ok=True
+  second path refused=True rest.max=3.375e-02 half_top=2.070e-02
+  coh(lag=2191, tail=0, win=5969): 0.0003 need>=0.0144 pass=False
+  coh(lag=2191, tail=4096, win=4096): 0.0000 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=2191 (136.9 ms) top=4.227e-02 floor=-1.938e-05 prom_ok=True
+  second path refused=True rest.max=3.664e-02 half_top=2.114e-02
+  coh(lag=2191, tail=0, win=5969): 0.0010 need>=0.0144 pass=False
+  coh(lag=2191, tail=4096, win=4096): 0.0001 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=2191 (136.9 ms) top=4.036e-02 floor=3.660e-05 prom_ok=True
+  second path refused=True rest.max=3.644e-02 half_top=2.018e-02
+  coh(lag=2191, tail=0, win=5969): 0.0007 need>=0.0144 pass=False
+  coh(lag=2191, tail=4096, win=4096): 0.0000 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-929 (-58.1 ms) top=3.764e-02 floor=-1.403e-05 prom_ok=True
+  second path refused=True rest.max=3.555e-02 half_top=1.882e-02
+  coh(lag=-929, tail=0, win=7231): 0.0016 need>=0.0144 pass=False
+  coh(lag=-929, tail=4096, win=4096): 0.0024 need>=0.0144 pass=False
+  REFUSE n=8160 peak_lag=-394 (-24.6 ms) top=3.600e-02 floor=4.524e-06 prom_ok=True
+  second path refused=True rest.max=3.353e-02 half_top=1.800e-02
+  coh(lag=-394, tail=0, win=7766): 0.0068 need>=0.0144 pass=False
+  coh(lag=-394, tail=4096, win=4096): 0.0076 need>=0.0144 pass=False
+feeds=202 locked_feeds=0 final_lock=None refined=False
+saved /home/rhy/.var/app/io.github.crhy.voxa/data/align_capture.npz
