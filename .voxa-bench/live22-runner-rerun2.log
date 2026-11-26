@@ -1,0 +1,5 @@
+  busy (load 3.90), waiting
+  busy (load 3.27), waiting
+== camille rc=0 reference silent while speaking: 0 of 3 checks [camille] alignment healthy while speaking: 1 of 1 [camille] false interrupts while she speaks alone: 0 of 3 [camille] 
+== greta rc=0 reference silent while speaking: 0 of 3 checks [greta] alignment healthy while speaking: 29 of 29 [greta] false interrupts while she speaks alone: 0 of 3 [greta] 
+RERUN_DONE
