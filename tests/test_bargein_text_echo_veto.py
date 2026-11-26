@@ -58,3 +58,23 @@ def test_similar_but_different_words_still_interrupt() -> None:
     """"open the library" over her arithmetic reply shares no letters of her sentence: interrupt."""
     outcome = _drive(lambda: ("open the library", "open the library"))
     assert outcome.action == INTERRUPT, outcome
+
+
+def test_the_1755_chessboard_pair_no_longer_interrupts() -> None:
+    """The 18:35 audit's live INTERRUPT: she was SAYING "The first sentence is long enough that
+    Voxa will still be speaking on the chessboard." and the echo came back as her own sentence
+    mis-sung ("...in the long enough that butter will still be..."). The stop-word rule (task
+    A2) made the veto step aside for "enough" - a word of HER OWN turn - and she cut herself
+    off. A transcript that is her current text near-verbatim is her echo, stop word and all."""
+    turn = ("The first sentence is long enough that Voxa will still be speaking on the chessboard.")
+    heard = "The first sentence in the long enough that butter will still be speaking on the chessboard."
+    outcome = _drive(lambda: (heard, heard), speaking=turn)
+    assert outcome.action == OWN_VOICE, outcome
+
+
+def test_a_short_stop_word_over_a_long_turn_is_still_an_interrupt() -> None:
+    """The near-verbatim exception stays narrow: a real person's "enough" over her long chessboard
+    turn is short and mostly foreign to it - it interrupts."""
+    turn = ("The first sentence is long enough that Voxa will still be speaking on the chessboard.")
+    outcome = _drive(lambda: ("enough", "enough"), speaking=turn)
+    assert outcome.action == INTERRUPT, outcome

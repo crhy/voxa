@@ -357,6 +357,10 @@ class ConversationController:
         # Roadmap task 7 (f175): the arrival time the candidate's word times are relative to
         # (the capture ring's clock), so the word-timed playback timeline can meet them.
         self.last_candidate_span_start: float | None = None
+        # Issue #72, task v11d (Claude's 18:35 note): the confidence figures of the candidate
+        # pass itself (WhisperService.last_stats of THAT transcription), so a hallucination can
+        # be dropped by the model's own bar, not only by the phrase list. None = not measured.
+        self.last_candidate_stats: dict | None = None
         # The candidate's own words, so promoting the span can carry them into the turn once.
         self._candidate_text = ""
         # What the capture path currently knows about the source of the microphone (a
@@ -792,6 +796,7 @@ class ConversationController:
             self.last_candidate_raw = ""
             self.last_candidate_words = []
             self.last_candidate_span_start = self.capture.span_start_time()
+            self.last_candidate_stats = None
             return ""
         cached = self._candidate_cache
         if cached is not None and cached[0] == start and cached[1] == end:
@@ -800,6 +805,10 @@ class ConversationController:
         self.last_candidate_span_start = self.capture.span_start_time()
         self.last_candidate_raw = raw or ""
         self.last_candidate_words = words
+        # The stats of THIS pass (issue #72, task v11d): stashed here rather than read from the
+        # service later, because a wake-word pass on the SAME service could overwrite them
+        # between this transcription and the guard that judges these words.
+        self.last_candidate_stats = getattr(self.prompt_whisper, "last_stats", None)
         # The candidate is judged on the WHOLE transcript: her own words are not stripped out of
         # it first, because the stripping is a decision about a SOURCE and the source is exactly
         # what is still being decided (handoff 5.3: the user may repeat Voxa's words, and a

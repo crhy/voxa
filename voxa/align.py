@@ -108,14 +108,22 @@ class ExactAligner:
     def _coherent(self, mic: np.ndarray, ref: np.ndarray, lag: int, tail: int = 0) -> bool:
         """Does the mic actually carry a copy of the reference delayed by ``lag``? (echo vs near-end)
 
-        The buffer is time-aligned, so mic[t] pairs with ref[t-lag]. With ``tail`` set only the
-        last ``tail`` samples of the mic are examined, so an echo that stopped being there (a
-        step / path change) is detected even while older buffer still carries the pre-change echo.
+        The buffer is time-aligned, so mic[t] pairs with ref[t-lag]; ``lag`` is SIGNED (issue #72,
+        task v11d: the render anchor parks the echo at a NEGATIVE travel - the microphone hears
+        the map about 34 ms before the anchor promised it), so a negative lag pairs the mic with
+        reference samples the buffer has not played yet. With ``tail`` set only the last ``tail``
+        samples of the mic are examined, so an echo that stopped being there (a step / path
+        change) is detected even while older buffer still carries the pre-change echo.
         """
-        if lag <= 0 or lag >= len(mic):
+        if lag == 0 or abs(lag) >= len(mic) or abs(lag) >= len(ref):
             return False
-        start = max(lag, len(mic) - tail) if tail else lag
-        end = len(mic)
+        if lag > 0:
+            end = len(mic)
+            start = max(lag, len(mic) - tail) if tail else lag
+        else:
+            # mic[t] pairs with ref[t+|lag|]: the mic samples whose partner is still in the buffer.
+            end = min(len(mic), len(ref) + lag)
+            start = max(0, end - tail) if tail else 0
         if end - start < 256:
             return False
         m = mic[start:end]
@@ -153,44 +161,52 @@ class ExactAligner:
             mic, ref = mic[n - self._recent:], ref[n - self._recent:]
         max_delay = int(self._search_ms / 1000.0 * self._sr)
         size = 1
-        while size < n + max_delay:
+        while size < n + 2 * max_delay:
             size <<= 1
         cross = np.fft.rfft(mic, size) * np.conj(np.fft.rfft(ref, size))
         cross /= np.abs(cross) + 1e-12
         corr = np.fft.irfft(cross, size)
-        window = corr[:max_delay + 1]
-        peak = int(np.argmax(window))
-        floor = float(np.median(window))
-        top = float(window[peak])
+        # Issue #72, task v11d: the search is SIGNED. The render anchor parks the echo at a
+        # negative travel - the microphone carries the map's samples ~34 ms BEFORE the anchor
+        # said they were audible (the v11d chirp probe measured -33.6..-34.6 ms, spread 0.9 ms) -
+        # and a positive-lag window never saw it, so the lock never confirmed live, the
+        # reference went to the canceller at travel 0, and DTLN ate a +13..+32 dB residual.
+        # Circular wrap puts lag -k at index size-k; [size-max_delay:] is lags -max_delay..-1,
+        # [:max_delay+1] is lags 0..max_delay, so index j pairs with signed lag j - max_delay.
+        signed = np.concatenate((corr[size - max_delay:], corr[:max_delay + 1]))
+        peak_i = int(np.argmax(signed))
+        floor = float(np.median(signed))
+        top = float(signed[peak_i])
         if floor > 0.0:
             if top < 8.0 * floor:
                 return None
         elif top <= 0.0:
             return None
         band = 2 * self._window + 8
-        lo, hi = max(0, peak - band), min(window.size, peak + band + 1)
+        lo, hi = max(0, peak_i - band), min(signed.size, peak_i + band + 1)
         # A second, comparable echo path far from the resolved one (a step whose pre- and
         # post-step echoes are both still in the buffer, or a second talkspur) means the delay
         # is not yet resolved. The room tail that hugs the peak is not a second path, so only a
         # distant peak counts, and only a comparable one.
-        far_lo, far_hi = max(0, peak - self._sr // 25), min(window.size, peak + self._sr // 25)
-        rest = np.concatenate((window[:far_lo], window[far_hi:]))
+        far_lo, far_hi = max(0, peak_i - self._sr // 25), min(signed.size, peak_i + self._sr // 25)
+        rest = np.concatenate((signed[:far_lo], signed[far_hi:]))
         if rest.size and float(rest.max()) >= 0.5 * top:
             return None  # an unresolved second path: not confident, hold the drift line
-        if 0 < peak < window.size - 1:
-            left, mid, right = window[peak - 1], window[peak], window[peak + 1]
+        lag = float(peak_i - max_delay)
+        if 0 < peak_i < signed.size - 1:
+            left, mid, right = signed[peak_i - 1], signed[peak_i], signed[peak_i + 1]
             denom = left - 2.0 * mid + right
             if denom != 0.0:
-                peak = peak + float(np.clip(0.5 * (left - right) / denom, -1.0, 1.0))
-        if not self._coherent(mic, ref, int(round(peak))):
+                lag += float(np.clip(0.5 * (left - right) / denom, -1.0, 1.0))
+        if not self._coherent(mic, ref, int(round(lag))):
             return None
         # The echo must still be at the resolved lag in the RECENT data: a step whose pre-step
         # energy still dominates the whole-buffer peak would otherwise be reported confidently,
         # so this recent check turns the reconvergence into "not resolved" (None) until the new
         # path is the one actually on the mic.
-        if not self._coherent(mic, ref, int(round(peak)), tail=self._window + self._sr // 4):
+        if not self._coherent(mic, ref, int(round(lag)), tail=self._window + self._sr // 4):
             return None
-        return float(peak)
+        return lag
 
     def _push(self, mic: np.ndarray, ref: np.ndarray) -> None:
         self._buf_m.append(mic)

@@ -1165,7 +1165,12 @@ class AudioCapture:
         if not self._delay_lock.delay_confident:
             return
         travel = float(self._delay_lock.delay_frac) / REFERENCE_RATE
-        if not 0.0 <= travel <= 1.0:
+        # Issue #72, task v11d: the render anchor parks the echo at a NEGATIVE travel - the
+        # microphone carries the map's samples ~34 ms before the anchor promised they were
+        # audible (chirp probe: -33.6..-34.6 ms, spread 0.9 ms). The old 0..1 s range threw
+        # the honest lock away, so DTLN stayed handed the reference at travel 0 and its
+        # residual sat +13..+32 dB above the echo. Accept a sane signed travel.
+        if not -0.5 <= travel <= 1.0:
             return
         if abs(travel - self._echo_travel) > 0.02:
             self._echo_travel = travel
@@ -1300,6 +1305,12 @@ class AudioCapture:
         if self.canceller is None or not self._canceller_enabled:
             return self.reference_power(), None, None
         return self.reference_power(), self.canceller.echo_explained_db, self.canceller.residual_power_db
+
+    def echo_travel_ms(self) -> float | None:
+        """The echo travel (ms) last fitted into the reference read (task v11c), SIGNED like
+        the lock that fitted it; None until the lock has fitted one (0.0 is the unfitted
+        default, not a measurement)."""
+        return self._echo_travel * 1000.0 if self._echo_travel else None
 
     @property
     def delay_samples(self) -> int:

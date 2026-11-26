@@ -102,7 +102,7 @@ class ReferenceMask:
         not a lag the mask guessed. It is the delay the canceller was driven at, so the predicted
         residual is the canceller's residue measured against the SAME alignment.
         """
-        self.lag = max(0, int(round(float(delay_samples))))
+        self.lag = int(round(float(delay_samples)))
         self._exact_lag = self.lag
 
     def _estimate_lag(self):

@@ -3494,6 +3494,19 @@ class MainWindow(Adw.ApplicationWindow):
                           pieces=(stats.get("pieces") if stats else -1),
                           samples=samples, peak=round(peak, 4), silent=silent,
                           error=str(tap.get("error") or ""))
+        # Issue #72, task v11d (Claude's 18:35 note): ONE echo-path health figure per reply -
+        # what the delayed reference explains and the residual it leaves (dtln reports both).
+        # A +10..+30 dB residual on a SILENT microphone is the self-hearing failure; a quiet
+        # residual with the reference audible means the alignment is honest. One line per reply
+        # (this one), not a stream.
+        _measurements = self.audio.echo_measurements() or (None, None, None)
+        _ref_power, _explained_db, _residual_db = _measurements
+        self._barge_trace("echo-health", reference_db=round(_ref_power, 1)
+                          if _ref_power is not None else None,
+                          explained_db=round(_explained_db, 1) if _explained_db is not None else None,
+                          residual_db=round(_residual_db, 1) if _residual_db is not None else None,
+                          travel_ms=round(self.audio.echo_travel_ms(), 1)
+                          if self.audio.echo_travel_ms() is not None else None)
         self._hearing.reply_ended()
         # Issue #72, task v11 step 4: her reply ending is a turn boundary. The held capture
         # span must not survive into the next turn (the live log let one span grow past 60 s
@@ -3774,6 +3787,16 @@ class MainWindow(Adw.ApplicationWindow):
                 mic_level=float(self._latest_level / 4000.0),
                 own_level=float(self._barge_ctl.gate.baseline),
             )
+            # Issue #72, task v11d (Claude's 18:35 note): the candidate pass's OWN confidence
+            # figures (no_speech_prob / avg_logprob / compression_ratio), stashed by the
+            # conversation when it transcribed the very words the barge-in guard is about to
+            # judge. The phrase list alone let a fresh hallucination through; the bar catches it.
+            stats = (getattr(self.conversation, "last_candidate_stats", None)
+                     if self.conversation is not None else None)
+            if stats:
+                evidence.no_speech_prob = stats.get("no_speech_prob")
+                evidence.avg_logprob = stats.get("avg_logprob")
+                evidence.compression_ratio = stats.get("compression_ratio")
             # Roadmap task 7 (f175): the WORD-TIMED overlap as ONE capped evidence weight, next
             # to f173's joint verdicts - never a deletion here, and the degraded path (no
             # candidate words, no reference) is unchanged: without both clocks meeting there is
@@ -3845,11 +3868,14 @@ class MainWindow(Adw.ApplicationWindow):
             # The onset rule's inputs: the microphone's dB (the RAW level, not the level meter's
             # 4000-clamped one) and the loudest the speaker path could have put in it, both in
             # dBFS, plus the echo's travel time - without it the echo's moment is unknown and the
-            # rule says nothing rather than guessing.
+            # rule says nothing rather than guessing. Task v11d: the SIGNED travel the exact lock
+            # fitted (dtln owns the delay internally and reports no delay_samples at all) is the
+            # fitted path's travel time, so it comes first; the canceller's own offset follows.
             mic_db=level_dbfs(self._latest_level_raw),
             reference_db=power_dbfs(ref_power),
-            delay_ms=(self.audio.delay_samples / 16000.0 * 1000.0
-                      if self.audio.delay_samples > 0 else None),
+            delay_ms=(self.audio.echo_travel_ms() if self.audio.echo_travel_ms() is not None
+                      else (self.audio.delay_samples / 16000.0 * 1000.0
+                            if self.audio.delay_samples != 0 else None)),
             dt_ms=min(max(dt_ms, 5.0), 250.0),
             candidate=self._barge_candidate,
             evidence=self._hearing_evidence,

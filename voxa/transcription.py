@@ -60,6 +60,10 @@ class WhisperService:
         self._model: Any | None = None
         self._model_name = ""
         self._load_generation = 0
+        # Issue #72, task v11d: the LAST transcription's own confidence figures (per-segment
+        # no_speech_prob / avg_logprob / compression_ratio), so the caller's hallucination guard
+        # can require a transcript to clear Whisper's confidence bar. None = not measured.
+        self.last_stats: dict | None = None
 
     @property
     def model_name(self) -> str:
@@ -181,4 +185,21 @@ class WhisperService:
             word_timestamps=False,
             initial_prompt=hint or None,
         )
-        return " ".join(segment.text.strip() for segment in segments if segment.text.strip()).strip()
+        # The generator consumes the model's work: materialize it so the confidence figures of
+        # the segments we actually used can feed the barge-in hallucination guard (issue #72,
+        # task v11d). A segment that does not report a figure (older fakes, a backend that
+        # omits it) leaves that figure None instead of poisoning the whole read.
+        heard = [segment for segment in segments if segment.text.strip()]
+
+        def _figure(name: str) -> float | None:
+            values = [float(getattr(segment, name)) for segment in heard
+                      if getattr(segment, name, None) is not None]
+            if not values:
+                return None
+            return sum(values) / len(values) if name == "avg_logprob" else max(values)
+
+        with self._lock:
+            self.last_stats = ({name: _figure(name) for name in
+                                ("no_speech_prob", "avg_logprob", "compression_ratio")}
+                               if heard else None)
+        return " ".join(segment.text.strip() for segment in heard).strip()

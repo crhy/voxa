@@ -208,9 +208,35 @@ def _text_echo_veto(heard: str, raw: str, wake_word: str, speaking: str) -> bool
     if strip_wake_word(combined, wake_word) is not None:
         return False
     if any(word in STOP_WORDS for word in _words(combined)):
-        return False
+        # Task A2: a person saying "stop" over her "stop" always interrupts - unless the
+        # whole transcript is her own current text near-verbatim, stop word and all.
+        return _near_verbatim_of_turn(heard, raw, speaking)
     return (overlap(heard, speaking) >= TEXT_ECHO_OVERLAP
             and sounds_like(heard, speaking) >= TEXT_ECHO_SOUNDS)
+
+
+NEAR_VERBATIM_WORDS = 8
+NEAR_VERBATIM_OVERLAP = 0.8
+NEAR_VERBATIM_SOUNDS = 0.8
+
+
+def _near_verbatim_of_turn(heard: str, raw: str, speaking: str) -> bool:
+    """Issue #72, task v11d: a transcript that IS her own current text, nearly word for word,
+    is her echo full stop - even when a stop word she was SAYING bled into it.
+
+    The live INTERRUPT (17:55): heard "The first sentence in the long enough that butter will
+    still be speaking on the chessboard." while speaking "The first sentence is long enough
+    that Voxa will still be speaking on the chessboard." The stop-word rule (task A2: a person
+    saying "stop" over her saying "stop" must always interrupt) made the veto step aside for
+    "enough" - a word of HER OWN sentence - and the echo cut her off. A bare interrupt word
+    (short, mostly foreign: "Stop.", "wait for it") never reads as near-verbatim of a whole
+    turn; a long transcript whose words and letters sit inside her turn is nothing else.
+    """
+    combined = f"{heard} {raw}".strip()
+    if len(_heard_tokens(combined)) < NEAR_VERBATIM_WORDS:
+        return False
+    return (overlap(heard, speaking) >= NEAR_VERBATIM_OVERLAP
+            and sounds_like(heard, speaking) >= NEAR_VERBATIM_SOUNDS)
 
 
 @dataclass(slots=True)
@@ -621,10 +647,14 @@ class BargeInController:
         if is_whisper_hallucination(
                 heard, raw,
                 no_speech_prob=getattr(audio, "no_speech_prob", None),
-                vad_prob=getattr(audio, "vad_prob", None)):
+                vad_prob=getattr(audio, "vad_prob", None),
+                avg_logprob=getattr(audio, "avg_logprob", None),
+                compression_ratio=getattr(audio, "compression_ratio", None)):
             self._trace("hallucination", heard=heard, raw=raw,
                         vad_prob=getattr(audio, "vad_prob", None),
                         no_speech_prob=getattr(audio, "no_speech_prob", None),
+                        avg_logprob=getattr(audio, "avg_logprob", None),
+                        compression_ratio=getattr(audio, "compression_ratio", None),
                         speaking=self.speaking_text[:60])
             self.gate.reset()
             self._clear_candidate()

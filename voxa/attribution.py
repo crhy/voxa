@@ -120,6 +120,12 @@ class SourceEvidence:
     # (``no_speech_prob``). None when the ASR did not report it. A high value brackets the
     # transcript as invented on silence/music, so it feeds the hallucination guard.
     no_speech_prob: float | None = None
+    # Issue #72, task v11d (Claude's 18:35 note): the speech model's OWN confidence in the
+    # transcript it just produced — mean avg_logprob and max compression_ratio over its
+    # segments. A hallucination reads as low-probability tokens strung together; the guard
+    # needs the bar, not only the phrase list. None when the ASR did not report it.
+    avg_logprob: float | None = None
+    compression_ratio: float | None = None
     alignment_healthy: bool = True           # delay known, fresh, within tolerance
     mic_level: float = 0.0                   # 0..1, the scale BargeInGate uses
     own_level: float = 0.0                   # the level her own voice produces in the microphone
@@ -270,6 +276,16 @@ def attribute(ev: SourceEvidence, baseline_db: float | None = None) -> SourceDec
         if explained >= ECHO_EXPLAINED_DB:
             add("explained", -0.5)
             reasons.append(f"microphone explained by reference {explained:+.1f} dB")
+        elif explained <= FLOOR_EXPLAINED_DB:
+            # Issue #72, task v11d (live barge.log 17:55): -120 dB is the floor the echo path
+            # leaves when the microphone carries NOTHING beyond her playback - the microphone is
+            # FULLY explained by the reference. It is not missing data and never "her voice
+            # holding beyond the reference": read as the latter it added +0.5 toward the user and
+            # her own garbled echo interrupted her. A fully explained microphone is the
+            # strongest echo evidence there is.
+            add("explained", -0.5)
+            reasons.append(f"microphone at the floor the echo path leaves ({explained:+.1f} dB): "
+                           "fully explained by the reference")
         else:
             value = min(0.5, (ECHO_EXPLAINED_DB - explained) / 12.0)
             add("explained", value)

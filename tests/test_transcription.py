@@ -83,6 +83,53 @@ def test_transcribe_before_any_load_raises(monkeypatch) -> None:
         WhisperService().transcribe(b"\x00\x00\x00\x00")
 
 
+def test_transcribe_stashes_segment_confidence_for_the_barge_guard(monkeypatch) -> None:
+    """Issue #72, task v11d (Claude's 18:35 note): the hallucination guard was fed no
+    confidence at all. The service keeps the LAST pass's own segment figures - max
+    no_speech_prob, mean avg_logprob, max compression_ratio - so the words the barge-in
+    judge reads arrive with the bar Whisper gave those very words."""
+
+    class ConfSegment(FakeSegment):
+        def __init__(self, text: str, nsp: float, avg: float, ratio: float) -> None:
+            super().__init__(text)
+            self.no_speech_prob = nsp
+            self.avg_logprob = avg
+            self.compression_ratio = ratio
+
+    class ConfModel:
+        def __init__(self, _model_name: str, **_kwargs) -> None:
+            pass
+
+        def transcribe(self, _audio, **_kwargs):
+            return [ConfSegment("the link is in the description.", 0.04, -1.7, 2.9),
+                    ConfSegment("second bit", 0.02, -0.5, 1.2)], None
+
+    monkeypatch.setenv("VOXA_DEVICE", "cpu")
+    monkeypatch.setitem(sys.modules, "faster_whisper",
+                        types.SimpleNamespace(WhisperModel=ConfModel))
+    service = WhisperService()
+    ready = threading.Event()
+    service.load_async("base", lambda *_a: ready.set(), lambda _e: None)
+    assert ready.wait(5)
+    service.transcribe(b"\x00\x00\x00\x00" * 16)
+    stats = service.last_stats
+    assert stats is not None
+    assert stats["no_speech_prob"] == pytest.approx(0.04)
+    assert stats["avg_logprob"] == pytest.approx((-1.7 + -0.5) / 2.0)
+    assert stats["compression_ratio"] == pytest.approx(2.9)
+
+    # A service (or fake) whose segments report nothing leaves the figures None rather than
+    # crashing the pass that produced the words.
+    install_fake_whisper(monkeypatch)
+    plain = WhisperService()
+    ready2 = threading.Event()
+    plain.load_async("base", lambda *_a: ready2.set(), lambda _e: None)
+    assert ready2.wait(5)
+    plain.transcribe(b"\x00\x00\x00\x00" * 16)
+    assert plain.last_stats is not None
+    assert plain.last_stats["no_speech_prob"] is None
+
+
 def test_cuda_force_env_var_prefers_new_name_with_legacy_fallback(monkeypatch) -> None:
     monkeypatch.delenv("VOXA_FORCE_CUDA", raising=False)
     monkeypatch.delenv("VOICE2TEXT_FORCE_CUDA", raising=False)

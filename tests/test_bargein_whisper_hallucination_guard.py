@@ -58,6 +58,29 @@ def test_a_real_user_turn_is_not_a_hallucination() -> None:
     assert not is_whisper_hallucination("open the library", "open the library", vad_prob=None)
 
 
+def test_low_confidence_transcript_is_a_hallucination_without_speech() -> None:
+    # Claude's 18:35 audit: the phrase list alone let a fresh invention through ("The link is
+    # in the description." was only added after the fact). Whisper's OWN segment confidence is
+    # the bar: a bad avg_logprob or a repeating compression ratio on a no-speech moment is the
+    # echo-path residual being talked over, whatever the words happened to be.
+    assert is_whisper_hallucination("the link is in the description.", "the link is in the description.",
+                                    vad_prob=None, avg_logprob=-1.6)
+    assert is_whisper_hallucination("some fresh invention here", "some fresh invention here",
+                                    vad_prob=None, compression_ratio=3.1)
+
+
+def test_confidence_bar_needs_a_real_speech_turn() -> None:
+    # The bar only bites where the cleaned signal shows no speech: a genuine user turn that
+    # happens to transcribe poorly stays an interruption.
+    assert not is_whisper_hallucination("open the library", "open the library",
+                                        vad_prob=0.9, avg_logprob=-1.6, compression_ratio=3.1)
+
+
+def test_good_confidence_is_no_bar_at_all() -> None:
+    assert not is_whisper_hallucination("some fresh invention here", "some fresh invention here",
+                                        vad_prob=None, avg_logprob=-0.3, compression_ratio=1.4)
+
+
 # --- bargectl integration -----------------------------------------------------------------
 
 def test_hallucinated_phrase_holds_instead_of_interrupting() -> None:
@@ -77,3 +100,15 @@ def test_real_speech_phrase_still_interrupts() -> None:
 def test_a_real_interrupt_survives_the_guard() -> None:
     outcome = _drive(lambda: ("open the library", "open the library"), _loud_mic_no_real_speech())
     assert outcome.action == INTERRUPT, outcome
+
+
+def test_bad_whisper_confidence_holds_an_unknown_phrase() -> None:
+    # The same transcript the attribution evidence carries: when the candidate pass itself
+    # reports a failing segment (avg_logprob below the bar), a phrase not on the list is still
+    # the residual being talked over - task v11d (Claude's 18:35 note: the guard was fed no
+    # confidence at all).
+    failing = _loud_mic_no_real_speech()
+    failing.avg_logprob = -1.8
+    outcome = _drive(lambda: ("some fresh invention here", "some fresh invention here"), failing)
+    assert outcome.action == HOLD, outcome
+    assert outcome.reason == "hallucination"

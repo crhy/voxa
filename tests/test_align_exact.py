@@ -78,6 +78,24 @@ def test_predictor_seeds_lock_without_a_search():
     assert abs(frames[0][1] - 400.0) <= 12.0
 
 
+def test_negative_travel_locks_signed_issue_72_v11d():
+    """Issue #72, task v11d: the render anchor parks the echo at a NEGATIVE travel - the live
+    chirp probe measured the microphone carrying the audible map about 34 ms BEFORE the anchor
+    said it was audible (-33.6..-34.6 ms over five chirps). A positive-lag search window never
+    saw it, so the exact lock never confirmed live, no "echo delay:" line ever appeared, and
+    DTLN stayed handed the reference at travel 0 with a +13..+32 dB residual. The search is
+    signed now: the lock lands on -544 samples and proves itself there."""
+    ref = broadband(2 * SR)
+    delay = -0.034 * SR  # -544 samples: the microphone LEADS the map
+    mic = echo_at(ref, lambda _t: delay)
+    mic = np.convolve(mic, room(31))[: len(ref)]
+    frames = observe(ExactAligner(), ref, mic)
+    assert frames, "the negative travel must lock, not stay unsearchable"
+    locked = [v for _t, v, _r in frames]
+    assert abs(locked[-1] - delay) <= 12.0, (locked[-1], delay)
+    assert any(r for _t, _v, r in frames), "the signed lock must be able to prove itself"
+
+
 # ---------------------------------------------------------------------------
 # 2. The drift resampler: a known clock drift is tracked, not left as residual error.
 # ---------------------------------------------------------------------------

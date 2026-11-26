@@ -427,15 +427,29 @@ def decide_bargein(heard: str, *, gated_speech_ms: float, no_speech_prob: float 
 HALLUCINATION_PHRASES = frozenset({
     "", ".", "you", "music", "thank you", "thanks", "thanks for watching",
     "thanks for listening", "thank you for watching", "thank you very much",
+    "thank you for coming", "thanks for coming",
     "like and subscribe", "subscribe", "like and subscribe and hit the bell",
     "don't forget to subscribe", "don't forget to like and subscribe",
+    "the link is in the description", "the link is in the video description",
+    "link in the description", "you just need to click the link",
+    "just need to click the link", "click the link below",
+    "let's go back to the music", "let's go back to the music line",
     "okay", "ok", "the end", "to be continued", "bye", "goodbye",
 })
+
+# Issue #72, task v11d (Claude's audit 18:35): while she speaks and the cleaned signal shows
+# no real speech, a transcript must also clear Whisper's OWN confidence bar before it can be
+# a second source - hallucinations on her echo ("The link is in the description.") score
+# badly on the segment's average log-probability and repetition ratio.
+HALLUCINATION_AVG_LOGPROB = -1.0
+HALLUCINATION_COMPRESSION_RATIO = 2.4
 
 
 def is_whisper_hallucination(heard: str, raw: str = "", *,
                              no_speech_prob: float | None = None,
-                             vad_prob: float | None = None) -> bool:
+                             vad_prob: float | None = None,
+                             avg_logprob: float | None = None,
+                             compression_ratio: float | None = None) -> bool:
     """True when a transcript is a Whisper hallucination on noise, not a real second source.
 
     High ``no_speech_prob`` (above :data:`REJECT_NO_SPEECH_PROB`, Whisper's own non-speech
@@ -443,12 +457,20 @@ def is_whisper_hallucination(heard: str, raw: str = "", *,
     but only when the CLEANED signal carries no real speech (``vad_prob`` missing or below the
     attribution VAD threshold). With real speech in the cleaned signal the same words are kept:
     this is a noise filter, never a "the user is wrong" filter.
+
+    Task v11d: the same no-real-speech condition also drops a transcript that fails Whisper's
+    OWN confidence bar (``avg_logprob`` / ``compression_ratio`` from the segment), which is how
+    "The link is in the description." interrupted her on her own echo.
     """
     from .attribution import VAD_SPEECH
 
     if vad_prob is not None and vad_prob >= VAD_SPEECH:
         return False  # the cleaned signal really has speech: not a hallucination
     if no_speech_prob is not None and no_speech_prob > REJECT_NO_SPEECH_PROB:
+        return True
+    if avg_logprob is not None and avg_logprob < HALLUCINATION_AVG_LOGPROB:
+        return True
+    if compression_ratio is not None and compression_ratio > HALLUCINATION_COMPRESSION_RATIO:
         return True
     for text in (heard, raw):
         norm = (text or "").strip().casefold()

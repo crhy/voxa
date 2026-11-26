@@ -53,6 +53,24 @@ def test_a_stop_word_said_by_herself_never_stops_her_and_said_by_a_person_always
     assert source_decision("stop", speaking, evidence=_over_her()).source == USER
 
 
+def test_the_floor_the_echo_path_leaves_is_a_fully_explained_microphone_not_a_tower():
+    """Issue #72, task v11d (Claude's 18:35 audit, live barge.log): while she spoke ALONE, the
+    microphone at -120 dB (nothing left beyond her delayed reference) read as "microphone holds
+    -120.0 dB beyond the reference" and added its +0.5 to the USER - her own garbled echo
+    interrupted her. A floor-level microphone is fully explained by the reference: the STRONGEST
+    echo evidence, never a tower, and the same words over a microphone that really holds +dB
+    beyond the reference still say USER."""
+    speaking = "The first sentence is long enough that Voxa will still be speaking on the chessboard."
+    heard = "The first sentence in the long enough that butter will still be speaking"
+    floor = _alone(echo_explained_db=-120.0, residual_db=-120.0, residual_margin_db=18.1,
+                   speaking=True, vad_prob=0.2)
+    decision = source_decision(heard, speaking, evidence=floor)
+    assert decision.source != USER, decision.reasons
+    # The same words over a microphone that stands well over the reference stay a second source.
+    tower = _over_her(echo_explained_db=-14.0, residual_margin_db=9.0, vad_prob=0.9, speaking=True)
+    assert source_decision(heard, speaking, evidence=tower).source == USER
+
+
 def test_the_words_are_a_feature_and_cannot_veto_the_audio():
     # The user repeats a whole clause of her reply while she is reading it: the words look
     # exactly like her sentence, and the audio still says a second source is present.
