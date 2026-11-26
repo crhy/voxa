@@ -424,6 +424,12 @@ class MainWindow(Adw.ApplicationWindow):
         self._hearing.start()
         # When the last level sample was taken, so a sample can say how much AUDIO it stands for.
         self._barge_sample_at = 0.0
+        # Task v11d (Claude's 21:20 note, item 3): the echo-health figure said everything and
+        # nothing - it was read at reply END, when the reference has gone silent again
+        # (every live line: reference_db=0.000 explained_db=-0.000). While she speaks, the
+        # frame clock sums the echo-path readings; the reply's line reports the MEAN over the
+        # reply, which is the only honest single number.
+        self._echo_health_sum = [0.0, 0.0, 0.0, 0]  # ref, explained, residual, frames
         self._latest_level_raw = 0.0
         # Attribution evidence (handoff 6.3): the echo path's own recent residual level, so a
         # residual only counts when it stands above what THIS path usually leaves behind.
@@ -3469,6 +3475,7 @@ class MainWindow(Adw.ApplicationWindow):
         # error, a barge-in, a dropped session token) calls _note_reply_end; without this the same
         # reply would report twice or, when the session token moved on, not at all.
         self._reply_end_noted = False
+        self._echo_health_sum[:] = (0.0, 0.0, 0.0, 0)
         self._hearing.turn_started(text)
 
     def _note_reply_end(self) -> None:
@@ -3509,6 +3516,16 @@ class MainWindow(Adw.ApplicationWindow):
         # (this one), not a stream.
         _measurements = self.audio.echo_measurements() or (None, None, None)
         _ref_power, _explained_db, _residual_db = _measurements
+        # Task v11d item 2: report the MEAN over the reply when the frame clock collected one
+        # (the reply-end reading is silence: the reference has drained). Fall back to the
+        # end instant only if no frame was collected while she spoke.
+        _sums = self._echo_health_sum
+        _echo_frames = _sums[3]
+        if _echo_frames:
+            _ref_power = _sums[0] / _echo_frames
+            _explained_db = _sums[1] / _echo_frames
+            _residual_db = _sums[2] / _echo_frames
+        _sums[:] = (0.0, 0.0, 0.0, 0)
         # Task v11d diagnostic: the exact lock's OWN state at reply end (its fractional delay,
         # whether it has proven itself, whether the estimate drove the reference instead) -
         # `travel_ms=None` with a healthy alignment means the lock never confirmed, and the
@@ -3518,6 +3535,7 @@ class MainWindow(Adw.ApplicationWindow):
                           if _ref_power is not None else None,
                           explained_db=round(_explained_db, 1) if _explained_db is not None else None,
                           residual_db=round(_residual_db, 1) if _residual_db is not None else None,
+                          frames=_echo_frames,
                           travel_ms=round(self.audio.echo_travel_ms(), 1)
                           if self.audio.echo_travel_ms() is not None else None,
                           lock_ms=round(_lock_frac / 16.0, 1) if _lock_frac else None,
@@ -3883,6 +3901,15 @@ class MainWindow(Adw.ApplicationWindow):
         dt_ms = (now - self._barge_sample_at) * 1000.0 if self._barge_sample_at else 50.0
         self._barge_sample_at = now
         ref_power, _explained, _residual = self.audio.echo_measurements()
+        # Task v11d item 3: mean the echo-path readings over the reply itself (the reply-end
+        # reading sees silence; see _note_reply_end). Any None skips the frame, never zeroes it.
+        if (_explained is not None and _residual is not None and ref_power is not None
+                and self._barge_ctl.speaking_now()):
+            _sums = self._echo_health_sum
+            _sums[0] += float(ref_power)
+            _sums[1] += float(_explained)
+            _sums[2] += float(_residual)
+            _sums[3] += 1
         self._hearing.submit(HearingSample(
             level01=self._latest_level / 4000.0,
             speaking=self._barge_ctl.speaking_now(),

@@ -170,7 +170,65 @@ def test_a_worker_that_falls_behind_drops_the_oldest_evidence() -> None:
     stuck.block.set()
 
     assert director.dropped > 0, "the queue grew instead of dropping the oldest sample"
-    assert director.pending <= 4, f"{director.pending} events queued in a queue of 4"
+    # v11d: the FRAME queue stays bounded; turn events ride their own queue, so total
+    # ``pending`` may exceed it - what must never grow is the bounded half.
+    assert director.pending_frames <= 4, f"{director.pending_frames} frames queued in a queue of 4"
+
+
+def test_a_full_frame_queue_never_loses_a_turn_event() -> None:
+    """Issue #72, task v11d (Claude's 21:20 root cause, measured in barge.log): ONE bounded
+    queue carried BOTH mic frames and the turn events, and drop-oldest could eat a
+    ReplyStarted/ReplyEnded (1695 hearing-drop lines live - she no longer knew she was
+    speaking, and her own echo became the user). Turn events ride their OWN queue: the
+    controller is told every reply start and end even when every frame queue overflows."""
+
+    class RecordingController:
+        def __init__(self) -> None:
+            self.events: list[tuple[str, str]] = []
+            self.block = threading.Event()
+            self.frame_dts: list[float] = []
+
+        def observe(self, level01: float, **kwargs) -> BargeOutcome:
+            self.frame_dts.append(kwargs.get("dt_ms", 0.0))
+            self.block.wait(5.0)
+            return BargeOutcome(action=IGNORED)
+
+        def reply_started(self, text: str = "") -> None:
+            self.events.append(("start", text))
+
+        def reply_ended(self) -> None:
+            self.events.append(("end", ""))
+
+        def note_speaking(self) -> None:
+            self.events.append(("piece", ""))
+
+        def note_turn(self, text: str = "") -> None:
+            pass
+
+        def note_piece(self, text: str = "") -> None:
+            pass
+
+        def invalidate(self) -> None:
+            pass
+
+    ctl = RecordingController()
+    director = HearingDirector(controller=ctl, sample_queue=4)
+    director.start()
+    director.reply_started("The weather is clear today.")
+    for _ in range(40):  # the worker is stuck in observe; the frame queue overflows...
+        director.submit(sample(level=0.9))
+    director.piece_spoken("and the sun is out.")
+    director.reply_ended()
+    ctl.block.set()
+    director.stop()  # joins after the block lifts: everything queued gets judged
+
+    assert ("start", "The weather is clear today.") in ctl.events, ctl.events
+    assert ("end", "") in ctl.events, ctl.events
+    # ...and the dropped frames are not silent: their audio time is credited to the next
+    # judged frame, so the gate's audio windows never under-count (drop-oldest, dt 20 ms,
+    # at least one drop -> some frame stands for more than one frame of audio).
+    assert director.dropped > 0
+    assert any(dt > 20.0 for dt in ctl.frame_dts), ctl.frame_dts
 
 
 # --- the windows are milliseconds of audio, not callbacks and not grace -------------

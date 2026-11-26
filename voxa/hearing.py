@@ -33,7 +33,10 @@ from dataclasses import dataclass
 from .bargectl import BargeInController, BargeOutcome
 from .bargein import FRAME_MS
 
-SAMPLE_QUEUE = 8
+# Task v11d (21:20 root cause): the frame queue must ride out a slow worker WITHOUT eating
+# the recent past - 8 frames was 0.4 s of audio, so the drop-oldest fired almost every reply
+# (100+ hearing-drop lines per minute live). At the bench's 20 ms frame this is >= 2 s.
+SAMPLE_QUEUE = 100
 DECISION_QUEUE = 8
 POLL_SECONDS = 0.25
 
@@ -125,9 +128,17 @@ class HearingDirector:
         self._on_decision = on_decision
         self._trace = trace
         self._events: queue.Queue = queue.Queue(maxsize=max(1, sample_queue))
+        # Issue #72, task v11d (Claude's 21:20 root cause, measured in barge.log: 1695
+        # hearing-drop lines since 20:20): this ONE bounded queue carried both mic samples
+        # AND the turn events, and _push dropped the OLDEST item when full - which could be
+        # a ReplyStarted/TurnStarted/ReplyEnded, corrupting the gate's turn state (she no
+        # longer knew she was speaking, or what she was saying, and her own echo became the
+        # user). Control events ride their OWN unbounded queue and are never dropped.
+        self._control: queue.Queue = queue.Queue()
         self._decisions: deque[BargeOutcome] = deque(maxlen=max(1, decision_queue))
         self._generation = 0
         self._dropped = 0
+        self._dropped_audio_ms = 0.0
         self._stale = 0
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
@@ -149,17 +160,55 @@ class HearingDirector:
 
     def _drain(self) -> None:
         while not self._stop.is_set():
+            # Issue #72, task v11d (Claude's 21:20 root cause, measured in barge.log: 1695
+            # hearing-drop lines since 20:20): this ONE bounded queue carried both mic samples
+            # AND the turn events, and _push dropped the OLDEST item when full - which could be
+            # a ReplyStarted/TurnStarted/ReplyEnded, corrupting the gate's turn state (she no
+            # longer knew she was speaking, and her echo became the user). Control events ride
+            # their OWN unbounded queue and are taken BEFORE any frame, so the turn state is
+            # never dropped and never more than one already-running frame behind.
+            if not self._drain_control():
+                break
             try:
                 event = self._events.get(timeout=POLL_SECONDS)
             except queue.Empty:
                 continue
             self._judge(event)
+        # Final flush: turn events are never dropped, even when the thread is stopping. A
+        # ReplyEnded that never reaches the controller would leave the gate believing she is
+        # still mid-reply forever (the exact state that turned her echo into the user).
+        while True:
+            try:
+                event = self._control.get_nowait()
+            except queue.Empty:
+                break
+            self._judge(event)
+
+    def _drain_control(self) -> bool:
+        """Process every pending control event before the next frame.
+
+        Returns the stop state: True while the thread should keep running (control empty),
+        False once the stop event has been set (the caller leaves the loop).
+        """
+        while not self._stop.is_set():
+            try:
+                event = self._control.get_nowait()
+            except queue.Empty:
+                return True
+            self._judge(event)
+        return False
 
     def _judge(self, event: object) -> None:
         if isinstance(event, HearingSample):
             if event.generation != self._generation:
                 self._stale += 1
                 return
+            if self._dropped_audio_ms:
+                # This frame also stands for the dropped frames' audio (see _push): the gate's
+                # windows are counted in milliseconds of audio, and the mic timeline must not
+                # drift from the render map because the worker was busy.
+                event.dt_ms += self._dropped_audio_ms
+                self._dropped_audio_ms = 0.0
             outcome = self.controller.observe(
                 event.level01,
                 speaking=event.speaking,
@@ -194,49 +243,63 @@ class HearingDirector:
         if self._on_decision is not None:
             self._on_decision(outcome)
 
-    def _push(self, event: object) -> bool:
-        """Queue one event, dropping the oldest when the worker has fallen behind."""
+    def _push(self, sample: HearingSample) -> bool:
+        """Queue one FRAME, dropping the oldest frame when the worker has fallen behind.
+
+        Only frames are ever dropped (turn events ride ``self._control``), and the drop is not
+        silent: the dropped frame's audio time is kept exactly, so the next judged frame can
+        stand for the gap too and the microphone timeline never claims less audio than passed
+        (the gate's windows count milliseconds of AUDIO, not callbacks).
+        """
+        sample.generation = self._generation
         try:
-            self._events.put_nowait(event)
+            self._events.put_nowait(sample)
             return True
         except queue.Full:
             pass
         try:
-            self._events.get_nowait()
+            oldest = self._events.get_nowait()
         except queue.Empty:
             return False
         self._dropped += 1
+        self._dropped_audio_ms += getattr(oldest, "dt_ms", 0.0)
         if self._trace is not None:
             try:
                 self._trace("hearing-drop", dropped=self._dropped, queued=self._events.qsize())
             except Exception:
                 pass
         try:
-            self._events.put_nowait(event)
+            self._events.put_nowait(sample)
             return True
         except queue.Full:
             self._dropped += 1
+            self._dropped_audio_ms += getattr(sample, "dt_ms", 0.0)
             return False
+
+    def _push_control(self, event: object) -> bool:
+        """Queue a turn event. Bounded by nothing, dropped by nothing: the gate's turn state
+        is exactly what the drop-oldest policy must NEVER corrupt (issue #72, v11d)."""
+        self._control.put_nowait(event)
+        return True
 
     def submit(self, sample: HearingSample) -> bool:
         """Hand one frame's evidence over. Never blocks, whatever the worker is doing."""
-        sample.generation = self._generation
         return self._push(sample)
 
     def reply_started(self, text: str) -> bool:
-        return self._push(ReplyStarted(text=text))
+        return self._push_control(ReplyStarted(text=text))
 
     def turn_started(self, text: str) -> bool:
-        return self._push(TurnStarted(text=text))
+        return self._push_control(TurnStarted(text=text))
 
     def piece_spoken(self, text: str) -> bool:
-        return self._push(PieceSpoken(text=text))
+        return self._push_control(PieceSpoken(text=text))
 
     def reply_ended(self) -> bool:
-        return self._push(ReplyEnded())
+        return self._push_control(ReplyEnded())
 
     def piece_started(self) -> bool:
-        return self._push(PieceStarted())
+        return self._push_control(PieceStarted())
 
     def generation(self) -> int:
         return self._generation
@@ -283,5 +346,21 @@ class HearingDirector:
 
     @property
     def pending(self) -> int:
-        """Events waiting to be judged."""
+        """Events waiting to be judged (frames on the bounded queue, turn events on the control queue)."""
+        return self._events.qsize() + self._control.qsize()
+
+    @property
+    def pending_frames(self) -> int:
+        """Frames waiting to be judged - the BOUNDED half (turn events are never bounded)."""
         return self._events.qsize()
+
+    @property
+    def dropped_audio_ms(self) -> float:
+        """Audio time dropped with frames the worker never saw, waiting to be paid back.
+
+        Task v11d: the live check's numbers are worthless if the mic timeline silently lost
+        samples on the way to the canceller. A drop is not silent - its audio time is kept
+        here and credited to the next judged frame, so gate windows and the alignment stay
+        aligned with the render map (which never drops her own samples).
+        """
+        return self._dropped_audio_ms
