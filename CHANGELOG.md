@@ -1,5 +1,19 @@
 # Voxa changelog
 
+## 0.1.10 — 2026-11-26
+
+Voxa always answers: restarts its model backend when it is down and says so out loud instead of staying silent.
+
+### Fixed
+
+- A heard question restarts a stopped Ollama or llama.cpp backend, waits briefly and answers; a request that still fails apologises out loud and writes a final action record instead of ending in empty speech.
+- Every spoken reply drops emoji and Markdown so the voice never reads them aloud, and the model is told to keep spoken answers to one or two sentences it actually knows.
+- The Local AI model picker always shows the model actually in use, refreshes the model list when the backend becomes reachable, and an unreachable backend reads "Ollama not running" instead of "(None)".
+
+## 0.1.9 — 2026-11-18
+
+Hearing improvements and refreshed Flatpak dependencies for the GNOME 50 runtime.
+
 ## 0.1.8 — 2026-10-26
 
 ### Fixed
