@@ -135,6 +135,11 @@ class SourceEvidence:
     # leaves, on spans where Voxa spoke alone. While unproven those two readings may never
     # carry a second source alone; VAD speech, the joint gate and the words still can.
     delay_proven: bool = True
+    # True when the render tap is attached and this turn has rendered samples: a silent
+    # reference reading at this exact moment is then the echo-arrival gap (a span captured
+    # before her first sample could reach the microphone), not a broken tap. Only a dead tap
+    # may be traced as a "silent tap".
+    tap_live: bool = False
     mic_level: float = 0.0                   # 0..1, the scale BargeInGate uses
     own_level: float = 0.0                   # the level her own voice produces in the microphone
     # How far the microphone stands above her own level (the level gate's own ratio): crude, but
@@ -232,7 +237,17 @@ def attribute(ev: SourceEvidence, baseline_db: float | None = None) -> SourceDec
             # no honest reference to compare the microphone against, so this is a degraded
             # state that may only ever hold the span back (``echo``/``uncertain``) - it must
             # never answer ``user``, which is what made her answer herself (issue #72).
-            reasons.append("reference active by definition while speaking: silent tap, abstain")
+            # Issue #72, task v11d (aiyana live): when the tap is ATTACHED and her turn has
+            # rendered samples, a silent reading at this exact moment is the echo-arrival gap
+            # at the very start of the reply (the span was captured before her first sample
+            # could get to the microphone), not a tap failure. Both abstain; only a broken tap
+            # may be reported as a silent tap, or the live reference check condemns a tap
+            # that measured her voice fine (render-tap peak 0.68).
+            if ev.tap_live:
+                reasons.append("reference silent for this moment while speaking: "
+                               "echo not arrived at this span, abstain")
+            else:
+                reasons.append("reference active by definition while speaking: silent tap, abstain")
             return SourceDecision(UNCERTAIN, 0.0, tuple(reasons), degraded=True, evidence=ev)
         # Nothing is coming out of the speakers: there is no echo to explain the microphone, so
         # any speech in it is the user's. (The near-end-only case, and the case where Voxa is

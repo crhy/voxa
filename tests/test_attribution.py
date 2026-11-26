@@ -348,3 +348,20 @@ def test_a_parked_delay_never_carries_a_second_source_alone_issue_72_v11d():
                                     alignment_healthy=True, level_ratio=2.6,
                                     word_count=2, text_overlap=0.0, text_sound=0.0))
     assert talk.source == USER, talk.reasons
+
+
+def test_the_echo_arrival_gap_is_not_reported_as_a_silent_tap_issue_72_v11d():
+    """aiyana live (22-char v11d): 0.26 s into the reply a candidate span was captured
+    before her first sample could echo, read silent, and the live check condemned the tap -
+    the render-tap line of the same reply reported peak 0.68. A live tap abstains without
+    the words the reference check reads as a silent tap; a dead tap still says them."""
+    gap = attribute(_alone(speaking=True, reference_active=False, reference_power=0.0,
+                           vad_prob=None, word_count=6, tap_live=True))
+    assert gap.source == UNCERTAIN, gap.reasons
+    assert gap.degraded
+    assert not any("silent tap" in r for r in gap.reasons), gap.reasons
+
+    dead = attribute(_alone(speaking=True, reference_active=False, reference_power=0.0,
+                            vad_prob=None, word_count=6, tap_live=False))
+    assert dead.source == UNCERTAIN, dead.reasons
+    assert any("silent tap" in r for r in dead.reasons), dead.reasons

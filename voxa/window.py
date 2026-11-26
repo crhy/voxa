@@ -3804,6 +3804,12 @@ class MainWindow(Adw.ApplicationWindow):
                 # guess, not a proved lock - while the exact aligner is not confident, the
                 # residual margin and the microphone-holds readings carry less (attribution).
                 delay_proven=bool(self.audio.delay_confident),
+                # The tap is attached and this turn has samples: a silent reading at a span
+                # captured before her first sample could echo is the arrival gap, not a dead
+                # tap (issue #72 v11d: aiyana's silent check failed on that wording).
+                tap_live=bool(self.speech.tap.get("attached")
+                              and self.audio.timeline is not None
+                              and self.audio.timeline.total > 0),
                 mic_level=float(self._latest_level / 4000.0),
                 own_level=float(self._barge_ctl.gate.baseline),
             )
