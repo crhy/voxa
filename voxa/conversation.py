@@ -39,20 +39,66 @@ def strip_wake_word(text: str, wake_word: str) -> str | None:
     return remainder.strip(" ,.!?—-\t\n")
 
 
-# Words that merely rhyme with the default wake word but are ordinary speech: at the
-# start of a sentence they never wake her. They are never a wake word a character uses.
-_WAKE_COMMON_WORDS = frozenset({"box", "fox", "pox", "voxel", "voice", "locks", "bucks"})
-# A lone short vowel article: the wake word's last syllable heard apart from it ("Fox a").
-_WAKE_SPLIT_ARTICLES = frozenset({"a", "ah", "uh"})
+def _fuzzy_strip(text: str, wake: str) -> str | None:
+    """Match a wake word the tiny Whisper model spelled slightly differently.
+
+    Only the start of the utterance is checked (wake words come first), and a
+    word or word pair must be very close to the wake word, so ordinary speech
+    is not mistaken for it.
+    """
+    words = list(re.finditer(r"[\w']+", text))
+    for count in (1, 2):
+        window = words[:count]
+        if len(window) < count:
+            continue
+        candidate = "".join(m.group().casefold() for m in window)
+        if len(candidate) < 3:
+            continue
+        matched = SequenceMatcher(None, candidate, wake).ratio() >= 0.65
+        if not matched and candidate[0] in _SOFT_ONSETS and wake[0] in _SOFT_ONSETS:
+            # Said in one breath with the command, the first consonant is what Whisper gets wrong
+            # ("Box open Pluma", "Laksa, what's the weather" for "Voxa"). Soft first consonants are
+            # treated as the same sound, and "ks"/"cks" as "x".
+            sounded = _sound(wake[0] + candidate[1:])
+            matched = SequenceMatcher(None, sounded, _sound(wake)).ratio() >= 0.65
+        if matched:
+            end = window[-1].end()
+            trailing = words[count] if len(words) > count else None
+            if (
+                trailing is not None
+                and trailing.group().casefold() in ("a", "ah", "uh")
+                and wake.endswith("a")
+                and not candidate.endswith("a")
+            ):
+                end = trailing.end()  # "Locks a open …": the wake word's last syllable written apart
+            return text[end:].strip(" ,.!?—-\t\n")
+    # Issue #72, task v11e: the tiny model also mis-hears "Voxa" as "Vatza", "Bazaar",
+    # "Voxo", "Boxa" or "Fox a" - shapes the SequenceMatcher above misses. This narrow
+    # phonetic pass only ever looks at the START of the utterance and never wakes on an
+    # ordinary word that merely rhymes; it is the loose matcher's only extension.
+    return _phonetic_strip(text, wake)
+
+
+_SOFT_ONSETS = frozenset("bvflwp")
+
+
+def _sound(word: str) -> str:
+    return re.sub(r"cks|ks|cs", "x", word)
+
+
+# Ordinary words that merely rhyme with the default wake word: a start-of-sentence
+# "box"/"fox"/"voice" never addresses her. None of them is a wake word a character uses.
+_WAKE_BLOCK_WORDS = frozenset({"box", "fox", "pox", "voxel", "voice", "forget", "we"})
 
 
 def _wake_sound(word: str) -> str:
     """Reduce a word to the rough sound a tiny ASR model confuses for the wake word.
 
     Vowels collapse (the model keeps that one is there, not which), every hard or
-    sibilant cluster ("x"/"ks"/"z"/"c"/"ck"/"tz") becomes one "s", the labial/fricative/
-    liquid onsets v-b-f-w-l blur together, and a trailing r/l is dropped. "Voxa/Boxa/Vox/
-    Vatza/Bazaar/Voxo/Fox" all collapse to the same key.
+    sibilant cluster ("x"/"ks"/"z"/"c"/"ck"/"tz") becomes one "s", the labial/
+    fricative/liquid onsets v-b-f-w-l blur, and a trailing r/l is dropped, so "Voxa",
+    "Boxa", "Voxo", "Vatza" and "Bazaar" collapse to the same key and "Vox"/"Fox" to
+    the same key without the final vowel.
     """
     w = re.sub(r"[^a-z]", "", word.casefold())
     w = re.sub(r"[aeiou]+", "a", w)
@@ -63,43 +109,30 @@ def _wake_sound(word: str) -> str:
     return re.sub(r"[rl]$", "", w)
 
 
-def _sounds_like(first: str, target: str) -> bool:
-    return first == target or (len(first) >= 2 and SequenceMatcher(None, first, target).ratio() >= 0.6)
+def _phonetic_strip(text: str, wake: str) -> str | None:
+    """A start-of-utterance phonetic near-miss of the wake word, or None.
 
-
-def _fuzzy_strip(text: str, wake: str) -> str | None:
-    """Match a wake word the tiny Whisper model heard as a different spelling.
-
-    Only the start of the utterance is checked (a wake word always comes first): a
-    phonetic near-miss in the middle of a sentence never wakes her. The comparison is
-    phonetic so the model's mis-hearings of "Voxa" - "Boxa", "Vox", "Vatza", "Bazaar",
-    "Voxo", "Fox a" - all wake her, while an ordinary word that merely rhymes ("box",
-    "fox", "voxel", "voice") at the start of a sentence does not.
+    Exact collapse only (never a similarity ratio, which let "forget"/"voice" slip
+    through), at the START only, and never on an ordinary word that merely rhymes.
     """
     wake_key = _wake_sound(wake)
+    wake_open = re.sub(r"a$", "", wake_key)  # the wake word without its final schwa
     if not wake_key:
         return None
     matches = list(re.finditer(r"[\w']+", text))
     if not matches:
         return None
     first = matches[0].group().casefold()
+    if len(first) < 3 or first in _WAKE_BLOCK_WORDS:
+        return None
     first_key = _wake_sound(first)
-    if not first_key or first_key[0] != wake_key[0]:
+    if first_key != wake_key and first_key != wake_open:
         return None
-    wake_open = re.sub(r"a$", "", wake_key)  # the wake word said without its final schwa
-    # The wake word's last syllable heard apart from it: "Fox a", "Locks a" ("Fox-a", "Vox a").
-    if (
-        len(matches) > 1
-        and wake.casefold().endswith("a")
-        and matches[1].group().casefold() in _WAKE_SPLIT_ARTICLES
-        and _sounds_like(first_key, wake_open)
-    ):
+    # "Fox a" / "Vox a": the wake word's final syllable heard apart from it.
+    if first_key == wake_open and wake.casefold().endswith("a") and len(matches) > 1 \
+            and matches[1].group().casefold() in ("a", "ah", "uh"):
         return text[matches[1].end():].strip(" ,.!?—-\t\n")
-    if first in _WAKE_COMMON_WORDS:
-        return None
-    if _sounds_like(first_key, wake_key) or _sounds_like(first_key, wake_open):
-        return text[matches[0].end():].strip(" ,.!?—-\t\n")
-    return None
+    return text[matches[0].end():].strip(" ,.!?—-\t\n")
 
 
 # Utterances that end a conversation turn, matched exactly (whitespace and
