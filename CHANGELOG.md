@@ -1,5 +1,16 @@
 # Voxa changelog
 
+## 0.1.10 — 2026-11-26
+
+Voxa always answers: she restarts her model backend when it is down and says so out loud instead of staying silent.
+
+### Fixed
+
+- A heard question now restarts a stopped Ollama or llama.cpp backend, waits briefly, and answers — instead of ending in "empty speech" — so every heard request gets a reply.
+- Every model request writes a final action record with success and timing, so a model call that died mid-request is logged instead of vanishing from the log.
+- Any unexpected crash in the query thread (not just a backend error) is caught and logged instead of killing the request silently with nothing said.
+- When a hands-free request fails, Voxa apologises out loud instead of leaving the user with no reply at all.
+
 ## 0.1.8 — 2026-10-26
 
 ### Fixed

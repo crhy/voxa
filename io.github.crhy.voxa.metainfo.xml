@@ -34,6 +34,17 @@
   </screenshots>
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="0.1.10" date="2026-11-26">
+      <description>
+        <p>Voxa 0.1.10 always answers: it restarts its model backend when it is down and says so out loud instead of staying silent.</p>
+        <ul>
+          <li>A heard question restarts a stopped Ollama or llama.cpp backend, waits briefly, and answers instead of ending in silence.</li>
+          <li>Every request now records whether it succeeded and how long it took, so a model call that dies is logged instead of vanishing.</li>
+          <li>Any unexpected crash in the query thread is caught, logged, and reported instead of killing the request silently.</li>
+          <li>When hands-free answering fails, Voxa apologises out loud instead of leaving the user with no reply at all.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.8" date="2026-10-26">
       <description>
         <p>Voxa 0.1.8 fixes conversation follow-ups, local music playback, model choices, and desktop integration.</p>
