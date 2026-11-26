@@ -167,9 +167,12 @@ CONVERSATION_HISTORY_MESSAGES = 24
 CONVERSATION_SYSTEM_PROMPT = (
     "You are Voxa, a hands-free voice assistant on the user's desktop. Keep "
     "answers short and conversational — one or two sentences — since they are spoken aloud. "
+    "Answer only from what you actually know; if you are not sure, say so plainly rather than "
+    "guessing or inventing a confident-sounding fact. "
     "You cannot perform actions in this reply: never say you opened, closed, sent, played, "
     "saved, deleted, booked or changed anything. If the user asked for an action you cannot "
-    "perform, say you could not do it and suggest how to phrase it as a direct command."
+    "perform, say you could not do it and suggest how to phrase it as a direct command. "
+    "Never use emoji or Markdown in a spoken reply."
 )
 FALSE_CLAIM_REPLY = (
     "I couldn't do that. Try saying it as a direct command, like “close Brutal Chess”."
@@ -192,6 +195,28 @@ AI_APOLOGY = "Sorry, I could not get an answer from the model."
 # Version 5 also gates neural rendering against the real audio playback clock,
 # so prepared or paused speech cannot make the GPU run far ahead.
 LIVE_FACE_PROTOCOL_VERSION = 5
+NOT_INSTALLED_SUFFIX = " (not installed)"
+
+
+def model_choices(configured: str, models: list[str]) -> tuple[list[str], str]:
+    """The strings the model picker shows, and which one is selected.
+
+    ``models`` is whatever the reachable backend reported (possibly empty). The
+    configured model is *always* shown so the picker never reads "(None)" while
+    Voxa is really using a model; when the backend does not list it, it is shown
+    marked ``"(not installed)"`` rather than hidden. Returns ``(choices, selected)``.
+    """
+    listed = [m for m in models if m]
+    configured = (configured or "").strip()
+    if configured and configured not in listed:
+        marked = f"{configured}{NOT_INSTALLED_SUFFIX}"
+        return [marked, *listed], marked
+    return listed, configured
+
+
+def backend_offline_message(label: str) -> str:
+    """What the picker says when a managed backend is down, instead of a blank "(None)"."""
+    return f"{label} is not running"
 
 
 def face_server_command() -> list[str] | None:
@@ -743,6 +768,11 @@ class MainWindow(Adw.ApplicationWindow):
         health = self.ai_server.health()
         if health.status in {SERVER_FAILED, SERVER_UNAVAILABLE} and health.last_error:
             self._toast(health.last_error.splitlines()[0])
+        if health.status == SERVER_READY:
+            # The backend became reachable late (Ollama started late, or vf01's
+            # restart brought it back): fill the model picker now instead of
+            # leaving it on "(None)".
+            self._refresh_ollama_models()
         return False
 
     def _start_ai_server_async(self) -> None:
@@ -1469,16 +1499,15 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def _show_no_models(self) -> bool:
-        self.ollama_models = []
-        self._apply_model_combo([])
-        self.shell.model_selector.set_status("offline")
-        return False
+        # The managed backend answered nothing / refused the connection: name it
+        # in the picker instead of leaving a blank "(None)".
+        return self._show_backend_offline(self._backend_label())
 
     def _show_backend_offline(self, label: str) -> bool:
-        """A backend Voxa does not manage (Strata) is down: name it in the picker."""
-        message = f"{label} is not running"
+        """A backend that is down (managed or not): name it in the picker, not "(None)"."""
+        message = backend_offline_message(label)
         self.ollama_models = [message]
-        self._apply_model_combo([message])
+        self._apply_model_combo([message], show_configured=False)
         self.shell.model_selector.set_status("offline")
         return False
 
@@ -1625,19 +1654,29 @@ class MainWindow(Adw.ApplicationWindow):
         label = smallbrain.label_for_path(self.settings.llamacpp_model)
         return label or self.settings.llamacpp_model
 
-    def _apply_model_combo(self, models: list[str]) -> None:
+    def _apply_model_combo(self, models: list[str], *, show_configured: bool = True) -> None:
+        # By default the picker always shows the model Voxa is really using
+        # (marked "(not installed)" when a reachable backend does not list it),
+        # never "(None)". ``show_configured=False`` is the explicit-message path
+        # (e.g. "Ollama is not running"), which shows the message verbatim.
         selected_label = self._selected_model_label()
-        self.shell.set_models(models, selected_label, self.settings.ai_backend)
-        if not models:
+        if show_configured:
+            display, selected_display = model_choices(selected_label, models)
+        else:
+            display = list(models)
+            selected_display = selected_label if selected_label in display else (display[0] if display else "")
+        self._model_combo_display = display
+        self.shell.set_models(display, selected_display, self.settings.ai_backend)
+        if not display:
             self.model_combo.set_visible(False)
             return
         selected = (
-            models.index(selected_label)
-            if selected_label in models
+            display.index(selected_display)
+            if selected_display in display
             else 0
         )
         self._model_combo_updating = True
-        self.model_combo.set_model(Gtk.StringList.new(models))
+        self.model_combo.set_model(Gtk.StringList.new(display))
         self.model_combo.set_selected(selected)
         self.model_combo.set_visible(True)
         self._model_combo_updating = False
@@ -1647,8 +1686,13 @@ class MainWindow(Adw.ApplicationWindow):
         # above skips that pass so only real user picks are persisted.
         if self._model_combo_updating or not self.ollama_models:
             return
-        selected = min(self.model_combo.get_selected(), len(self.ollama_models) - 1)
-        model = self.ollama_models[selected]
+        display = getattr(self, "_model_combo_display", self.ollama_models)
+        index = min(self.model_combo.get_selected(), len(display) - 1)
+        label = display[index]
+        if label.endswith(NOT_INSTALLED_SUFFIX):
+            # The model is already the one Voxa is using; nothing to change.
+            return
+        model = label
         if self.settings.ai_backend == "llamacpp":
             path = smallbrain.path_for_label(model)
             if path and path != self.settings.llamacpp_model:
@@ -3801,6 +3845,10 @@ class MainWindow(Adw.ApplicationWindow):
                         if loaded is not None:
                             break
                         time.sleep(AI_SERVER_WAIT_DELAY)
+                if loaded is not None and self._query_is_current(generation, cancel_event):
+                    # The backend vf01 just restarted is reachable now: refresh the
+                    # model picker so the configured model shows up instead of "(None)".
+                    idle(self._refresh_ollama_models)
                 if loaded is False:
                     idle(self._on_model_loading, model, generation, cancel_event)
                 self._action_pending = (heard, route, time.monotonic())
