@@ -131,15 +131,82 @@ class FakeAudio:
         self.is_active = False
 
 
+class RealSpeech:
+    """Drives Voxa's REAL speech pipeline into a WAV sink (VOXA_AUDIO_SINK=file:...).
+
+    Wraps the production :class:`voxa.speech.SpeechService` so the answer is rendered
+    through edge-tts -> decodebin -> ... -> filesink, proving the whole speaking chain
+    with no microphone and no speakers. The spoken text is still recorded so the tool can
+    print and grade it.
+    """
+
+    def __init__(self, window) -> None:
+        from voxa.speech import SpeechService
+
+        self.window = window
+        self.service = SpeechService()
+        self.spoken: list[str] = []
+        self.done_count = 0
+
+    def stop(self) -> None:
+        self.service.stop()
+
+    def position(self) -> float:
+        return self.service.position()
+
+    def speak(self, text, rate, voice, *, on_started, on_done, on_error, on_words=None, before_play=None) -> None:
+        self.spoken.append(text)
+
+        def _done() -> None:
+            self.done_count += 1
+            if on_done is not None:
+                on_done()
+
+        self.service.speak(
+            text, rate, voice, on_started=on_started, on_done=_done, on_error=on_error,
+            on_words=on_words, before_play=before_play,
+        )
+
+    def prepare(self, text, rate, voice, on_ready=None):
+        self.spoken.append(text)
+        return self.service.prepare(text, rate, voice, on_ready=on_ready)
+
+    def speak_prepared(self, item, *, on_started, on_done, on_error, on_words=None, before_play=None) -> None:
+        def _done() -> None:
+            self.done_count += 1
+            if on_done is not None:
+                on_done()
+
+        self.service.speak_prepared(
+            item, on_started=on_started, on_done=_done, on_error=on_error,
+            on_words=on_words, before_play=before_play,
+        )
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("request", nargs="+", help="the request text, as if heard")
     parser.add_argument("--config", help="config.json to use (default: the installed one)")
     parser.add_argument("--typed", action="store_true", help="ask as if typed (no conversation mode)")
+    parser.add_argument(
+        "--speak-to",
+        metavar="WAV",
+        help="render the spoken reply through Voxa's real speech pipeline into this WAV file "
+             "(no speakers); proves edge-tts -> decodebin -> ... -> sink with no microphone",
+    )
     parser.add_argument("--timeout", type=float, default=180.0, help="seconds to wait for the reply")
     args = parser.parse_args(argv)
     request = " ".join(args.request)
     _own_virtual_display()
+
+    speak_to = None
+    if args.speak_to:
+        speak_to = Path(args.speak_to).expanduser().resolve()
+        speak_to.parent.mkdir(parents=True, exist_ok=True)
+        speak_to.unlink(missing_ok=True)
+        # Set before voxa.window / speech import their GStreamer sink: the real
+        # SpeechService reads this and writes the WAV instead of the speakers.
+        os.environ["VOXA_AUDIO_SINK"] = f"file:{speak_to}"
 
     gi = _import_gi()
     gi.require_version("Gtk", "4.0")
@@ -191,7 +258,10 @@ def main(argv: list[str]) -> int:
     window = MainWindow(app)
     window.present()
 
-    speech = FakeSpeech(window)
+    if speak_to is not None:
+        speech = RealSpeech(window)
+    else:
+        speech = FakeSpeech(window)
     window.speech = speech
     notices: list[str] = []
     window._toast = lambda text: notices.append(str(text))
@@ -203,6 +273,16 @@ def main(argv: list[str]) -> int:
         loop.quit()
 
     def tick() -> bool:
+        if speak_to is not None:
+            # Wait for the real speech pipeline to finish (EOS) so the WAV is complete,
+            # then a short grace for the last buffer to flush to disk.
+            if speech.done_count and time.monotonic() - started > 1.0:
+                GLib.idle_add(finished)
+                return False
+            if time.monotonic() - started > args.timeout:
+                GLib.idle_add(finished)
+                return False
+            return True
         if speech.spoken or time.monotonic() - started > args.timeout:
             GLib.idle_add(finished)
             return False
@@ -247,6 +327,13 @@ def main(argv: list[str]) -> int:
     window.destroy()
     for _ in range(20):
         GLib.MainContext.default().iteration(False)
+
+    if speak_to is not None:
+        if speak_to.is_file() and speak_to.stat().st_size:
+            print(f"replay_request: spoke to WAV {speak_to} ({speak_to.stat().st_size} bytes)")
+        else:
+            print(f"replay_request: NO WAV written at {speak_to}", file=sys.stderr)
+            return 1
 
     return 0 if spoken_text.strip() else 1
 

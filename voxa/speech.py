@@ -57,11 +57,39 @@ def espeak_voice(voice: str) -> str:
 # at the common speech boundary so streamed, prepared, and fallback voices
 # all receive the same speakable text.  An optional backslash removes the
 # Markdown escape along with the mark rather than making Voxa say "backslash".
-_ASTERISK_MARKS = re.compile(r"\\?[*\u2217\uff0a]")
+# A model also sprinkles emoji into a reply; the voice reads their long
+# Unicode names aloud ("smiling face with smiling eyes"), so drop every
+# emoji/pictograph before the text reaches any speech engine.
+_ASTERISK_MARKS = re.compile(r"\\?[*∗＊]")
+_MD_LINK = re.compile(r"\[([^\]]*)\]\([^)]*\)")
+_MD_MARKS = re.compile(r"[#>|~`]+")
+# Single-word emphasis "_em_" without mangling snake_case identifiers: an
+# underscore counts as a Markdown marker only when it is not glued to a word char.
+_MD_UNDERSCORE = re.compile(r"(?<!\w)_(?=\S)|(?<=\S)_(?!\w)")
+# Emoji and pictographic runs: Misc + Emoticons, Transport/Media, Supplemental,
+# Dingbats, the Variation Selectors and ZWJ that glue sequences together.
+_EMOJI = re.compile(
+    "["
+    "\U0001F000-\U0001FAFF"  # pictographs, emoticons, transport, extended-A
+    "\U0001F1E6-\U0001F1FF"  # regional indicators (flags)
+    "\U00002600-\U000027BF"  # Misc Symbols + Dingbats
+    "\U00002B00-\U00002BFF"  # arrows/symbols commonly used as emoji
+    "\U0000FE00-\U0000FE0F"  # variation selectors
+    "\U0000200D"  # zero-width joiner
+    "\U0000203C-\U00002B50"
+    "]+",
+    flags=re.UNICODE,
+)
 
 
 def _speakable_text(text: str) -> str:
-    return _ASTERISK_MARKS.sub("", text)
+    """The reply exactly as it should be spoken: no emoji, no Markdown, no escapes."""
+    text = _EMOJI.sub("", text)
+    text = _MD_LINK.sub(r"\1", text)  # [Paris](https://…) -> Paris
+    text = _ASTERISK_MARKS.sub("", text)
+    text = _MD_UNDERSCORE.sub("", text)
+    text = _MD_MARKS.sub("", text)
+    return text.strip()
 
 
 def _download_google_voice(text: str, path: str, lang: str = "en", tld: str = "com") -> None:
@@ -140,6 +168,27 @@ def _ensure_gstreamer() -> Any:
         Gst = _Gst
         GLib = _GLib
     return Gst
+
+
+def _audio_sink_spec() -> str:
+    """The configured output sink, e.g. ``file:/tmp/x.wav``, or "" for the user's default output."""
+    return os.environ.get("VOXA_AUDIO_SINK", "").strip()
+
+
+def _audio_sink_tail() -> str:
+    """The GStreamer elements that render speech.
+
+    Normally ``autoaudiosink`` (the user's default output device). With
+    ``VOXA_AUDIO_SINK=file:<path>`` the decoded speech is written to that file
+    instead of the speakers, which proves the whole speaking chain
+    (edge-tts -> decodebin -> ... -> sink) with no sound card and no microphone.
+    """
+    spec = _audio_sink_spec()
+    if spec.startswith("file:"):
+        path = spec[len("file:") :].strip()
+        if path:
+            return f'wavenc ! filesink location="{path}"'
+    return "autoaudiosink"
 
 
 class Prepared:
@@ -424,12 +473,13 @@ class SpeechService:
         pipeline = Gst.parse_launch(
             "appsrc name=source format=bytes block=true max-bytes=1048576 ! "
             "queue max-size-bytes=2097152 ! "
-            "decodebin ! audioconvert ! audioresample ! autoaudiosink"
+            f"decodebin ! audioconvert ! audioresample ! volume name=voxa_volume ! {_audio_sink_tail()}"
         )
         appsrc = pipeline.get_by_name("source")
         if appsrc is None:
             pipeline.set_state(Gst.State.NULL)
             raise RuntimeError("GStreamer appsrc is unavailable.")
+        self._log_reply_audio(pipeline, "stream")
 
         bus = pipeline.get_bus()
         bus.add_signal_watch()
@@ -448,6 +498,31 @@ class SpeechService:
             name="natural-speech-stream",
             daemon=True,
         ).start()
+
+    def _log_reply_audio(self, pipeline: Any, kind: str) -> None:
+        """One diagnostic line per reply: the output it played to, its mute and stream volume.
+
+        A silent Voxa can then be diagnosed from the log alone: a muted or zero-volume stream,
+        or a sink that is not the machine's default output, is the difference between "the model
+        answered nothing" and "the model answered but the sound went nowhere".
+        """
+        try:
+            volume = mute = None
+            element = pipeline.get_by_name("voxa_volume")
+            if element is not None:
+                volume = float(element.get_property("volume"))
+                mute = bool(element.get_property("mute"))
+            spec = _audio_sink_spec()
+            device = spec[len("file:") :] if spec.startswith("file:") else "default output (autoaudiosink)"
+            LOGGER.info(
+                "voxa reply audio: sink=%s kind=%s mute=%s stream_volume=%s",
+                device,
+                kind,
+                mute,
+                "" if volume is None else round(volume, 2),
+            )
+        except Exception:  # noqa: BLE001 - a diagnostic must never break speech
+            LOGGER.debug("could not log reply audio", exc_info=True)
 
     def _natural_worker(
         self,
@@ -685,6 +760,24 @@ class SpeechService:
                 os.unlink(path)
             return False
         self.temp_path = path
+        spec = _audio_sink_spec()
+        if spec.startswith("file:") and spec[len("file:") :].strip():
+            # Offline proof of the speaking chain: render the prepared audio through
+            # decodebin into the same WAV sink the live pipeline would use, no speakers.
+            sink_path = spec[len("file:") :].strip()
+            pipeline = Gst.parse_launch(
+                f'filesrc location="{path}" ! decodebin ! audioconvert ! audioresample ! '
+                f"volume name=voxa_volume ! wavenc ! filesink location=\"{sink_path}\""
+            )
+            self._log_reply_audio(pipeline, "file")
+            bus = pipeline.get_bus()
+            bus.add_signal_watch()
+            bus.connect("message::eos", self._on_eos, cancel_event)
+            bus.connect("message::error", self._on_error_message, cancel_event)
+            self.pipeline = pipeline
+            pipeline.set_state(Gst.State.PLAYING)
+            self._emit_started_for(cancel_event)
+            return False
         pipeline = Gst.ElementFactory.make("playbin")
         if pipeline is None:
             with contextlib.suppress(OSError):
