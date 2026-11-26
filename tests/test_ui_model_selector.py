@@ -131,3 +131,39 @@ def test_set_backend_strata_selects_third_without_callback() -> None:
     assert selector._backend_dropdown.get_selected() == 2
     assert selector.get_backend() == "strata"
     assert fired == []
+
+
+MODEL = "qwen3.5-0.8b-q4km:latest"
+
+
+def test_empty_then_filled_selects_the_configured_model() -> None:
+    # The fake backend is unreachable at first (empty list), then fills up.
+    selector = ModelSelector()
+    selector.set_models([], selected=MODEL)
+    assert selector.get_selected() == ""
+    selector.set_models(["othermodel", MODEL], selected=MODEL)
+    assert selector.get_selected() == MODEL
+
+
+def test_configured_model_missing_from_list_is_shown_not_installed() -> None:
+    # A reachable backend whose list lacks the configured model still names it.
+    selector = ModelSelector()
+    selector.set_models(["othermodel"], selected=MODEL)
+    items = [selector._items.get_string(i) for i in range(selector._items.get_n_items())]
+    assert f"{MODEL} (not installed)" in items
+    assert selector.get_selected() == f"{MODEL} (not installed)"
+
+
+def test_unreachable_backend_shows_a_name_not_none() -> None:
+    selector = ModelSelector()
+    selector.set_models(["Ollama not running"], selected=MODEL, reachable=False)
+    assert selector.get_selected() == "Ollama not running"
+    assert selector._dropdown.get_sensitive()
+
+
+def test_a_real_model_list_never_shows_none() -> None:
+    # GTK's empty "(None)" placeholder is exactly what 2b removes: with a model
+    # list and a configured model that is not in it, something is always selected.
+    selector = ModelSelector()
+    selector.set_models(["firstmodel", "secondmodel"], selected="absent-model")
+    assert selector.get_selected() == "absent-model (not installed)"

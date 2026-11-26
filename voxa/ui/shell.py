@@ -208,10 +208,10 @@ class AssistantShell(Gtk.Overlay):
     # ------------------------------------------------------------ public API
 
     def set_models(
-        self, models: list[str], selected: str = "", backend: str = "llamacpp"
+        self, models: list[str], selected: str = "", backend: str = "llamacpp", reachable: bool = True
     ) -> None:
         """Fill the model dropdown and select the active backend."""
-        self.model_selector.set_models(models, selected)
+        self.model_selector.set_models(models, selected, reachable)
         self.model_selector.set_backend(backend)
 
     def set_backend(self, backend: str) -> None:

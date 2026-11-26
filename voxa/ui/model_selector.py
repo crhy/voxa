@@ -161,18 +161,34 @@ class ModelSelector(Gtk.Box):
         lbl = list_item.get_child()
         lbl.set_text(item.get_string())
 
-    def set_models(self, models: list[str], selected: str = "") -> None:
-        """Fill the dropdown from a model list without triggering the callback."""
+    def set_models(self, models: list[str], selected: str = "", reachable: bool = True) -> None:
+        """Fill the dropdown from a model list without triggering the callback.
+
+        The dropdown always shows a real model name, never GTK's empty "(None)":
+
+        * the configured ``selected`` model is selected when it is in the list;
+        * a reachable backend whose list is missing the configured model shows it
+          with ``(not installed)`` instead of silently dropping it;
+        * otherwise the first item is selected.
+        """
         self._updating = True
         try:
             self._models = list(models)
             if not self._models:
                 self._items.splice(0, self._items.get_n_items(), [EMPTY_LABEL])
+                self._dropdown.set_sensitive(False)
             else:
-                self._items.splice(0, self._items.get_n_items(), self._models)
-                if selected in self._models:
-                    self._dropdown.set_selected(self._models.index(selected))
-            self._dropdown.set_sensitive(bool(self._models))
+                items = list(self._models)
+                if selected and selected in items:
+                    sel_index = items.index(selected)
+                elif selected and reachable:
+                    items.append(f"{selected} (not installed)")
+                    sel_index = len(items) - 1
+                else:
+                    sel_index = 0
+                self._items.splice(0, self._items.get_n_items(), items)
+                self._dropdown.set_selected(sel_index)
+                self._dropdown.set_sensitive(True)
             self._dropdown.set_tooltip_text(self.get_selected() or None)
         finally:
             self._updating = False

@@ -106,7 +106,7 @@ from .ollama import OllamaClient, OllamaError, strip_reasoning  # noqa: E402
 from .ownspeech import OwnSpeech  # noqa: E402
 from .pausewords import is_pause_request, resume_request  # noqa: E402
 from .replylang import LANGUAGES, is_only_a_language_request, requested_language  # noqa: E402
-from .server import SERVER_FAILED, SERVER_STARTING, SERVER_UNAVAILABLE, AiServerManager  # noqa: E402
+from .server import SERVER_FAILED, SERVER_READY, SERVER_STARTING, SERVER_UNAVAILABLE, AiServerManager  # noqa: E402
 from .speakstream import SentenceFeeder, looks_like_reasoning  # noqa: E402
 from .speech import SpeechService  # noqa: E402
 from .theme import host_theme_is_dark, initial_size  # noqa: E402
@@ -167,6 +167,8 @@ CONVERSATION_HISTORY_MESSAGES = 24
 CONVERSATION_SYSTEM_PROMPT = (
     "You are Voxa, a hands-free voice assistant on the user's desktop. Keep "
     "answers short and conversational — one or two sentences — since they are spoken aloud. "
+    "Answer only what you actually know; if you are not sure or do not know, say so plainly "
+    "instead of guessing or inventing a number or fact. "
     "You cannot perform actions in this reply: never say you opened, closed, sent, played, "
     "saved, deleted, booked or changed anything. If the user asked for an action you cannot "
     "perform, say you could not do it and suggest how to phrase it as a direct command."
@@ -255,6 +257,50 @@ def short_model_name(model: str) -> str:
     if len(name) > 28:
         return name[:27] + "…"
     return name
+
+
+def audio_output_state() -> str:
+    """One-line snapshot of the real output Voxa speaks to, for the reply log.
+
+    A silent Voxa is usually a muted or turned-down sink, so each reply logs the
+    device it played to, that device's mute state and stream volume. Read-only
+    pactl queries; any failure degrades to "unknown" rather than raising.
+    """
+    def pactl(*args: str) -> str:
+        try:
+            result = subprocess.run(
+                ["pactl", *args], capture_output=True, text=True, timeout=2.0, check=False
+            )
+        except (OSError, subprocess.SubprocessError):
+            return ""
+        return result.stdout if result.returncode == 0 else ""
+
+    default = pactl("get-default-sink").strip()
+    listing = pactl("list", "sinks")
+    if not listing:
+        return "device=unknown mute=unknown volume=unknown (no pactl)"
+    blocks = [b for b in re.split(r"(?m)^Sink #", listing) if "Name:" in b]
+    chosen, name_m = None, None
+    for block in blocks:
+        found = re.search(r"Name: (\S+)", block)
+        if found and (not default or found.group(1) == default):
+            chosen, name_m = block, found
+            break
+    if chosen is None and blocks:
+        name_m = re.search(r"Name: (\S+)", blocks[0])
+        chosen = blocks[0]
+    if chosen is None:
+        return "device=unknown mute=unknown volume=unknown"
+    device = name_m.group(1) if name_m else "unknown"
+    mute = re.search(r"Mute: (\w+)", chosen)
+    volume = re.search(r"Volume:.*?(\d+)%", chosen)
+    base = re.search(r"Base Volume:.*?(\d+)%", chosen)
+    return (
+        f"device={device} "
+        f"mute={mute.group(1) if mute else 'unknown'} "
+        f"volume={volume.group(1) if volume else 'unknown'}% "
+        f"base_volume={base.group(1) if base else 'unknown'}%"
+    )
 
 
 # "Open the website" after a web search: the site of the last searched URL, remembered this long.
@@ -384,6 +430,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.query_cancel = threading.Event()
         self.devices: list[AudioDevice] = []
         self.ollama_models: list[str] = []
+        self._models_unreachable = False  # the picker shows "<backend> not running", not a real model
         self._progress_source = 0
         self._level_source = 0
         self._latest_level = 0.0
@@ -743,6 +790,10 @@ class MainWindow(Adw.ApplicationWindow):
         health = self.ai_server.health()
         if health.status in {SERVER_FAILED, SERVER_UNAVAILABLE} and health.last_error:
             self._toast(health.last_error.splitlines()[0])
+        elif health.status == SERVER_READY and self._models_unreachable:
+            # The backend only became reachable now (Ollama started late, or was
+            # restarted): the picker must show the real model instead of "not running".
+            self._refresh_ollama_models()
         return False
 
     def _start_ai_server_async(self) -> None:
@@ -1450,9 +1501,10 @@ class MainWindow(Adw.ApplicationWindow):
             if generation != self._models_generation:
                 return
             if models is None:
-                # Say so in the model picker too ("No models available - Ollama") instead of
-                # leaving it blank, and keep the saved model selection untouched.
-                idle(self._show_no_models)
+                # Say so in the model picker too ("Ollama not running") instead of
+                # leaving it blank or on GTK's empty "(None)", and keep the saved
+                # model selection untouched.
+                idle(self._show_no_models, label)
                 idle(
                     self._set_status,
                     f"The AI server ({label}) is offline. Dictation is still available.",
@@ -1468,17 +1520,29 @@ class MainWindow(Adw.ApplicationWindow):
         self.shell.model_selector.set_status("starting")
         return False
 
-    def _show_no_models(self) -> bool:
-        self.ollama_models = []
-        self._apply_model_combo([])
+    def _show_no_models(self, label: str = "") -> bool:
+        """The backend is reachable but has no models, or a named backend is not running.
+
+        An unreachable backend names itself in the picker ("Ollama not running")
+        instead of leaving it blank or showing GTK's empty "(None)".
+        """
+        self._models_unreachable = True
+        if label:
+            message = f"{label} not running"
+            self.ollama_models = [message]
+            self._apply_model_combo([message], reachable=False)
+        else:
+            self.ollama_models = []
+            self._apply_model_combo([], reachable=False)
         self.shell.model_selector.set_status("offline")
         return False
 
     def _show_backend_offline(self, label: str) -> bool:
         """A backend Voxa does not manage (Strata) is down: name it in the picker."""
-        message = f"{label} is not running"
+        message = f"{label} not running"
+        self._models_unreachable = True
         self.ollama_models = [message]
-        self._apply_model_combo([message])
+        self._apply_model_combo([message], reachable=False)
         self.shell.model_selector.set_status("offline")
         return False
 
@@ -1596,6 +1660,7 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def _apply_ollama_models(self, models: list[str]) -> bool:
+        self._models_unreachable = False
         backend = self.settings.ai_backend
         if self._welcome_followup and welcome.real_models(models):
             self._welcome_followup = False
@@ -1625,9 +1690,9 @@ class MainWindow(Adw.ApplicationWindow):
         label = smallbrain.label_for_path(self.settings.llamacpp_model)
         return label or self.settings.llamacpp_model
 
-    def _apply_model_combo(self, models: list[str]) -> None:
+    def _apply_model_combo(self, models: list[str], reachable: bool = True) -> None:
         selected_label = self._selected_model_label()
-        self.shell.set_models(models, selected_label, self.settings.ai_backend)
+        self.shell.set_models(models, selected_label, self.settings.ai_backend, reachable)
         if not models:
             self.model_combo.set_visible(False)
             return
@@ -3020,6 +3085,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._barge_trace("speak-start", path="whole-reply", conversation=self.conversation_active,
                           muted=bool(self.conversation is not None and self.conversation.muted),
                           level_timer=bool(self._level_source), text=text[:50])
+        logging.info("reply audio: %s", audio_output_state())
         token = self.assistant.token()
         self.assistant.reply_started(token)
         # Tie the completion notification to this reply: after a barge-in the old speech's
@@ -3797,10 +3863,14 @@ class MainWindow(Adw.ApplicationWindow):
                         and self._query_is_current(generation, cancel_event)
                         and not cancel_event.is_set()
                     ):
-                        loaded = client.is_model_loaded(model)
-                        if loaded is not None:
-                            break
-                        time.sleep(AI_SERVER_WAIT_DELAY)
+                    loaded = client.is_model_loaded(model)
+                    if loaded is not None:
+                        break
+                    time.sleep(AI_SERVER_WAIT_DELAY)
+                if loaded is not None:
+                    # The restarted backend is reachable again: fill the picker with
+                    # the real model list so it stops saying "not running".
+                    idle(self._refresh_ollama_models)
                 if loaded is False:
                     idle(self._on_model_loading, model, generation, cancel_event)
                 self._action_pending = (heard, route, time.monotonic())
@@ -4498,6 +4568,7 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _speak_apology(self) -> None:
         """Hands-free users cannot see the toast: the failed request must be heard too."""
+        logging.info("reply audio: %s", audio_output_state())
         self.speech.speak(
             AI_APOLOGY,
             self.settings.tts_rate,

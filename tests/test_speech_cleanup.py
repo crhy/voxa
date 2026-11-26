@@ -101,6 +101,33 @@ def test_prepared_speech_removes_asterisks_too(monkeypatch):
     assert item.text == "This is also clean."
 
 
+def test_speak_strips_emoji_and_markdown_before_synthesis(monkeypatch):
+    # Claude's review of vf03: replies contain emoji and Markdown that TTS reads
+    # aloud ("smiling face with smiling eyes", "asterisk"). The spoken reply must
+    # carry neither; the shown reply is left untouched (speech.py is the boundary).
+    service = SpeechService()
+    spoken: list[str] = []
+
+    monkeypatch.setattr(speech_mod, "edge_tts", object())
+    monkeypatch.setattr(
+        service,
+        "_start_natural_stream",
+        lambda text, _rate, _voice, _cancel: spoken.append(text),
+    )
+
+    service.speak(
+        "# Title 😊 **bold** _under_ `code` [label](https://example.com) 🎉",
+        180,
+        "en-US-AriaNeural",
+        on_started=lambda: None,
+        on_done=lambda: None,
+        on_error=lambda _error: None,
+    )
+
+    assert spoken == ["Title bold under code label"]
+    assert "😊" not in spoken[0] and "*" not in spoken[0] and "[" not in spoken[0]
+
+
 def test_cancel_after_first_chunk_closes_stream():
     created = []
     seen = []

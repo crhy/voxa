@@ -53,15 +53,43 @@ def espeak_voice(voice: str) -> str:
     return language
 
 # Speech engines may pronounce Markdown emphasis and list markers as
-# "asterisk".  Leave the displayed reply untouched, but remove those marks
+# "asterisk", and may read emoji names out loud ("smiling face with smiling
+# eyes").  Leave the displayed reply untouched, but remove emoji and Markdown
 # at the common speech boundary so streamed, prepared, and fallback voices
 # all receive the same speakable text.  An optional backslash removes the
 # Markdown escape along with the mark rather than making Voxa say "backslash".
-_ASTERISK_MARKS = re.compile(r"\\?[*\u2217\uff0a]")
+_ASTERISK_MARKS = re.compile(r"\\?[*＊]")
+_MD_LINK = re.compile(r"\[([^\]]*)\]\([^)]*\)")
+_MD_CODE = re.compile(r"`+")
+_MD_UNDERSCORE = re.compile(r"[_~]{1,3}")
+_MD_HEADING = re.compile(r"(?m)^[ \t]{0,3}#{1,6}[ \t]+")
+_MD_BLOCKQUOTE = re.compile(r"(?m)^[ \t]*>[ \t]?")
+_MD_BULLET = re.compile(r"(?m)^[ \t]*[-+][ \t]+")
+# Emoji, pictographs, dingbats, variation selectors and the zero-width joiner
+# that stitches multi-codepoint emoji together. No ASCII and no ordinary
+# punctuation falls in these ranges, so only real emoji are removed.
+_EMOJI = re.compile(
+    "["
+    "\U0001F1E6-\U0001F1FF"  # regional indicators / flags
+    "\U0001F300-\U0001FAFF"  # pictographs, emoticons, symbols & pictographs extended
+    "\U00002600-\U000027BF"  # misc symbols and dingbats
+    "\U00002B00-\U00002BFF"  # arrows/squares block
+    "\U0000FE00-\U0000FE0F"  # variation selectors
+    "\U000020E3"  # combining enclosing keycap
+    "\U0000200D"  # zero-width joiner
+    "]+"
+)
 
 
 def _speakable_text(text: str) -> str:
-    return _ASTERISK_MARKS.sub("", text)
+    text = _EMOJI.sub("", text)
+    text = _MD_LINK.sub(r"\1", text)
+    text = _MD_HEADING.sub("", text)
+    text = _MD_BLOCKQUOTE.sub("", text)
+    text = _MD_BULLET.sub("", text)
+    text = _MD_CODE.sub("", text)
+    text = _ASTERISK_MARKS.sub("", text)
+    return _MD_UNDERSCORE.sub("", text)
 
 
 def _download_google_voice(text: str, path: str, lang: str = "en", tld: str = "com") -> None:
@@ -140,6 +168,19 @@ def _ensure_gstreamer() -> Any:
         Gst = _Gst
         GLib = _GLib
     return Gst
+
+
+def _file_sink_path() -> str:
+    """The WAV path VOXA_AUDIO_SINK=file:<path> asks the speech pipeline to write.
+
+    Empty when unset, in which case the pipeline uses the user's default output
+    (autoaudiosink). Only the streaming path honours it; normal use leaves the
+    sink at autoaudiosink.
+    """
+    sink = (os.environ.get("VOXA_AUDIO_SINK") or "").strip()
+    if sink.startswith("file:") and len(sink) > len("file:"):
+        return sink[len("file:"):]
+    return ""
 
 
 class Prepared:
@@ -421,15 +462,33 @@ class SpeechService:
         cancel_event: threading.Event,
     ) -> None:
         _ensure_gstreamer()
-        pipeline = Gst.parse_launch(
-            "appsrc name=source format=bytes block=true max-bytes=1048576 ! "
-            "queue max-size-bytes=2097152 ! "
-            "decodebin ! audioconvert ! audioresample ! autoaudiosink"
-        )
+        sink_path = _file_sink_path()
+        if sink_path:
+            # Offline proof of the whole speaking chain without a speaker:
+            # VOXA_AUDIO_SINK=file:<path> renders through the real edge-tts ->
+            # decodebin -> ... chain and writes a WAV instead of autoaudiosink.
+            launch = (
+                "appsrc name=source format=bytes block=true max-bytes=1048576 ! "
+                "queue max-size-bytes=2097152 ! "
+                "decodebin ! audioconvert ! audioresample ! wavenc ! filesink name=voxa_sink"
+            )
+        else:
+            launch = (
+                "appsrc name=source format=bytes block=true max-bytes=1048576 ! "
+                "queue max-size-bytes=2097152 ! "
+                "decodebin ! audioconvert ! audioresample ! autoaudiosink"
+            )
+        pipeline = Gst.parse_launch(launch)
         appsrc = pipeline.get_by_name("source")
         if appsrc is None:
             pipeline.set_state(Gst.State.NULL)
             raise RuntimeError("GStreamer appsrc is unavailable.")
+        if sink_path:
+            file_sink = pipeline.get_by_name("voxa_sink")
+            if file_sink is None:
+                pipeline.set_state(Gst.State.NULL)
+                raise RuntimeError("GStreamer file sink is unavailable.")
+            file_sink.set_property("location", sink_path)
 
         bus = pipeline.get_bus()
         bus.add_signal_watch()
