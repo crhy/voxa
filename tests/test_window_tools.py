@@ -851,4 +851,9 @@ def test_window_says_strata_not_running_when_server_down(window, monkeypatch) ->
     window.settings.ai_backend = "strata"
     window._ai_client = lambda: StrataDownClient()
     REAL_REFRESH(window)
-    assert _settle(window, lambda: window.ollama_models == ["Strata is not running"])
+    # vf04 made the placeholder display-only: what the user SEES is the picker, and
+    # the real model list stays empty so nothing can save "Strata not running".
+    selector = window.shell.model_selector
+    assert _settle(window, lambda: selector.get_selected() == "Strata not running")
+    assert [selector._items.get_string(i) for i in range(selector._items.get_n_items())] == ["Strata not running"]
+    assert window.ollama_models == []
