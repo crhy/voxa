@@ -1857,7 +1857,7 @@ class MainWindow(Adw.ApplicationWindow):
             delete_button.add_css_class("flat")
             delete_button.set_tooltip_text(f"Remove {name}")
             delete_button.connect(
-                "clicked", lambda _btn, model=name: self._confirm_delete_model(dialog, model)
+                "clicked", lambda _btn, model=name: self._remove_model(dialog, model)
             )
             row.add_suffix(delete_button)
             installed_rows[name] = row
@@ -2131,38 +2131,23 @@ class MainWindow(Adw.ApplicationWindow):
 
         dialog.present(self)
 
-    def _confirm_delete_model(self, parent_dialog: Adw.Dialog, model: str) -> None:
-        confirm = Adw.AlertDialog(
-            heading=f"Remove {model}?",
-            body="This deletes the downloaded model from disk. You can pull it again later.",
-        )
-        confirm.add_response("cancel", "Cancel")
-        confirm.add_response("delete", "Remove")
-        confirm.set_response_appearance("delete", Adw.ResponseAppearance.DESTRUCTIVE)
-        confirm.set_default_response("cancel")
-        confirm.set_close_response("cancel")
+    def _remove_model(self, parent_dialog: Adw.Dialog, model: str) -> None:
+        """Remove a model at once: Voxa never asks first."""
+        endpoint = self.settings.ollama_url
 
-        def on_response(_dialog, response: str) -> None:
-            if response != "delete":
-                return
-            endpoint = self.settings.ollama_url
-
-            def worker() -> None:
+        def worker() -> None:
+            try:
+                OllamaClient(endpoint).delete_model(model)
                 try:
-                    OllamaClient(endpoint).delete_model(model)
-                    try:
-                        models = OllamaClient(endpoint).list_models()
-                    except OllamaError:
-                        models = [name for name in self.ollama_models if name != model]
-                    idle(self._apply_ollama_models, models)
-                    idle(self._on_model_deleted, parent_dialog, True, f"Removed {model}.")
-                except OllamaError as exc:
-                    idle(self._on_model_deleted, parent_dialog, False, str(exc))
+                    models = OllamaClient(endpoint).list_models()
+                except OllamaError:
+                    models = [name for name in self.ollama_models if name != model]
+                idle(self._apply_ollama_models, models)
+                idle(self._on_model_deleted, parent_dialog, True, f"Removed {model}.")
+            except OllamaError as exc:
+                idle(self._on_model_deleted, parent_dialog, False, str(exc))
 
-            threading.Thread(target=worker, name="ollama-delete", daemon=True).start()
-
-        confirm.connect("response", on_response)
-        confirm.present(parent_dialog)
+        threading.Thread(target=worker, name="ollama-delete", daemon=True).start()
 
     def _on_model_deleted(self, parent_dialog: Adw.Dialog, success: bool, message: str) -> bool:
         self._toast(message)
@@ -2972,10 +2957,9 @@ class MainWindow(Adw.ApplicationWindow):
             and not detail.startswith((radio.ASK_RADIO, livetv.ASK_TV))
         )
         ended = True
-        if detail == saveflow.ASK_NAME or detail.startswith(saveflow.ASK_REPLACE):
+        if detail == saveflow.ASK_NAME:
             # A save window is open and needs an answer: the next thing the user says belongs to it.
-            name = detail[len(saveflow.ASK_REPLACE):] if detail.startswith(saveflow.ASK_REPLACE) else ""
-            self._save_flow = saveflow.SaveFlow(name, replacing=bool(name))
+            self._save_flow = saveflow.SaveFlow()
             self.assistant_model.set_state(AssistantState.DICTATING, self._save_flow.caption)
             if self.conversation is not None:
                 self.conversation.hold_prompt()
@@ -3538,7 +3522,7 @@ class MainWindow(Adw.ApplicationWindow):
             self.conversation.release_prompt()
 
     def _feed_save_flow(self, text: str) -> None:
-        """One answer in a save conversation: the file name, or yes/no to replacing a file."""
+        """One answer in a save conversation: the file name; an existing file is replaced at once."""
         flow = self._save_flow
         speech, action = flow.feed(text)
         self._log_action(text, "save", detail=f"{action or 'ask'}: {flow.name}")
@@ -3556,11 +3540,13 @@ class MainWindow(Adw.ApplicationWindow):
                     said = flow.failed()
                 elif action == "type":
                     outcome = dialog.type_name(flow.name)
-                    said = flow.saved() if outcome == "saved" else flow.exists() if outcome == "exists" else flow.failed()
-                elif action == "replace":
-                    said = flow.saved() if dialog.replace() == "saved" else flow.failed()
-                elif action == "rename":
-                    dialog.dismiss_question()
+                    if outcome == "saved":
+                        said = flow.saved()
+                    elif outcome == "exists":
+                        # The name exists: press the editor's Replace button at once; Voxa never asks.
+                        said = flow.replaced() if dialog.replace() == "saved" else flow.failed()
+                    else:
+                        said = flow.failed()
                 elif action == "cancel":
                     dialog.cancel()
             except Exception as exc:  # noqa: BLE001 - the dialog is another program's; never crash on it

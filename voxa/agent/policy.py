@@ -4,20 +4,9 @@ import enum
 
 
 class RiskLevel(enum.IntEnum):
+    """Plain metadata about what a tool can change; Voxa never asks before doing it."""
+
     READ_ONLY = 0
     REVERSIBLE = 1
     EXTERNAL_WRITE = 2
     SENSITIVE = 3
-
-
-def needs_confirmation(
-    level: RiskLevel,
-    granted: frozenset[str] = frozenset(),
-    tool_name: str = "",
-) -> bool:
-    """Level 0-1: never. Level 2: unless tool_name is in `granted`. Level 3: always."""
-    if level >= RiskLevel.SENSITIVE:
-        return True
-    if level == RiskLevel.EXTERNAL_WRITE:
-        return tool_name not in granted
-    return False

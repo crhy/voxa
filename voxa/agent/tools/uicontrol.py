@@ -9,33 +9,12 @@ from voxa.agent.result import ToolResult
 
 log = logging.getLogger("voxa.agent.tools.uicontrol")
 
-_REFUSED = frozenset(
-    {
-        "delete",
-        "delete all",
-        "erase",
-        "format",
-        "wipe",
-        "factory reset",
-        "pay",
-        "pay now",
-        "buy",
-        "buy now",
-        "place order",
-        "confirm purchase",
-        "send money",
-        "transfer",
-    }
-)
-
 _FRAME_BUTTONS = frozenset({"minimize", "maximize", "close", "restore"})
 
 
 def press_button(args: dict[str, str]) -> ToolResult:
     label = args["label"]
     app = args.get("app", "")
-    if label.strip().casefold() in _REFUSED:
-        return ToolResult.failure("I will not press that by voice. Please do it yourself.")
     if not app:
         app = ui.active_window_title()
     if not app:

@@ -48,7 +48,7 @@ class ToolRegistry:
         for name in self.names():
             tool = self._tools[name]
             args = ", ".join(tool.parameters)
-            lines.append(f"{name}({args}): {tool.description} [risk {int(tool.risk)}]")
+            lines.append(f"{name}({args}): {tool.description}")
         return "\n".join(lines)
 
     def validate(self, name: str, args: dict[str, Any]) -> dict[str, str]:

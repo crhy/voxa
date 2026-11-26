@@ -1,7 +1,8 @@
 """Saving a file by voice: "What should I save the file as?", the name, then Save.
 
 Pure conversation logic: what Voxa says and what the caller must do in the file dialog next.
-The dialog itself is driven by ``voxa.agent.tools.files``.
+The dialog itself is driven by ``voxa.agent.tools.files``. An existing file is simply
+replaced; Voxa never asks first.
 """
 
 from __future__ import annotations
@@ -10,11 +11,8 @@ import re
 
 QUESTION = "What should I save the file as?"
 ASK_NAME = "ask-save-name"  # ToolResult.detail: a save dialog is open and needs a name
-ASK_REPLACE = "ask-save-replace:"  # ToolResult.detail prefix: the name exists; the name follows
 
 _CANCEL = re.compile(r"^(?:cancel|never ?mind|forget it|stop|don'?t save(?: it)?|no(?:,? thanks)?)[.!]?$", re.IGNORECASE)
-_YES = re.compile(r"^(?:yes|yeah|yep|sure|ok(?:ay)?|replace(?: it)?|overwrite(?: it)?|do it|go ahead)\b", re.IGNORECASE)
-_NO = re.compile(r"^(?:no|nope|don'?t|keep it|a different name|another name)\b", re.IGNORECASE)
 _LEAD = re.compile(
     r"^(?:(?:please\s+)?(?:save|call|name|title)\s+(?:it|this|the file|the document)\s+(?:as\s+)?|as\s+|it'?s\s+)", re.IGNORECASE
 )
@@ -35,14 +33,13 @@ def clean_name(spoken: str) -> str:
 class SaveFlow:
     """One save: ``feed`` returns (what to say, what to do).
 
-    Actions: ``"type"`` (put ``self.name`` in the dialog and press Save), ``"replace"`` (confirm
-    the overwrite), ``"rename"`` (dismiss the overwrite question; a new name follows),
-    ``"cancel"`` (close the dialog), or ``None`` (only speak).
+    Actions: ``"type"`` (put ``self.name`` in the dialog and press Save) or ``"cancel"``
+    (close the dialog), or ``None`` (only speak).
     """
 
-    def __init__(self, name: str = "", replacing: bool = False) -> None:
+    def __init__(self, name: str = "") -> None:
         self.name = name
-        self.state = "replace" if replacing else "name"
+        self.state = "name"
 
     @property
     def active(self) -> bool:
@@ -50,20 +47,10 @@ class SaveFlow:
 
     @property
     def caption(self) -> str:
-        return "Replace the file?" if self.state == "replace" else "Naming the file…"
+        return "Naming the file…"
 
     def feed(self, text: str) -> tuple[str, str | None]:
         said = text.strip()
-        if self.state == "replace":
-            if _YES.match(said):
-                return "", "replace"
-            if _CANCEL.match(said) and not _NO.match(said):
-                self.state = "done"
-                return "Okay, I did not save it.", "cancel"
-            if _NO.match(said):
-                self.state = "name"
-                return "What should I call it instead?", "rename"
-            return f"Should I replace {self.name}? Say yes or no.", None
         if _CANCEL.match(said):
             self.state = "done"
             return "Okay, I did not save it.", "cancel"
@@ -73,14 +60,14 @@ class SaveFlow:
         self.name = name
         return "", "type"
 
-    def exists(self) -> str:
-        """The dialog says a file with this name is already there."""
-        self.state = "replace"
-        return f"A file called {self.name} already exists. Replace it?"
-
     def saved(self) -> str:
         self.state = "done"
         return f"Saved as {self.name}."
+
+    def replaced(self) -> str:
+        """The existing file was replaced without asking."""
+        self.state = "done"
+        return f"Replaced {self.name}."
 
     def failed(self) -> str:
         self.state = "done"

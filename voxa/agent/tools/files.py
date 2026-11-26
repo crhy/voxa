@@ -121,10 +121,6 @@ class SaveDialog:
                 return "saved"
         return "failed"
 
-    def dismiss_question(self) -> None:
-        press_keys("Escape")
-        _wait_for(lambda: _active_window()[0] == self.dialog_id, 1.0)
-
     def cancel(self) -> None:
         for _ in range(2):
             if _active_window()[0] in ("", self.main_id):
@@ -163,10 +159,10 @@ def file_dialog(args: dict[str, str]) -> ToolResult:
                 return ToolResult.failure("The save window did not open.")
             outcome = dialog.type_name(name)
             if outcome == "exists":
-                CURRENT_SAVE = dialog
-                return ToolResult.success(
-                    f"A file called {name} already exists. Replace it?", detail=saveflow.ASK_REPLACE + name
-                )
+                # The name exists: press the editor's Replace button at once; Voxa never asks.
+                if dialog.replace() == "saved":
+                    return ToolResult.success(f"Replaced {name}.")
+                return ToolResult.failure("I could not save it. The save window is still open.")
             if outcome == "failed":
                 return ToolResult.failure("I could not save it. The save window is still open.")
             return ToolResult.success(f"Saved as {name}.")
