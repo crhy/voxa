@@ -388,7 +388,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._search_record: dict | None = None
         # heard/route/monotonic-start of the model request whose pre-call action
         # record was written, so its final record can carry ok/speech/ms.
-        self._action_pending: tuple[str, str, float] | None = None
+        self._action_pending: tuple[str, str, float, int] | None = None
         self._search_source = ""
         self._search_results: list = []
         self._last_site_url: tuple[float, str] | None = None
@@ -3095,7 +3095,14 @@ class MainWindow(Adw.ApplicationWindow):
         self._barge_trace("speak-start", path="whole-reply", conversation=self.conversation_active,
                           muted=bool(self.conversation is not None and self.conversation.muted),
                           level_timer=bool(self._level_source), text=text[:50])
-        logging.info("reply audio: %s", audio_output_state())
+        # vf04: audio_output_state() shells out to pactl twice (2 s timeout each).
+        # It ran on the GTK main thread for every reply, stalling the UI; the
+        # query and its log line now run on a daemon thread.
+        threading.Thread(
+            target=lambda: logging.info("reply audio: %s", audio_output_state()),
+            name="reply-audio",
+            daemon=True,
+        ).start()
         token = self.assistant.token()
         self.assistant.reply_started(token)
         # Tie the completion notification to this reply: after a barge-in the old speech's
@@ -3883,7 +3890,11 @@ class MainWindow(Adw.ApplicationWindow):
                         idle(self._refresh_ollama_models)
                     if loaded is False:
                         idle(self._on_model_loading, model, generation, cancel_event)
-                self._action_pending = (heard, route, time.monotonic())
+                if self._query_is_current(generation, cancel_event):
+                    # vf04: the record carries its query generation. A slow worker
+                    # from an old query used to overwrite (or get read as) the
+                    # pending record of the query that replaced it.
+                    self._action_pending = (heard, route, time.monotonic(), generation)
                 answer = client.generate_stream(
                     model=model,
                     prompt=prompt,
@@ -4482,7 +4493,7 @@ class MainWindow(Adw.ApplicationWindow):
                 self._conversation_history.drop_last()
             self._pending_user_generation = None
             self._end_query_task("cancelled")
-            self._finish_action_record(ok=False, detail="cancelled")
+            self._finish_action_record(generation, ok=False, detail="cancelled")
             self._set_status("AI request stopped.")
             return False
         self._end_query_task("done")
@@ -4522,7 +4533,7 @@ class MainWindow(Adw.ApplicationWindow):
                 self.assistant.reply_finished(self.assistant.token(), waiting_for_prompt=waiting)
             if answer and self.settings.auto_speak:
                 self.speak_response()
-        self._finish_action_record(speech=spoken)
+        self._finish_action_record(generation, speech=spoken)
         return False
 
     def _on_query_error(
@@ -4538,7 +4549,7 @@ class MainWindow(Adw.ApplicationWindow):
             self._conversation_history.drop_last()
         self._pending_user_generation = None
         self._end_query_task("failed", error)
-        self._finish_action_record(ok=False, detail=error)
+        self._finish_action_record(generation, ok=False, detail=error)
         logging.warning("AI request failed: %s", error)
         if self.conversation_active:
             self._fail_assistant("The AI request failed")
@@ -4547,16 +4558,18 @@ class MainWindow(Adw.ApplicationWindow):
         self._set_status(self._conversation_idle_status() if self.conversation_active else "AI request failed.")
         return False
 
-    def _finish_action_record(self, ok: bool = True, speech: str = "", detail: str = "") -> None:
+    def _finish_action_record(self, generation: int, ok: bool = True, speech: str = "", detail: str = "") -> None:
         """Write the final record of a model request the pre-call record was logged for.
 
         Without it the action log only ever shows the pre-call line (ok null, empty
-        speech, ms 0) for every heard request, healthy or broken alike.
+        speech, ms 0) for every heard request, healthy or broken alike. vf04: only a
+        record written by THIS query generation is finished; a stale worker's tuple
+        is dropped instead of stamping the wrong request.
         """
         pending, self._action_pending = self._action_pending, None
-        if pending is None:
+        if pending is None or pending[3] != generation:
             return
-        heard, route, started = pending
+        heard, route, started = pending[:3]
         self._log_action(
             heard,
             route,

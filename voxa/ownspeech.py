@@ -94,7 +94,10 @@ class OwnSpeech:
                     run = 1
                     while i + run < n and p + run < m and _fuzzy_equal(heard_words[i + run], words[p + run]):
                         run += 1
-                    if run >= mid_min and (i == 0 or heard_words[i - 1] in protect or removed[i - 1] or run >= MIN_RUN + 3):
+                    # vf04: the guard used to repeat the mid_min condition; when the
+                    # word before the run is unprotected it requires run >= MIN_RUN + 3,
+                    # which mid_min already encodes, so one condition is enough.
+                    if run >= mid_min:
                         for k in range(i, i + run):
                             if heard_words[k] not in protect:
                                 removed[k] = True
