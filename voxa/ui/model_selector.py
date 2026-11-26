@@ -13,6 +13,7 @@ from gi.repository import Gtk, Pango  # noqa: E402
 from ..server import SERVER_READY, SERVER_STARTING  # noqa: E402
 
 EMPTY_LABEL = "No models available"
+NOT_INSTALLED_SUFFIX = " (not installed)"
 BACKENDS = ["llama.cpp", "Ollama", "Strata"]
 BACKEND_VALUES = ["llamacpp", "ollama", "strata"]
 MAX_BUTTON_CHARS = 24
@@ -182,7 +183,7 @@ class ModelSelector(Gtk.Box):
                 if selected and selected in items:
                     sel_index = items.index(selected)
                 elif selected and reachable:
-                    items.append(f"{selected} (not installed)")
+                    items.append(selected + NOT_INSTALLED_SUFFIX)
                     sel_index = len(items) - 1
                 else:
                     sel_index = 0

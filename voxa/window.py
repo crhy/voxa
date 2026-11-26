@@ -116,7 +116,7 @@ from .ui.avatars import character_choices, describe_characters, find_character, 
 from .ui.focus_window import overlay_supported  # noqa: E402
 from .ui.legacy_view import LegacyCallbacks, LegacyView  # noqa: E402
 from .ui.live_face import LiveFaceClient, decode_audio_to_pcm16k  # noqa: E402
-from .ui.model_selector import ai_status_for_backend  # noqa: E402
+from .ui.model_selector import NOT_INSTALLED_SUFFIX, ai_status_for_backend  # noqa: E402
 from .ui.radio_picker import RadioPicker  # noqa: E402
 from .ui.shell import AssistantShell, build_header  # noqa: E402
 from .ui.state import AssistantModel, AssistantState  # noqa: E402
@@ -880,6 +880,15 @@ class MainWindow(Adw.ApplicationWindow):
             pass
 
     def _on_shell_model_selected(self, name: str) -> None:
+        if self._models_unreachable:
+            # The picker only shows a display placeholder ("<backend> not
+            # running"): choosing it must save nothing.
+            return
+        if name.endswith(NOT_INSTALLED_SUFFIX):
+            # A reachable backend missing the configured model shows it as
+            # "<model> (not installed)"; choosing it saves the bare model name,
+            # never the suffixed text.
+            name = name[: -len(NOT_INSTALLED_SUFFIX)]
         if self.settings.ai_backend == "llamacpp":
             path = smallbrain.path_for_label(name)
             if path and path != self.settings.llamacpp_model:
@@ -1524,24 +1533,25 @@ class MainWindow(Adw.ApplicationWindow):
         """The backend is reachable but has no models, or a named backend is not running.
 
         An unreachable backend names itself in the picker ("Ollama not running")
-        instead of leaving it blank or showing GTK's empty "(None)".
+        instead of leaving it blank or showing GTK's empty "(None)".  The
+        placeholder is display-only: ``ollama_models`` stays the REAL model list
+        (empty when the backend is unreachable), so nothing can ever save
+        "Ollama not running" as a model.
         """
         self._models_unreachable = True
-        if label:
-            message = f"{label} not running"
-            self.ollama_models = [message]
-            self._apply_model_combo([message], reachable=False)
-        else:
-            self.ollama_models = []
-            self._apply_model_combo([], reachable=False)
+        self.ollama_models = []
+        self._apply_model_combo([f"{label} not running"] if label else [], reachable=False)
         self.shell.model_selector.set_status("offline")
         return False
 
     def _show_backend_offline(self, label: str) -> bool:
-        """A backend Voxa does not manage (Strata) is down: name it in the picker."""
+        """A backend Voxa does not manage (Strata) is down: name it in the picker.
+
+        Again display-only: the placeholder never enters ``ollama_models``.
+        """
         message = f"{label} not running"
         self._models_unreachable = True
-        self.ollama_models = [message]
+        self.ollama_models = []
         self._apply_model_combo([message], reachable=False)
         self.shell.model_selector.set_status("offline")
         return False

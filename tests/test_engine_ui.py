@@ -94,6 +94,7 @@ def _fake_window(backend, *, llamacpp_model="", ollama_model="", server_status=S
     return SimpleNamespace(
         settings=settings,
         _welcome_followup=welcome,
+        _models_unreachable=False,
         _say_welcome_how_to=lambda: None,
         shell=Shell(),
         ai_server=Server(server_status),
