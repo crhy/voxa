@@ -79,6 +79,8 @@ _WINDOW_HOOKS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("voxa.agent.tools.slides", ("ask_model",)),
     ("voxa.agent.tools.briefing", ("get_location",)),
     ("voxa.agent.tools.anc", ("get_echo_mode", "set_echo_mode")),
+    ("voxa.agent.tools.transcribe_file", ("transcriber",)),
+    ("voxa.agent.tools.typing", ("LAST_REPLY",)),
 )
 
 
