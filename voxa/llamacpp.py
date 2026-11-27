@@ -12,6 +12,7 @@ from .backend import (
     DOWN,
     MALFORMED,
     MODEL_MISSING,
+    SERVER_ERROR,
     BackendCapabilities,
     BackendStatus,
     classify_error_text,
@@ -194,10 +195,15 @@ class LlamaCppClient:
                         on_chunk(text)
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")[:300]
-            # One HTTP failure, one normalized kind: a 404 is the model, and
-            # the server's own text says whether it ran out of memory or memory
-            # of context (#138).
-            kind = MODEL_MISSING if exc.code == 404 else classify_error_text(detail)
+            # One HTTP failure, one normalized kind: a 404 is the model, a
+            # 5xx that answered is the server's own failure (not DOWN), and
+            # the server's own text says whether it ran out of memory or
+            # memory of context (#138).
+            kind = classify_error_text(detail)
+            if exc.code == 404:
+                kind = MODEL_MISSING
+            elif exc.code >= 500 and kind == DOWN:
+                kind = SERVER_ERROR
             raise LlamaCppError(f"llama.cpp server returned HTTP {exc.code}: {detail}", kind=kind) from exc
         except (OSError, http.client.HTTPException, ValueError) as exc:
             # OSError covers URLError/TimeoutError/connection resets; the

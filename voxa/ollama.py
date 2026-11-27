@@ -17,6 +17,7 @@ from .backend import (
     MALFORMED,
     MODEL_MISSING,
     OUT_OF_MEMORY,
+    SERVER_ERROR,
     BackendCapabilities,
     BackendError,
     BackendStatus,
@@ -377,6 +378,8 @@ class OllamaClient:
                     kind = OUT_OF_MEMORY
                 elif exc.code == 404:
                     kind = MODEL_MISSING
+                elif exc.code >= 500:
+                    kind = SERVER_ERROR
                 else:
                     kind = DOWN
                 raise OllamaError(f"Ollama returned HTTP {exc.code}: {detail[:300]}", kind=kind) from exc
@@ -446,7 +449,7 @@ class OllamaClient:
                         break
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")[:300]
-            kind = MODEL_MISSING if exc.code == 404 else DOWN
+            kind = MODEL_MISSING if exc.code == 404 else (SERVER_ERROR if exc.code >= 500 else DOWN)
             raise OllamaError(f"Ollama returned HTTP {exc.code}: {detail}", kind=kind) from exc
         except (OSError, http.client.HTTPException, ValueError) as exc:
             raise OllamaError(f"Pulling {name} failed: {exc}", kind=DOWN) from exc
@@ -468,7 +471,7 @@ class OllamaClient:
                 response.read()
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")[:300]
-            kind = MODEL_MISSING if exc.code == 404 else DOWN
+            kind = MODEL_MISSING if exc.code == 404 else (SERVER_ERROR if exc.code >= 500 else DOWN)
             raise OllamaError(f"Ollama returned HTTP {exc.code}: {detail}", kind=kind) from exc
         except (OSError, http.client.HTTPException) as exc:
             raise OllamaError(f"Could not delete {name}: {exc}", kind=DOWN) from exc

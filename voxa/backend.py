@@ -26,9 +26,10 @@ OUT_OF_MEMORY = "out_of_memory"
 CONTEXT_LIMIT = "context_limit"
 CANCELLED = "cancelled"
 MALFORMED = "malformed"
+SERVER_ERROR = "server_error"
 
 ERROR_KINDS = frozenset(
-    {DOWN, MODEL_MISSING, LOADING, OUT_OF_MEMORY, CONTEXT_LIMIT, CANCELLED, MALFORMED}
+    {DOWN, MODEL_MISSING, LOADING, OUT_OF_MEMORY, CONTEXT_LIMIT, CANCELLED, MALFORMED, SERVER_ERROR}
 )
 
 # One sentence per kind, plain words, no jargon: what the user hears.
@@ -40,6 +41,7 @@ SPOKEN_MESSAGES = {
     CONTEXT_LIMIT: "The question is too long for what the model can remember.",
     CANCELLED: "The request was stopped.",
     MALFORMED: "The AI server answered with something Voxa cannot read.",
+    SERVER_ERROR: "The AI server failed while it was answering; try saying that again.",
 }
 
 
@@ -79,8 +81,23 @@ _CONTEXT_MARKERS = (
     "context length exceeded",
 )
 _MODEL_MISSING_MARKERS = ("model not found", "no such model", "model is not installed")
-_CANCELLED_MARKERS = ("cancel",)
-_LOADING_MARKERS = ("loading",)
+# Whole phrases only: the bare words also appear inside texts like
+# "connection refused while loading model", which is a dead server, and
+# "loading the model failed: out of memory", which the OOM check files first.
+_CANCELLED_MARKERS = (
+    "context canceled",
+    "context cancelled",
+    "request canceled",
+    "request cancelled",
+    "operation canceled",
+    "operation cancelled",
+)
+_LOADING_MARKERS = (
+    "model is loading",
+    "still loading",
+    "loading the model",
+    "model is not loaded",
+)
 
 
 def is_memory_error(text: str) -> bool:

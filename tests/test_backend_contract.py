@@ -136,6 +136,8 @@ CONTEXT_BODY = (
 KIND_SCENARIOS = {
     "model_missing": lambda name: {"http": (404, b'{"error": "model \'m\' not found"}')},
     "out_of_memory": lambda name: {"http": (500, b'{"error": "unable to allocate memory"}')},
+    # #138 review: a 5xx that answered is the server's own failure, not DOWN.
+    "server_error": lambda name: {"http": (500, b'{"error": "an internal error happened here"}')},
     "context_limit": lambda name: {"http": (400, CONTEXT_BODY)},
     "loading": lambda name: {"stream": [stream_lines(name, b'{"error": "the model is loading, please wait"}\n')]},
     "cancelled": lambda name: {
@@ -272,7 +274,12 @@ def test_old_callers_and_tests_keep_working_on_the_alias() -> None:
     ("exceed_context_size_error", "context_limit"),
     ("model 'qwen2.5:0.5b' not found", "model_missing"),
     ("request cancelled by the user", "cancelled"),
+    ("context canceled", "cancelled"),
     ("the model is loading", "loading"),
+    ("model is loading, please try again later", "loading"),
+    # whole phrases only: the bare words hide inside other failures.
+    ("connection refused while loading model", "down"),
+    ("loading the model failed: out of memory", "out_of_memory"),
     ("connection refused", "down"),
 ])
 def test_raw_backend_text_classifies_into_one_kind(text, kind) -> None:
