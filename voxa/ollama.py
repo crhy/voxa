@@ -11,9 +11,23 @@ import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from .backend import (
+    CONTEXT_LIMIT,
+    DOWN,
+    MALFORMED,
+    MODEL_MISSING,
+    OUT_OF_MEMORY,
+    BackendCapabilities,
+    BackendError,
+    BackendStatus,
+    classify_error_text,
+    is_memory_error,
+)
 
-class OllamaError(RuntimeError):
-    pass
+
+class OllamaError(BackendError):
+    """A backend failure that predates the contract; now a BackendError subclass
+    so the old ``except OllamaError`` callers keep working (#138)."""
 
 
 _LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
@@ -113,11 +127,7 @@ def _discard_oldest_history(body: dict) -> bool:
 
 
 def _is_memory_error(detail: str) -> bool:
-    lowered = detail.casefold()
-    return any(
-        marker in lowered
-        for marker in ("out of memory", "unable to allocate", "failed to allocate", "cuda error")
-    )
+    return is_memory_error(detail)
 
 
 def strip_reasoning(text: str) -> str:
@@ -145,6 +155,29 @@ class OllamaClient:
     def __init__(self, base_url: str = "http://127.0.0.1:11434", timeout: float = 5.0) -> None:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
+        self._active_cancel: threading.Event | None = None
+
+    def health(self) -> BackendStatus:
+        """Ollama answers on its base URL while it runs, even before models load."""
+        request = urllib.request.Request(f"{self.base_url}/", method="GET")
+        try:
+            with open_url(request, timeout=2.0) as response:
+                response.read(64)
+            return BackendStatus(up=True)
+        except urllib.error.HTTPError:
+            # Any status line means the daemon is listening.
+            return BackendStatus(up=True)
+        except (OSError, http.client.HTTPException, ValueError) as exc:
+            return BackendStatus(up=False, detail=str(exc))
+
+    def capabilities(self) -> BackendCapabilities:
+        """Voxa starts Ollama itself, serves many requests at once, pulls models by API."""
+        return BackendCapabilities(managed=True, serves_one_at_a_time=False, installs_by_pull=True)
+
+    def cancel(self) -> None:
+        """Stop the query this client last started, like the Active button does."""
+        if self._active_cancel is not None:
+            self._active_cancel.set()
 
     def _list_models_payload(self) -> list[dict]:
         request = urllib.request.Request(f"{self.base_url}/api/tags", method="GET")
@@ -155,7 +188,8 @@ class OllamaClient:
             # urllib does not wrap errors raised while reading the response
             # status: RemoteDisconnected and friends escape as http.client
             # exceptions, and every connection error is an OSError.
-            raise OllamaError(f"Could not connect to Ollama: {exc}") from exc
+            kind = MALFORMED if isinstance(exc, ValueError) else DOWN
+            raise OllamaError(f"Could not connect to Ollama: {exc}", kind=kind) from exc
         models = payload.get("models", []) if isinstance(payload, dict) else []
         return [item for item in models if isinstance(item, dict)]
 
@@ -223,9 +257,10 @@ class OllamaClient:
         messages: list[dict] | None = None,
     ) -> str:
         if not model:
-            raise OllamaError("No Ollama model is selected.")
+            raise OllamaError("No Ollama model is selected.", kind=MODEL_MISSING)
         if not prompt.strip():
-            raise OllamaError("There is no text to send.")
+            raise OllamaError("There is no text to send.", kind=MALFORMED)
+        self._active_cancel = cancel_event
 
         # With a message history we use the chat endpoint so the model keeps
         # the earlier turns of a conversation; without one the plain
@@ -333,7 +368,18 @@ class OllamaClient:
                     body["options"].pop("num_ctx", None)
                     grew_context = False
                     continue
-                raise OllamaError(f"Ollama returned HTTP {exc.code}: {detail[:300]}") from exc
+                # Normalize what the user will be told: the same HTTP failure is
+                # a context limit, an out-of-memory, a missing model or a dead
+                # server depending on the detail Ollama sent (#138).
+                if context_error is not None:
+                    kind = CONTEXT_LIMIT
+                elif _is_memory_error(detail):
+                    kind = OUT_OF_MEMORY
+                elif exc.code == 404:
+                    kind = MODEL_MISSING
+                else:
+                    kind = DOWN
+                raise OllamaError(f"Ollama returned HTTP {exc.code}: {detail[:300]}", kind=kind) from exc
             except (http.client.HTTPException, ConnectionResetError, BrokenPipeError) as exc:
                 # A local backend can drop a streaming request without a clean
                 # close: an ``ollama serve`` that was cold-started for this
@@ -342,17 +388,18 @@ class OllamaClient:
                 # if nothing has been spoken yet, retry the whole request; once
                 # speech has started a retry would double-speak, so fail instead.
                 if chunks or cancel_event.is_set() or transient_retries >= 2:
-                    raise OllamaError(f"Ollama request failed: {exc}") from exc
+                    raise OllamaError(f"Ollama request failed: {exc}", kind=DOWN) from exc
                 transient_retries += 1
                 time.sleep(min(2.0, 0.6 * transient_retries))
                 continue
             except (OSError, ValueError) as exc:
                 # OSError covers URLError, TimeoutError and connection resets;
                 # ValueError covers malformed JSON in a streamed line.
-                raise OllamaError(f"Ollama request failed: {exc}") from exc
+                kind = MALFORMED if isinstance(exc, ValueError) else DOWN
+                raise OllamaError(f"Ollama request failed: {exc}", kind=kind) from exc
 
         if stream_error is not None:
-            raise OllamaError(stream_error)
+            raise OllamaError(stream_error, kind=classify_error_text(stream_error))
 
         return "".join(chunks).strip()
 
@@ -390,7 +437,7 @@ class OllamaClient:
                     if not isinstance(event, dict):
                         continue
                     if event.get("error"):
-                        raise OllamaError(str(event["error"]))
+                        raise OllamaError(str(event["error"]), kind=classify_error_text(str(event["error"])))
                     status = str(event.get("status", ""))
                     total = int(event.get("total", 0) or 0)
                     completed = int(event.get("completed", 0) or 0)
@@ -399,9 +446,10 @@ class OllamaClient:
                         break
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")[:300]
-            raise OllamaError(f"Ollama returned HTTP {exc.code}: {detail}") from exc
+            kind = MODEL_MISSING if exc.code == 404 else DOWN
+            raise OllamaError(f"Ollama returned HTTP {exc.code}: {detail}", kind=kind) from exc
         except (OSError, http.client.HTTPException, ValueError) as exc:
-            raise OllamaError(f"Pulling {name} failed: {exc}") from exc
+            raise OllamaError(f"Pulling {name} failed: {exc}", kind=DOWN) from exc
 
     def delete_model(self, model: str) -> None:
         name = model.strip()
@@ -420,9 +468,10 @@ class OllamaClient:
                 response.read()
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")[:300]
-            raise OllamaError(f"Ollama returned HTTP {exc.code}: {detail}") from exc
+            kind = MODEL_MISSING if exc.code == 404 else DOWN
+            raise OllamaError(f"Ollama returned HTTP {exc.code}: {detail}", kind=kind) from exc
         except (OSError, http.client.HTTPException) as exc:
-            raise OllamaError(f"Could not delete {name}: {exc}") from exc
+            raise OllamaError(f"Could not delete {name}: {exc}", kind=DOWN) from exc
 
     def is_model_loaded(self, model: str) -> bool | None:
         """True when ``model`` is resident in memory, False when it is not, None when unknown."""

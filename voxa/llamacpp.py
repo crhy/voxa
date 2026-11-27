@@ -8,6 +8,14 @@ import urllib.request
 from collections.abc import Callable
 from pathlib import Path
 
+from .backend import (
+    DOWN,
+    MALFORMED,
+    MODEL_MISSING,
+    BackendCapabilities,
+    BackendStatus,
+    classify_error_text,
+)
 from .ollama import OllamaError, open_url
 
 
@@ -33,14 +41,43 @@ class LlamaCppClient:
         timeout: float = 5.0,
         reasoning_effort: str | None = None,
         reasoning_budget_tokens: int | None = None,
+        models_dir: str | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.reasoning_effort = reasoning_effort
         self.reasoning_budget_tokens = reasoning_budget_tokens
+        self.models_dir = models_dir
+        self._active_cancel: threading.Event | None = None
+
+    def health(self) -> BackendStatus:
+        """llama-server's /health: 200 loaded, 503 while the model is loading."""
+        request = urllib.request.Request(f"{self.base_url}/health", method="GET")
+        try:
+            with open_url(request, timeout=2.0) as response:
+                payload = json.load(response)
+        except urllib.error.HTTPError as exc:
+            if exc.code == 503:
+                return BackendStatus(up=True, model_loaded=False)
+            return BackendStatus(up=True, detail=f"HTTP {exc.code}")
+        except (OSError, http.client.HTTPException, ValueError) as exc:
+            return BackendStatus(up=False, detail=str(exc))
+        loaded = payload.get("loaded") if isinstance(payload, dict) else None
+        return BackendStatus(up=True, model_loaded=bool(loaded) if loaded is not None else True)
+
+    def capabilities(self) -> BackendCapabilities:
+        """Voxa starts llama-server itself; it serves one request at a time."""
+        return BackendCapabilities(managed=True, serves_one_at_a_time=True, installs_by_pull=False)
+
+    def cancel(self) -> None:
+        """Stop the query this client last started, like the Active button does."""
+        if self._active_cancel is not None:
+            self._active_cancel.set()
 
     def list_models(self, models_dir: str | None = None) -> list[str]:
         request = urllib.request.Request(f"{self.base_url}/v1/models", method="GET")
+        if models_dir is None:
+            models_dir = self.models_dir
         try:
             with open_url(request, timeout=self.timeout) as response:
                 payload = json.load(response)
@@ -50,7 +87,8 @@ class LlamaCppClient:
             # that urllib leaves bare.
             if models_dir is not None:
                 return sorted(str(path) for path in Path(models_dir).glob("*.gguf"))
-            raise LlamaCppError(f"Could not connect to the llama.cpp server: {exc}") from exc
+            kind = MALFORMED if isinstance(exc, ValueError) else DOWN
+            raise LlamaCppError(f"Could not connect to the llama.cpp server: {exc}", kind=kind) from exc
         data = payload.get("data", []) if isinstance(payload, dict) else []
         names = [item.get("id", "") for item in data if isinstance(item, dict)]
         return sorted(name for name in names if name)
@@ -96,9 +134,10 @@ class LlamaCppClient:
         messages: list[dict] | None = None,
     ) -> str:
         if not model:
-            raise LlamaCppError("No model is selected.")
+            raise LlamaCppError("No model is selected.", kind=MODEL_MISSING)
         if not prompt.strip():
-            raise LlamaCppError("There is no text to send.")
+            raise LlamaCppError("There is no text to send.", kind=MALFORMED)
+        self._active_cancel = cancel_event
 
         body: dict = {
             "model": model,
@@ -155,7 +194,11 @@ class LlamaCppClient:
                         on_chunk(text)
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")[:300]
-            raise LlamaCppError(f"llama.cpp server returned HTTP {exc.code}: {detail}") from exc
+            # One HTTP failure, one normalized kind: a 404 is the model, and
+            # the server's own text says whether it ran out of memory or memory
+            # of context (#138).
+            kind = MODEL_MISSING if exc.code == 404 else classify_error_text(detail)
+            raise LlamaCppError(f"llama.cpp server returned HTTP {exc.code}: {detail}", kind=kind) from exc
         except (OSError, http.client.HTTPException, ValueError) as exc:
             # OSError covers URLError/TimeoutError/connection resets; the
             # http.client errors surface when the server drops the response
@@ -164,12 +207,13 @@ class LlamaCppClient:
             if timed_out:
                 raise LlamaCppError(
                     f"llama.cpp request timed out after {GENERATE_TIMEOUT_SECONDS} seconds; "
-                    "the llama.cpp server may be busy with another request."
+                    "the llama.cpp server may be busy with another request.",
+                    kind=DOWN,
                 ) from exc
-            raise LlamaCppError(f"llama.cpp request failed: {exc}") from exc
+            raise LlamaCppError(f"llama.cpp request failed: {exc}", kind=DOWN) from exc
 
         if stream_error is not None:
-            raise LlamaCppError(stream_error)
+            raise LlamaCppError(stream_error, kind=classify_error_text(stream_error))
 
         return "".join(chunks).strip()
 
@@ -186,6 +230,10 @@ class StrataClient(LlamaCppClient):
             reasoning_effort="none",
             reasoning_budget_tokens=600,
         )
+
+    def capabilities(self) -> BackendCapabilities:
+        """Voxa never starts or stops Strata; it only talks to it."""
+        return BackendCapabilities(managed=False, serves_one_at_a_time=True, installs_by_pull=False)
 
     def server_info(self) -> dict | None:
         """The parsed /health payload, with the model id filled from /v1/models when /health omits it."""
