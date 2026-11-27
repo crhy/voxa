@@ -19,7 +19,6 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 from . import (  # noqa: E402
     apps,
     documents,
-    engine,
     faceinstall,
     mail,
     smallbrain,
@@ -75,6 +74,8 @@ from .agent.tools import briefing as briefing_tool  # noqa: E402
 from .agent.tools.web import get_session  # noqa: E402
 from .anc import EchoCanceller as AncCanceller  # noqa: E402
 from .audio import AudioCapture, AudioDevice, webrtc_available  # noqa: E402
+from .backend import AIBackend, BackendError, client_for  # noqa: E402
+from .backend import backend_label, chat_model as backend_chat_model  # noqa: E402
 from .bargein import BargeInGate, is_own_voice  # noqa: E402
 from .catalog import CatalogUnavailable, load_catalog, refresh_and_cache, refresh_due  # noqa: E402
 from .config import ConfigStore  # noqa: E402
@@ -100,7 +101,7 @@ from .hardware import (  # noqa: E402
     suggest_models,
 )
 from .installer import InstallerError, install_ollama, ollama_installed  # noqa: E402
-from .llamacpp import LlamaCppClient, StrataClient  # noqa: E402
+from .llamacpp import LlamaCppClient  # noqa: E402
 from .modelwait import wait_for_models  # noqa: E402
 from .ollama import OllamaClient, OllamaError, strip_reasoning  # noqa: E402
 from .ownspeech import OwnSpeech  # noqa: E402
@@ -889,18 +890,28 @@ class MainWindow(Adw.ApplicationWindow):
             # "<model> (not installed)"; choosing it saves the bare model name,
             # never the suffixed text.
             name = name[: -len(NOT_INSTALLED_SUFFIX)]
+        self._save_model_choice(name)
+
+    def _save_model_choice(self, name: str, status: str = "") -> None:
+        """Write a picked model label to the right setting (#138: the ONE place the
+        two pickers persist a choice). The label-to-path mapping is where the
+        backends differ: llama.cpp models are files, everything else a name."""
         if self.settings.ai_backend == "llamacpp":
             path = smallbrain.path_for_label(name)
             if path and path != self.settings.llamacpp_model:
                 self.settings.llamacpp_model = path
                 self.config_store.save(self.settings)
                 self._apply_model_combo(self.ollama_models)
+                if status:
+                    self._set_status(status)
                 self._restart_ai_server_async()
             return
         if name and name != self.settings.ollama_model:
             self.settings.ollama_model = name
             self.config_store.save(self.settings)
             self._apply_model_combo(self.ollama_models)  # keep the legacy dropdown in step
+            if status:
+                self._set_status(status)
             self._warm_up_model(name)
 
     def _on_shell_backend_selected(self, backend: str) -> None:
@@ -1433,28 +1444,17 @@ class MainWindow(Adw.ApplicationWindow):
         except Exception as exc:  # noqa: BLE001 - platform boundary
             self._toast(f"Microphone scan failed: {exc}")
 
-    def _ai_client(self) -> OllamaClient | LlamaCppClient | StrataClient:
-        """The Ask AI client for whichever backend the user picked."""
-        if self.settings.ai_backend == "ollama":
-            return OllamaClient(self.settings.ollama_url)
-        if self.settings.ai_backend == "strata":
-            return StrataClient(self.settings.strata_url)
-        return LlamaCppClient(self.settings.llamacpp_url)
+    def _ai_client(self) -> AIBackend:
+        """The Ask AI client for whichever backend the user picked (#138: built by
+        the backend contract, so nothing else in this file names the backends)."""
+        return client_for(self.settings)
 
     def _chat_model(self) -> str:
         """The model name to send with a request for the chosen backend."""
-        if self.settings.ai_backend == "llamacpp":
-            if self.settings.llamacpp_model:
-                return Path(self.settings.llamacpp_model).stem
-            return "local"
-        return self.settings.ollama_model
+        return backend_chat_model(self.settings)
 
     def _backend_label(self) -> str:
-        if self.settings.ai_backend == "ollama":
-            return "Ollama"
-        if self.settings.ai_backend == "strata":
-            return "Strata"
-        return "llama.cpp"
+        return backend_label(self.settings.ai_backend)
 
     def _refresh_ollama_models(self) -> None:
         """Fetch the model list, waiting for a server that Voxa has only just started."""
@@ -1463,7 +1463,9 @@ class MainWindow(Adw.ApplicationWindow):
         label = self._backend_label()
 
         if self.settings.ai_backend == "strata":
-            # Voxa does not manage Strata: one probe, no waiting, and say so when it is down.
+            # Behavior truly differs here: a managed backend was (re)started by
+            # Voxa seconds ago, so the picker waits for it; Voxa does not manage
+            # Strata, so this is one probe, no waiting, and say so when it is down.
             def strata_worker() -> None:
                 client = self._ai_client()
                 info = client.server_info()
@@ -1484,15 +1486,11 @@ class MainWindow(Adw.ApplicationWindow):
         def list_models() -> list[str]:
             client = self._ai_client()
             try:
-                if self.settings.ai_backend == "llamacpp":
-                    # Always pass a directory so the GGUF files on disk are listed
-                    # even when llama-server is not up yet (the picker must not read
-                    # "No models available" while a brain is downloaded).
-                    if self.settings.llamacpp_model:
-                        models_dir = str(Path(self.settings.llamacpp_model).parent)
-                    else:
-                        models_dir = str(engine.models_dir())
-                    return client.list_models(models_dir)
+                # The llama.cpp client carries the GGUF folder whose files its
+                # picker should offer even while llama-server is not up yet (the
+                # picker must not read "No models available" while a brain is
+                # downloaded); client_for passes it, so this call is identical
+                # for every backend now (#138).
                 return client.list_models()
             except OllamaError:
                 raise
@@ -1726,19 +1724,7 @@ class MainWindow(Adw.ApplicationWindow):
             return
         selected = min(self.model_combo.get_selected(), len(self.ollama_models) - 1)
         model = self.ollama_models[selected]
-        if self.settings.ai_backend == "llamacpp":
-            path = smallbrain.path_for_label(model)
-            if path and path != self.settings.llamacpp_model:
-                self.settings.llamacpp_model = path
-                self.config_store.save(self.settings)
-                self._set_status(f"Asking with {model} from now on.")
-                self._restart_ai_server_async()
-            return
-        if model != self.settings.ollama_model:
-            self.settings.ollama_model = model
-            self.config_store.save(self.settings)
-            self._set_status(f"Asking with {model} from now on.")
-            self._warm_up_model(model)
+        self._save_model_choice(model, f"Asking with {model} from now on.")
 
     @staticmethod
     def _scroll_to_end(view: Gtk.TextView) -> None:
@@ -1827,6 +1813,7 @@ class MainWindow(Adw.ApplicationWindow):
         if success:
             # The server start at launch failed while Ollama was not installed; nothing retries it, so start it
             # now, or the model list and the first download wait for a server that never comes (#112, #71).
+            # Behavior differs per backend: an Ollama install only matters when Ollama IS the backend.
             if self.settings.ai_backend == "ollama":
                 self._restart_ai_server_async()
             self._refresh_ollama_models()
@@ -1835,6 +1822,8 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def _show_model_manager(self) -> None:
+        # Behavior truly differs: Ollama models are pulled/removed by API,
+        # llama.cpp brains are GGUF files on disk (the brain manager).
         if self.settings.ai_backend == "llamacpp":
             self._show_brain_manager()
             return
@@ -2192,6 +2181,8 @@ class MainWindow(Adw.ApplicationWindow):
         self.config_store.save(self.settings)
 
         def worker() -> None:
+            # Behavior truly differs: a llama.cpp brain is a file on disk, while
+            # Ollama/Strata must be probed over HTTP to know what the user has.
             if self.settings.ai_backend == "llamacpp":
                 path = self.settings.llamacpp_model
                 ready = bool(path) and Path(path).is_file()
@@ -3838,8 +3829,7 @@ class MainWindow(Adw.ApplicationWindow):
                 client = self._ai_client()
                 nonlocal messages, prompt
                 heard = prompt
-                real_model = isinstance(client, (OllamaClient, LlamaCppClient, StrataClient))
-                if self.settings.web_search != "never" and real_model:
+                if self.settings.web_search != "never":
                     context = self._web_context(prompt, generation, cancel_event)
                     if context:
                         if messages:
@@ -3853,6 +3843,9 @@ class MainWindow(Adw.ApplicationWindow):
                 else:
                     route = "model"
                     self._log_action(heard, route, timings=self._cmd_timings(None))
+                # Behavior differs: only llama.cpp/Strata servers serve one request
+                # at a time, so a heard question can queue behind a coding agent;
+                # Ollama answers both at once and must not pay for that probe.
                 if isinstance(client, LlamaCppClient) and client.is_busy():
                     idle(self._on_server_busy, generation, cancel_event)
                 loaded = client.is_model_loaded(model) if hasattr(client, "is_model_loaded") else None
@@ -3860,6 +3853,10 @@ class MainWindow(Adw.ApplicationWindow):
                     # A reachable backend that has not got the model in memory: say so
                     # ("Loading tiny… 3s") while the first request warms it up.
                     idle(self._on_model_loading, model, generation, cancel_event)
+                # Behavior differs: only the backends Voxa manages itself can have
+                # been stopped under us; a heard question is worth restarting those
+                # and waiting briefly for them instead of silently answering with
+                # nothing. (Strata is the user's server: Voxa never starts it.)
                 if loaded is None and hasattr(client, "is_model_loaded") and self.settings.ai_backend in ("ollama", "llamacpp"):
                     # The managed backend was stopped (or never started) under us: a
                     # heard question is worth restarting it and waiting briefly for
@@ -3896,9 +3893,12 @@ class MainWindow(Adw.ApplicationWindow):
                 )
                 flush_chunks()
                 idle(self._on_query_finished, answer, generation, cancel_event, heard_prompt)
-            except OllamaError as exc:
+            except BackendError as exc:
+                # vf02/vf04: every client now says the same normalized thing for a
+                # dead backend, a missing model, an out-of-memory or a too-long
+                # question (#138); the kind's sentence is what gets heard aloud.
                 flush_chunks()
-                idle(self._on_query_error, str(exc), generation, cancel_event)
+                idle(self._on_query_error, str(exc), generation, cancel_event, exc.message)
             except Exception as exc:  # noqa: BLE001 - a dead query thread must never be silent
                 flush_chunks()
                 logging.exception("the AI query thread crashed")
@@ -4529,7 +4529,7 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def _on_query_error(
-        self, error: str, generation: int, cancel_event: threading.Event
+        self, error: str, generation: int, cancel_event: threading.Event, spoken: str = ""
     ) -> bool:
         if not self._query_is_current(generation, cancel_event) or cancel_event.is_set():
             return False
@@ -4545,7 +4545,7 @@ class MainWindow(Adw.ApplicationWindow):
         logging.warning("AI request failed: %s", error)
         if self.conversation_active:
             self._fail_assistant("The AI request failed")
-            self._speak_apology()
+            self._speak_apology(spoken)
         self._toast(error)
         self._set_status(self._conversation_idle_status() if self.conversation_active else "AI request failed.")
         return False
@@ -4581,7 +4581,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.assistant_model.set_state(AssistantState.WORKING, detail)
         return False
 
-    def _speak_apology(self) -> None:
+    def _speak_apology(self, kind_message: str = "") -> None:
         """Hands-free users cannot see the toast: the failed request must be heard too.
 
         vf04: it goes through the SAME path as a normal reply. A bare
@@ -4589,8 +4589,14 @@ class MainWindow(Adw.ApplicationWindow):
         hears it, so inside an open follow-up window Voxa took her own
         "Sorry, I could not get an answer" as a new request and apologised
         on and on.
+
+        #138: when the failure is a normalized BackendError, its kind's plain
+        sentence rides along ("... The AI server ran out of memory while it
+        was answering."), so the user hears WHY and not just the old blanket
+        apology for every failure.
         """
-        self._conversation_speak(AI_APOLOGY)
+        apology = f"{AI_APOLOGY} {kind_message}" if kind_message else AI_APOLOGY
+        self._conversation_speak(apology)
 
     def speak_response(self) -> None:
         text = self._get_text(self.response_view) or self._get_text(self.transcript_view)
@@ -4836,22 +4842,18 @@ class MainWindow(Adw.ApplicationWindow):
         ai_row.set_list_factory(string_item_factory(wrap=True, width_chars=56))
         if self.settings.ollama_model in model_names:
             ai_row.set_selected(model_names.index(self.settings.ollama_model))
-        ai_row.set_visible(self.settings.ai_backend == "ollama")
         ai_group.add(ai_row)
 
         llamacpp_row = Adw.EntryRow(title="Server address")
         llamacpp_row.set_text(self.settings.llamacpp_url)
-        llamacpp_row.set_visible(self.settings.ai_backend == "llamacpp")
         ai_group.add(llamacpp_row)
 
         endpoint_row = Adw.EntryRow(title="Ollama address")
         endpoint_row.set_text(self.settings.ollama_url)
-        endpoint_row.set_visible(self.settings.ai_backend == "ollama")
         ai_group.add(endpoint_row)
 
         strata_row = Adw.EntryRow(title="Strata address")
         strata_row.set_text(self.settings.strata_url)
-        strata_row.set_visible(self.settings.ai_backend == "strata")
         ai_group.add(strata_row)
 
         answers_group = Adw.PreferencesGroup(title="Answers")
@@ -4865,7 +4867,6 @@ class MainWindow(Adw.ApplicationWindow):
         answers_group.add(web_search_row)
 
         brain_group = Adw.PreferencesGroup(title="Voxa brains")
-        brain_group.set_visible(self.settings.ai_backend == "llamacpp")
         ai_page.add(brain_group)
         brain_row = Adw.ActionRow(
             title="Download or remove brains",
@@ -4878,7 +4879,6 @@ class MainWindow(Adw.ApplicationWindow):
 
         # The groups always exist so switching the backend updates this dialog.
         ollama_group = Adw.PreferencesGroup(title="Ollama")
-        ollama_group.set_visible(self.settings.ai_backend == "ollama")
         ai_page.add(ollama_group)
         install_row = Adw.ActionRow(
             title="Install or update Ollama",
@@ -4905,6 +4905,9 @@ class MainWindow(Adw.ApplicationWindow):
             ollama_group.set_visible(selected == 1)
 
         backend_row.connect("notify::selected", update_backend_rows)
+        # Initial visibility comes from the SAME mapping the user's backend
+        # switch uses, not from six per-backend name checks (#138).
+        update_backend_rows()
         dialog.add(ai_page)
 
         dialog.connect(
@@ -4966,7 +4969,9 @@ class MainWindow(Adw.ApplicationWindow):
         self.settings.ai_backend = {0: "llamacpp", 1: "ollama", 2: "strata"}.get(
             backend_row.get_selected(), "llamacpp"
         )
-        if self.settings.ai_backend == "ollama" and self.ollama_models:
+        # The ComboRow's index 1 IS the Ollama backend; ask the row, not the name
+        # (the backend was just set from the very same index two lines up).
+        if backend_row.get_selected() == 1 and self.ollama_models:
             self.settings.ollama_model = self.ollama_models[
                 min(ai_row.get_selected(), len(self.ollama_models) - 1)
             ]
