@@ -74,8 +74,8 @@ from .agent.tools import briefing as briefing_tool  # noqa: E402
 from .agent.tools.web import get_session  # noqa: E402
 from .anc import EchoCanceller as AncCanceller  # noqa: E402
 from .audio import AudioCapture, AudioDevice, webrtc_available  # noqa: E402
-from .backend import AIBackend, BackendError, client_for  # noqa: E402
-from .backend import backend_label, chat_model as backend_chat_model  # noqa: E402
+from .backend import AIBackend, BackendError, backend_label, client_for  # noqa: E402
+from .backend import chat_model as backend_chat_model  # noqa: E402
 from .bargein import BargeInGate, is_own_voice  # noqa: E402
 from .catalog import CatalogUnavailable, load_catalog, refresh_and_cache, refresh_due  # noqa: E402
 from .config import ConfigStore  # noqa: E402
