@@ -91,6 +91,7 @@ from .echo import (  # noqa: E402
     default_monitor_source,
     remove_leftover_devices,
 )
+from .generation import Generation  # noqa: E402
 from .hardware import (  # noqa: E402
     MODEL_CATALOG,
     GpuUsage,
@@ -384,6 +385,17 @@ class MainWindow(Adw.ApplicationWindow):
         self.ai_server = AiServerManager(self.settings, log_dir=server_logs)
         self._server_action_lock = threading.Lock()
         self._server_generation = 0
+        # g138c (#138): one token per worker family whose idle() completions
+        # touch UI, speech or settings. The worker captures the value when it
+        # starts; its completion checks is_current() before changing anything.
+        # Re-starting the work or pressing OFFLINE calls bump().
+        self._gpu_generation = Generation()
+        self._hardware_generation = Generation()
+        self._install_generation = Generation()
+        self._welcome_generation = Generation()
+        self._whisper_generation = Generation()
+        self._dictation_generation = Generation()
+        self._model_manager_generation = Generation()
         self._last_search_query: str | None = None
         self._last_search_at = 0.0
         self._search_record: dict | None = None
@@ -1245,6 +1257,7 @@ class MainWindow(Adw.ApplicationWindow):
         """Restart a renderer that accepted an utterance but stopped producing frames."""
 
         def worker() -> None:
+            generation = getattr(self, "_live_generation", 0)
             while True:
                 started_at = buffer.started_at()
                 if buffer.buffered_seconds() > 0 or buffer.done() or buffer.failed():
@@ -1254,13 +1267,15 @@ class MainWindow(Adw.ApplicationWindow):
                 if started_at is not None and time.monotonic() - started_at >= LIVE_FACE_STALL_SECONDS:
                     logging.warning("High face renderer stalled; restarting it")
                     client.shutdown_server()
-                    idle(self._recover_stalled_live_face, client)
+                    idle(self._recover_stalled_live_face, client, generation)
                     return
                 time.sleep(0.1)
 
         threading.Thread(target=worker, name="live-face-watch", daemon=True).start()
 
-    def _recover_stalled_live_face(self, client: LiveFaceClient) -> bool:
+    def _recover_stalled_live_face(self, client: LiveFaceClient, generation: int | None = None) -> bool:
+        if generation is not None and generation != getattr(self, "_live_generation", 0):
+            return False
         if client is not self._live_client:
             return False
         self._live_client = None
@@ -1464,13 +1479,13 @@ class MainWindow(Adw.ApplicationWindow):
                 if generation != self._models_generation:
                     return
                 if info is None:
-                    idle(self._show_backend_offline, label)
+                    idle(self._show_backend_offline, label, generation)
                     return
                 model = info.get("model")
                 if model:
-                    idle(self._apply_ollama_models, [model])
+                    idle(self._apply_ollama_models, [model], generation)
                 else:
-                    idle(self._show_no_models)
+                    idle(self._show_no_models, "", generation)
 
             threading.Thread(target=strata_worker, name="strata-models", daemon=True).start()
             return
@@ -1495,7 +1510,7 @@ class MainWindow(Adw.ApplicationWindow):
                 attempts=MODEL_WAIT_ATTEMPTS,
                 delay=MODEL_WAIT_DELAY,
                 should_stop=lambda: generation != self._models_generation,
-                on_waiting=lambda attempt: idle(self._show_models_starting, label) if attempt == 1 else None,
+                on_waiting=lambda attempt: idle(self._show_models_starting, label, generation) if attempt == 1 else None,
             )
             if generation != self._models_generation:
                 return
@@ -1505,23 +1520,29 @@ class MainWindow(Adw.ApplicationWindow):
                 # empty "(None)"), and keep the saved model selection untouched.
                 # A backend that is merely missing the model still names itself
                 # ("Ollama not running") via _show_no_models(label).
-                idle(self._show_no_models)
-                idle(
-                    self._set_status,
-                    f"The AI server ({label}) is offline. Dictation is still available.",
-                )
+                idle(self._on_backend_unreachable, label, generation)
                 return
-            idle(self._apply_ollama_models, models)
+            idle(self._apply_ollama_models, models, generation)
 
         threading.Thread(target=worker, name="ollama-models", daemon=True).start()
 
-    def _show_models_starting(self, label: str) -> bool:
+    def _show_models_starting(self, label: str, generation: int | None = None) -> bool:
         """The server is still coming up: say so instead of "No models available"."""
+        if generation is not None and generation != getattr(self, "_models_generation", 0):
+            return False
         self._set_status(f"Starting {label}…")
         self.shell.model_selector.set_status("starting")
         return False
 
-    def _show_no_models(self, label: str = "") -> bool:
+    def _on_backend_unreachable(self, label: str, generation: int | None = None) -> bool:
+        """The list worker never reached the backend: picker placeholder + status line."""
+        if generation is not None and generation != getattr(self, "_models_generation", 0):
+            return False
+        self._show_no_models("")
+        self._set_status(f"The AI server ({label}) is offline. Dictation is still available.")
+        return False
+
+    def _show_no_models(self, label: str = "", generation: int | None = None) -> bool:
         """The backend is reachable but has no models, or a named backend is not running.
 
         An unreachable backend names itself in the picker ("Ollama not running")
@@ -1530,17 +1551,21 @@ class MainWindow(Adw.ApplicationWindow):
         (empty when the backend is unreachable), so nothing can ever save
         "Ollama not running" as a model.
         """
+        if generation is not None and generation != getattr(self, "_models_generation", 0):
+            return False
         self._models_unreachable = True
         self.ollama_models = []
         self._apply_model_combo([f"{label} not running"] if label else [], reachable=False)
         self.shell.model_selector.set_status("offline")
         return False
 
-    def _show_backend_offline(self, label: str) -> bool:
+    def _show_backend_offline(self, label: str, generation: int | None = None) -> bool:
         """A backend Voxa does not manage (Strata) is down: name it in the picker.
 
         Again display-only: the placeholder never enters ``ollama_models``.
         """
+        if generation is not None and generation != getattr(self, "_models_generation", 0):
+            return False
         message = f"{label} not running"
         self._models_unreachable = True
         self.ollama_models = []
@@ -1549,6 +1574,11 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     def _detect_hardware_async(self) -> None:
+        # g138c: every completion from this probe carries its token; a slower
+        # probe that finished after a newer one must not rewrite the summary,
+        # the suggested models or the toast.
+        generation = self._hardware_generation.bump()
+
         def gpu_fit_warning(available_gb: float, reserved_gb: float) -> bool:
             """True when the current model plus the reservation exceeds the VRAM."""
             if self.settings.face_mode != "live" or not self.settings.ollama_model:
@@ -1582,6 +1612,7 @@ class MainWindow(Adw.ApplicationWindow):
                 suggestions,
                 reserved,
                 gpu_fit_warning(available_gb, reserved) if reserved else False,
+                generation,
             )
             if not refresh_due():
                 return
@@ -1601,11 +1632,22 @@ class MainWindow(Adw.ApplicationWindow):
                     ),
                     reserved,
                     False,  # One toast per detection run.
+                    generation,
                 )
 
         threading.Thread(target=worker, name="hardware-detect", daemon=True).start()
 
-    def _apply_hardware_summary(self, available_gb: float, source: str, suggestions: list, reserved_gb: float = 0.0, gpu_fit_warning: bool = False) -> bool:
+    def _apply_hardware_summary(
+        self,
+        available_gb: float,
+        source: str,
+        suggestions: list,
+        reserved_gb: float = 0.0,
+        gpu_fit_warning: bool = False,
+        generation: int | None = None,
+    ) -> bool:
+        if generation is not None and not self._hardware_generation.is_current(generation):
+            return False
         self._suggested_models = [model.name for model in suggestions]
         names = ", ".join(self._suggested_models)
         self._hardware_summary = f"Suggested for this machine (~{available_gb:.0f} GB {source}): {names}"
@@ -1631,6 +1673,7 @@ class MainWindow(Adw.ApplicationWindow):
             return
         stop_event = threading.Event()
         self._gpu_poll_stop = stop_event
+        generation = self._gpu_generation.bump()
 
         def worker() -> None:
             # Sample immediately (off the UI thread) so the gauge doesn't sit
@@ -1638,7 +1681,7 @@ class MainWindow(Adw.ApplicationWindow):
             while True:
                 usage = sample_gpu_usage()
                 if usage is not None and not stop_event.is_set():
-                    idle(self._apply_gpu_usage, usage)
+                    idle(self._apply_gpu_usage, usage, generation)
                 if stop_event.wait(GPU_POLL_INTERVAL_SECONDS):
                     break
 
@@ -1649,10 +1692,13 @@ class MainWindow(Adw.ApplicationWindow):
         if self._gpu_poll_stop is not None:
             self._gpu_poll_stop.set()
             self._gpu_poll_stop = None
+        self._gpu_generation.bump()  # a sample already on its way to the UI must not land
         self.gpu_box.set_visible(False)
         self.gpu_level.set_value(0)
 
-    def _apply_gpu_usage(self, usage: GpuUsage) -> bool:
+    def _apply_gpu_usage(self, usage: GpuUsage, generation: int | None = None) -> bool:
+        if generation is not None and not self._gpu_generation.is_current(generation):
+            return False
         self.gpu_level.set_value(usage.utilization_percent)
         self.gpu_label.set_text(f"{usage.utilization_percent:.0f}%")
         self.gpu_box.set_tooltip_text(
@@ -1661,7 +1707,9 @@ class MainWindow(Adw.ApplicationWindow):
         )
         return False
 
-    def _apply_ollama_models(self, models: list[str]) -> bool:
+    def _apply_ollama_models(self, models: list[str], generation: int | None = None) -> bool:
+        if generation is not None and generation != getattr(self, "_models_generation", 0):
+            return False
         self._models_unreachable = False
         backend = self.settings.ai_backend
         if self._welcome_followup and welcome.real_models(models):
@@ -1747,6 +1795,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._installing = True
         cancel_event = threading.Event()
         self._install_cancel = cancel_event
+        generation = self._install_generation.bump()
 
         dialog = Adw.Dialog(title="Installing Ollama", content_width=560, content_height=420)
         toolbar = Adw.ToolbarView()
@@ -1801,18 +1850,22 @@ class MainWindow(Adw.ApplicationWindow):
                     cancel_event=cancel_event,
                 )
             except InstallerError as exc:
-                idle(self._on_install_finished, dialog, False, str(exc))
+                idle(self._on_install_finished, dialog, False, str(exc), generation)
                 return
             if cancel_event.is_set():
-                idle(self._on_install_finished, dialog, False, "Installation cancelled.")
+                idle(self._on_install_finished, dialog, False, "Installation cancelled.", generation)
             elif exit_code == 0:
-                idle(self._on_install_finished, dialog, True, "Ollama installed successfully.")
+                idle(self._on_install_finished, dialog, True, "Ollama installed successfully.", generation)
             else:
-                idle(self._on_install_finished, dialog, False, f"Installer exited with status {exit_code}.")
+                idle(self._on_install_finished, dialog, False, f"Installer exited with status {exit_code}.", generation)
 
         threading.Thread(target=worker, name="ollama-install", daemon=True).start()
 
-    def _on_install_finished(self, dialog: Adw.Dialog, success: bool, message: str) -> bool:
+    def _on_install_finished(self, dialog: Adw.Dialog, success: bool, message: str, generation: int | None = None) -> bool:
+        if generation is not None and not self._install_generation.is_current(generation):
+            # A newer install (or OFFLINE) retired this run: its dialog and
+            # progress belong to the newer worker, which also owns _installing.
+            return False
         self._installing = False
         dialog.close()
         self._toast(message)
@@ -1833,6 +1886,7 @@ class MainWindow(Adw.ApplicationWindow):
         if self.settings.ai_backend == "llamacpp":
             self._show_brain_manager()
             return
+        self._model_manager_generation.bump()
         dialog = Adw.Dialog(title="Manage Ollama Models", content_width=560, content_height=520)
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         dialog.set_child(root)
@@ -1959,6 +2013,8 @@ class MainWindow(Adw.ApplicationWindow):
         selected_before = [False]
 
         def on_progress(status: str, completed: int, total: int) -> bool:
+            if not dialog_alive[0]:
+                return False
             if total > 0:
                 got_total[0] = True
                 progress_bar.set_fraction(min(1.0, completed / total))
@@ -1975,6 +2031,8 @@ class MainWindow(Adw.ApplicationWindow):
             return True
 
         def on_pull_finished(success: bool, message: str, name: str) -> bool:
+            if not dialog_alive[0]:  # the pull outlived its dialog: settings stay untouched
+                return False
             set_pulling(False)
             self._toast(message)
             if success:
@@ -2080,10 +2138,14 @@ class MainWindow(Adw.ApplicationWindow):
                 def start_download(btn, model=model, row=row) -> None:
                     btn.set_sensitive(False)  # one download at a time into the same .part file
                     def on_progress(done: int, total: int) -> None:
+                        if cancel_event.is_set():
+                            return
                         if total > 0:
                             idle(row.set_subtitle, f"Downloading… {done / total * 100:.0f}%")
 
                     def finish(path: Path) -> None:
+                        if cancel_event.is_set():  # the dialog closed mid-download: never change settings
+                            return
                         select_brain(model)
                         row.set_subtitle("In use")
 
@@ -2131,6 +2193,11 @@ class MainWindow(Adw.ApplicationWindow):
     def _remove_model(self, parent_dialog: Adw.Dialog, model: str) -> None:
         """Remove a model at once: Voxa never asks first."""
         endpoint = self.settings.ollama_url
+        # g138c: the delete is bound to the list fetch and manager dialog that
+        # were current when it started; a late completion must not repaint a
+        # picker that has moved on, or close a dialog it was never part of.
+        models_generation = getattr(self, "_models_generation", 0)
+        manager_generation = self._model_manager_generation.value
 
         def worker() -> None:
             try:
@@ -2139,14 +2206,18 @@ class MainWindow(Adw.ApplicationWindow):
                     models = OllamaClient(endpoint).list_models()
                 except OllamaError:
                     models = [name for name in self.ollama_models if name != model]
-                idle(self._apply_ollama_models, models)
-                idle(self._on_model_deleted, parent_dialog, True, f"Removed {model}.")
+                idle(self._apply_ollama_models, models, models_generation)
+                idle(self._on_model_deleted, parent_dialog, True, f"Removed {model}.", manager_generation)
             except OllamaError as exc:
-                idle(self._on_model_deleted, parent_dialog, False, str(exc))
+                idle(self._on_model_deleted, parent_dialog, False, str(exc), manager_generation)
 
         threading.Thread(target=worker, name="ollama-delete", daemon=True).start()
 
-    def _on_model_deleted(self, parent_dialog: Adw.Dialog, success: bool, message: str) -> bool:
+    def _on_model_deleted(
+        self, parent_dialog: Adw.Dialog, success: bool, message: str, generation: int | None = None
+    ) -> bool:
+        if generation is not None and not self._model_manager_generation.is_current(generation):
+            return False
         self._toast(message)
         if success:
             parent_dialog.close()
@@ -2156,13 +2227,17 @@ class MainWindow(Adw.ApplicationWindow):
     def _load_whisper(self, model_name: str) -> None:
         self._set_status(f"Loading Whisper {model_name}…", busy=True)
         self._start_progress()
+        # g138c: a load of an older model choice must never finish over a newer one.
+        generation = self._whisper_generation.bump()
         self.whisper.load_async(
             model_name,
-            lambda name, backend: idle(self._on_whisper_ready, name, backend),
-            lambda error: idle(self._on_whisper_error, error),
+            lambda name, backend: idle(self._on_whisper_ready, name, backend, generation),
+            lambda error: idle(self._on_whisper_error, error, generation),
         )
 
-    def _on_whisper_ready(self, name: str, backend: str) -> bool:
+    def _on_whisper_ready(self, name: str, backend: str, generation: int | None = None) -> bool:
+        if generation is not None and not self._whisper_generation.is_current(generation):
+            return False
         self.settings.whisper_model = name
         transcribe_file.transcriber = lambda pcm: self.whisper.transcribe(pcm, self.settings.language)
         self.config_store.save(self.settings)
@@ -2185,6 +2260,7 @@ class MainWindow(Adw.ApplicationWindow):
             return
         self.settings.welcomed = True
         self.config_store.save(self.settings)
+        generation = self._welcome_generation.bump()
 
         def worker() -> None:
             # Behavior truly differs: a llama.cpp brain is a file on disk, while
@@ -2204,12 +2280,14 @@ class MainWindow(Adw.ApplicationWindow):
                     ollama_installed,
                     OllamaClient(self.settings.ollama_url).list_models,
                 )
-            idle(self._show_welcome, step)
+            idle(self._show_welcome, step, generation)
 
         threading.Thread(target=worker, name="welcome-probe", daemon=True).start()
 
-    def _show_welcome(self, step: str) -> bool:
+    def _show_welcome(self, step: str, generation: int | None = None) -> bool:
         if self._closing:
+            return False
+        if generation is not None and not self._welcome_generation.is_current(generation):
             return False
         self._welcome_followup = step != "ready"
         name = self._character_name()
@@ -2240,6 +2318,7 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _start_whisper_benchmark(self, old_model: str, gpu: bool, threads: int, ram: float | None) -> None:
         """Time the wake model on the bundled clip off the GTK thread, then pick from the measured speed."""
+        generation = self._welcome_generation.value
 
         def worker() -> None:
             try:
@@ -2255,7 +2334,7 @@ class MainWindow(Adw.ApplicationWindow):
                 return
             if chosen != old_model:
                 rtf = speechfit.predicted_rtf(tiny_rtf, self.settings.whisper_rtf)[chosen]
-                idle(self._on_benchmark_choice, chosen, rtf)
+                idle(self._on_benchmark_choice, chosen, rtf, generation)
 
         threading.Thread(target=worker, name="whisper-benchmark", daemon=True).start()
 
@@ -2268,8 +2347,10 @@ class MainWindow(Adw.ApplicationWindow):
         except Exception as exc:
             logging.warning("speechfit welcome fit failed: %s", exc)
 
-    def _on_benchmark_choice(self, chosen: str, rtf: float) -> bool:
+    def _on_benchmark_choice(self, chosen: str, rtf: float, generation: int | None = None) -> bool:
         if self._closing:
+            return False
+        if generation is not None and not self._welcome_generation.is_current(generation):
             return False
         self._load_whisper(chosen)
         self._toast(speechfit.summary(chosen, rtf))
@@ -2307,6 +2388,7 @@ class MainWindow(Adw.ApplicationWindow):
         name = welcome.SMALLEST_MODEL
         cancel_event = threading.Event()
         self._welcome_cancel = cancel_event
+        generation = self._welcome_generation.value
         self._set_status(welcome.download_status("", 0, 0), busy=True)
 
         def worker() -> None:
@@ -2319,7 +2401,7 @@ class MainWindow(Adw.ApplicationWindow):
                     should_stop=cancel_event.is_set,
                 )
                 if models is None:
-                    idle(self._on_welcome_download_done, False, "The AI server never came up.")
+                    idle(self._on_welcome_download_done, False, "The AI server never came up.", generation)
                     return
                 client.pull_model(
                     name,
@@ -2328,14 +2410,16 @@ class MainWindow(Adw.ApplicationWindow):
                         self._set_status, welcome.download_status(status, completed, total), True
                     ),
                 )
-                idle(self._on_welcome_download_done, True, f"{name} is ready.")
+                idle(self._on_welcome_download_done, True, f"{name} is ready.", generation)
             except OllamaError as exc:
-                idle(self._on_welcome_download_done, False, str(exc))
+                idle(self._on_welcome_download_done, False, str(exc), generation)
 
         threading.Thread(target=worker, name="welcome-pull", daemon=True).start()
 
-    def _on_welcome_download_done(self, ok: bool, message: str) -> bool:
+    def _on_welcome_download_done(self, ok: bool, message: str, generation: int | None = None) -> bool:
         self._welcome_downloading = False
+        if generation is not None and not self._welcome_generation.is_current(generation):
+            return False
         self._toast(message)
         if ok:
             self._refresh_ollama_models()   # _apply_ollama_models then says "You're all set"
@@ -2355,6 +2439,8 @@ class MainWindow(Adw.ApplicationWindow):
 
         def finish(path: Path) -> None:
             self._welcome_downloading = False
+            if cancel_event.is_set():  # OFFLINE or window close cancelled the download: save nothing
+                return
             self.settings.llamacpp_model = str(path)
             self.config_store.save(self.settings)
             self._restart_ai_server_async()
@@ -2399,7 +2485,9 @@ class MainWindow(Adw.ApplicationWindow):
         avatar = get_avatar(self.settings.character_id) if self.settings.character_id else None
         return getattr(avatar, "name", "") or "Voxa"
 
-    def _on_whisper_error(self, error: str) -> bool:
+    def _on_whisper_error(self, error: str, generation: int | None = None) -> bool:
+        if generation is not None and not self._whisper_generation.is_current(generation):
+            return False
         self._stop_progress()
         self._set_status("Whisper could not be loaded.")
         self._activate_when_ready = False
@@ -2428,16 +2516,17 @@ class MainWindow(Adw.ApplicationWindow):
         if self.assistant.is_active:
             self.assistant.go_offline()  # dictation and hands-free mode never share the microphone
 
+        generation = self._dictation_generation.bump()
         self.dictation = DictationController(
             self.whisper,
             language=self.settings.language,
             threshold=self.settings.voice_threshold,
             silence_ms=self.settings.silence_ms,
             max_segment_seconds=self.settings.max_segment_seconds,
-            on_text=lambda text: idle(self._append_transcript, text),
-            on_status=lambda text: idle(self._on_dictation_status, text),
-            on_auto_stop=lambda: idle(self._auto_stop_recording),
-            on_error=lambda text: idle(self._toast, text),
+            on_text=lambda text: idle(self._append_transcript, text, generation),
+            on_status=lambda text: idle(self._on_dictation_status, text, generation),
+            on_auto_stop=lambda: idle(self._auto_stop_recording, generation),
+            on_error=lambda text: idle(self._dictation_note, text, generation),
         )
         self.dictation.start()
         try:
@@ -2446,7 +2535,7 @@ class MainWindow(Adw.ApplicationWindow):
                 self.settings.microphone_id,
                 self.dictation.feed,
                 self._queue_level,
-                lambda error: idle(self._capture_error, error),
+                lambda error: idle(self._capture_error, error, generation),
             )
         except Exception as exc:  # noqa: BLE001 - platform boundary
             self.dictation.stop()
@@ -2478,14 +2567,25 @@ class MainWindow(Adw.ApplicationWindow):
         self.level.set_value(0)
         self._set_status("Ready")
 
-    def _auto_stop_recording(self) -> bool:
+    def _auto_stop_recording(self, generation: int | None = None) -> bool:
+        if generation is not None and not self._dictation_generation.is_current(generation):
+            return False
         if self.listening:
             self.stop_recording()
         return False
 
-    def _capture_error(self, error: str) -> bool:
+    def _capture_error(self, error: str, generation: int | None = None) -> bool:
+        if generation is not None and not self._dictation_generation.is_current(generation):
+            return False
         self.stop_recording()
         self._toast(f"Microphone error: {error}")
+        return False
+
+    def _dictation_note(self, text: str, generation: int | None = None) -> bool:
+        """A dictation worker's toast: dropped once that dictation session ended."""
+        if generation is not None and not self._dictation_generation.is_current(generation):
+            return False
+        self._toast(text)
         return False
 
     def _on_conversation_toggled(self, button: Gtk.ToggleButton) -> None:
@@ -3003,6 +3103,9 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _maybe_suggest(self) -> None:
         """Spawn a worker thread to check for a coaching suggestion."""
+        generation = self._query_generation
+        cancel_event = self.query_cancel
+
         def worker() -> None:
             try:
                 records = self.action_log.read(limit=50)
@@ -3012,12 +3115,15 @@ class MainWindow(Adw.ApplicationWindow):
             if suggestion is not None:
                 heard = str(records[-1].get("heard", "")) if records else ""
                 self.suggestion_state.offered(suggestion.key)
-                idle(self._on_suggestion, suggestion, heard)
+                idle(self._on_suggestion, suggestion, heard, generation, cancel_event)
 
         threading.Thread(target=worker, name="suggest", daemon=True).start()
 
-    def _on_suggestion(self, suggestion: Suggestion, heard: str) -> bool:
+    def _on_suggestion(self, suggestion: Suggestion, heard: str, generation: int | None = None,
+                       cancel_event: threading.Event | None = None) -> bool:
         """Show a coaching suggestion on the main thread."""
+        if generation is not None and not self._query_is_current(generation, cancel_event):
+            return False
         self._toast(suggestion.text)
         if self.conversation_active:
             self._conversation_speak(suggestion.text)
@@ -3060,9 +3166,11 @@ class MainWindow(Adw.ApplicationWindow):
         """Speak a text file through the normal reply path, so the face moves with the words."""
         from voxa.agent.tools import readfile
 
+        token = self.assistant.token()
+
         def work() -> None:
             result = readfile.read_text_file({"name": path})
-            idle(self._conversation_speak, result.speech)
+            idle(self._for_session(token, self._conversation_speak), result.speech)
 
         threading.Thread(target=work, daemon=True).start()
 
@@ -3160,7 +3268,9 @@ class MainWindow(Adw.ApplicationWindow):
         self._set_status(self._conversation_idle_status())
         return False
 
-    def _on_dictation_status(self, text: str) -> bool:
+    def _on_dictation_status(self, text: str, generation: int | None = None) -> bool:
+        if generation is not None and not self._dictation_generation.is_current(generation):
+            return False
         # Keep the label stable while recording. Rapid label replacement caused
         # stale glyph fragments with GTK 4 on some NVIDIA/X11/Compiz desktops.
         if self.listening and text == "Transcribing…":
@@ -3331,7 +3441,9 @@ class MainWindow(Adw.ApplicationWindow):
         self.level.set_value(0)
         self.status_box.queue_draw()
 
-    def _append_transcript(self, text: str) -> bool:
+    def _append_transcript(self, text: str, generation: int | None = None) -> bool:
+        if generation is not None and not self._dictation_generation.is_current(generation):
+            return False
         buffer = self.transcript_view.get_buffer()
         end = buffer.get_end_iter()
         prefix = "" if buffer.get_char_count() == 0 else " "
@@ -3402,6 +3514,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._set_status("Ready")
 
     def _start_external_dictation(self, prompt: str) -> None:
+        generation = self._dictation_generation.bump()
         target = intents.dictation_target(prompt)
         self._external_dictation = True
         self._last_dictated = ""
@@ -3419,7 +3532,7 @@ class MainWindow(Adw.ApplicationWindow):
                     logging.warning("Could not focus dictation target %s: %s", target, exc)
                     return
                 if not result.ok:
-                    idle(self._toast, result.speech)
+                    idle(self._dictation_note, result.speech, generation)
 
             threading.Thread(
                 target=focus_destination,
@@ -3439,6 +3552,7 @@ class MainWindow(Adw.ApplicationWindow):
             self._on_tool_finished(ToolResult.success(f"Dictating{destination}."))
 
     def _stop_external_dictation(self) -> None:
+        self._dictation_generation.bump()
         self._external_dictation = False
         if self.assistant_model.state is AssistantState.DICTATING:
             self.assistant_model.set_state(AssistantState.READY, "")
@@ -3448,15 +3562,20 @@ class MainWindow(Adw.ApplicationWindow):
     def _start_issue_flow(self, project: str, heard: str) -> None:
         """Find the project off the GTK thread, then ask for the title."""
         self._log_action(heard, "issue", detail=f"start {project}")
+        generation = self._query_generation
+        cancel_event = self.query_cancel
 
         def worker() -> None:
             owner = self.settings.github_owner or issueflow.detect_owner()
             repo = issueflow.find_repo(project, owner=owner)
-            idle(self._begin_issue_flow, project, repo)
+            idle(self._begin_issue_flow, project, repo, generation, cancel_event)
 
         threading.Thread(target=worker, name="issue-repo", daemon=True).start()
 
-    def _begin_issue_flow(self, project: str, repo: str | None) -> bool:
+    def _begin_issue_flow(self, project: str, repo: str | None, generation: int | None = None,
+                          cancel_event: threading.Event | None = None) -> bool:
+        if generation is not None and not self._query_is_current(generation, cancel_event):
+            return False
         if repo is None:
             self._on_tool_finished(ToolResult.failure(f"I could not find a GitHub project called {project}. If I do not know your GitHub name yet, say: my GitHub name is, and then the name."))
             return False
@@ -3551,6 +3670,8 @@ class MainWindow(Adw.ApplicationWindow):
             except Exception as exc:  # noqa: BLE001 - the dialog is another program's; never crash on it
                 logging.warning("save dialog step failed: %s", exc)
                 said = flow.failed()
+            if self._save_flow is not flow:
+                return  # OFFLINE ended the save conversation: this worker's answer is stale
             idle(self._save_flow_step, said)
 
         threading.Thread(target=work, name="save-dialog", daemon=True).start()
@@ -3573,6 +3694,7 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _dictate_external(self, text: str) -> None:
         """Handle one utterance while dictating: type it, undo it, send it, or stop."""
+        generation = self._dictation_generation.value
         action = parse_dictation_control(text)
         if action == "stop":
             self._stop_external_dictation()
@@ -3586,7 +3708,7 @@ class MainWindow(Adw.ApplicationWindow):
                 try:
                     typing.erase(erased)
                 except Exception as exc:  # noqa: BLE001 - worker boundary
-                    idle(self._toast, f"I can't type here. {exc}")
+                    idle(self._dictation_note, f"I can't type here. {exc}", generation)
 
             threading.Thread(target=worker, name="external-dictation", daemon=True).start()
             return
@@ -3603,7 +3725,7 @@ class MainWindow(Adw.ApplicationWindow):
             try:
                 typing.type_text(typed)
             except Exception:  # noqa: BLE001 - worker boundary
-                idle(self._toast, "I can't type here.")
+                idle(self._dictation_note, "I can't type here.", generation)
 
         threading.Thread(target=worker, name="external-dictation", daemon=True).start()
 
@@ -4202,6 +4324,8 @@ class MainWindow(Adw.ApplicationWindow):
         self._open_stored_website(kind, original)
 
     def _search_for_website(self, kind: str, words: str, original: str) -> None:
+        generation = self._query_generation
+        cancel_event = self.query_cancel
         query = spellings.quote(websearch.search_query_for(words, self.settings.web_search, None) or words)
         try:
             results = websearch.search(query)
@@ -4209,9 +4333,12 @@ class MainWindow(Adw.ApplicationWindow):
             results = []
         if results:
             self._last_site_url = (time.time(), results[0].url)
-        idle(self._open_stored_website, kind, original)
+        idle(self._open_stored_website, kind, original, generation, cancel_event)
 
-    def _open_stored_website(self, kind: str, original: str) -> None:
+    def _open_stored_website(self, kind: str, original: str, generation: int | None = None,
+                             cancel_event: threading.Event | None = None) -> None:
+        if generation is not None and not self._query_is_current(generation, cancel_event):
+            return
         stored = self._last_site_url
         if stored is None or not website_fresh(stored[0], time.time()):
             self._toast("Which website? Tell me its name.")
@@ -4635,7 +4762,10 @@ class MainWindow(Adw.ApplicationWindow):
         # speech and the running request, cancels tasks, and makes late callbacks stale.
         compiz.stop_spin()
         self.assistant.go_offline()
+        if self.listening:
+            self.stop_recording()
         self._stop_external_dictation()
+        getattr(self, "_welcome_cancel", threading.Event()).set()
         self._issue_flow = None
         self._save_flow = None
         self._mail_flow = None
