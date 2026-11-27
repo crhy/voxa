@@ -334,15 +334,25 @@ def test_issue_flow_stale_never_asks_for_a_title():
 
 
 def test_website_search_stale_never_opens_the_page():
-    window = _fake_window()
-    window.query_cancel = MagicMock()
-    window._query_generation = 5
-    window._last_site_url = (time.time(), "https://example.com/page")
-    assert MainWindow._open_stored_website(window, "site", "open it", 4, window.query_cancel) is None
-    window._run_tool.assert_not_called()
-    window._toast.assert_not_called()
-    assert MainWindow._open_stored_website(window, "site", "open it", 5, window.query_cancel) is None
-    window._run_tool.assert_called_once()
+    # the flow lives in the query controller now (g138d): drive it with a live
+    # open_stored_website and fake hooks, so the token check itself is tested.
+    from voxa.query_controller import QueryController
+
+    opened: list[str] = []
+    toasted: list[str] = []
+    cancel = MagicMock()
+    fake = QueryController.__new__(QueryController)
+    fake.last_site_url = (time.time(), "https://example.com/page")
+    fake._ui = types.SimpleNamespace(
+        current=lambda generation, cancel_event: generation == 5,
+        toast=toasted.append,
+        open_url=lambda url, original: opened.append(url),
+    )
+    assert QueryController.open_stored_website(fake, "site", "open it", 4, cancel) is None
+    assert opened == []
+    assert toasted == []
+    assert QueryController.open_stored_website(fake, "site", "open it", 5, cancel) is None
+    assert opened == ["https://example.com"]
 
 
 # ---------------------------------------------------------------------------

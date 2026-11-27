@@ -286,7 +286,7 @@ def test_a_real_question_still_asks_the_model(window) -> None:
 def test_typed_follow_up_keeps_the_previous_turn(window) -> None:
     window.ask_ai("Who was the oldest Roman emperor?")
     assert _settle(window, lambda: len(window._fake_client.messages) == 1)
-    assert _settle(window, lambda: window._pending_user_generation is None)
+    assert _settle(window, lambda: window._query.pending_user_generation is None)
 
     window.ask_ai("How old was he when he died?")
     assert _settle(window, lambda: len(window._fake_client.messages) == 2)
@@ -416,7 +416,7 @@ def test_a_cold_model_shows_a_loading_caption(window, monkeypatch) -> None:
     window.ask_ai("what is the capital of France")
     assert _settle(window, lambda: window.status_label.get_text().startswith("Loading "))
     assert "tiny" in window.status_label.get_text()
-    assert window._loading_model_since is not None
+    assert window._query.loading_model_since is not None
 
 
 def test_releasing_the_gate_and_a_chunk_clears_the_caption(window, monkeypatch) -> None:
@@ -426,7 +426,7 @@ def test_releasing_the_gate_and_a_chunk_clears_the_caption(window, monkeypatch) 
     window.ask_ai("what is the capital of France")
     assert _settle(window, lambda: window.status_label.get_text().startswith("Loading "))
     gate.set()
-    assert _settle(window, lambda: window._loading_model_since is None)
+    assert _settle(window, lambda: window._query.loading_model_since is None)
 
 
 def test_a_loaded_model_never_shows_a_loading_caption(window, monkeypatch) -> None:
@@ -434,7 +434,7 @@ def test_a_loaded_model_never_shows_a_loading_caption(window, monkeypatch) -> No
     monkeypatch.setattr(MainWindow, "_ai_client", lambda self: client)
     window.ask_ai("what is the capital of France")
     assert _settle(window, lambda: client.queries)
-    assert window._loading_model_since is None
+    assert window._query.loading_model_since is None
     assert not window.status_label.get_text().startswith("Loading ")
 
 
@@ -491,7 +491,7 @@ def test_a_browser_request_runs_the_page_aware_planner(window, monkeypatch) -> N
         def url(self):
             return "https://luigis.com/"
 
-    monkeypatch.setattr("voxa.window.get_session", lambda: Session())
+    monkeypatch.setattr("voxa.query_controller.get_session", lambda: Session())
 
     class BrowserClient:
         def __init__(self) -> None:
@@ -552,7 +552,7 @@ def test_cancelling_stops_the_browser_task_after_the_current_step(window, monkey
         def url(self):
             return "https://luigis.com/"
 
-    monkeypatch.setattr("voxa.window.get_session", lambda: Session())
+    monkeypatch.setattr("voxa.query_controller.get_session", lambda: Session())
 
     class CancelClient:
         def __init__(self) -> None:

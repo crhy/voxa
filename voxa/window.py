@@ -30,7 +30,6 @@ from . import (  # noqa: E402
 )
 from .agent import hearing, host, intents, issueflow, livetv, mailflow, planner, radio, repeat, saveflow, ui  # noqa: E402
 from .agent.actionlog import ActionLog, ActionRecord  # noqa: E402
-from .agent.claims import claims_action, first_sentences  # noqa: E402
 from .agent.host import host_command  # noqa: E402
 from .agent.host import spawn as host_spawn  # noqa: E402
 from .agent.player import active_player  # noqa: E402
@@ -74,7 +73,7 @@ from .agent.tools import briefing as briefing_tool  # noqa: E402
 from .agent.tools.web import get_session  # noqa: E402
 from .anc import EchoCanceller as AncCanceller  # noqa: E402
 from .audio import AudioCapture, AudioDevice, webrtc_available  # noqa: E402
-from .backend import AIBackend, BackendError, backend_label, client_for  # noqa: E402
+from .backend import AIBackend, backend_label, client_for  # noqa: E402
 from .backend import chat_model as backend_chat_model  # noqa: E402
 from .bargein import BargeInGate, is_own_voice  # noqa: E402
 from .catalog import CatalogUnavailable, load_catalog, refresh_and_cache, refresh_due  # noqa: E402
@@ -102,11 +101,19 @@ from .hardware import (  # noqa: E402
     suggest_models,
 )
 from .installer import InstallerError, install_ollama, ollama_installed  # noqa: E402
-from .llamacpp import LlamaCppClient  # noqa: E402
 from .modelwait import wait_for_models  # noqa: E402
 from .ollama import OllamaClient, OllamaError, strip_reasoning  # noqa: E402
 from .ownspeech import OwnSpeech  # noqa: E402
 from .pausewords import is_pause_request, resume_request  # noqa: E402
+from .query_controller import (  # noqa: E402
+    AI_APOLOGY,
+    WEBSITE_MEMORY_SECONDS,
+    QueryController,
+    QueryHooks,
+    short_model_name,
+    site_of_url,
+    website_fresh,
+)
 from .replylang import LANGUAGES, is_only_a_language_request, requested_language  # noqa: E402
 from .server import SERVER_FAILED, SERVER_READY, SERVER_STARTING, SERVER_UNAVAILABLE, AiServerManager  # noqa: E402
 from .speakstream import SentenceFeeder, looks_like_reasoning  # noqa: E402
@@ -175,9 +182,6 @@ CONVERSATION_SYSTEM_PROMPT = (
     "saved, deleted, booked or changed anything. If the user asked for an action you cannot "
     "perform, say you could not do it and suggest how to phrase it as a direct command."
 )
-FALSE_CLAIM_REPLY = (
-    "I couldn't do that. Try saying it as a direct command, like “close Brutal Chess”."
-)
 # Barge-in: loud sustained speech while a reply is being read interrupts it.
 # A short grace period ignores the TTS itself starting (speaker onset is the
 # loudest moment); the level gate in .bargein decides when the mic is loud
@@ -187,12 +191,6 @@ BARGE_IN_GRACE_SECONDS = 0.4
 BARGE_IN_LISTEN_SECONDS = 0.9
 # How long the high-resolution face server may take to load its model before Voxa gives up on it.
 FACE_SERVER_START_SECONDS = 90.0
-# A heard question is worth waiting briefly for a stopped managed backend
-# (ollama serve / llama-server) to come back before the request fails.
-AI_SERVER_WAIT_SECONDS = 30.0
-AI_SERVER_WAIT_DELAY = 0.5
-# Hands-free users cannot see the toast, so a failed request must also say why out loud.
-AI_APOLOGY = "Sorry, I could not get an answer from the model."
 # Version 5 also gates neural rendering against the real audio playback clock,
 # so prepared or paused speech cannot make the GPU run far ahead.
 LIVE_FACE_PROTOCOL_VERSION = 5
@@ -253,14 +251,6 @@ def idle(callback: Callable, *args) -> None:
     GLib.idle_add(run_once, priority=GLib.PRIORITY_DEFAULT)
 
 
-def short_model_name(model: str) -> str:
-    """The part after the last '/', truncated to 28 characters with an ellipsis."""
-    name = model.rsplit("/", 1)[-1]
-    if len(name) > 28:
-        return name[:27] + "…"
-    return name
-
-
 def audio_output_state() -> str:
     """One-line snapshot of the real output Voxa speaks to, for the reply log.
 
@@ -305,9 +295,6 @@ def audio_output_state() -> str:
     )
 
 
-# "Open the website" after a web search: the site of the last searched URL, remembered this long.
-WEBSITE_MEMORY_SECONDS = 600.0
-
 _WEBSITE_REQUEST = re.compile(
     r"(?P<verb>open|go to|show me)\s+(?P<det>the|that|their)\s+(?P<noun>website|site|page)"
     r"(?:\s+for\s+(?P<words>.+))?",
@@ -328,19 +315,6 @@ def website_request(text: str) -> tuple[str, str | None] | None:
     kind = "page" if match.group("noun") == "page" else "site"
     words = match.group("words").strip() if match.group("words") else None
     return kind, words
-
-
-def site_of_url(url: str) -> str:
-    """Scheme and host only: https://spacedlinux.com/posts/x -> https://spacedlinux.com."""
-    scheme, sep, rest = url.partition("://")
-    if not sep:
-        return url
-    return f"{scheme}{sep}{rest.split('/', 1)[0]}"
-
-
-def website_fresh(stored_at: float, now: float) -> bool:
-    """True while a website URL stored at stored_at is still remembered at now."""
-    return now - stored_at <= WEBSITE_MEMORY_SECONDS
 
 
 def string_item_factory(*, wrap: bool, width_chars: int) -> Gtk.SignalListItemFactory:
@@ -396,15 +370,6 @@ class MainWindow(Adw.ApplicationWindow):
         self._whisper_generation = Generation()
         self._dictation_generation = Generation()
         self._model_manager_generation = Generation()
-        self._last_search_query: str | None = None
-        self._last_search_at = 0.0
-        self._search_record: dict | None = None
-        # heard/route/monotonic-start of the model request whose pre-call action
-        # record was written, so its final record can carry ok/speech/ms.
-        self._action_pending: tuple[str, str, float, int] | None = None
-        self._search_source = ""
-        self._search_results: list = []
-        self._last_site_url: tuple[float, str] | None = None
         self.style_manager = Adw.StyleManager.get_default()
         self._apply_appearance()
         self.whisper = WhisperService()
@@ -430,11 +395,8 @@ class MainWindow(Adw.ApplicationWindow):
         self._speaking_text = ""
         self._recent_spoken = ""
         # Echo filter: remembers what Voxa is saying so a mic transcript that is
-        # (part of) her own sentence is dropped, not heard as the user (issue #88).
+        # (part of) Voxa's own sentence is dropped, not heard as the user (issue #88).
         self.own_speech = OwnSpeech()
-        # The conversation turn whose user message was just pushed, so a stale
-        # finish/error callback can't untangle history built by a newer turn.
-        self._pending_user_generation: int | None = None
         # Language the current session's answers must be in (None = the
         # character's own language); set by a "…in German" style request.
         self._reply_language: str | None = None
@@ -448,11 +410,63 @@ class MainWindow(Adw.ApplicationWindow):
         self._level_source = 0
         self._latest_level = 0.0
         self._query_generation = 0
-        self._loading_model_since: float | None = None
-        self._loading_model_name: str = ""
-        self._loading_source: int = 0
-        self._loading_generation: int = -1
-        self._loading_cancel: threading.Event | None = None
+        # g138d (#138 part 1): the AI query pipeline itself lives in QueryController;
+        # this window keeps the status line, the picker, the toasts and the buttons
+        # and hands them to the controller as hooks. The window still owns the
+        # query-generation registry (OFFLINE and the other request paths bump it);
+        # the controller reports every completion tagged with its generation.
+        self._query = QueryController(
+            backend=lambda: self._ai_client(),
+            ui=QueryHooks(
+                schedule=idle,
+                current=self._query_is_current,
+                query_generation=lambda: self._query_generation,
+                new_query=self._begin_query,
+                status=self._set_status,
+                status_busy=lambda text: self._set_status(text, True),
+                toast=self._toast,
+                assistant_state=self._set_assistant_state,
+                idle_status=self._conversation_idle_status,
+                set_busy=lambda sensitive: self.ask_button.set_sensitive(sensitive),
+                show_reply=self._replace_reply,
+                show_answer=lambda text: self.shell.exchange_panel.show_answer(text),
+                append_batch=self._append_response,
+                task_end=self._end_query_task,
+                assistant_active=lambda: self.assistant.is_active,
+                reply_finished=lambda waiting: self.assistant.reply_finished(
+                    self.assistant.token(), waiting_for_prompt=waiting
+                ),
+                fail_assistant=self._fail_assistant,
+                conversation_active=lambda: self.conversation_active,
+                waiting_for_prompt=lambda: self.conversation is not None and self.conversation.waiting_for_prompt,
+                speak=self._conversation_speak,
+                early_speech_finish=self._early_speech_finish,
+                reset_early_speech=lambda: setattr(self, "_early", None),
+                auto_speak_enabled=lambda: bool(self.settings.auto_speak),
+                auto_speak=self.speak_response,
+                log_action=self._log_action,
+                cmd_timings=self._cmd_timings,
+                tool_ran=lambda: self._tool_ran_for_request,
+                web_enabled=lambda: self.settings.web_search != "never",
+                web_mode=lambda: self.settings.web_search,
+                web_search_started=self._on_web_search,
+                web_unavailable=self._on_web_unavailable,
+                ticker_start=lambda callback: GLib.timeout_add(1000, callback),
+                ticker_stop=lambda source: GLib.source_remove(source),
+                restart_backend=lambda: self.ai_server.start(),
+                managed_backend=lambda: self.settings.ai_backend in ("ollama", "llamacpp"),
+                models_refreshed=self._refresh_ollama_models,
+                backend_label=self._backend_label,
+                chat_model=self._chat_model,
+                tools=lambda: self.tools,
+                current_cancel=lambda: self.query_cancel,
+                browser_step=self._show_browser_step,
+                open_url=lambda url, original: self._run_tool(
+                    intents.ToolCall("open_url", {"url": url}), original
+                ),
+            ),
+            history=self._conversation_history,
+        )
         self._hardware_summary = "Detecting your hardware…"
         self._suggested_models: list[str] = []
         self._install_cancel = threading.Event()
@@ -844,9 +858,9 @@ class MainWindow(Adw.ApplicationWindow):
             self.conversation.unmute()
 
     def _port_cancel_inference(self) -> None:
-        if self._pending_user_generation is not None:
+        if self._query.pending_user_generation is not None:
             self._conversation_history.drop_last()
-        self._pending_user_generation = None
+        self._query.pending_user_generation = None
         self.query_cancel.set()
         self._query_generation += 1
         self._query_task_id = None  # the controller cancels the task itself
@@ -2683,9 +2697,9 @@ class MainWindow(Adw.ApplicationWindow):
         self._live_reset()
         self._speaking_since = 0.0
         self._barge_gate.reset()
-        if self._pending_user_generation is not None:
+        if self._query.pending_user_generation is not None:
             self._conversation_history.drop_last()
-        self._pending_user_generation = None
+        self._query.pending_user_generation = None
         self.query_cancel.set()
         self._query_generation += 1
         self._stop_level_updates()
@@ -2765,9 +2779,9 @@ class MainWindow(Adw.ApplicationWindow):
         # the wake word ("cancel") or leave conversation mode ("goodbye").
         self.query_cancel.set()
         self._query_generation += 1
-        if self._pending_user_generation is not None:
+        if self._query.pending_user_generation is not None:
             self._conversation_history.drop_last()
-        self._pending_user_generation = None
+        self._query.pending_user_generation = None
         if self.conversation is not None:
             self.conversation.unmute()
         self.speech.stop()
@@ -3138,7 +3152,7 @@ class MainWindow(Adw.ApplicationWindow):
     def _clear_display(self) -> None:
         """A blank interface: no transcript, answer, exchange card or remembered turns."""
         self._conversation_history.clear()
-        self._pending_user_generation = None
+        self._query.pending_user_generation = None
         self._set_text(self.transcript_view, "")
         self._set_text(self.response_view, "")
         self.shell.exchange_panel.clear()
@@ -3507,7 +3521,7 @@ class MainWindow(Adw.ApplicationWindow):
         # A fresh start includes forgetting the conversation thread: the model
         # shouldn't carry context from a cleared transcript into the next turn.
         self._conversation_history.clear()
-        self._pending_user_generation = None
+        self._query.pending_user_generation = None
         self._set_text(self.transcript_view, "")
         self._set_text(self.response_view, "")
         self.shell.exchange_panel.clear()
@@ -3887,20 +3901,14 @@ class MainWindow(Adw.ApplicationWindow):
             self._plan_and_run(prompt)
             return
 
-        self._search_record = None
-        self._search_source = ""
         self._tool_ran_for_request = False
         heard_prompt = prompt
-        self.query_cancel.set()
-        if self._conversation_history and self._pending_user_generation is not None:
+        generation, cancel_event = self._begin_query()
+        if self._conversation_history and self._query.pending_user_generation is not None:
             # A newer question supersedes a request that has not produced an
             # answer yet. Remove that incomplete turn before adding the new one.
             self._conversation_history.drop_last()
-            self._pending_user_generation = None
-        cancel_event = threading.Event()
-        self.query_cancel = cancel_event
-        self._query_generation += 1
-        generation = self._query_generation
+            self._query.pending_user_generation = None
 
         # Keep one bounded thread for every AI question.  Typed questions and
         # spoken conversation use the same model, so follow-ups must see the
@@ -3915,7 +3923,7 @@ class MainWindow(Adw.ApplicationWindow):
                     prompt = self._last_user_prompt
         self._conversation_history.add_user(prompt)
         messages: list[dict[str, str]] | None = self._conversation_history.messages()
-        self._pending_user_generation = generation
+        self._query.pending_user_generation = generation
         self._last_user_prompt = prompt
         if (
             self.conversation_active
@@ -3937,106 +3945,19 @@ class MainWindow(Adw.ApplicationWindow):
         self._set_status(f"Asking {model}…", busy=True)
         self._start_gpu_monitor()
 
-        # Batch streamed chunks so the main loop schedules at most one idle
-        # callback per batch instead of one per token chunk.
-        pending_chunks: list[str] = []
-
-        def flush_chunks() -> None:
-            if pending_chunks:
-                batch = "".join(pending_chunks)
-                pending_chunks.clear()
-                idle(self._append_response, batch, generation, cancel_event)
-
-        def on_chunk(chunk: str) -> None:
-            pending_chunks.append(chunk)
-            if len(pending_chunks) >= 8:
-                flush_chunks()
-
-        def worker() -> None:
-            try:
-                client = self._ai_client()
-                nonlocal messages, prompt
-                heard = prompt
-                # Web search only augments the question of a real AI backend:
-                # the contract marks the real ones with capabilities(); a
-                # client that predates the contract gets the question as
-                # asked, exactly like the old isinstance guard did (#138).
-                if self.settings.web_search != "never" and hasattr(client, "capabilities"):
-                    context = self._web_context(prompt, generation, cancel_event)
-                    if context:
-                        if messages:
-                            messages = [*messages[:-1], {**messages[-1], "content": f"{context}\n\n{messages[-1]['content']}"}]
-                        else:
-                            prompt = f"{context}\n\nQuestion: {prompt}"
-                rec = self._search_record
-                if rec is not None:
-                    route = rec["route"]
-                    self._log_action(heard, route, args=rec["args"], detail=rec["detail"], timings=self._cmd_timings(None))
-                else:
-                    route = "model"
-                    self._log_action(heard, route, timings=self._cmd_timings(None))
-                # Behavior differs: only llama.cpp/Strata servers serve one request
-                # at a time, so a heard question can queue behind a coding agent;
-                # Ollama answers both at once and must not pay for that probe.
-                if isinstance(client, LlamaCppClient) and client.is_busy():
-                    idle(self._on_server_busy, generation, cancel_event)
-                loaded = client.is_model_loaded(model) if hasattr(client, "is_model_loaded") else None
-                if loaded is False:
-                    # A reachable backend that has not got the model in memory: say so
-                    # ("Loading tiny… 3s") while the first request warms it up.
-                    idle(self._on_model_loading, model, generation, cancel_event)
-                # Behavior differs: only the backends Voxa manages itself can have
-                # been stopped under us; a heard question is worth restarting those
-                # and waiting briefly for them instead of silently answering with
-                # nothing. (Strata is the user's server: Voxa never starts it.)
-                if loaded is None and hasattr(client, "is_model_loaded") and self.settings.ai_backend in ("ollama", "llamacpp"):
-                    # The managed backend was stopped (or never started) under us: a
-                    # heard question is worth restarting it and waiting briefly for
-                    # it instead of silently answering with nothing.
-                    idle(self._on_ai_server_starting, generation, cancel_event)
-                    self.ai_server.start()
-                    deadline = time.monotonic() + AI_SERVER_WAIT_SECONDS
-                    while (
-                        time.monotonic() < deadline
-                        and self._query_is_current(generation, cancel_event)
-                        and not cancel_event.is_set()
-                    ):
-                        loaded = client.is_model_loaded(model)
-                        if loaded is not None:
-                            break
-                        time.sleep(AI_SERVER_WAIT_DELAY)
-                    if loaded is not None:
-                        # The restarted backend is reachable again: fill the picker with
-                        # the real model list so it stops saying "not running".
-                        idle(self._refresh_ollama_models)
-                    if loaded is False:
-                        idle(self._on_model_loading, model, generation, cancel_event)
-                if self._query_is_current(generation, cancel_event):
-                    # vf04: the record carries its query generation. A slow worker
-                    # from an old query used to overwrite (or get read as) the
-                    # pending record of the query that replaced it.
-                    self._action_pending = (heard, route, time.monotonic(), generation)
-                answer = client.generate_stream(
-                    model=model,
-                    prompt=prompt,
-                    cancel_event=cancel_event,
-                    on_chunk=on_chunk,
-                    messages=messages,
-                )
-                flush_chunks()
-                idle(self._on_query_finished, answer, generation, cancel_event, heard_prompt)
-            except BackendError as exc:
-                # vf02/vf04: every client now says the same normalized thing for a
-                # dead backend, a missing model, an out-of-memory or a too-long
-                # question (#138); the kind's sentence is what gets heard aloud.
-                flush_chunks()
-                idle(self._on_query_error, str(exc), generation, cancel_event, exc.message)
-            except Exception as exc:  # noqa: BLE001 - a dead query thread must never be silent
-                flush_chunks()
-                logging.exception("the AI query thread crashed")
-                idle(self._on_query_error, f"{type(exc).__name__}: {exc}", generation, cancel_event)
-
-        threading.Thread(target=worker, name=f"ollama-query-{generation}", daemon=True).start()
+        # g138d (#138 part 1): the request itself - web augmentation, the busy
+        # probe, waiting/restarting the backend, the streamed answer and the
+        # action record - runs in QueryController; the completions come back
+        # through its generation-tagged UI-thread notes (status line, model
+        # loading, picker, toasts) and _append_response/_on_query_finished.
+        self._query.ask(
+            model=model,
+            prompt=prompt,
+            messages=messages,
+            heard=heard_prompt,
+            generation=generation,
+            cancel_event=cancel_event,
+        )
 
     def _draft_and_act(
         self,
@@ -4053,11 +3974,7 @@ class MainWindow(Adw.ApplicationWindow):
         remembering it as a spoken turn would make later answers refer to text
         the user never heard.
         """
-        self.query_cancel.set()
-        cancel_event = threading.Event()
-        self.query_cancel = cancel_event
-        self._query_generation += 1
-        generation = self._query_generation
+        generation, cancel_event = self._begin_query()
 
         self._end_query_task("cancelled")
         self.shell.exchange_panel.show_question(prompt)
@@ -4068,75 +3985,18 @@ class MainWindow(Adw.ApplicationWindow):
         self.ask_button.set_sensitive(False)
         self._set_status(f"{label}…", busy=True)
         self._start_gpu_monitor()
-
-        def worker() -> None:
-            try:
-                client = self._ai_client()
-                if hasattr(client, "is_model_loaded") and client.is_model_loaded(self.settings.ollama_model) is False:
-                    idle(self._on_model_loading, self.settings.ollama_model, generation, cancel_event)
-                answer = client.generate_stream(
-                    model=self._chat_model(),
-                    prompt=user_prompt,
-                    cancel_event=cancel_event,
-                    on_chunk=lambda chunk: None,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt},
-                    ],
-                )
-                idle(self._on_draft_finished, answer, generation, cancel_event, finish)
-            except OllamaError as exc:
-                idle(self._on_draft_error, str(exc), generation, cancel_event)
-            except Exception as exc:  # noqa: BLE001 - a dead draft thread must never be silent either
-                logging.exception("the AI draft thread crashed")
-                idle(self._on_draft_error, f"{type(exc).__name__}: {exc}", generation, cancel_event)
-
-        threading.Thread(target=worker, name=f"draft-{generation}", daemon=True).start()
-
-    def _on_draft_finished(
-        self, answer: str, generation: int, cancel_event: threading.Event, finish: Callable[[str], str]
-    ) -> bool:
-        if not self._query_is_current(generation, cancel_event):
-            return False
-        self.ask_button.set_sensitive(True)
-        if cancel_event.is_set():
-            self._end_query_task("cancelled")
-            self._set_status("AI request stopped.")
-            return False
-        try:
-            reply = finish(strip_reasoning(answer))
-        except Exception as exc:  # noqa: BLE001 - the mail client or LibreOffice may not be installed
-            self._end_query_task("failed", str(exc))
-            logging.warning("AI draft failed: %s", exc)
-            self._toast(f"Could not complete that: {exc}")
-            self._set_status("Draft failed.")
-            return False
-        self._end_query_task("done")
-        display = f"{reply}\n{self._search_source}" if self._search_source else reply
-        self.shell.exchange_panel.show_answer(display)
-        if not self.assistant.is_active:
-            self._toast(reply)
-        elif self.conversation_active:
-            self._conversation_speak(reply)
-        else:
-            self.assistant.reply_finished(self.assistant.token())
-            self._toast(reply)
-        self._set_status(reply)
-        return False
-
-    def _on_draft_error(
-        self, error: str, generation: int, cancel_event: threading.Event
-    ) -> bool:
-        if not self._query_is_current(generation, cancel_event) or cancel_event.is_set():
-            return False
-        self.ask_button.set_sensitive(True)
-        self._end_query_task("failed", error)
-        logging.warning("AI request failed: %s", error)
-        if self.conversation_active:
-            self._fail_assistant("The AI request failed")
-        self._toast(error)
-        self._set_status(self._conversation_idle_status() if self.conversation_active else "AI request failed.")
-        return False
+        self._query.draft(
+            cold_check=self.settings.ollama_model,
+            model=self._chat_model(),
+            user_prompt=user_prompt,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            finish=finish,
+            generation=generation,
+            cancel_event=cancel_event,
+        )
 
     def _finish_email_draft(self, request: mail.EmailRequest, answer: str) -> str:
         subject, body = mail.parse_draft(answer)
@@ -4196,12 +4056,7 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _browse_and_report(self, prompt: str) -> None:
         """Run the page-aware planner in one worker thread and speak the result."""
-        self.query_cancel.set()
-        cancel_event = threading.Event()
-        self.query_cancel = cancel_event
-        self._query_generation += 1
-        generation = self._query_generation
-
+        generation, cancel_event = self._begin_query()
         self._end_query_task("cancelled")
         self.shell.exchange_panel.show_question(prompt)
         task = self.assistant.begin_task(f"Browsing: {prompt[:40]}")
@@ -4211,58 +4066,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.ask_button.set_sensitive(False)
         self._set_status("Browsing…", busy=True)
         self._start_gpu_monitor()
-
-        def on_step(call: intents.ToolCall, result: ToolResult, ms: int) -> None:
-            self._log_action(
-                prompt,
-                "browser",
-                tool=call.tool,
-                args=call.args,
-                ok=result.ok,
-                speech=result.speech,
-                detail=result.detail,
-                ms=ms,
-            )
-
-        def on_caption(call: intents.ToolCall) -> None:
-            if call.tool == "click_on":
-                detail = f"Clicking {call.args.get('text', '')}…"
-            else:
-                detail = "Reading the page…"
-            idle(self._show_browser_step, detail, generation, cancel_event)
-
-        def worker() -> None:
-            try:
-                def ask_model(messages: list[dict]) -> str:
-                    return self._ai_client().generate_stream(
-                        model=self._chat_model(),
-                        prompt=messages[-1]["content"],
-                        messages=messages,
-                        cancel_event=cancel_event,
-                        on_chunk=lambda chunk: None,
-                    )
-
-                answer = planner.run_browser_task(
-                    prompt,
-                    ask_model,
-                    get_session(),
-                    self.tools,
-                    on_step=on_step,
-                    should_stop=cancel_event.is_set,
-                    on_caption=on_caption,
-                )
-                idle(self._on_draft_finished, answer, generation, cancel_event, lambda text: text)
-            except OllamaError as exc:
-                idle(self._on_draft_error, str(exc), generation, cancel_event)
-            except Exception:
-                idle(
-                    self._on_draft_error,
-                    "I lost contact with my browser. Say that again and I'll reopen it.",
-                    generation,
-                    cancel_event,
-                )
-
-        threading.Thread(target=worker, name=f"browse-{generation}", daemon=True).start()
+        self._query.browse(prompt, generation, cancel_event)
 
     def _show_browser_step(self, detail: str, generation: int, cancel_event: threading.Event) -> bool:
         if not self._query_is_current(generation, cancel_event) or cancel_event.is_set():
@@ -4270,35 +4074,6 @@ class MainWindow(Adw.ApplicationWindow):
         self._set_status(detail, busy=True)
         self.assistant_model.set_state(AssistantState.WORKING, detail)
         return False
-
-    def _web_context(self, prompt: str, generation: int, cancel_event: threading.Event) -> str:
-        self._search_record = None
-        self._search_source = ""
-        self._search_results = []
-        previous = self._last_search_query
-        if previous is not None and time.time() - self._last_search_at > 180:
-            previous = None
-        query = websearch.search_query_for(prompt, self.settings.web_search, previous)
-        if query:
-            query = spellings.quote(query)
-        if not query:
-            return ""
-        self._last_search_query = query
-        self._last_search_at = time.time()
-        idle(self._on_web_search, query, generation, cancel_event)
-        try:
-            results = websearch.search(query)
-        except Exception:  # noqa: BLE001 - offline or blocked: answer without the web
-            idle(self._on_web_unavailable, generation, cancel_event)
-            self._search_record = websearch.search_record_fields(query, [], True)
-            return ""
-        self._search_record = websearch.search_record_fields(query, results, False)
-        if results:
-            self._last_site_url = (time.time(), results[0].url)
-            self._search_source = websearch.source_line(results)
-            self._search_results = results
-            return websearch.format_for_prompt(query, results)
-        return ""
 
     def _on_web_search(self, query: str, generation: int, cancel_event: threading.Event) -> bool:
         if self._query_is_current(generation, cancel_event) and not cancel_event.is_set():
@@ -4313,144 +4088,46 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _open_the_website(self, kind: str, words: str | None, original: str) -> None:
         """Open the site of the last searched URL; with words, search for them first."""
-        if words:
-            threading.Thread(
-                target=self._search_for_website,
-                args=(kind, words, original),
-                name="website-search",
-                daemon=True,
-            ).start()
-            return
-        self._open_stored_website(kind, original)
+        self._query.open_website(kind, words, original)
 
     def _search_for_website(self, kind: str, words: str, original: str) -> None:
-        generation = self._query_generation
-        cancel_event = self.query_cancel
-        query = spellings.quote(websearch.search_query_for(words, self.settings.web_search, None) or words)
-        try:
-            results = websearch.search(query)
-        except Exception:  # noqa: BLE001 - offline or blocked: fall back to what is stored
-            results = []
-        if results:
-            self._last_site_url = (time.time(), results[0].url)
-        idle(self._open_stored_website, kind, original, generation, cancel_event)
+        self._query.search_for_website(kind, words, original, self._query_generation, self.query_cancel)
 
     def _open_stored_website(self, kind: str, original: str, generation: int | None = None,
                              cancel_event: threading.Event | None = None) -> None:
-        if generation is not None and not self._query_is_current(generation, cancel_event):
-            return
-        stored = self._last_site_url
-        if stored is None or not website_fresh(stored[0], time.time()):
-            self._toast("Which website? Tell me its name.")
-            return
-        url = site_of_url(stored[1]) if kind == "site" else stored[1]
-        self._run_tool(intents.ToolCall("open_url", {"url": url}), original)
-
-    def _on_server_busy(self, generation: int, cancel_event: threading.Event) -> bool:
-        if self._query_is_current(generation, cancel_event) and not cancel_event.is_set():
-            note = "The AI server is busy with another request. Voxa will answer as soon as it is free."
-            self._set_status(note, busy=True)
-            self._toast(note)
-            self.assistant_model.set_state(AssistantState.THINKING, "AI server busy — waiting in line")
-        return False
-
-    def _on_model_loading(self, model: str, generation: int, cancel_event: threading.Event) -> bool:
-        if not self._query_is_current(generation, cancel_event) or cancel_event.is_set():
-            return False
-        self._loading_model_since = time.monotonic()
-        self._loading_model_name = short_model_name(model)
-        self._loading_generation = generation
-        self._loading_cancel = cancel_event
-        self._show_model_loading()
-        self._loading_source = GLib.timeout_add(1000, self._model_loading_tick)
-        return False
-
-    def _show_model_loading(self) -> None:
-        seconds = int(time.monotonic() - self._loading_model_since) if self._loading_model_since is not None else 0
-        detail = f"Loading {self._loading_model_name}… {seconds}s"
-        self._set_status(detail, busy=True)
-        self.assistant_model.set_state(AssistantState.WORKING, detail)
-
-    def _model_loading_tick(self) -> bool:
-        if self._loading_model_since is None:
-            return False
-        if self._loading_cancel is not None and self._loading_cancel.is_set():
-            self._stop_model_loading()
-            return False
-        if self._loading_generation != self._query_generation:
-            self._stop_model_loading()
-            return False
-        self._show_model_loading()
-        return True
-
-    def _stop_model_loading(self) -> None:
-        if self._loading_source:
-            GLib.source_remove(self._loading_source)
-            self._loading_source = 0
-        self._loading_model_since = None
-        self._loading_model_name = ""
-        self._loading_generation = -1
-        self._loading_cancel = None
+        self._query.open_stored_website(kind, original, generation, cancel_event)
 
     def _warm_up_model(self, model: str) -> None:
-        # Loading a model into memory does not need the microphone, so this runs
-        # whether the assistant is ACTIVE or OFFLINE. A 1-token request makes the
-        # cold-start wait happen the moment the user picks the model.
-        if not model:
-            return
-        client = self._ai_client()
-        if not hasattr(client, "is_model_loaded") or client.is_model_loaded(model) is not False:
-            return
-        cancel_event = threading.Event()
-        self.query_cancel = cancel_event
-        self._query_generation += 1
-        generation = self._query_generation
-        idle(self._on_model_loading, model, generation, cancel_event)
-
-        def worker() -> None:
-            try:
-                client.generate_stream(
-                    model=model,
-                    prompt="hi",
-                    cancel_event=cancel_event,
-                    on_chunk=lambda chunk: None,
-                    num_predict=1,
-                )
-                if not cancel_event.is_set():
-                    idle(self._warm_up_finished, generation, cancel_event)
-            except OllamaError as exc:
-                if not cancel_event.is_set():
-                    idle(self._warm_up_failed, str(exc), generation, cancel_event)
-            except Exception as exc:  # noqa: BLE001 - the loading spinner must not stick forever
-                logging.exception("the AI warm-up thread crashed")
-                if not cancel_event.is_set():
-                    idle(self._warm_up_failed, f"{type(exc).__name__}: {exc}", generation, cancel_event)
-
-        threading.Thread(target=worker, name=f"warm-up-{generation}", daemon=True).start()
-
-    def _warm_up_finished(self, generation: int, cancel_event: threading.Event) -> bool:
-        if not self._query_is_current(generation, cancel_event):
-            return False
-        self._stop_model_loading()
-        self._set_status("Ready")
-        return False
-
-    def _warm_up_failed(self, error: str, generation: int, cancel_event: threading.Event) -> bool:
-        if not self._query_is_current(generation, cancel_event):
-            return False
-        self._stop_model_loading()
-        self._toast(error)
-        self._set_status("Ready")
-        return False
+        # Warming a picked model with a 1-token request, the "Loading tiny… 3s"
+        # note and its one-second ticker all live in the query controller now;
+        # it runs whether the assistant is ACTIVE or OFFLINE (no microphone).
+        self._query.warm_up(model)
 
     def _query_is_current(self, generation: int, cancel_event: threading.Event) -> bool:
         return generation == self._query_generation and cancel_event is self.query_cancel
 
+    def _begin_query(self, cancel_previous: bool = True) -> tuple[int, threading.Event]:
+        """Retire the request in flight and open the bookkeeping for the next one."""
+        if cancel_previous:
+            self.query_cancel.set()
+        cancel_event = threading.Event()
+        self.query_cancel = cancel_event
+        self._query_generation += 1
+        return self._query_generation, cancel_event
+
+    def _set_assistant_state(self, state: AssistantState, detail: str) -> None:
+        self.assistant_model.set_state(state, detail)
+
+    def _replace_reply(self, text: str) -> None:
+        buffer = self.response_view.get_buffer()
+        buffer.set_text(text)
+        self._scroll_to_end(self.response_view)
+
     def _append_response(self, batch: str, generation: int, cancel_event: threading.Event) -> bool:
         if not self._query_is_current(generation, cancel_event) or cancel_event.is_set():
             return False
-        if self._loading_model_since is not None:
-            self._stop_model_loading()
+        if self._query.loading_model_since is not None:
+            self._query.stop_model_loading()
         buffer = self.response_view.get_buffer()
         buffer.insert(buffer.get_end_iter(), batch)
         self._scroll_to_end(self.response_view)
@@ -4610,131 +4287,6 @@ class MainWindow(Adw.ApplicationWindow):
             reset()
         self.shell.reset_word_timeline()
 
-    def _on_query_finished(
-        self, answer: str, generation: int, cancel_event: threading.Event, heard: str = ""
-    ) -> bool:
-        if not self._query_is_current(generation, cancel_event):
-            return False
-        self._stop_model_loading()
-        self.ask_button.set_sensitive(True)
-        if cancel_event.is_set():
-            if self._conversation_history and self._pending_user_generation == generation:
-                self._conversation_history.drop_last()
-            self._pending_user_generation = None
-            self._end_query_task("cancelled")
-            self._finish_action_record(generation, ok=False, detail="cancelled")
-            self._set_status("AI request stopped.")
-            return False
-        self._end_query_task("done")
-        self._set_status("AI response complete.")
-        # A thinking model streams its scratchpad in with the reply. Replace
-        # what was streamed with just the answer, so the chain of thought is
-        # neither left on screen nor read aloud in conversation mode.
-        spoken = strip_reasoning(answer)
-        if claims_action(spoken) and not self._tool_ran_for_request:
-            # The model talked as if it had acted, but no tool ran: answer honestly.
-            self._log_action(heard, "false_claim", detail=first_sentences(answer, 1))
-            spoken = FALSE_CLAIM_REPLY
-        if spoken and spoken != FALSE_CLAIM_REPLY and self._search_results:
-            query = ((self._search_record or {}).get("args") or {}).get("query", "")
-            spoken = websearch.grounded_answer(spoken, self._search_results, query)
-        if spoken != answer:
-            buffer = self.response_view.get_buffer()
-            buffer.set_text(spoken)
-            self._scroll_to_end(self.response_view)
-        self.shell.exchange_panel.show_answer(spoken)
-        replaced = spoken == FALSE_CLAIM_REPLY
-        if spoken:
-            self._conversation_history.add_assistant(spoken)
-        elif self._conversation_history and self._pending_user_generation == generation:
-            # Do not leave a question without an answer in the model thread.
-            self._conversation_history.drop_last()
-        self._pending_user_generation = None
-        if spoken and self.conversation_active:
-            if replaced:
-                self._early = None  # what was said early is being corrected: say the honest answer in full
-                self._conversation_speak(spoken)
-            elif not self._early_speech_finish(spoken, generation):
-                self._conversation_speak(spoken)
-        else:
-            if self.conversation_active:  # nothing to say: back to waiting
-                waiting = self.conversation is not None and self.conversation.waiting_for_prompt
-                self.assistant.reply_finished(self.assistant.token(), waiting_for_prompt=waiting)
-            if answer and self.settings.auto_speak:
-                self.speak_response()
-        self._finish_action_record(generation, speech=spoken)
-        return False
-
-    def _on_query_error(
-        self, error: str, generation: int, cancel_event: threading.Event, spoken: str = ""
-    ) -> bool:
-        if not self._query_is_current(generation, cancel_event) or cancel_event.is_set():
-            return False
-        self._stop_model_loading()
-        self.ask_button.set_sensitive(True)
-        if self._conversation_history and self._pending_user_generation == generation:
-            # The turn produced no usable answer, so it must not sit in the
-            # conversation history as an unanswered question with no reply.
-            self._conversation_history.drop_last()
-        self._pending_user_generation = None
-        self._end_query_task("failed", error)
-        self._finish_action_record(generation, ok=False, detail=error)
-        logging.warning("AI request failed: %s", error)
-        if self.conversation_active:
-            self._fail_assistant("The AI request failed")
-            self._speak_apology(spoken)
-        self._toast(error)
-        self._set_status(self._conversation_idle_status() if self.conversation_active else "AI request failed.")
-        return False
-
-    def _finish_action_record(self, generation: int, ok: bool = True, speech: str = "", detail: str = "") -> None:
-        """Write the final record of a model request the pre-call record was logged for.
-
-        Without it the action log only ever shows the pre-call line (ok null, empty
-        speech, ms 0) for every heard request, healthy or broken alike. vf04: only a
-        record written by THIS query generation is finished; a stale worker's tuple
-        is dropped instead of stamping the wrong request.
-        """
-        pending, self._action_pending = self._action_pending, None
-        if pending is None or pending[3] != generation:
-            return
-        heard, route, started = pending[:3]
-        self._log_action(
-            heard,
-            route,
-            ok=ok,
-            speech=speech,
-            detail=detail,
-            ms=max(0, int((time.monotonic() - started) * 1000)),
-            timings=self._cmd_timings(time.monotonic()),
-        )
-
-    def _on_ai_server_starting(self, generation: int, cancel_event: threading.Event) -> bool:
-        """A stopped managed backend is being restarted: say so instead of failing silent."""
-        if not self._query_is_current(generation, cancel_event) or cancel_event.is_set():
-            return False
-        detail = f"Starting {self._backend_label()}…"
-        self._set_status(detail, busy=True)
-        self.assistant_model.set_state(AssistantState.WORKING, detail)
-        return False
-
-    def _speak_apology(self, kind_message: str = "") -> None:
-        """Hands-free users cannot see the toast: the failed request must be heard too.
-
-        vf04: it goes through the SAME path as a normal reply. A bare
-        ``speech.speak`` never mutes the conversation and own_speech never
-        hears it, so inside an open follow-up window Voxa took her own
-        "Sorry, I could not get an answer" as a new request and apologised
-        on and on.
-
-        #138: when the failure is a normalized BackendError, its kind's plain
-        sentence rides along ("... The AI server ran out of memory while it
-        was answering."), so the user hears WHY and not just the old blanket
-        apology for every failure.
-        """
-        apology = f"{AI_APOLOGY} {kind_message}" if kind_message else AI_APOLOGY
-        self._conversation_speak(apology)
-
     def speak_response(self) -> None:
         text = self._get_text(self.response_view) or self._get_text(self.transcript_view)
         if not text:
@@ -4773,7 +4325,7 @@ class MainWindow(Adw.ApplicationWindow):
         if self._installing:
             self._install_cancel.set()
         self.ask_button.set_sensitive(True)
-        self._stop_model_loading()
+        self._query.stop_model_loading()
         self._live_reset()
         self._set_status("Stopped.")
 
