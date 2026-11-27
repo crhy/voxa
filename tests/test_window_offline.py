@@ -134,6 +134,20 @@ def test_offline_stops_the_microphone_wake_monitor_speech_and_says_so(window) ->
     assert window.speech.stops >= 1
 
 
+def test_offline_stops_a_dictation_session_and_its_late_words(window) -> None:
+    """OFFLINE closes the microphone a Dictate session opened (issue #138 part 2)."""
+    window.start_recording()
+    assert window.audio.calls == ["start"] and window.listening
+    window.stop_current_work()
+    assert "stop" in window.audio.calls and not window.audio.is_active
+    assert not window.listening
+    # A segment the Whisper worker hands back after OFFLINE is stale: it transcribes nothing.
+    stale = window._dictation_generation.value - 1
+    before = window.transcript_view.get_buffer().get_char_count()
+    assert window._append_transcript("late words", stale) is False
+    assert window.transcript_view.get_buffer().get_char_count() == before
+
+
 def test_a_stuck_microphone_is_reported_not_hidden(window) -> None:
     window.assistant.activate()
     window.audio.stuck = True
