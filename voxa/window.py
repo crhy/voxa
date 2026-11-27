@@ -890,28 +890,20 @@ class MainWindow(Adw.ApplicationWindow):
             # "<model> (not installed)"; choosing it saves the bare model name,
             # never the suffixed text.
             name = name[: -len(NOT_INSTALLED_SUFFIX)]
-        self._save_model_choice(name)
-
-    def _save_model_choice(self, name: str, status: str = "") -> None:
-        """Write a picked model label to the right setting (#138: the ONE place the
-        two pickers persist a choice). The label-to-path mapping is where the
-        backends differ: llama.cpp models are files, everything else a name."""
+        # Behavior differs: llama.cpp models are GGUF files, so the label maps
+        # back to a path; every other backend stores the picked name itself.
         if self.settings.ai_backend == "llamacpp":
             path = smallbrain.path_for_label(name)
             if path and path != self.settings.llamacpp_model:
                 self.settings.llamacpp_model = path
                 self.config_store.save(self.settings)
                 self._apply_model_combo(self.ollama_models)
-                if status:
-                    self._set_status(status)
                 self._restart_ai_server_async()
             return
         if name and name != self.settings.ollama_model:
             self.settings.ollama_model = name
             self.config_store.save(self.settings)
             self._apply_model_combo(self.ollama_models)  # keep the legacy dropdown in step
-            if status:
-                self._set_status(status)
             self._warm_up_model(name)
 
     def _on_shell_backend_selected(self, backend: str) -> None:
@@ -1724,7 +1716,21 @@ class MainWindow(Adw.ApplicationWindow):
             return
         selected = min(self.model_combo.get_selected(), len(self.ollama_models) - 1)
         model = self.ollama_models[selected]
-        self._save_model_choice(model, f"Asking with {model} from now on.")
+        # Behavior differs: llama.cpp labels map back to GGUF file paths; every
+        # other backend stores the picked name itself.
+        if self.settings.ai_backend == "llamacpp":
+            path = smallbrain.path_for_label(model)
+            if path and path != self.settings.llamacpp_model:
+                self.settings.llamacpp_model = path
+                self.config_store.save(self.settings)
+                self._set_status(f"Asking with {model} from now on.")
+                self._restart_ai_server_async()
+            return
+        if model != self.settings.ollama_model:
+            self.settings.ollama_model = model
+            self.config_store.save(self.settings)
+            self._set_status(f"Asking with {model} from now on.")
+            self._warm_up_model(model)
 
     @staticmethod
     def _scroll_to_end(view: Gtk.TextView) -> None:
@@ -3829,7 +3835,11 @@ class MainWindow(Adw.ApplicationWindow):
                 client = self._ai_client()
                 nonlocal messages, prompt
                 heard = prompt
-                if self.settings.web_search != "never":
+                # Web search only augments the question of a real AI backend:
+                # the contract marks the real ones with capabilities(); a
+                # client that predates the contract gets the question as
+                # asked, exactly like the old isinstance guard did (#138).
+                if self.settings.web_search != "never" and hasattr(client, "capabilities"):
                     context = self._web_context(prompt, generation, cancel_event)
                     if context:
                         if messages:
