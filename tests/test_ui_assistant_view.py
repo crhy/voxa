@@ -110,6 +110,26 @@ def test_portrait_character_uses_photo_renderer() -> None:
     assert type(view.renderer.widget).__name__ == "FaceCanvas"
 
 
+def test_photo_renderer_failure_shows_colour_portrait(monkeypatch) -> None:
+    """#134: a failed photo renderer must not fall back to the grayscale badge."""
+    import voxa.ui.photo_face as pf
+
+    class Boom:
+        def __init__(self, _view):
+            raise RuntimeError("textures could not be decoded")
+
+    monkeypatch.setattr(pf, "PhotoFaceRenderer", Boom)
+    view = AssistantView("grace")
+    assert view.renderer is view._static_renderer
+    paintable = view._static_renderer._avatar.get_paintable()
+    from gi.repository import Gdk
+    from voxa.ui.avatars import get_avatar
+
+    portrait = Gdk.Texture.new_from_filename(str(get_avatar("grace").portrait_path))
+    assert paintable is not None
+    assert paintable.get_width() == portrait.get_width()
+
+
 def test_face_mode_reaches_renderer() -> None:
     view = AssistantView("aoife")
     view.set_face_mode("still")

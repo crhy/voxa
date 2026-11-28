@@ -181,6 +181,19 @@ class StaticAssistantRenderer(AvatarRendererBase):
             else:
                 self._view.remove_css_class(css_class)
 
+    def show_portrait(self, path: str) -> bool:
+        """Put the character's colour portrait where the badge sits (#134).
+
+        The badge is Voxa's grayscale brand mark; a character always has a colour
+        portrait, so the face must never fall back to the badge's desaturated circle.
+        """
+        try:
+            texture = Gdk.Texture.new_from_filename(str(path))
+        except Exception:
+            return False
+        self._avatar.set_from_paintable(texture)
+        return True
+
     def set_listening(self, active: bool) -> None:
         self._set_activity("listening", active)
 
@@ -335,6 +348,8 @@ class AssistantView(Gtk.Box):
             except Exception as exc:
                 logging.warning("photo face renderer unavailable; falling back: %s", exc)
                 self._append_static()
+                # Never show the grayscale badge as this character's face (#134).
+                self._static_renderer.show_portrait(get_avatar(self._character_id).portrait_path)
         else:
             self._append_static()
 

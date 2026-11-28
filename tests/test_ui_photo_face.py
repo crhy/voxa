@@ -101,6 +101,7 @@ def test_live_fallback_decodes_selected_mouth_frame_on_demand(monkeypatch):
     renderer._pending = deque()
     renderer._logged = False
     renderer._base_path = "/portrait.jpg"
+    renderer._drawn = None
     renderer._crossfade_t0 = 0.0
     renderer.widget = SimpleNamespace(
         base="portrait-texture",
@@ -218,3 +219,59 @@ def test_live_frames_are_decoded_from_plain_bytes():
     for index in range(LIVE_TEXTURE_CACHE + 3):
         renderer._live_texture(f"live:test:{index + 1}", out.getvalue())
     assert len(renderer._live_textures) == LIVE_TEXTURE_CACHE
+
+
+def test_idle_canvas_never_redraws_unchanged_frames(monkeypatch):
+    """#134: idle listening may not peg a core; an unchanged canvas is never redrawn."""
+    renderer = PhotoFaceRenderer.__new__(PhotoFaceRenderer)
+    renderer._cache = FrameCache(lambda path: f"texture:{path}")
+    renderer._pending = deque()
+    renderer._logged = False
+    renderer._base_path = None
+    renderer._drawn = None
+    renderer._crossfade_t0 = 0.0
+    draws = []
+    renderer.widget = SimpleNamespace(
+        base=None,
+        previous=None,
+        fade=1.0,
+        patch=None,
+        eye_box=(0, 0, 0, 0),
+        frame_size=0,
+        offset=(0.0, 0.0),
+        zoom=1.0,
+        rotation=0.0,
+        queue_draw=lambda: draws.append(1),
+    )
+    monkeypatch.setattr("voxa.ui.photo_face._now", lambda: 1.0)
+    frame, _ = compose(_fake_pack(), "still", {}, 0.0, (0.0, 0.0, 0.0), 0, "/portrait.jpg")
+
+    renderer._draw(frame)
+    renderer._draw(frame)
+    renderer._draw(frame)
+    assert draws == [1]  # the first draw only; identical states never queue_draw
+
+    # A real change still draws once more.
+    frame2, _ = compose(_fake_pack(), "still", {}, 0.0, (0.0, 0.0, 0.0), 0, "/portrait2.jpg")
+    renderer._draw(frame2)
+    assert draws == [1, 1]
+
+
+def test_med_quality_face_renders_in_colour(tmp_path):
+    """#134: the shipped Med-quality face path must draw a colour face."""
+    pytest.importorskip("gi")
+    from gi.repository import Gtk
+
+    if not Gtk.init_check():
+        pytest.skip("no GTK")
+    from voxa.ui import photo_face_snapshot
+
+    out = tmp_path / "face.png"
+    assert photo_face_snapshot.main(["grace", str(out), "--size", "160", "--mode", "prerendered"]) == 0
+
+    from PIL import Image
+
+    rgb = Image.open(out).convert("RGB")
+    pixels = list(rgb.getdata())
+    saturated = sum(1 for r, g, b in pixels if abs(r - g) + abs(g - b) > 30)
+    assert saturated > 100, "the Med face rendered desaturated"

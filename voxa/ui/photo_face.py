@@ -240,6 +240,7 @@ class PhotoFaceRenderer:
         self.widget = FaceCanvas()
         self.widget.add_css_class("voxa-photo-face")
         self._base_path: str | None = None
+        self._drawn: tuple | None = None  # canvas state of the last redraw; unchanged ticks never redraw
         self._pending: deque = deque()
         self._motion_t0 = _now()
         self._ensure_render_tick()
@@ -505,7 +506,15 @@ class PhotoFaceRenderer:
         canvas.offset = frame.offset
         canvas.zoom = frame.scale
         canvas.rotation = frame.rotation
-        canvas.queue_draw()
+        # Idle listening draws the same resting frame tick after tick: never
+        # queue_draw when nothing about the canvas changed, so an idle face costs
+        # no drawing at all. A running crossfade moves canvas.fade every tick,
+        # so it keeps drawing until it finishes.
+        state = (canvas.base, canvas.previous, canvas.patch, canvas.eye_box, canvas.frame_size,
+                 canvas.offset, canvas.zoom, canvas.rotation, canvas.fade)
+        if state != self._drawn:
+            self._drawn = state
+            canvas.queue_draw()
 
     def _draw_still(self) -> None:
         if not self._portrait:
@@ -520,6 +529,7 @@ class PhotoFaceRenderer:
             canvas.zoom = 1.0
             canvas.rotation = 0.0
             canvas.queue_draw()
+            self._drawn = None
         except Exception:  # the portrait itself is unreadable: leave the canvas as it is
             pass
 
@@ -548,3 +558,4 @@ class PhotoFaceRenderer:
         canvas.zoom = 1.0
         canvas.rotation = 0.0
         canvas.queue_draw()
+        self._drawn = None
