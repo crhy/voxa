@@ -202,6 +202,18 @@ _RADIO_PLAY = re.compile(
     r"(?:(.+?)\s+)?(?:internet\s+)?radio(?:\s+station)?",
     re.IGNORECASE,
 )
+# A bare station request with no verb at all: "Business Lounge Radio" (#134). It is a noun
+# phrase ending in radio, so words like "I heard it on the radio" stay in the chat.
+_RADIO_BARE = re.compile(r"([a-z][a-z0-9'-]*(?:\s+[a-z0-9'-]+){0,3})\s+(?:internet\s+)?radio(?:\s+station)?",
+                         re.IGNORECASE)
+_RADIO_BARE_STOP = frozenset(
+    {"i", "you", "we", "they", "it", "this", "that", "on", "in", "at", "to", "of", "for", "from",
+     "with", "about", "was", "is", "are", "be", "and", "or", "but", "the", "a", "an", "my",
+     "your", "his", "her", "its", "our", "their", "me", "us", "him", "them", "internet", "fm",
+     "what", "how", "why", "when", "where", "who",
+     "list", "hear", "heard", "play", "put", "listen", "turn", "watch", "change", "stop",
+     "pause", "resume", "switch", "start", "say", "find", "search", "volume", "louder", "quieter"}
+)
 # "change to Windows 7 dark theme", "switch the desktop theme to mac", "use the ubuntu theme" (#115)
 _CHANGE_THEME = re.compile(
     r"(?:change|switch|set)\s+(?:the\s+|my\s+)?(?:desktop\s+)?theme\s+to\s+(?:the\s+)?(.+?)(?:\s+theme)?"
@@ -2175,6 +2187,11 @@ def _route_command(text: str) -> ToolCall | None:
     station_match = _PLAY_ANY.fullmatch(s)
     if station_match and radio.is_station(station_match.group(1)):
         return call("play_radio", name=radio.clean_request(station_match.group(1)))
+    bare_radio = _RADIO_BARE.fullmatch(s)
+    if bare_radio:
+        wanted = radio.clean_request(s)
+        if wanted and not any(w in _RADIO_BARE_STOP for w in wanted.split()):
+            return call("play_radio", name=wanted)
 
     for pattern, tool in (
         (_PLAY_YT_MUSIC, "play_youtube"),

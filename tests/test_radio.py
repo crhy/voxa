@@ -66,6 +66,8 @@ def test_tools(monkeypatch):
     assert "16 stations" in radio_tools.list_radio({}).speech
     missing = radio_tools.play_radio({"name": "polka"})
     assert missing.ok and "polka" in missing.speech and "Which station" in missing.speech
+    lounge = radio_tools.play_radio({"name": "business lounge"})
+    assert lounge.ok and "business lounge" in lounge.speech and "do not have" in lounge.speech
 
 
 def test_router():
@@ -77,3 +79,16 @@ def test_router():
     assert intents.route("what station is this").tool == "radio_genre"
     other = intents.route("play Dirty Old Town by the Pogues")
     assert other is not None and other.tool != "play_radio"
+
+
+def test_router_station_requests_134():
+    # #134: a bare station request goes to the radio tool, not the chat model.
+    assert intents.route("Business Lounge Radio").args == {"name": "business lounge"}
+    assert intents.route("business lounge radio").tool == "play_radio"
+    assert intents.route("play business lounge radio").args == {"name": "business lounge"}
+    assert intents.route("put on jazz radio").args == {"name": "jazz"}
+    assert intents.route("jazz radio station").args == {"name": "jazz"}
+    # Sentences about the radio stay in the chat.
+    assert intents.route("I heard it on the radio") is None
+    assert intents.route("the radio") is None
+    assert intents.route("list radio") is None
