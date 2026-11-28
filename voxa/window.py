@@ -4412,6 +4412,15 @@ class MainWindow(Adw.ApplicationWindow):
         )
         auto_speak_row.set_active(self.settings.auto_speak)
         conversation_group.add(auto_speak_row)
+        # Where the local weather, the local news and "near me" look (issue #101).
+        location_group = Adw.PreferencesGroup(
+            title="Location",
+            description="A city or a latitude and longitude; empty works the place out from the network once a day",
+        )
+        general_page.add(location_group)
+        location_row = Adw.EntryRow(title="Location")
+        location_row.set_text(self.settings.home_location)
+        location_group.add(location_row)
         dialog.add(general_page)
 
         speech_page = Adw.PreferencesPage(title="Speech", icon_name="audio-input-microphone-symbolic")
@@ -4618,6 +4627,7 @@ class MainWindow(Adw.ApplicationWindow):
             web_search_row,
             wake_word_row,
             character_row,
+            location_row,
             voice_row,
             rate_row,
         )
@@ -4639,6 +4649,7 @@ class MainWindow(Adw.ApplicationWindow):
         web_search_row,
         wake_word_row,
         character_row,
+        location_row,
         voice_row,
         rate_row,
     ) -> None:
@@ -4678,6 +4689,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.settings.web_search = WEB_SEARCH_VALUES[min(web_search_row.get_selected(), len(WEB_SEARCH_VALUES) - 1)]
         self.settings.wake_word = wake_word_row.get_text().strip()
         wakelabel.set_wake(self.settings.wake_word)
+        self.settings.home_location = location_row.get_text().strip()
         self.shell._apply_state(self.assistant_model.state, self.assistant_model.detail)
         self.settings.appearance = APPEARANCE_VALUES[appearance_row.get_selected()]
         self.settings.character_id = self._character_ids[

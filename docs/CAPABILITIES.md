@@ -122,6 +122,11 @@ adaptive noise cancellation.
 | “Best price on a 4070 Ti Super” | Google Shopping, price ascending | 🧪 |
 | “Give me directions to the San Diego Zoo” | Google Maps directions | 🧪 |
 | “Where is the nearest gas station?” | Google Maps, nearest first | 🧪 |
+| “Where am I?” | The city you set in Preferences or that Voxa worked out from the network | 🧪 |
+| “Show the local weather” | Now, today and tomorrow from Open-Meteo, on the answer card | 🧪 |
+| “Play the local news” | Reads the top three headlines for your city (Google News RSS) | 🧪 |
+| “Open the news” | Opens the news page instead of reading it again | 🧪 |
+| “Live music tonight in my area” | A search for shows near your place | 🧪 |
 | “Show me pictures of …” | Image search | ✅ |
 
 ## Browsing
