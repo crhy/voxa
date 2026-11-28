@@ -17,6 +17,7 @@ ROUTES = [
     ("watch NHK World", ToolCall("play_tv", {"name": "NHK World-Japan"})),
     ("watch a video about cats", ToolCall("play_video", {"query": "a video about cats"})),
     ("play the local news", ToolCall("local_news", {})),
+    ("open the news", ToolCall("local_news", {"page": "1"})),
     ("show the local weather", ToolCall("local_weather", {})),
     ("what's the weather in Paris", ToolCall("local_weather", {"place": "Paris"})),
     ("live music tonight in my area", ToolCall("local_events", {"what": "live music", "when": "tonight"})),
@@ -83,7 +84,7 @@ def test_local_tools_use_the_users_place(opened):
     assert local.local_weather({}).speech == "Here is the weather for Portland."
     assert local.local_news({}).speech == "Here is the local news for Portland."
     assert local.local_events({"what": "live music", "when": "tonight"}).speech == "Here is live music tonight near Portland."
-    assert "weather%20Portland" in opened[0] and "Portland%20local%20news%20live" in opened[1]
+    assert "weather%20Portland" in opened[0] and "news.google.com" in opened[1] and "Portland%20news" in opened[1]
     assert local.local_weather({"place": "Tokyo"}).detail.endswith("weather%20Tokyo")
 
 

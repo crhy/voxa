@@ -35,6 +35,10 @@ class Settings:
     face_mode: str = "prerendered"
     # Location override set by saying "I'm in X"; empty means detect it from the web.
     home_location: str = ""
+    # The place worked out from the network for the local weather and news, and the
+    # day it was worked out; re-detected once the day has passed. (#101)
+    location_detected: str = ""
+    location_detected_on: str = ""
     # Subtract the computer's own sound (Voxa's voice, music) from the microphone.
     echo_cancel: bool = True
     # How to remove the computer's own sound: "voxa" = Voxa's own canceller (listens to the output's

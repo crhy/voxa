@@ -320,6 +320,10 @@ _LOCAL_NEWS = re.compile(
     r"(?:\s+(?:today|tonight|now|near\s+me|in\s+my\s+area))?",
     re.IGNORECASE,
 )
+_NEWS_PAGE = re.compile(
+    r"(?:open|show|go\s+to)(?:\s+to)?\s+the\s+news(?:\s+page)?|open\s+the\s+local\s+news\s+page",
+    re.IGNORECASE,
+)
 _LOCAL_EVENTS = re.compile(
     r"(?:(?:show(?:\s+me)?|find(?:\s+me)?|what(?:'s| is)|is\s+there(?:\s+any)?|any)\s+)?(?:the\s+|some\s+)?"
     r"(live\s+music|concerts?|events|shows|things\s+to\s+do|comedy(?:\s+shows?)?|farmers\s+markets?)"
@@ -1982,6 +1986,8 @@ def _route_command(text: str) -> ToolCall | None:
         return call("where_am_i")
     if _LOCAL_NEWS.fullmatch(s):
         return call("local_news")
+    if _NEWS_PAGE.fullmatch(s):
+        return call("local_news", page="1")
     events_match = _LOCAL_EVENTS.fullmatch(s)
     if events_match:
         when = (events_match.group(2) or events_match.group(3) or "").casefold()

@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-import re
 import urllib.parse
 import urllib.request
 from collections.abc import Callable
+from datetime import date
+from xml.etree import ElementTree
 
-from voxa.agent import briefing, host
+from voxa.agent import host, weather
 from voxa.agent.deals import detect_location
 from voxa.agent.policy import RiskLevel
 from voxa.agent.registry import Tool
@@ -28,10 +29,21 @@ def _fetch(url: str) -> str:
 
 
 def where() -> str:
-    """The place the user saved ("I'm in …"), else the one worked out from the network."""
+    """The place the user saved ("I'm in …"), else the one worked out from the network
+    — at most once a day, kept in the settings so Voxa keeps answering offline after."""
     if locate is not None:
         return locate()
-    return ConfigStore().load().home_location or detect_location()
+    settings = ConfigStore().load()
+    if settings.home_location:
+        return settings.home_location
+    if settings.location_detected and settings.location_detected_on == date.today().isoformat():
+        return settings.location_detected
+    found = detect_location()
+    if found:
+        settings.location_detected = found
+        settings.location_detected_on = date.today().isoformat()
+        ConfigStore().save(settings)
+    return found
 
 
 def _city(place: str) -> str:
@@ -50,35 +62,73 @@ def where_am_i(args: dict[str, str]) -> ToolResult:
 
 
 def local_weather(args: dict[str, str]) -> ToolResult:
-    place = (args.get("place") or "").strip() or where()
+    asked = (args.get("place") or "").strip()
+    place = asked or where()
     if not place:
         return ToolResult.failure(NO_LOCATION)
-    url = "https://www.google.com/search?q=" + urllib.parse.quote(f"weather {place}")
+    city = _city(place)
     spoken = ""
     try:
-        text = (fetch or _fetch)(f"https://wttr.in/{urllib.parse.quote(place)}?format=j1")
-        spoken = briefing.parse_weather(text, briefing.uses_fahrenheit(text))
-        if spoken and (args.get("place") or "").strip():
-            # The forecast service names its nearest weather station ("Shikinajima" for Tokyo):
-            # answer with the place that was asked for.
-            spoken = re.sub(r"^In .+? it is ", f"In {_city(place)} it is ", spoken, count=1)
+        # Open-Meteo needs no key and no account: geocode the name, then one forecast call.
+        coords = weather.latlon(place)
+        if coords is not None:
+            lat, lon, fahrenheit = coords[0], coords[1], weather.in_us(*coords)
+        else:
+            geo = weather.parse_geocode((fetch or _fetch)(weather.geocode_url(place)))
+            if geo is None:
+                raise ValueError(f"Open-Meteo has no place called {place}")
+            lat, lon, fahrenheit = geo
+        spoken = weather.parse_forecast((fetch or _fetch)(weather.forecast_url(lat, lon, fahrenheit)), city)
+        if not spoken:
+            raise ValueError("unexpected forecast answer")
     except Exception:  # noqa: BLE001 - no forecast service: the page still opens
         spoken = ""
+    if spoken:
+        # The forecast answers on the exchange card; nothing to open.
+        return ToolResult.success(spoken)
+    url = "https://www.google.com/search?q=" + urllib.parse.quote(f"weather {place}")
     if not _open(url):
         return ToolResult.failure("I couldn't open the browser.", detail=url)
-    return ToolResult.success(spoken or f"Here is the weather for {_city(place)}.", detail=url)
+    return ToolResult.success(f"Here is the weather for {city}.", detail=url)
+
+
+def _news_page_url(city: str) -> str:
+    return "https://news.google.com/search?q=" + urllib.parse.quote(f"{city} news")
+
+
+def _headlines(xml_text: str) -> list[str]:
+    """The item titles of a Google News RSS search, newest first; the feed's own title first."""
+    root = ElementTree.fromstring(xml_text)
+    titles = []
+    for title in root.iter("title"):
+        text = (title.text or "").strip()
+        if text:
+            titles.append(text)
+    return titles[1:]
 
 
 def local_news(args: dict[str, str]) -> ToolResult:
     place = where()
     if not place:
         return ToolResult.failure(NO_LOCATION)
-    # YouTube's "live now" filter, so a station that is on air comes first.
-    query = urllib.parse.quote(f"{_city(place)} local news live")
-    url = f"https://www.youtube.com/results?search_query={query}&sp=EgJAAQ%253D%253D"
-    if not _open(url):
-        return ToolResult.failure("I couldn't open the browser.", detail=url)
-    return ToolResult.success(f"Here is the local news for {_city(place)}.", detail=url)
+    city = _city(place)
+    page = _news_page_url(city)
+    if (args.get("page") or "").strip():
+        # "Open the news": the page, without reading the headlines again.
+        if not _open(page):
+            return ToolResult.failure("I couldn't open the browser.", detail=page)
+        return ToolResult.success(f"The local news for {city} is open.", detail=page)
+    try:
+        rss_url = "https://news.google.com/rss/search?q=" + urllib.parse.quote(f"{city} news")
+        rss = (fetch or _fetch)(rss_url)
+        top = _headlines(rss)[:3]
+        if not top:
+            raise ValueError("no headlines in the feed")
+    except Exception:  # noqa: BLE001 - no RSS feed: the news page still opens
+        if not _open(page):
+            return ToolResult.failure("I couldn't open the browser.", detail=page)
+        return ToolResult.success(f"Here is the local news for {city}.", detail=page)
+    return ToolResult.success(f"Here are the top local news headlines for {city}: {'; '.join(top)}.", detail=page)
 
 
 def local_events(args: dict[str, str]) -> ToolResult:
@@ -97,11 +147,12 @@ def local_events(args: dict[str, str]) -> ToolResult:
 def local_tools() -> list[Tool]:
     return [
         Tool(name="local_weather", description="Say and show the weather where the user is, or in a named place.",
-             parameters={"place": "optional: a town or city; empty for the user's own"},
+             parameters={"place": "optional: a town or city, or a latitude, longitude; empty for the user's own"},
              risk=RiskLevel.REVERSIBLE, handler=local_weather),
         Tool(name="where_am_i", description="Say which town or city the user is in.", parameters={},
              risk=RiskLevel.READ_ONLY, handler=where_am_i),
-        Tool(name="local_news", description="Open live local news for where the user is.", parameters={},
+        Tool(name="local_news", description="Read the top three local news headlines for where the user is.",
+             parameters={"page": "set to open the news page instead of reading the headlines"},
              risk=RiskLevel.REVERSIBLE, handler=local_news),
         Tool(name="local_events", description="Show what is on near the user: live music, concerts, events.",
              parameters={"what": "what to look for, e.g. live music", "when": "optional: tonight, this weekend"},
